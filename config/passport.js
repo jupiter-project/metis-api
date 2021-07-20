@@ -204,6 +204,8 @@ const metisLogin = (passport, jobs, io) => {
             })
             .catch(err => err);
         }
+        const userProperties = await gravity.getAccountProperties({ recipient: data.account });
+        const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
         return done(null, {
           userRecordFound: response.userRecordFound,
           noUserTables: response.noUserTables,
@@ -214,6 +216,9 @@ const metisLogin = (passport, jobs, io) => {
           database: response.database,
           accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
           id: user.data.id,
+          profilePictureURL: profilePicture && profilePicture.value
+            ? profilePicture.value
+            : '',
           userData: {
             alias: data.alias,
             account: data.account,

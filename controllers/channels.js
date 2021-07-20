@@ -6,48 +6,15 @@ import { messagesConfig } from '../config/constants';
 import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
-import { findNotificationInfoByAliasOrJupId } from '../services/notificationService';
 import metis from '../config/metis';
 
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
-const { sendPushNotification } = require('../config/notifications');
 const logger = require('../utils/logger')(module);
 const { hasJsonStructure } = require('../utils/utils');
+const { getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification } = require('../services/messageService');
 
 const decryptUserData = req => JSON.parse(gravity.decrypt(req.session.accessData));
-
-const getPNTokensAndSendPushNotification = (members, senderAlias, channel, message, title) => {
-  if (members && Array.isArray(members) && !_.isEmpty(members)) {
-    findNotificationInfoByAliasOrJupId(members, channel.id)
-      .then((data) => {
-        if (data && Array.isArray(data) && !_.isEmpty(data)) {
-          const tokens = _.map(data, 'token');
-          const payload = { title, channel };
-          sendPushNotification(tokens, message, 0, payload, 'channels');
-        }
-      })
-      .catch((error) => {
-        logger.error(JSON.stringify(error));
-      });
-  }
-};
-
-const getPNTokenAndSendInviteNotification = (senderAlias, recipientAliasOrJupId, channelName) => {
-  findNotificationInfoByAliasOrJupId([recipientAliasOrJupId])
-    .then((data) => {
-      if (data && Array.isArray(data) && !_.isEmpty(data)) {
-        const tokens = _.map(data, 'token');
-        const alert = `${senderAlias} invited you to the channel "${channelName}"`;
-        const payload = { title: 'Invitation', isInvitation: true };
-        const threeMinutesDelay = 180000;
-        sendPushNotification(tokens, alert, 0, payload, 'channels', threeMinutesDelay);
-      }
-    })
-    .catch((error) => {
-      logger.error(error);
-    });
-};
 
 module.exports = (app, passport, React, ReactDOMServer) => {
   app.use(device.capture());
