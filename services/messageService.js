@@ -21,7 +21,8 @@ module.exports = {
       findNotificationInfoByAliasOrJupId(members, channel.id)
         .then((data) => {
           if (data && Array.isArray(data) && !_.isEmpty(data)) {
-            const tokens = _.map(data, 'token');
+            let tokens = _.map(data, 'tokenList');
+            tokens = _.flattenDeep(tokens);
             const payload = { title, channel };
             sendPushNotification(tokens, message, 0, payload, 'channels');
           }
@@ -35,7 +36,8 @@ module.exports = {
     findNotificationInfoByAliasOrJupId([recipientAliasOrJupId])
       .then((data) => {
         if (data && Array.isArray(data) && !_.isEmpty(data)) {
-          const tokens = _.map(data, 'token');
+          let tokens = _.map(data, 'tokenList');
+          tokens = _.flattenDeep(tokens);
           const alert = `${senderAlias} invited you to the channel "${channelName}"`;
           const payload = { title: 'Invitation', isInvitation: true };
           const threeMinutesDelay = 180000;

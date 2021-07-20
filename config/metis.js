@@ -1,6 +1,7 @@
 require('dotenv').config();
 const _ = require('lodash');
 const { gravity } = require('./gravity');
+const logger = require('../utils/logger')(module);
 
 const propertyFee = 10;
 
@@ -148,6 +149,7 @@ function Metis() {
     const propertyCreation = await gravity.setAcountProperty(propertyParams);
 
     if (propertyCreation.errorDescription) {
+      logger.error(`Property creation failed: ${JSON.stringify(propertyCreation)}`);
       return propertyCreation;
     }
 

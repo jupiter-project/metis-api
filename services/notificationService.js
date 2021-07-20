@@ -15,7 +15,7 @@ module.exports = {
         { alias: { $in: members } },
         { jupId: { $in: members } },
       ],
-      token: { $ne: '' },
+      tokenList: { $exists: true, $ne: [] },
     };
 
     if (channelId) {
@@ -23,6 +23,11 @@ module.exports = {
     }
 
     return Notifications.find(filter);
+  },
+  findItemsByToken: (token) => {
+    const filter = { tokenList: { $in: [token] } };
+    return Notifications.find(filter)
+      .select('tokenList');
   },
   findMutedChannels: (alias) => {
     const filter = { alias };
