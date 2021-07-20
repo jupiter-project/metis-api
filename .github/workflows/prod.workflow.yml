@@ -2,7 +2,7 @@ name: Build and publish Metis Prod
 
 on:
   push:
-    branches: [ release/** ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
