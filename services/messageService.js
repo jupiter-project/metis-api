@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { findNotificationInfoByAliasOrJupId } from './notificationService';
+import { findNotificationInfoByAliasOrJupId, findNotificationAndUpdate } from './notificationService';
 
 const logger = require('../utils/logger')(module);
 const { sendPushNotification } = require('../config/notifications');
@@ -21,11 +21,25 @@ module.exports = {
       findNotificationInfoByAliasOrJupId(members, channel.id)
         .then((data) => {
           if (data && Array.isArray(data) && !_.isEmpty(data)) {
-            let tokens = _.map(data, 'tokenList');
-            tokens = _.flattenDeep(tokens);
-            const payload = { title, channel };
-            sendPushNotification(tokens, message, 0, payload, 'channels');
+            const notificationIds = _.map(data, '_id');
+            const updateData = { $inc: { badgeCounter: 1 } };
+            // eslint-disable-next-line max-len
+            const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
+            return Promise.all(badgeCounters);
           }
+          return null;
+        })
+        .then((data) => {
+          const payload = { title, channel };
+          if (data && Array.isArray(data) && !_.isEmpty(data)) {
+            // eslint-disable-next-line max-len
+            const tokensAndBadge = data.map(item => ({ token: item.tokenList, badge: item.badgeCounter }));
+            return { tokensAndBadge, payload };
+          }
+          return { tokensAndBadge: [], payload };
+        })
+        .then(({ tokensAndBadge, payload }) => {
+          tokensAndBadge.map(tb => sendPushNotification(tb.token, message, tb.badge, payload, 'channels'));
         })
         .catch((error) => {
           logger.error(JSON.stringify(error));
@@ -36,12 +50,21 @@ module.exports = {
     findNotificationInfoByAliasOrJupId([recipientAliasOrJupId])
       .then((data) => {
         if (data && Array.isArray(data) && !_.isEmpty(data)) {
-          let tokens = _.map(data, 'tokenList');
-          tokens = _.flattenDeep(tokens);
+          const notificationIds = _.map(data, '_id');
+          const updateData = { $inc: { badgeCounter: 1 } };
+          // eslint-disable-next-line max-len
+          const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
+          return Promise.all(badgeCounters);
+        }
+        return null;
+      })
+      .then((data) => {
+        if (data && Array.isArray(data) && !_.isEmpty(data)) {
           const alert = `${senderAlias} invited you to the channel "${channelName}"`;
           const payload = { title: 'Invitation', isInvitation: true };
           const threeMinutesDelay = 180000;
-          sendPushNotification(tokens, alert, 0, payload, 'channels', threeMinutesDelay);
+          const tokensAndBadge = data.map(item => ({ token: item.tokenList, badge: item.badgeCounter }));
+          tokensAndBadge.map(tb => sendPushNotification(tb.token, alert, tb.badge, payload, 'channels', threeMinutesDelay));
         }
       })
       .catch((error) => {

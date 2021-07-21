@@ -31,6 +31,8 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
   setTimeout(async () => {
     // Send the actual notification
     const result = await apnProvider.send(notification, tokens);
+    // shou down the provider after sending the push notification
+    apnProvider.shutdown();
     // Show the result of the send operation:
     logger.info(JSON.stringify(result));
   }, delay);

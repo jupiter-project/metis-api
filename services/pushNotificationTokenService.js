@@ -1,4 +1,6 @@
-import { findNotificationAndUpdate, findMutedChannels, findItemsByToken } from './notificationService';
+import {
+  findNotificationAndUpdate, findMutedChannels, findItemsByToken, updateBadgeCounter,
+} from './notificationService';
 
 const logger = require('../utils/logger')(module);
 
@@ -81,6 +83,26 @@ module.exports = {
         ok: false,
         error: 'bad request',
         message: 'Alias is required.',
+      };
+      logger.error(error);
+      res.status(400).json(error);
+    }
+  },
+  setBadgePnCounter: (req, res) => {
+    const { body } = req;
+    if (body.alias) {
+      updateBadgeCounter(body.alias, body.badge || 0)
+        .then((response) => {
+          res.json({
+            ok: true,
+            response,
+          });
+        });
+    } else {
+      const error = {
+        ok: false,
+        error: 'bad request',
+        message: 'Alias id are required.',
       };
       logger.error(error);
       res.status(400).json(error);
