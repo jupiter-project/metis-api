@@ -29,6 +29,12 @@ module.exports = {
     return Notifications.find(filter)
       .select('tokenList');
   },
+  updateBadgeCounter: (alias, badge) => {
+    if (!alias) {
+      throw new Error('Alias are required');
+    }
+    return Notifications.updateOne({ alias }, { badgeCounter: badge || 0 });
+  },
   findMutedChannels: (alias) => {
     const filter = { alias };
     return Notifications.find(filter)

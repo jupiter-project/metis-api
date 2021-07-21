@@ -6,6 +6,7 @@ const notificationsSchema = new mongoose.Schema({
   token: String,
   mutedChannels: [String],
   tokenList: [String],
+  badgeCounter: Number,
 });
 
 module.exports = mongoose.model('Notifications', notificationsSchema);
