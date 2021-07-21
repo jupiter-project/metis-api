@@ -5,6 +5,7 @@ const notificationsSchema = new mongoose.Schema({
   jupId: String,
   token: String,
   mutedChannels: [String],
+  tokenList: [String],
 });
 
 module.exports = mongoose.model('Notifications', notificationsSchema);

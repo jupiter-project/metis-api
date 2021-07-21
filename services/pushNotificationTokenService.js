@@ -1,15 +1,27 @@
-import { findNotificationAndUpdate, findMutedChannels } from './notificationService';
+import { findNotificationAndUpdate, findMutedChannels, findItemsByToken } from './notificationService';
 
 const logger = require('../utils/logger')(module);
 
 module.exports = {
   addTokenNotification: (req, res) => {
     const { body } = req;
-    if (body && body.alias && body.jupId) {
+    if (body && body.alias && body.jupId && body.token) {
       const filter = { alias: body.alias };
-      const update = { token: body.token || '', jupId: body.jupId || '' };
+      const update = { jupId: body.jupId || '' };
+      const updateToken = body.deleteToken
+        ? { $pull: { tokenList: body.token } }
+        : { $push: { tokenList: body.token } };
 
-      findNotificationAndUpdate(filter, update)
+      findItemsByToken(body.token)
+        .then((tokenList) => {
+          if (
+            (tokenList && Array.isArray(tokenList))
+            && (tokenList.length === 0 || body.deleteToken)
+          ) {
+            return findNotificationAndUpdate(filter, { ...updateToken, ...update });
+          }
+          return null;
+        })
         .then(oldValue => res.json({ ok: true, oldValue }))
         .catch((error) => {
           logger.error(error);
@@ -19,7 +31,7 @@ module.exports = {
       const error = {
         ok: false,
         error: 'bad request',
-        message: 'Alias and JupId are required.',
+        message: 'Alias, Token and JupId are required',
       };
       logger.error(error);
       res.status(400).json(error);
