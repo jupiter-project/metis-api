@@ -1626,6 +1626,17 @@ class Gravity {
     });
   }
 
+  async deleteAccountProperty(params) {
+    return this.jupiterRequest('post', {
+      requestType: 'deleteAccountProperty',
+      recipient: params.recipient,
+      property: params.property,
+      secretPhrase: params.passphrase,
+      feeNQT: params.feeNQT || 10,
+      deadline: params.deadline || 60,
+    });
+  }
+
   async hasFundingProperty(params) {
     const { properties } = await this.getAccountProperties(params);
     const self = this;
