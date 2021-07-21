@@ -24,7 +24,7 @@ module.exports = {
             const notificationIds = _.map(data, '_id');
             const updateData = { $inc: { badgeCounter: 1 } };
             // eslint-disable-next-line max-len
-            const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: { $in: notificationId } }, updateData));
+            const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
             return Promise.all(badgeCounters);
           }
           return null;
@@ -53,7 +53,7 @@ module.exports = {
           const notificationIds = _.map(data, '_id');
           const updateData = { $inc: { badgeCounter: 1 } };
           // eslint-disable-next-line max-len
-          const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: { $in: notificationId } }, updateData));
+          const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
           return Promise.all(badgeCounters);
         }
         return null;
