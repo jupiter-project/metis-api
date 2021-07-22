@@ -36,6 +36,37 @@ function Metis() {
     return properties;
   }
 
+  function getAliasAccountProperties(aliases) {
+    return new Promise((resolve, reject) => {
+      const data = [];
+
+      const forEachPromise = new Promise((resolvefp, rejectfp) => {
+        aliases.forEach(async (value, index, array) => {
+          gravity.getAlias(value)
+            .then(userObj => gravity.getAccountProperties({ recipient: userObj.accountRS }))
+            .then((userProperties) => {
+              const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
+              data.push({
+                alias: value,
+                urlProfile: profilePicture ? profilePicture.value : '',
+              });
+
+              if (index === array.length - 1) {
+                resolvefp();
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+              rejectfp(error);
+            });
+        });
+      });
+
+      forEachPromise.then(() => resolve(data))
+        .catch(error => reject(error));
+    });
+  }
+
   // Gets alias information for a single user within a channel
   async function getMember(params) {
     // We retrieve the member list
@@ -94,7 +125,8 @@ function Metis() {
       }
     });
 
-    return { aliases, members };
+    const memberProfilePicture = await getAliasAccountProperties(members);
+    return { aliases, members, memberProfilePicture };
   }
 
   async function addToMemberList(params) {

@@ -36,7 +36,6 @@ const invites = function (data) {
 const joinChat = (socket, room, user, event) => {
   socket.name = user;
   socket.join(room);
-  socket.broadcast.to(room).emit(event, {});
   socket.in(room).allSockets().then((result) => {
     logger.info(`The user ${user} joined to the room ${room}, and the number of user connected is: ${result.size}`);
   });
