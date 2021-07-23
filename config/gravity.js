@@ -372,11 +372,11 @@ class Gravity {
             const thisKey = currentList[i];
             if (tablesRetrieved[thisKey]) {
               // We need to sort the the list we are about to call
-              self.sortBySubkey(tablesRetrieved[thisKey], thisKey, 'date');
+              const tablesRetrievedAndSorted = _.sortBy(tablesRetrieved[thisKey], [`${thisKey}.date`, `${thisKey}.address`]);
 
               // Once we do this, we can obtain the last record and push to the tableData variable
               // NOTE: We'll expand validation of tables in future releases
-              tableData.push(tablesRetrieved[thisKey][0]);
+              tableData.push(tablesRetrievedAndSorted[0]);
             }
           }
 
@@ -673,6 +673,7 @@ class Gravity {
                   decrypted.confirmed = true;
                   decryptedRecords.push(decrypted);
                 } catch (e) {
+                  logger.error(`${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${recordPassphrase}: ${JSON.stringify(e)}`);
                   // console.log(e);
                   // Error here tend to be trying to decrypt a regular message from Jupiter
                   // rather than a gravity encrypted message
