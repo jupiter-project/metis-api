@@ -22,7 +22,6 @@ const serializeUser = (passport) => {
  * @param {*} passport
  */
 const deserializeUser = (passport) => {
-  debugger;
   passport.deserializeUser((accessData, done) => {
     const user = new User({ id: accessData.id }, accessData);
 
