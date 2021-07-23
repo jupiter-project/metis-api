@@ -36,35 +36,16 @@ function Metis() {
     return properties;
   }
 
-  function getAliasAccountProperties(aliases) {
-    return new Promise((resolve, reject) => {
-      const data = [];
+  async function getAliasAccountProperties(aliases = []) {
+    const profilePictures = aliases.map(async (alias) => {
+      const { accountRS } = await gravity.getAlias(alias);
+      const { properties } = await gravity.getAccountProperties({ recipient: accountRS });
+      const profilePicture = properties.find(({ property }) => property.includes('profile_picture'));
 
-      const forEachPromise = new Promise((resolvefp, rejectfp) => {
-        aliases.forEach(async (value, index, array) => {
-          gravity.getAlias(value)
-            .then(userObj => gravity.getAccountProperties({ recipient: userObj.accountRS }))
-            .then((userProperties) => {
-              const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-              data.push({
-                alias: value,
-                urlProfile: profilePicture ? profilePicture.value : '',
-              });
-
-              if (index === array.length - 1) {
-                resolvefp();
-              }
-            })
-            .catch((error) => {
-              console.error(error);
-              rejectfp(error);
-            });
-        });
-      });
-
-      forEachPromise.then(() => resolve(data))
-        .catch(error => reject(error));
+      return { alias, urlProfile: profilePicture ? profilePicture.value : '' };
     });
+
+    return Promise.all(profilePictures);
   }
 
   // Gets alias information for a single user within a channel
