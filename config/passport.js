@@ -44,6 +44,8 @@ const deserializeUser = (passport) => {
  * @param {*} passport
  */
 const metisSignup = (passport) => {
+    logger.verbose(`metisSignup()`);
+
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -51,13 +53,13 @@ const metisSignup = (passport) => {
   },
   (req, account, accounthash, done) => {
     process.nextTick(() => {
+        logger.sensitiveInfo(`metisSignUp().nextTick()`);
       const eventEmitter = new events.EventEmitter();
       const params = req.body;
       let user;
 
-      eventEmitter.on('sent_jupiter_to_new_account', () => {
+      // eventEmitter.on('sent_jupiter_to_new_account', () => {
         logger.info('Saving new account data in Jupiter...');
-
         const data = {
           account,
           email: params.email,
@@ -72,10 +74,14 @@ const metisSignup = (passport) => {
         };
 
         // We verify the user data here
+          logger.debug('Instantiating User()');
+          logger.debug('With the following info');
+          logger.sensitiveInfo( ` the data:  ${JSON.stringify(data)}`);
         user = new User(data);
 
         user.create()
           .then(async () => {
+              logger.verbose(`user.create().then()`);
             req.session.twofa_pass = false;
             req.session.public_key = req.body.public_key;
             req.session.jup_key = gravity.encrypt(req.body.key);
@@ -89,16 +95,18 @@ const metisSignup = (passport) => {
               logger.error(e);
               moneyTransfer = e;
             }
-
+            logger.verbose(`Sent money to ${req.body.jup_account_id}`);
             if (!moneyTransfer.success) {
               logger.info('SendMoney was not completed');
             }
 
-            return done(null, {
-              accessKey: req.session.jup_key,
-              encryptionKey: gravity.encrypt(params.encryption_password),
-              id: user.data.id,
-            }, req.flash('signupMessage', 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.'));
+            const payload = {
+                accessKey: req.session.jup_key,
+                encryptionKey: gravity.encrypt(params.encryption_password),
+                id: user.data.id,
+            }
+            logger.verbose(`User is created: ${payload}`);
+            return done(null, payload, req.flash('signupMessage', 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.'));
           })
           .catch((err) => {
             logger.error('USER CREATION FAILED', JSON.stringify(err));
@@ -113,9 +121,9 @@ const metisSignup = (passport) => {
             }
             return done(null, false, { message: errorMessage });
           });
-      });
+      // });
 
-      eventEmitter.emit('sent_jupiter_to_new_account');
+      // eventEmitter.emit('sent_jupiter_to_new_account');
     });
   }));
 }
