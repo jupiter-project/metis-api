@@ -22,7 +22,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   app.get('/api/{{records}}', controller.isLoggedIn, (req, res) => {
     gravity.getRecords(req.user.record.account, process.env.{{env_name}}_RECORD_ADDRESS, process.env.{{env_name}}_RECORD, {size: 'last'})
       .then((response) => {
-        const {{records}}= response.record;
+        const {{records}}= response.records;
         res.send({ success: true, {{records}}: {{records}}.account_record, message: 'Retrieved {{records}} info');
       })
       .catch((error) => {
