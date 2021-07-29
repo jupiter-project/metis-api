@@ -44,6 +44,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
 
   app.get('/signup', (req, res) => {
+    logger.verbose(`app.get(signup)`)
     const messages = req.session.flash;
     req.session.flash = null;
     // Loads file with Signup page
@@ -195,12 +196,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // NEW ACCOUNT GENERATION
   // ===============================================================================
   app.post('/create_jupiter_account', (req, res) => {
+    logger.verbose(`app.post(create_jupiter_account)`)
     const formData = req.body.account_data;
-
     res.setHeader('Content-Type', 'application/json');
-
     const seedphrase = req.body.account_data.passphrase;
-
+    logger.sensitiveInfo(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -216,6 +216,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           lastname: formData.lastname,
           twofa_enabled: formData.twofa_enabled,
         };
+        logger.sensitiveInfo(jupiterAccount);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
