@@ -113,18 +113,18 @@ class Gravity {
           const { tables } = response.app;
 
           if (returnType === 'console') {
-            logger.info(`Database tables associated with your app ${response.app.appData.name}(${response.app.address})`);
+            logger.verbose(`Database tables associated with your app ${response.app.appData.name}(${response.app.address})`);
             Object.keys(tables).forEach((x) => {
               current = tables[x];
               const [key] = Object.keys(tables[x]);
-              logger.info(`Table => ${key}`);
-              logger.info('---Table Address');
-              logger.info(current[key].address);
-              logger.info('---Table Passphrase');
-              logger.info(current[key].passphrase);
-              logger.info('---Table Public Key');
-              logger.info(current[key].public_key);
-              logger.info('----------------------------------------------------------------');
+              logger.verbose(`Table => ${key}`);
+              logger.verbose('---Table Address---');
+              logger.verbose(current[key].address);
+              logger.verbose('---Table Passphrase---');
+              logger.sensitiveInfo(current[key].passphrase);
+              logger.verbose('---Table Public Key---');
+              logger.verbose(current[key].public_key);
+              logger.verbose('----------------------------------------------------------------');
             });
           }
           resolve(tables);
@@ -145,11 +145,21 @@ class Gravity {
   }
 
   decrypt(text, password = this.password) {
-    const decipher = crypto.createDecipher(this.algorithm, password);
-    let dec = decipher.update(text, 'hex', 'utf8');
-    dec += decipher.final('utf8');
+    try {
+      logger.sensitiveInfo(` Decrypting with password: ${password}  algorithm: ${this.algorithm}`);
+      logger.sensitiveInfo(text);
 
-    return dec;
+      const decipher = crypto.createDecipher(this.algorithm, password);
+      let dec = decipher.update(text, 'hex', 'utf8');
+      dec += decipher.final('utf8');
+      logger.debug(`decrypted...`)
+      logger.sensitiveInfo(dec);
+      return dec;
+    } catch( error){
+      logger.warn(`NOT able to decrypt`);
+      logger.warn(error);
+      throw error
+    }
   }
 
   sortByDate(array, order = 'asc') {
@@ -291,6 +301,8 @@ class Gravity {
   }
 
   loadAppData(containedDatabase = false) {
+    logger.verbose('loadAppData()')
+    logger.sensitiveInfo(containedDatabase);
     const eventEmitter = new events.EventEmitter();
 
     const self = this;
@@ -317,6 +329,9 @@ class Gravity {
 
       eventEmitter.on('loaded_records', () => {
         // console.log('Records loaded. Organizing records now.');
+        logger.debug(`loadAppData().loaded_records`);
+        logger.debug(`records count: ${records.length}`);
+
         if (records !== undefined && records.length > 0) {
           const tableList = [];
           const tablesRetrieved = {};
@@ -346,6 +361,12 @@ class Gravity {
             }
           }
 
+          logger.verbose('---userRecord---')
+          logger.verbose(userRecord);
+          logger.verbose('---tableList---')
+          logger.verbose(tableList);
+          logger.verbose('---tablesRetrieved---')
+          logger.verbose(tablesRetrieved);
           // Once we have separated the records into table list and potentially table object list,
           // we then retrieve the last table record
           self.sortByDate(tableList);
@@ -362,6 +383,8 @@ class Gravity {
               }
             }
           }
+
+          logger.verbose(`currentList count: ${currentList}`);
 
           // Now that we have a list with all the table records and the list of tables
           // that the app should be using. We go through the tablesRetrieved and get the
@@ -380,6 +403,8 @@ class Gravity {
             }
           }
 
+          logger.verbose(`---tableData---`);
+          logger.sensitiveInfo(tableData);
           self.appSchema.tables = tableData;
           self.appSchema.appData.name = appname;
           self.appSchema.address = account;
@@ -397,6 +422,9 @@ class Gravity {
             // console.log(self.tables);
             // console.log(self.appSchema.tables);
           }
+
+          logger.verbose(`1. responseMessage()`)
+          logger.sensitiveInfo(responseMessage)
           resolve(responseMessage);
         } else {
           responseMessage = {
@@ -410,21 +438,32 @@ class Gravity {
           };
           // if (process.env.ENV == undefined || process.env.ENV == 'Development')
           // console.log(responseMessage);
+          logger.verbose(`2. responseMessage()`)
+          logger.sensitiveInfo(responseMessage)
           resolve(responseMessage);
         }
       });
 
       self.getRecords(account, account, passphrase, { size: 'all', show_pending: null, show_unconfirmed: false }, password)
         .then((response) => {
-          ({ records } = response);
+          logger.verbose(`self.getRecords().then()`);
+          logger.sensitiveInfo(response)
+          // ({ records } = response);
+          records = response.records;
+          logger.debug(`--- records ---`)
+          logger.sensitiveInfo(records);
+          // console.log(records);
+
           if (containedDatabase) {
             // console.log('These are the records given in load app data through user');
             // console.log(records);
           }
           numberOfRecords = response.recordsFound;
+          logger.verbose(`numberOfRecords: ${response.recordsFound}`);
           eventEmitter.emit('loaded_records');
         })
         .catch((error) => {
+          logger.error('Theres an error!');
           logger.error(error);
           reject({ success: false, error: 'There was an error loading records' });
         });
@@ -527,7 +566,7 @@ class Gravity {
     show_unconfirmed: false,
     recipientOnly: false,
   }, password = this.password) {
-    logger.info('[Gravity: getRecords()]');
+    logger.verbose('getRecords()');
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
@@ -537,13 +576,14 @@ class Gravity {
       const decryptedPendings = [];
       const pendingRecords = [];
       let recordsFound = 0;
-      let responseData;
+      let responseData = {};
       let database = [];
       let completedNumber = 0;
       let pendingNumber = 0;
       // let show_pending = scope.show_pending;
 
       eventEmitter.on('set_responseData', () => {
+        logger.verbose(`setRecords().set_responseData()`);
         if (scope.size !== 'last') {
           if (scope.show_pending !== undefined && scope.show_pending > 0) {
             responseData = {
@@ -560,14 +600,18 @@ class Gravity {
             };
           }
         } else if (scope.size === 'last') {
-          responseData = { record: decryptedRecords[0] };
+          responseData = { records: decryptedRecords[0] };
         } else {
           responseData = { records: null, error: 'Invalid scope size' };
         }
-        resolve(responseData);
+
+        logger.debug('getRecords().return()')
+        logger.sensitiveInfo(JSON.stringify(responseData));
+        return resolve(responseData);
       });
 
       eventEmitter.on('check_on_pending', async () => {
+        logger.debug(`setRecords().check_on_pending()`);
         if (scope.show_unconfirmed) {
           const filter = {};
           if (!scope.shared_table) {
@@ -581,6 +625,8 @@ class Gravity {
               filter,
               scope.accessData,
             );
+
+            logger.verbose(`unconfirmed Data Count: ${unconfirmedObjects.length}`);
 
             for (let x = 0; x < unconfirmedObjects.length; x += 1) {
               const thisUnconfirmedRecord = unconfirmedObjects[x];
@@ -597,16 +643,20 @@ class Gravity {
         } else if (Object.keys(pendingRecords).length > 0) {
           let recordCounter = 0;
 
+          logger.verbose(`pendingRecords count: ${pendingRecords.length}`);
+
           pendingRecords.forEach((p) => {
             const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${p}&secretPhrase=${recordPassphrase}`;
 
             axios.get(thisUrl)
               .then((response) => {
                 try {
+                  //@TODO this needs to get fixed!  readMessage can also return data.message or both
                   const decriptedPending = JSON.parse(response.data.decryptedMessage);
                   decryptedPendings.push(decriptedPending);
+                  logger.debug(`decryptedPendings count: ${decriptedPending.length}`);
                 } catch (e) {
-                  logger.error(e);
+                  logger.error(JSON.stringify(e));
                 }
 
                 recordCounter += 1;
@@ -616,7 +666,9 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                resolve(error);
+                logger.error('ERROR!!!')
+                logger.error(error);
+                return reject({ success: false, errors: error });
               });
           });
         } else {
@@ -625,6 +677,9 @@ class Gravity {
       });
 
       eventEmitter.on('records_retrieved', () => {
+        logger.debug(`records_retrieved()`);
+        logger.debug(`records count: ${records.length}`);
+
         if (records.length <= 0) {
           eventEmitter.emit('check_on_pending');
         } else {
@@ -717,6 +772,7 @@ class Gravity {
             recordsFound += 1;
           }
           if (completion) {
+            logger.verbose(JSON.stringify(records));
             break;
           }
         }
@@ -725,21 +781,25 @@ class Gravity {
 
       const port = process.env.JUPITER_PORT ? `:${process.env.JUPITER_PORT}` : '';
       const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${userAddress}&withMessage=true&type=1`;
+      logger.verbose(url);
+
       axios.get(url)
         .then((response) => {
           logger.info('Getting blockchain transactions: Response');
           database = response.data.transactions;
+          logger.info(`transactions coung: ${database.length}`);
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
           logger.info('Error getting transactions');
           logger.error(error);
-          resolve({ success: false, errors: error });
+          return resolve({ success: false, errors: error });
         });
     });
   }
 
   getAppRecords(appAddress, appPassphrase) {
+    logger.verbose(`getAppRecords()`)
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
@@ -818,6 +878,7 @@ class Gravity {
 
 
   getAllRecords(table, scope = { size: 'all', show_pending: null }) {
+    logger.verbose(`getAllRecords()`);
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
@@ -999,6 +1060,7 @@ class Gravity {
 
   // This method retrieves user info based on the account and the passphrase given
   getUser(account, passphrase, containedDatabase = null) {
+    logger.verbose(`getUser()`);
     const self = this;
     return new Promise((resolve, reject) => {
       if (account === process.env.APP_ACCOUNT_ADDRESS) {
@@ -1073,6 +1135,7 @@ class Gravity {
   }
 
   retrieveUserFromPassphrase(accessData) {
+    logger.verbose(`retrieveUserFromPassphrase()`)
     const eventEmitter = new events.EventEmitter();
     const self = this;
     const { passphrase } = accessData;
@@ -1213,6 +1276,7 @@ class Gravity {
   }
 
   retrieveUserFromApp(account, passphrase) {
+    logger.verbose(`retrieveUserFromApp()`)
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
@@ -1357,6 +1421,7 @@ class Gravity {
   }
 
   getBalance(address, accountId, jupServ) {
+    logger.verbose(`getBalance()`)
     const self = this;
     const eventEmitter = new events.EventEmitter();
     let account;
@@ -1420,6 +1485,7 @@ class Gravity {
   }
 
   sendMoney(recipient, transferAmount, sender) {
+    logger.verbose(`sendMoney()`)
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
     const feeNQT = 100;
@@ -1660,6 +1726,7 @@ class Gravity {
     recipientPublicKey,
     config = { appEncryption: false, specialEncryption: false },
   ) {
+    logger.verbose(`sendMessage()`);
     let dataToBeSent;
     let callUrl;
     let response;
@@ -1742,6 +1809,7 @@ class Gravity {
   }
 
   async attachTable(database, tableName, currentTables = null) {
+    logger.verbose(`attachTable()`)
     const eventEmitter = new events.EventEmitter();
     const self = this;
     // let valid_table = true;
@@ -1998,6 +2066,7 @@ class Gravity {
   }
 
   async getTransactions(filter) {
+    logger.verbose(`getTransactions()`)
     const self = this;
     let address;
     const validTransactions = [];
@@ -2163,6 +2232,7 @@ class Gravity {
   }
 
   async getDataTransactions(filter) {
+    logger.verbose(`getDataTransactions()`)
     // Filter must always contain an account
     // but it can be just the address if that is all devs are looking
     const dataTransactions = [];
@@ -2260,6 +2330,8 @@ class Gravity {
 
   // This method creates a table
   createTable() {
+    logger.verbose(`createTable()`);
+
     const appAccount = process.env.APP_ACCOUNT;
     const appAccountAddress = process.env.APP_ACCOUNT_ADDRESS;
     const appPublickKey = process.env.APP_PUBLIC_KEY;

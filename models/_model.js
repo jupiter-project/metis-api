@@ -117,15 +117,18 @@ class Model {
   }
 
   loadTable(accessLink = false) {
+    logger.verbose(`loadtable()`);
     const self = this;
     return new Promise((resolve, reject) => {
       gravity.loadAppData(accessLink)
         .then((response) => {
+          logger.verbose(`loadTable().gravity.loadAppData(accessLink).then()`);
           const { tables } = response.app;
 
           for (let x = 0; x < Object.keys(tables).length; x += 1) {
             if (tables[x][self.table] !== undefined) {
               const recordTable = tables[x][self.table];
+              logger.debug(recordTable);
               resolve(recordTable);
               break;
             }
@@ -212,6 +215,7 @@ class Model {
   }
 
   validateRequest() {
+    logger.verbose(`validateRequest()`);
     const self = this;
     return new Promise((resolve, reject) => {
       if (self.model === 'user') {
@@ -235,6 +239,7 @@ class Model {
   }
 
   loadRecords(accessData = false) {
+    logger.verbose(`loadRecords()`);
     const self = this;
     const eventEmitter = new events.EventEmitter();
     const finalList = [];
@@ -254,6 +259,7 @@ class Model {
           },
         )
           .then((res) => {
+            logger.debug(`loadRecords().getRecords().then()`)
             const { records } = res;
             const recordsBreakdown = {};
             for (let x = 0; x < Object.keys(records).length; x += 1) {
@@ -291,6 +297,7 @@ class Model {
             }
             // console.log(finalList);
 
+            logger.sensitiveInfo(JSON.stringify({ success: true, records: finalList, records_found: finalList.length }))
             resolve({ success: true, records: finalList, records_found: finalList.length });
           })
           .catch((err) => {
@@ -304,6 +311,7 @@ class Model {
           self.loadTable(accessData)
             .then((res) => {
               tableData = res;
+              logger.sensitiveInfo(tableData);
               eventEmitter.emit('tableData_loaded');
             })
             .catch((err) => {
@@ -349,6 +357,8 @@ class Model {
     let recordTable;
     let user;
 
+    logger.verbose(`create()`);
+
     // console.log('Access link in create model method');
 
     return new Promise((resolve, reject) => {
@@ -364,6 +374,8 @@ class Model {
             date: Date.now(),
           };
 
+          logger.verbose(`fullRecord: ${fullRecord}`);
+
           let encryptedRecord;
           if (accessLink && accessLink.encryptionPassword) {
             encryptedRecord = gravity.encrypt(
@@ -375,7 +387,6 @@ class Model {
           }
 
           let callUrl;
-
 
           if (self.model === 'user') {
             if (self.prunableOnCreate) {
@@ -392,6 +403,10 @@ class Model {
           }
           // console.log(callUrl)
           // console.log(self);
+
+
+          logger.verbose(`axios.post(): ${callUrl}`);
+
           axios.post(callUrl)
             .then((response) => {
               // console.log(response)
@@ -481,6 +496,7 @@ class Model {
   }
 
   async save(userData, tableData) {
+    logger.verbose(`save()`)
     const self = this;
     const stringifiedRecord = JSON.stringify(self.record);
 
@@ -533,6 +549,7 @@ class Model {
   }
 
   update() {
+    logger.verbose(`update()`)
     const self = this;
     const eventEmitter = new events.EventEmitter();
     let recordTable;
@@ -629,7 +646,10 @@ class Model {
   }
 
 
+
+
   findAll() {
+    logger.verbose(`findAll()`);
     const self = this;
     let containedData;
     if (self.containedDatabase) {
