@@ -1,4 +1,5 @@
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
 import controller from '../config/controller';
 
@@ -257,11 +258,19 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // used for the mobile app
   app.post('/appLogin', (req, res, next) => {
     logger.info('\n\n\nappLogin\n\n\n');
-    logger.info(JSON.stringify(req.headers));
-    logger.info('\n\n\nappLogin\n\n\n');
 
     passport.authenticate('gravity-login', (err, userInfo) => {
+
+      if (err) {
+        console.log('gravity-login---->', err);
+      }
+
       if (err) return next(err);
+
+      console.log('[gravity-login]:', userInfo);
+
+      console.log('IS USER INVALID?????', (!userInfo));
+
       if (!userInfo) {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
 
@@ -273,10 +282,15 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         });
       }
 
-      const accountData = JSON.parse(gravity.decrypt(userInfo.accountData));
-
-      userInfo.publicKey = accountData.publicKey;
-      return res.json(userInfo);
+      const token = jwt.sign(
+        userInfo,
+        process.env.JWT_SECRET_OR_KEY, {
+          expiresIn: process.env.JWT_TOKEN_EXPIRATION,
+        },
+      );
+      console.log('Token------->', token);
+      res.status(200)
+        .send({ success: true, token: `${process.env.JWT_TOKEN_PREFIX} ${token}` });
     })(req, res, next);
   });
 

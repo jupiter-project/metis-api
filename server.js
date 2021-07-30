@@ -1,3 +1,4 @@
+
 const url = require('url');
 const kue = require('kue');
 const fs = require('fs');
@@ -64,7 +65,7 @@ const mongoose = require('mongoose');
 
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
-app.use(express.urlencoded({ extended: true })) // get information from html forms
+app.use(express.urlencoded({ extended: true })); // get information from html forms
 
 app.use((req, res, next) => {
   if (req.url !== '/favicon.ico') {
@@ -132,22 +133,24 @@ const socketOptions = {
 const io = socketIO(server, socketOptions);
 io.of('/chat').on('connection', socketService.connection.bind(this));
 
-// TODO uncomment this lines once we implemented jupiter listener
 const jupiterSocketService = require('./services/jupiterSocketService');
 const WebSocket = require('ws');
+const { tokenVerify } = require('./middlewares/authentication');
+
+app.use(tokenVerify);
 const jupiterWss = new WebSocket.Server({ noServer: true });
 jupiterWss.on('connection', jupiterSocketService.connection.bind(this));
 
-server.on('upgrade', function upgrade(request, socket, head) {
-    const pathname = url.parse(request.url).pathname;
-    console.log(pathname);
-    if (pathname === '/jupiter') {
-        jupiterWss.handleUpgrade(request, socket, head, (ws) => {
-            jupiterWss.emit('connection', ws, request);
-        });
-    } else {
-        socket.destroy();
-    }
+server.on('upgrade', (request, socket, head) => {
+  const pathname = url.parse(request.url).pathname;
+  console.log(pathname);
+  if (pathname === '/jupiter') {
+    jupiterWss.handleUpgrade(request, socket, head, (ws) => {
+      jupiterWss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
 });
 
 const logger = require('./utils/logger')(module);
