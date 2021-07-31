@@ -255,18 +255,26 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     failureFlash: true,
   }));
 
-  // used for the mobile app
+
+  /**
+   *
+   */
   app.post('/appLogin', (req, res, next) => {
-    logger.info('\n\n\nappLogin\n\n\n');
-    logger.info(JSON.stringify(req.headers));
-    logger.info('\n\n\nappLogin\n\n\n');
+    logger.verbose('appLogin()');
+    logger.debug('--headers--')
+    logger.sensitiveInfo(JSON.stringify(req.headers));
 
     passport.authenticate('gravity-login', (err, userInfo) => {
-      if (err) return next(err);
+      logger.debug('authenticated!');
+      if (err) {
+        logger.error(`Error! ${err}`);
+        return next(err);
+      }
+
       if (!userInfo) {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
-
-        logger.error(new Error(errorMessage));
+        logger.error(errorMessage);
+        logger.error(userInfo);
 
         return res.status(400).json({
           success: false,
