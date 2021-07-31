@@ -200,7 +200,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const formData = req.body.account_data;
     res.setHeader('Content-Type', 'application/json');
     const seedphrase = req.body.account_data.passphrase;
-    logger.sensitiveInfo(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
+    logger.sensitive(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -216,7 +216,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           lastname: formData.lastname,
           twofa_enabled: formData.twofa_enabled,
         };
-        logger.sensitiveInfo(jupiterAccount);
+        logger.sensitive(jupiterAccount);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
@@ -262,7 +262,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   app.post('/appLogin', (req, res, next) => {
     logger.verbose('appLogin()');
     logger.debug('--headers--')
-    logger.sensitiveInfo(JSON.stringify(req.headers));
+    logger.sensitive(JSON.stringify(req.headers));
 
     passport.authenticate('gravity-login', (err, userInfo) => {
       logger.debug('authenticated!');

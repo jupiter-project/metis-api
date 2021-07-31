@@ -53,7 +53,7 @@ const metisSignup = (passport) => {
   },
   (req, account, accounthash, done) => {
     process.nextTick(() => {
-        logger.sensitiveInfo(`metisSignUp().nextTick()`);
+        logger.sensitive(`metisSignUp().nextTick()`);
       const eventEmitter = new events.EventEmitter();
       const params = req.body;
       let user;
@@ -76,7 +76,7 @@ const metisSignup = (passport) => {
         // We verify the user data here
           logger.debug('Instantiating User()');
           logger.debug('With the following info');
-          logger.sensitiveInfo( ` the data:  ${JSON.stringify(data)}`);
+          logger.sensitive( ` the data:  ${JSON.stringify(data)}`);
         user = new User(data);
 
         user.create()
@@ -129,8 +129,10 @@ const metisSignup = (passport) => {
 }
 
 /**
- * Login to Metis
- * @param {*} passport
+ *
+ * @param passport
+ * @param jobs
+ * @param io
  */
 const metisLogin = (passport, jobs, io) => {
   passport.use('gravity-login', new LocalStrategy({
@@ -139,6 +141,7 @@ const metisLogin = (passport, jobs, io) => {
     passReqToCallback: 'true',
   },
   (req, account, accounthash, done) => {
+      logger.verbose(`metisLogin()`);
     let user;
     let valid = true;
 
@@ -150,6 +153,9 @@ const metisLogin = (passport, jobs, io) => {
       publicKey: req.body.public_key,
       accountId: req.body.jup_account_id,
     };
+
+    logger.debug('--------------------------------')
+    logger.sensitive(JSON.stringify(containedDatabase));
 
     containedDatabase.originalTime = Date.now();
     const worker = new RegistrationWorker(jobs, io);
