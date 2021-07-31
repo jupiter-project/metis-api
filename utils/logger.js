@@ -65,6 +65,14 @@ const getLabel = (callingModule) => {
   return path.join(parts[parts.length - 2], parts.pop());
 };
 
+
+const generatePadding = (numberOfSpaces) => {
+  if (numberOfSpaces>0){
+    return Array(numberOfSpaces).join(' ');
+  }
+  return '';
+}
+
 const customLevels = {
   levels: {
     error: 0,
@@ -72,7 +80,7 @@ const customLevels = {
     info: 2,
     verbose: 3,
     debug: 4,
-    sensitiveInfo: 5
+    sensitive: 5
   },
   colors: {
     error: 'red',
@@ -80,7 +88,7 @@ const customLevels = {
     info: 'white',
     verbose: 'green',
     debug: 'red',
-    sensitiveInfo: 'blue'
+    sensitive: 'blue'
   }
 };
 
@@ -118,15 +126,23 @@ if (mongoDbTransport && process.env.NODE_ENV === 'production') {
 }
 
 module.exports = function (callingModule) {
+  const PADDING_DEFAULT = 45;
   return winston.createLogger({
     levels: customLevels.levels,
     format: winston.format.combine(
+        winston.format.splat(),
         winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
         winston.format.label({label:'*'}),
         winston.format.align(),
         winston.format.simple(),
         winston.format.printf(({ level, message, label, timestamp }) => {
-          return `${label}${timestamp}|${level}|${getLabel(callingModule)}|${message}`
+
+          const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
+          const spacing = (pre.length > PADDING_DEFAULT)? 0 : PADDING_DEFAULT - pre.length
+          const padding = generatePadding(spacing);
+          const output = `${label}${timestamp}|${level}|${getLabel(callingModule)}|${padding}${message}`
+
+          return output
         }),
     ),
     transports: transportList,
