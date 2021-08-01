@@ -687,21 +687,18 @@ class Gravity {
         } else {
           const recordsTotalCount = records.length;
           let messages = [];
-          for ( let cntr = 0; cntr < recordsTotalCount; cntr++ ){
 
-            const transactionId = records[cntr];
+
+          for ( let index = 0; index < recordsTotalCount; index++ ){
+            const transactionId = records[index];
             const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${recordPassphrase}`;
             logger.sensitive(` calling endpoint: ${thisUrl}`);
-
-
             const message = new Promise((resolve, reject) => {
               axios.get(thisUrl)
 
                   .then((response) => {
                     logger.verbose(`axios.get.then()`);
-                    logger.debug('response.data --->');
-                    console.log(response.data);
-
+                    logger.debug(`response.data = ${JSON.stringify(response.data)}`);
                     if(response.data.errorCode){
                       logger.error('readMessage call returned a 200 error!');
                       logger.error(JSON.stringify(response.data));
@@ -714,11 +711,15 @@ class Gravity {
                     let recordPassword = (scope.accessData) ? scope.accessData.encryptionPassword: password;
                     logger.debug('_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*')
                     logger.sensitive(`decrypting the message: ${decryptedMessage} with password: ${recordPassword}`);
-                    const decrypted = JSON.parse(self.decrypt(decryptedMessage, recordPassword));
-                    logger.sensitive(`decrypted Message: ${decrypted}`);
-                    decrypted.confirmed = true;
-                    return resolve(decrypted);
-
+                    try {
+                      const decrypted = JSON.parse(self.decrypt(decryptedMessage, recordPassword));
+                      logger.sensitive(`decrypted Message: ${decrypted}`);
+                      decrypted.confirmed = true;
+                      return resolve(decrypted);
+                    } catch ( error ) {
+                      logger.error(error);
+                      return resolve({error:true, message: error})
+                    }
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
@@ -727,7 +728,6 @@ class Gravity {
                     return resolve({error: true, message: error});
                   });
             })
-
             messages.push(message);
           };
 
@@ -1336,8 +1336,12 @@ class Gravity {
 
       eventEmitter.on('set_responseData', () => {
         logger.verbose(`retrieveUserFromApp().on(set_responseData)`);
+
+        logger.sensitive(`   -------------------------------------------------`)
         logger.sensitive(`   Total decryptedRecords: ${decryptedRecords.length}`);
+        logger.sensitive(`   -------------------------------------------------`)
         logger.sensitive(`   decryptedRecords = ${JSON.stringify(decryptedRecords)}`);
+        logger.sensitive(`   -------------------------------------------------`)
 
         if (decryptedRecords[0] === undefined
           || decryptedRecords[0].user_record === undefined) {
@@ -1353,34 +1357,79 @@ class Gravity {
       });
 
       eventEmitter.on('records_retrieved', () => {
+        logger.debug(` retrieveUserFromApp().on(records_retrieved)`)
+        logger.debug(`   Total records (ie transactions) to process: ${records.length}`);
+
         if (Object.keys(records).length <= 0) {
           eventEmitter.emit('check_on_pending');
         } else {
-          let recordCounter = 0;
-          records.forEach((p) => {
-            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${p}&secretPhrase=${passphrase}`;
 
-            axios.get(thisUrl)
-              .then((response) => {
-                try {
-                  // This decrypts the message from the blockchain using native encryption
-                  // as well as the encryption based on encryption variable
-                  const decrypted = JSON.parse(self.decrypt(response.data.decryptedMessage));
-                  decryptedRecords.push(decrypted);
-                } catch (e) {
-                  logger.error(e);
-                }
-                recordCounter += 1;
 
-                if (recordCounter === completedNumber) {
-                  eventEmitter.emit('check_on_pending');
+          const recordsTotalCount = records.length;
+          const messages = [];
+
+          for( let index = 0; index < recordsTotalCount; index ++) {
+            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${index}&secretPhrase=${passphrase}`;
+            logger.sensitive(` calling endpoint: ${thisUrl}`);
+            const message = new Promise( (resolve, reject) => {
+              axios.get(thisUrl)
+                  .then((response) => {
+                    logger.verbose(`retrieveUserFromApp().on(records_retrieved).axios.get.then()`);
+                    logger.debug(`response.data = ${JSON.stringify(response.data)}`);
+
+                    if(response.data.errorCode){
+                      logger.error('readMessage call returned a 200 error!');
+                      logger.error(JSON.stringify(response.data));
+                      return resolve({error: true, message: response.data});
+                    }
+
+                    try {
+                      const decryptedMessage = response.data.decryptedMessage;
+                      logger.debug('_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*')
+                      logger.sensitive(`decrypting the message: ${decryptedMessage} with APP password`);
+                      const decrypted = JSON.parse(self.decrypt(decryptedMessage));
+                      logger.sensitive(`decrypted Message: ${decrypted}`);
+                      decrypted.confirmed = true;
+                      return resolve(decrypted);
+                    } catch ( error ) {
+                      logger.error(error);
+                      return resolve({error:true, message: error})
+                    }
+                  })
+                  .catch((error) => {
+                    logger.error('readMessage call return a non-200');
+                    logger.error(JSON.stringify(error));
+                    return resolve({error:true, message: error});
+                  });
+            })
+
+            messages.push(message);
+          }
+
+          Promise.all(messages)
+              .then(results =>{
+                logger.debug(`promise.all()`);
+                logger.debug(`total results: ${results.length}`);
+                const decrypted = results.reduce((reduced, result) => {
+                  if (result.error) {
+                    logger.warn('ITEM NOTDECRYPTED');
+                    return reduced
+                  }
+                  logger.debug('DECRYPTED');
+                  logger.debug('---------------------------')
+                  logger.sensitive(JSON.stringify(result));
+                  logger.debug('---------------------------')
+                  reduced.push(result)
+                  return reduced;
+                }, [])
+
+                if (Array.isArray(decrypted) && decrypted.length > 0){
+                  logger.debug(`Total messages decrypted: ${decrypted.length}`);
+                  decryptedRecords.push(...decrypted);
                 }
+                eventEmitter.emit('check_on_pending');
+
               })
-              .catch((error) => {
-                logger.error(error);
-                reject(error);
-              });
-          });
         }
       });
 
