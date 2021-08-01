@@ -5,6 +5,7 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
+import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 
@@ -608,6 +609,7 @@ class Gravity {
 
         // logger.debug('getRecords().return()')
         // logger.sensitive(JSON.stringify(responseData));
+        gravityCLIReporter.addItemsInJson('User Records', responseData.records);
         return resolve(responseData);
       });
 
@@ -742,10 +744,7 @@ class Gravity {
                     logger.warn('ITEM NOTDECRYPTED');
                     return reduced
                   }
-                  logger.debug('DECRYPTED');
-                  logger.debug('---------------------------')
-                  logger.sensitive(JSON.stringify(result));
-                  logger.debug('---------------------------')
+                  logger.sensitive(`DECRYPTED: ${JSON.stringify(result)}`);
                   reduced.push(result)
                   return reduced;
                 }, [])
@@ -1415,10 +1414,7 @@ class Gravity {
                     logger.warn('ITEM NOTDECRYPTED');
                     return reduced
                   }
-                  logger.debug('DECRYPTED');
-                  logger.debug('---------------------------')
-                  logger.sensitive(JSON.stringify(result));
-                  logger.debug('---------------------------')
+                  logger.sensitive(`DECRYPTED: ${JSON.stringify(result)}`);
                   reduced.push(result)
                   return reduced;
                 }, [])

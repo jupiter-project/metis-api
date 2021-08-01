@@ -2,6 +2,7 @@ import events from 'events';
 import { gravity } from './gravity';
 import User from '../models/user';
 import RegistrationWorker from '../workers/registration';
+import {gravityCLIReporter} from "../gravity/gravityCLIReporter";
 
 // Loads up passport code
 const LocalStrategy = require('passport-local').Strategy;
@@ -53,6 +54,7 @@ const metisSignup = (passport) => {
   },
   (req, account, accounthash, done) => {
     process.nextTick(() => {
+        gravityCLIReporter.setTitle('     Metis SignUp')
         logger.sensitive(`metisSignUp().nextTick()`);
       const eventEmitter = new events.EventEmitter();
       const params = req.body;
@@ -105,7 +107,9 @@ const metisSignup = (passport) => {
                 encryptionKey: gravity.encrypt(params.encryption_password),
                 id: user.data.id,
             }
-            logger.verbose(`User is created: ${payload}`);
+            logger.verbose(`User is created: ${JSON.stringify(payload)}`);
+            gravityCLIReporter.addItem('Conclusion', `User Created: ${JSON.stringify(payload)}`);
+            gravityCLIReporter.sendReportAndReset();
             return done(null, payload, req.flash('signupMessage', 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.'));
           })
           .catch((err) => {
@@ -166,7 +170,13 @@ const metisLogin = (passport, jobs, io) => {
     gravity.getUser(account, req.body.jupkey, containedDatabase)
       .then(async (response) => {
         if (response.error) {
-          return done(null, false, req.flash('loginMessage', 'Account is not registered or has not been confirmed in the blockchain.'));
+            const doneResponse = {
+                error: null,
+                user: false,
+                message:  req.flash('loginMessage', 'Account is not registered or has not been confirmed in the blockchain.')
+            }
+
+          return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }
 
         if (response.noUserTables || response.userNeedsSave) {
@@ -178,18 +188,37 @@ const metisLogin = (passport, jobs, io) => {
         user = new User(data);
 
         if (user.record.id === undefined) {
-          valid = false;
-          return done(null, false, req.flash('loginMessage', 'Account is not registered'));
+            valid = false;
+
+            const doneResponse = {
+                error: null,
+                user: false,
+                message: req.flash('loginMessage', 'Account is not registered')
+            }
+            return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }
 
         if (!user.validEncryptionPassword(containedDatabase.encryptionPassword)) {
           valid = false;
-          return done(true, null, req.send({ error: true, message: 'Wrong encryption password' }));
+
+            const doneResponse = {
+                error: null,
+                user: false,
+                message: req.send({ error: true, message: 'Wrong encryption password' })
+            }
+            return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }
 
         if (!user.validPassword(accounthash)) {
           valid = false;
-          return done(null, false, req.flash('loginMessage', 'Wrong hashphrase'));
+
+            const doneResponse = {
+                error: null,
+                user: false,
+                message: req.flash('loginMessage', 'Wrong hashphrase')
+            }
+            return done(doneResponse.error, doneResponse.user, doneResponse.message);
+
         }
 
         if (valid) {
@@ -209,7 +238,7 @@ const metisLogin = (passport, jobs, io) => {
             logger.info(fundingResponse);
           }
 
-          user.setAlias(req.body.jupkey)
+            user.setAlias(req.body.jupkey)
             .then((aliasSetting) => {
               if (!aliasSetting.success) {
                 logger.info(aliasSetting);
@@ -219,29 +248,50 @@ const metisLogin = (passport, jobs, io) => {
         }
         const userProperties = await gravity.getAccountProperties({ recipient: data.account });
         const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-        return done(null, {
-          userRecordFound: response.userRecordFound,
-          noUserTables: response.noUserTables,
-          userNeedsBackup: response.userNeedsBackup,
-          accessKey: gravity.encrypt(req.body.jupkey),
-          encryptionKey: gravity.encrypt(req.body.encryptionPassword),
-          account: gravity.encrypt(account),
-          database: response.database,
-          accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
-          id: user.data.id,
-          profilePictureURL: profilePicture && profilePicture.value
-            ? profilePicture.value
-            : '',
-          userData: {
-            alias: data.alias,
-            account: data.account,
-          },
-        });
+
+        const userInfo = {
+            userRecordFound: response.userRecordFound,
+            noUserTables: response.noUserTables,
+            userNeedsBackup: response.userNeedsBackup,
+            accessKey: gravity.encrypt(req.body.jupkey),
+            encryptionKey: gravity.encrypt(req.body.encryptionPassword),
+            account: gravity.encrypt(account),
+            database: response.database,
+            accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
+            id: user.data.id,
+            profilePictureURL: profilePicture && profilePicture.value
+                ? profilePicture.value
+                : '',
+            userData: {
+                alias: data.alias,
+                account: data.account,
+            },
+        }
+        logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
+        gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
+
+
+
+          const doneResponse = {
+              error: null,
+              user: userInfo,
+              message: 'Authentication validated!'
+          }
+
+          return done(doneResponse.error, doneResponse.user, doneResponse.message);
       })
+
       .catch((err) => {
+
         logger.error('Unable to query your user list. Please make sure you have a users table in your database.');
         logger.error(err);
-        return done(null, false, req.flash('loginMessage', 'Login Error'));
+
+          const doneResponse = {
+              error: err,
+              user: false,
+              message: req.flash('loginMessage', 'Login Error')
+          }
+          return done(doneResponse.error, doneResponse.user, doneResponse.message);
       });
   }));
 };
