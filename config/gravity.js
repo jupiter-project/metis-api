@@ -144,29 +144,12 @@ class Gravity {
     return crypted;
   }
 
-  // decrypt(text, password = this.password) {
-  //   const decipher = crypto.createDecipher(this.algorithm, password);
-  //   let dec = decipher.update(text, 'hex', 'utf8');
-  //   dec += decipher.final('utf8');
-  //
-  //   return dec;
-  // }
-
   decrypt(text, password = this.password) {
-    try {
-      logger.debug(` Decrypting with password: ${password}  algorithm: ${this.algorithm}`);
-      logger.debug(text);
-      const decipher = crypto.createDecipher(this.algorithm, password);
-      let dec = decipher.update(text, 'hex', 'utf8');
-      dec += decipher.final('utf8');
-      logger.debug('decrypted...');
-      logger.debug(dec);
-      return dec;
-    } catch (error) {
-      logger.debug('NOT able to decrypt');
-      logger.debug(error);
-      throw error;
-    }
+    const decipher = crypto.createDecipher(this.algorithm, password);
+    let dec = decipher.update(text, 'hex', 'utf8');
+    dec += decipher.final('utf8');
+
+    return dec;
   }
 
   sortByDate(array, order = 'asc') {
@@ -433,7 +416,6 @@ class Gravity {
 
       self.getRecords(account, account, passphrase, { size: 'all', show_pending: null, show_unconfirmed: false }, password)
         .then((response) => {
-          // records = response.records;
           ({ records } = response);
           if (containedDatabase) {
             // console.log('These are the records given in load app data through user');
@@ -634,7 +616,6 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                // reject({ success: false, errors: error });
                 resolve(error);
               });
           });
@@ -651,8 +632,6 @@ class Gravity {
           Object.keys(records).forEach((p) => {
             const transactionId = records[p];
             const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${recordPassphrase}`;
-            console.log('thisUIRL-------->', thisUrl);
-            console.log('\n');
             axios.get(thisUrl)
               .then((response) => {
                 try {
@@ -1039,7 +1018,6 @@ class Gravity {
         };
         resolve({ user: JSON.stringify(userObject) });
       } else if (containedDatabase) {
-        console.log('containedDatabase--->', containedDatabase);
         logger.info('Retrieving database from the user');
         self.retrieveUserFromPassphrase(containedDatabase)
           .then((response) => {

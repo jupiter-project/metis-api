@@ -1,4 +1,4 @@
-
+const { tokenVerify } = require('./middlewares/authentication');
 const url = require('url');
 const kue = require('kue');
 const fs = require('fs');
@@ -80,6 +80,7 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(tokenVerify);
 
 // Here is where we load the api routes. We put them here so passport deserializer
 // is not called everytime we make an api call to them
@@ -135,9 +136,6 @@ io.of('/chat').on('connection', socketService.connection.bind(this));
 
 const jupiterSocketService = require('./services/jupiterSocketService');
 const WebSocket = require('ws');
-const { tokenVerify } = require('./middlewares/authentication');
-
-app.use(tokenVerify);
 const jupiterWss = new WebSocket.Server({ noServer: true });
 jupiterWss.on('connection', jupiterSocketService.connection.bind(this));
 

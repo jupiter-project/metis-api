@@ -11,12 +11,7 @@ const tokenVerify = (req, res, next) => {
     '/get_jupiter_account',
     '/jupiter/alias/',
   ];
-
-  const valid = omitedUrls.map(url =>
-    url.toLowerCase() === req.url.toLowerCase() ||
-    req.url.toLowerCase().startsWith(url.toLowerCase())
-  );
-
+  const valid = omitedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
   if (valid.length > 0) {
     return next();
@@ -30,7 +25,7 @@ const tokenVerify = (req, res, next) => {
         err,
       });
     }
-    req.userInfo = decoded.userInfo;
+    req.user = decoded;
     next();
   });
 };

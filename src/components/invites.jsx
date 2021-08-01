@@ -44,7 +44,7 @@ class DataRow extends React.Component {
     let response;
 
     try {
-      response = await axios.post('/data/members', params);
+      response = await axios.post('/v1/api/data/members', params);
     } catch (e) {
       response = e;
       return e;

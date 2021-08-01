@@ -108,13 +108,13 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Get a user's invites
    */
-  app.get('/channels/invites', async (req, res) => {
+  app.get('/v1/api/channels/invites', async (req, res) => {
   // app.get('/channels/invites', async (req, res) => {
     logger.info('/n/n/nChannel Invites/n/n');
     logger.info(req.session);
+    const { accountData } = req.user;
     const invite = new Invite();
-    const accessData = _.get(req, 'session.accessData', req.headers.accessdata);
-    const userData = JSON.parse(gravity.decrypt(accessData));
+    const userData = JSON.parse(gravity.decrypt(accountData));
     invite.user = userData;
     let response;
     try {
@@ -129,18 +129,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Send an invite
    */
-  app.post('/channels/invite', async (req, res) => {
+  app.post('/v1/api/channels/invite', async (req, res) => {
     const { data } = req.body;
-
-
-    // @TODO: req.user non-functional - get record.account from a different place
-    // data.sender = req.user.record.account;
-    data.sender = _.get(req, 'user.record.account', req.headers.account);
-
+    const { account, accessData } = req.user;
+    data.sender = account;
     const invite = new Invite(data);
-
-    // TODO change these 2 lines once the passport issue is solved
-    const accessData = _.get(req, 'session.accessData', req.headers.accessdata);
     invite.user = JSON.parse(gravity.decrypt(accessData));
     let response;
 
@@ -161,13 +154,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Accept channel invite
    */
-  app.post('/channels/import', async (req, res) => {
-    const { data, user } = req.body;
+  app.post('/v1/api/channels/import', async (req, res) => {
+    const { data } = req.body;
+    const { accountData } = req.user;
     const channel = new Channel(data.channel_record);
-    // TODO check the function decryptUserData is using "req.session.accessData"
-    const accessData = _.get(req, 'session.accessData', user.accountData);
-    channel.user = JSON.parse(gravity.decrypt(accessData));
-    // channel.user = decryptUserData(req);
+    channel.user = JSON.parse(gravity.decrypt(accountData));
 
     let response;
     try {
@@ -209,8 +200,9 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Get a channel's messages
    */
-  app.get('/data/messages/:scope/:firstIndex', controller.isLoggedIn, async (req, res) => {
+  app.get('/v1/api/data/messages/:scope/:firstIndex', async (req, res) => {
     let response;
+    const { user } = req;
 
     const tableData = {
       passphrase: req.headers.channelaccess,
@@ -219,9 +211,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     };
 
     const channel = new Channel(tableData);
-    // TODO check the function decryptUserData is using "req.session.accessData"
-    const accessData = _.get(req, 'session.accessData', req.headers.accessdata);
-    channel.user = JSON.parse(gravity.decrypt(accessData));
+    channel.user = user;
     try {
       const order = _.get(req, 'headers.order', 'desc');
       const limit = _.get(req, 'headers.limit', 10);
