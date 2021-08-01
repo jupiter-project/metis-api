@@ -2,6 +2,7 @@ import axios from 'axios';
 import events from 'events';
 import { gravity } from '../config/gravity';
 import validate from './_validations';
+import {gravityCLIReporter} from "../gravity/gravityCLIReporter";
 
 const logger = require('../utils/logger')(module);
 
@@ -436,9 +437,12 @@ class Model {
             });
         });
         eventEmitter.on('request_authenticated', () => {
+          logger.verbose(`create().on(request_authenticated)`);
           self.loadTable(accessLink)
             .then((res) => {
               recordTable = res;
+              gravityCLIReporter.addItemsInJson('Table Information', recordTable)
+              logger.sensitive(`Getting the Tables: ${JSON.stringify(recordTable)}`);
               eventEmitter.emit('table_loaded');
             })
             .catch((err) => {

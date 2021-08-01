@@ -153,18 +153,19 @@ class Gravity {
    */
   decrypt(text, password = this.password) {
     try {
-      logger.sensitive(` Decrypting with password: ${password}  algorithm: ${this.algorithm}`);
-      logger.sensitive(text);
+      logger.sensitive('--------------------------------------------->>>')
+      logger.sensitive(`Decrypting with password: ${password}  AND algorithm: ${this.algorithm}`);
+      logger.sensitive(`Text to decrypt: ${text}`);
 
       const decipher = crypto.createDecipher(this.algorithm, password);
       let dec = decipher.update(text, 'hex', 'utf8');
       dec += decipher.final('utf8');
-      logger.debug(`decrypted...`)
-      logger.sensitive(dec);
+      logger.sensitive(`DECRYPTED: ${dec}`)
+      logger.sensitive('<<<---------------------------------------------')
       return dec;
     } catch( error){
-      logger.warn(`NOT able to decrypt`);
-      logger.warn(error);
+      logger.warn(`NOT ABLE 2 DECRYPT: ${error}`);
+      logger.sensitive('<<<---------------------------------------------')
       throw error
     }
   }
@@ -688,16 +689,13 @@ class Gravity {
           eventEmitter.emit('check_on_pending');
         } else {
           const recordsTotalCount = records.length;
-          let messages = [];
-
-
+          let messageResponses = [];
           for ( let index = 0; index < recordsTotalCount; index++ ){
             const transactionId = records[index];
             const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${recordPassphrase}`;
             logger.sensitive(` calling endpoint: ${thisUrl}`);
-            const message = new Promise((resolve, reject) => {
+            const messageResponse = new Promise((resolve, reject) => {
               axios.get(thisUrl)
-
                   .then((response) => {
                     logger.verbose(`axios.get.then()`);
                     logger.debug(`response.data = ${JSON.stringify(response.data)}`);
@@ -707,59 +705,64 @@ class Gravity {
                       // return reject(response.data);
                       return resolve({error: true, message: response.data});
                     }
-
                     const { decryptedMessage } = response.data;
-
-                    let recordPassword = (scope.accessData) ? scope.accessData.encryptionPassword: password;
-                    logger.debug('_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*')
-                    logger.sensitive(`decrypting the message: ${decryptedMessage} with password: ${recordPassword}`);
-                    try {
-                      const decrypted = JSON.parse(self.decrypt(decryptedMessage, recordPassword));
-                      logger.sensitive(`decrypted Message: ${decrypted}`);
-                      decrypted.confirmed = true;
-                      return resolve(decrypted);
-                    } catch ( error ) {
-                      logger.error(error);
-                      return resolve({error:true, message: error})
-                    }
+                    return resolve(decryptedMessage);
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
                     logger.error(JSON.stringify(error));
-                    // return reject(error);
                     return resolve({error: true, message: error});
                   });
             })
-            messages.push(message);
+            messageResponses.push(messageResponse);
           };
 
 
-          Promise.all(messages)
+          Promise.all(messageResponses)
               .then(results => {
-
                 logger.debug(`promise.all()`);
                 logger.debug(`total results: ${results.length}`);
-                const decrypted = results.reduce((reduced, result) => {
+                let recordPassword = (scope.accessData) ? scope.accessData.encryptionPassword: password;
+
+                let totalSuccessfulMessageRequests = 0
+                let totalUnsuccessfulMessageRequests = 0
+                const messages = results.reduce((reduced, result) => {
                   if (result.error) {
-                    logger.warn('ITEM NOTDECRYPTED');
+                    logger.warn('FAILED TO READ_MESSAGE');
+                    totalUnsuccessfulMessageRequests++;
                     return reduced
                   }
-                  logger.sensitive(`DECRYPTED: ${JSON.stringify(result)}`);
+                  logger.sensitive(`MESSAGE SUCCESSFULLY RETRIEVED: ${JSON.stringify(result)}`);
+                  totalSuccessfulMessageRequests++
                   reduced.push(result)
                   return reduced;
                 }, [])
 
+                gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
+                  'Total requests': messageResponses.length,
+                  'Total successfull requests': totalSuccessfulMessageRequests,
+                  'Total failed requests': totalUnsuccessfulMessageRequests
+                })
+                const decryptedMessages = [];
+
+                for(let index = 0; index < messages.length; index++){
+                  try {
+                    const decrypted = JSON.parse(self.decrypt(messages[index], recordPassword));
+                    decrypted.confirmed = true;
+                    decryptedMessages.push(decrypted);
+                  } catch ( error ) {
+                    logger.error('Not Able to Decrypt');
+                  }
+                }
+
                 // The fact that array.push(item1, item2, ..., itemN) accepts multiple items to push, you can push an
                 // entire array using the spread operator applied to arguments
-
-                if (Array.isArray(decrypted) && decrypted.length > 0){
-                  logger.debug(`Total messages decrypted: ${decrypted.length}`);
-                  decryptedRecords.push(...decrypted);
+                if (Array.isArray(decryptedMessages) && decryptedMessages.length > 0){
+                  logger.debug(`Total messages decrypted: ${decryptedMessages.length}`);
+                  decryptedRecords.push(...decryptedMessages);
                 }
                 eventEmitter.emit('check_on_pending');
               })
-
-
 
 
           // promise.allSettled() available as of node 12.9.0.
@@ -1384,10 +1387,10 @@ class Gravity {
 
                     try {
                       const decryptedMessage = response.data.decryptedMessage;
-                      logger.debug('_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*')
-                      logger.sensitive(`decrypting the message: ${decryptedMessage} with APP password`);
+                      // logger.debug('_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*')
+                      // logger.sensitive(`decrypting the message: ${decryptedMessage} with APP password`);
                       const decrypted = JSON.parse(self.decrypt(decryptedMessage));
-                      logger.sensitive(`decrypted Message: ${decrypted}`);
+                      // logger.sensitive(`decrypted Message: ${decrypted}`);
                       decrypted.confirmed = true;
                       return resolve(decrypted);
                     } catch ( error ) {

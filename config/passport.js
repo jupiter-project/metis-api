@@ -55,9 +55,11 @@ const metisSignup = (passport) => {
   (req, account, accounthash, done) => {
     process.nextTick(() => {
         gravityCLIReporter.setTitle('     Metis SignUp')
+        gravityCLIReporter.addItem('TEST', 'this is something', 'Section 1');
         logger.sensitive(`metisSignUp().nextTick()`);
       const eventEmitter = new events.EventEmitter();
       const params = req.body;
+      logger.sensitive(`request body: ${JSON.stringify(params)}`);
       let user;
 
       // eventEmitter.on('sent_jupiter_to_new_account', () => {
@@ -76,6 +78,7 @@ const metisSignup = (passport) => {
         };
 
         // We verify the user data here
+        console.log('---------------------------------------------------------------------------------------------------------------------------------------')
           logger.debug('Instantiating User()');
           logger.debug('With the following info');
           logger.sensitive( ` the data:  ${JSON.stringify(data)}`);
@@ -108,7 +111,7 @@ const metisSignup = (passport) => {
                 id: user.data.id,
             }
             logger.verbose(`User is created: ${JSON.stringify(payload)}`);
-            gravityCLIReporter.addItem('Conclusion', `User Created: ${JSON.stringify(payload)}`);
+            gravityCLIReporter.addItemsInJson('In conclusion, user is created', {...payload,...params}, 'IN CONCLUSION');
             gravityCLIReporter.sendReportAndReset();
             return done(null, payload, req.flash('signupMessage', 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.'));
           })
