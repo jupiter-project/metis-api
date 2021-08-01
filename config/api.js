@@ -129,6 +129,8 @@ module.exports = (app) => {
 
       const file = `../models/${model}.js`;
 
+      console.log('FILE---->', file);
+
       const Record = require(file);
 
       // We verify the user data here
@@ -159,7 +161,7 @@ module.exports = (app) => {
    */
   app.post('/v1/api/:tableName', (req, res, next) => {
     const params = req.body;
-    const { data } = params;
+    let { data } = params;
     const { tableName } = req.params;
     const {
       id,
@@ -169,7 +171,9 @@ module.exports = (app) => {
 
     const userData = JSON.parse(gravity.decrypt(accountData));
 
-    console.log('USER LO------->', userData);
+    console.log('DATA--->', data);
+    console.log('PARAMS---->', params);
+    console.log('TABLENAME--->', tableName);
 
     // const params = {
     //   channelName,
@@ -192,7 +196,8 @@ module.exports = (app) => {
 
     const exceptions = ['users'];
     let model = '';
-    data.record = {
+    data = {
+      ...data,
       address: userData.account,
       passphrase: '',
       password: '',
@@ -223,9 +228,14 @@ module.exports = (app) => {
 
       const file = `../models/${model}.js`;
 
+      console.log('FILE---->', file);
+
       const Record = require(file);
 
+
+
       const recordObject = new Record(data);
+      console.log('recordObject---->', recordObject);
       if (recordObject.belongsTo === 'user') {
         if (params.user) {
           recordObject.accessLink = params.user;
