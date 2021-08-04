@@ -309,8 +309,9 @@ class Gravity {
   }
 
   loadAppData(containedDatabase = false) {
-    logger.verbose('loadAppData()')
-    logger.sensitive(JSON.stringify(containedDatabase));
+    const hasContainedDatabase = containedDatabase ? true : false;
+    logger.verbose(`loadAppData(hasContainedDatabase = ${hasContainedDatabase})`);
+    logger.sensitive(`containedDatabase = ${JSON.stringify(containedDatabase)}`);
     const eventEmitter = new events.EventEmitter();
 
     const self = this;
@@ -321,15 +322,16 @@ class Gravity {
 
     let records = [];
     let numberOfRecords;
-    let { password } = self;
+    let { password: ownerPassword } = self;
     let userRecord;
     let hasUserTable = false;
 
     if (containedDatabase) {
+      // logger.sensitive(`containedDatabase = ${JSON.stringify(containedDatabase)}`);
       server = process.env.JUPITERSERVER;
       ({ account } = containedDatabase);
       ({ passphrase } = containedDatabase);
-      password = containedDatabase.encryptionPassword;
+      ownerPassword = containedDatabase.encryptionPassword;
     }
 
     return new Promise((resolve, reject) => {
@@ -337,7 +339,7 @@ class Gravity {
 
       eventEmitter.on('loaded_records', () => {
         // console.log('Records loaded. Organizing records now.');
-        logger.debug('-------- loadAppData().on(loaded_records) ----------')
+        logger.debug('loadAppData().on(loaded_records)')
         logger.debug(`   Total records: ${records.length}`);
 
         if (records !== undefined && records.length > 0) {
@@ -349,6 +351,7 @@ class Gravity {
               // console.log('These are the records given in load app data through user');
               // console.log(records[x]);
               if (records[x] && records[x].user_record && !userRecord) {
+
                 userRecord = records[x].user_record;
               }
 
@@ -356,6 +359,7 @@ class Gravity {
                 hasUserTable = true;
               }
             }
+
             if (records[x].tables && records[x].date && records[x].date) {
               tableList.push(records[x]);
             } else {
@@ -369,12 +373,9 @@ class Gravity {
             }
           }
 
-          logger.verbose(`userRecord = ${userRecord}`);
-          logger.verbose(`tableList = `)
-          logger.verbose(JSON.stringify(tableList));
-
-          logger.verbose('tablesRetrieved = ')
-          logger.verbose(JSON.stringify(tablesRetrieved));
+          logger.sensitive(` userRecord = ${userRecord}`);
+          logger.sensitive(` tableList = = ${JSON.stringify(tableList)}`)
+          logger.verbose(` tablesRetrieved = ${JSON.stringify(tablesRetrieved)}`)
 
           // Once we have separated the records into table list and potentially table object list,
           // we then retrieve the last table record
@@ -393,7 +394,7 @@ class Gravity {
             }
           }
 
-          logger.verbose(`currentList count: ${currentList.length}`);
+          logger.verbose(` currentList count: ${currentList.length}`);
 
           // Now that we have a list with all the table records and the list of tables
           // that the app should be using. We go through the tablesRetrieved and get the
@@ -452,7 +453,25 @@ class Gravity {
         }
       });
 
-      self.getRecords(account, account, passphrase, { size: 'all', show_pending: null, show_unconfirmed: false }, password)
+      // const reportSection = `Credentials used to extract Table Information from ${account}`;
+      // gravityCLIReporter.addItemsInJson('Account', account, reportSection)
+      // gravityCLIReporter.addItemsInJson('Passphrase', passphrase, reportSection)
+      // gravityCLIReporter.addItemsInJson('Password', ownerPassword, reportSection)
+      // gravityCLIReporter.addItemsInJson('More Creds (ie containedDatabase)', containedDatabase, reportSection)
+
+
+      const ownerAddress = account;
+      const accountPropertiesHolder = account;
+      const accountPropertiesHolderPassphrase = passphrase;
+
+
+      logger.debug(`loadAppData().getRecords(${ownerAddress}, ${accountPropertiesHolder})`);
+      self.getRecords(
+          ownerAddress,
+          accountPropertiesHolder,
+          accountPropertiesHolderPassphrase,
+          { size: 'all', show_pending: null, show_unconfirmed: false },
+          ownerPassword )
         .then((response) => {
           logger.verbose(`loadAppData().getRecords().then()`);
           logger.debug(`response = ${JSON.stringify(response)}`);
@@ -563,13 +582,32 @@ class Gravity {
     });
   }
 
-  getRecords(userAddress, recordsAddress, recordPassphrase, scope = {
+  /**
+   *
+   * @param {string} ownerAddress - Retrieve transactions from this address
+   * @param {array} accountPropertiesHolder - An array of Account Properties holders that  hold specific properties for User, Channel, etc
+   * @param {string} accountPropertiesHolderPassphrase
+   * @param {size, show_pending, show_unconfirmed, recipientOnly} scope - Filter the Properties
+   * @param {string} ownerPassword - the owner account decryption address
+   * @returns {Promise<unknown>}
+   */
+  getRecords(ownerAddress, accountPropertiesHolder, accountPropertiesHolderPassphrase, scope = {
     size: 'all',
     show_pending: null,
     show_unconfirmed: false,
     recipientOnly: false,
-  }, password = this.password) {
+  }, ownerPassword = this.password) {
     logger.verbose('getRecords()');
+    logger.debug(`userAddress = ${ownerAddress}`);
+    logger.debug(`accountPropertiesHolder = ${accountPropertiesHolder}`);
+    logger.sensitive(`accountPropertiesHolderPassphrase= ${accountPropertiesHolderPassphrase}`);
+
+    const reportSection = `Information used for retrieving Account Properties for - ${ownerAddress}`
+    gravityCLIReporter.addItem('Owner Account Address', ownerAddress, reportSection )
+    gravityCLIReporter.addItem('Owner Account Password', ownerPassword, reportSection )
+    gravityCLIReporter.addItem('Account Properties Holder', accountPropertiesHolder,reportSection )
+    gravityCLIReporter.addItem('Account Properties Holder Passphrase', accountPropertiesHolderPassphrase ,  reportSection )
+
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
@@ -586,7 +624,7 @@ class Gravity {
       // let show_pending = scope.show_pending;
 
       eventEmitter.on('set_responseData', () => {
-        logger.debug('<<<--------                  set_responseData                   -------->>>')
+        logger.debug('getRecords().on(set_responseData');
         if (scope.size !== 'last') {
           if (scope.show_pending !== undefined && scope.show_pending > 0) {
             responseData = {
@@ -610,22 +648,22 @@ class Gravity {
 
         // logger.debug('getRecords().return()')
         // logger.sensitive(JSON.stringify(responseData));
-        gravityCLIReporter.addItemsInJson('User Records', responseData.records);
+        gravityCLIReporter.addItemsInJson('Records', responseData.records, reportSection);
         return resolve(responseData);
       });
 
       eventEmitter.on('check_on_pending', async () => {
-        logger.debug('<<<--------                  check_on_pending                   -------->>>')
+        logger.debug('getRecords().on(check_on_pending)')
         if (scope.show_unconfirmed) {
           const filter = {};
           if (!scope.shared_table) {
-            filter.account = recordsAddress;
+            filter.account = accountPropertiesHolder;
           }
 
           try {
             const unconfirmedObjects = await self.getUnconfirmedData(
-              userAddress,
-              recordPassphrase,
+              ownerAddress,
+              accountPropertiesHolderPassphrase,
               filter,
               scope.accessData,
             );
@@ -650,7 +688,7 @@ class Gravity {
           logger.verbose(`pendingRecords count: ${pendingRecords.length}`);
 
           pendingRecords.forEach((p) => {
-            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${p}&secretPhrase=${recordPassphrase}`;
+            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${p}&secretPhrase=${accountPropertiesHolderPassphrase}`;
 
             axios.get(thisUrl)
               .then((response) => {
@@ -681,9 +719,10 @@ class Gravity {
       });
 
       eventEmitter.on('records_retrieved', () => {
-        logger.debug('--------      Calling readMessage for each record                   --------')
-        logger.debug(`records_retrieved()`);
-        logger.debug(`records count: ${records.length}`);
+
+        logger.debug(`getRecords().on(records_retrieved)`);
+        logger.debug('  Calling readMessage for each MessageTransaction received from the AccountHolder')
+        logger.debug(`Message Transaction count: ${records.length}`);
 
         if (records.length <= 0) {
           eventEmitter.emit('check_on_pending');
@@ -692,7 +731,7 @@ class Gravity {
           let messageResponses = [];
           for ( let index = 0; index < recordsTotalCount; index++ ){
             const transactionId = records[index];
-            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${recordPassphrase}`;
+            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${accountPropertiesHolderPassphrase}`;
             logger.sensitive(` calling endpoint: ${thisUrl}`);
             const messageResponse = new Promise((resolve, reject) => {
               axios.get(thisUrl)
@@ -722,7 +761,7 @@ class Gravity {
               .then(results => {
                 logger.debug(`promise.all()`);
                 logger.debug(`total results: ${results.length}`);
-                let recordPassword = (scope.accessData) ? scope.accessData.encryptionPassword: password;
+                let recordPassword = (scope.accessData) ? scope.accessData.encryptionPassword: ownerPassword;
 
                 let totalSuccessfulMessageRequests = 0
                 let totalUnsuccessfulMessageRequests = 0
@@ -738,11 +777,7 @@ class Gravity {
                   return reduced;
                 }, [])
 
-                gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
-                  'Total requests': messageResponses.length,
-                  'Total successfull requests': totalSuccessfulMessageRequests,
-                  'Total failed requests': totalUnsuccessfulMessageRequests
-                })
+
                 const decryptedMessages = [];
 
                 for(let index = 0; index < messages.length; index++){
@@ -761,6 +796,16 @@ class Gravity {
                   logger.debug(`Total messages decrypted: ${decryptedMessages.length}`);
                   decryptedRecords.push(...decryptedMessages);
                 }
+
+                gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
+                  'Total requests': messageResponses.length,
+                  'Total successful requests': totalSuccessfulMessageRequests,
+                  'Total failed requests': totalUnsuccessfulMessageRequests,
+                  'Total decrypted Message Transactions': decryptedMessages.length
+                }, reportSection);
+
+
+
                 eventEmitter.emit('check_on_pending');
               })
 
@@ -788,51 +833,75 @@ class Gravity {
       });
 
       eventEmitter.on('database_retrieved', () => {
-        logger.debug('<<<--------                  Parsing all the transactions                   -------->>>')
+        logger.debug('  ### Parsing all the transactions ####')
+        logger.debug(` accountPropertiesHolder = ${accountPropertiesHolder} `);
+
         for (let obj = 0; obj < Object.keys(database).length; obj += 1) {
           let completion = false;
-          if (database[obj].attachment.encryptedMessage
-            && database[obj].attachment.encryptedMessage.data != null
-            && database[obj].senderRS === recordsAddress) {
-            if (scope.show_pending !== undefined && scope.show_pending > 0) {
-              if (database[obj].confirmations <= scope.show_pending) {
-                pendingRecords.push(obj.transaction);
-                pendingNumber += 1;
-              } else {
+          logger.debug(` Transaction content: ${JSON.stringify(database[obj])}`);
+          logger.debug(` senderRS = ${database[obj].senderRS} `);
+
+
+          if (database[obj].attachment.encryptedMessage && database[obj].attachment.encryptedMessage.data)
+          {
+
+            gravityCLIReporter.addItemsInJson('Transaction Info', {
+              'senderRS': database[obj].senderRS,
+              'recipientRS': database[obj].recipientRS
+            } ,  reportSection );
+
+            if( database[obj].senderRS === accountPropertiesHolder ){
+              logger.debug(`Transaction payload: ${database[obj].transaction}`)
+              if (scope.show_pending !== undefined && scope.show_pending > 0) {
+                if (database[obj].confirmations <= scope.show_pending) {
+                  pendingRecords.push(obj.transaction);
+                  pendingNumber += 1;
+                } else {
+                  records.push(database[obj].transaction);
+                  completedNumber += 1;
+                }
+              } else if (scope.size === 'all') {
                 records.push(database[obj].transaction);
                 completedNumber += 1;
+              } else if (scope.size === 'last') {
+                records.push(database[obj].transaction);
+                recordsFound += 1;
+                completedNumber += 1;
+                completion = true;
               }
-            } else if (scope.size === 'all') {
-              records.push(database[obj].transaction);
-              completedNumber += 1;
-            } else if (scope.size === 'last') {
-              records.push(database[obj].transaction);
               recordsFound += 1;
-              completedNumber += 1;
-              completion = true;
+            } else {
+              logger.debug(` # Wrong SenderRs: ${database[obj].senderRS}. Needs to be from ${accountPropertiesHolder}`)
+              gravityCLIReporter.addItem(
+                  `Transaction Info for `,
+                  ` # Wrong SenderRs: ${database[obj].senderRS}. Needs to be from ${accountPropertiesHolder}`,
+                  reportSection );
             }
-            recordsFound += 1;
+          } else {
+            logger.debug(` # Not a MessageTransaction: ${database[obj].transaction}`)
           }
           if (completion) {
-            logger.verbose(JSON.stringify(records));
+            logger.verbose(`records = ${JSON.stringify(records)}`);
             break;
           }
         }
 
-        logger.debug(`total records: ${records.length}`)
-        logger.debug(`total pending records: ${pendingRecords}`);
+        logger.debug(` Total records: ${records.length}`)
+        logger.debug(` Total pending records: ${pendingRecords}`);
         eventEmitter.emit('records_retrieved');
       });
 
       const port = process.env.JUPITER_PORT ? `:${process.env.JUPITER_PORT}` : '';
-      const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${userAddress}&withMessage=true&type=1`;
+      const includeExpiredPrunable = 'includeExpiredPrunable=true'; // This is done because metis was sending prunable user_record messages which cause the user to not be able to log in.
+      const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${ownerAddress}&withMessage=true&type=1&${includeExpiredPrunable}`;
       logger.verbose(url);
 
       axios.get(url)
         .then((response) => {
-          logger.debug('<<<--------                  Getting blockchain transactions                   -------->>>')
+          logger.debug('   ### Getting blockchain transactions ###')
           database = response.data.transactions;
           logger.info(`Total transactions: ${database.length}`);
+          gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
@@ -1105,11 +1174,12 @@ class Gravity {
 
   // This method retrieves user info based on the account and the passphrase given
   getUser(account, passphrase, containedDatabase = null) {
-    logger.verbose('<<<--------                  getUser()                   -------->>>');
+    logger.verbose('   #####  getUser()  #####');
     logger.verbose(`getUser()`);
     const self = this;
     return new Promise((resolve, reject) => {
       if (account === process.env.APP_ACCOUNT_ADDRESS) {
+        logger.debug('Using the application account');
         const userObject = {
           account,
           id: process.env.APP_ACCOUNT_ID,
@@ -1126,9 +1196,11 @@ class Gravity {
         };
         resolve({ user: JSON.stringify(userObject) });
       } else if (containedDatabase) {
-        logger.info('Retrieving database from the user');
+        logger.debug('Using Credentials from containedDatabase');
+        logger.debug('getUser().retrieveUserFromPassphrase()');
         self.retrieveUserFromPassphrase(containedDatabase)
           .then((response) => {
+            logger.debug('getUser().retrieveUserFromPassphrase().then()');
             if (response.databaseFound && !response.userNeedsSave) {
               resolve(response);
             } else if (response.userRecord) {
@@ -1145,19 +1217,25 @@ class Gravity {
               };
               resolve(returnData);
             } else {
-              logger.debug(JSON.stringify(response));
+              // logger.debug(JSON.stringify(response));
               logger.info('Retrieved database from the app');
+              logger.debug(`owner account doesnt have a userRecord. Attempting to get records from Application Account`);
+              logger.debug('getUser().retrieveUserFromApp()');
               self.retrieveUserFromApp(account, passphrase)
                 .then((res) => {
+                  logger.debug('getUser().retrieveUserFromApp().then()');
                   res.noUserTables = response.noUserTables;
                   res.databaseFound = response.databaseFound;
                   res.database = response.database;
                   res.userNeedsSave = response.userNeedsSave;
                   res.tables = response.tables;
-                  logger.info(res);
-                  resolve(res);
+
+                  logger.sensitive(`response = ${JSON.stringify(res)}`);
+
+                  return resolve(res);
                 })
                 .catch((error) => {
+                  logger.error(`retrieveUserFromPassphrase().retrieveUserFromApp() error: ${JSON.stringify(error)}`);
                   logger.info('This is the first stage');
                   reject(error);
                 });
@@ -1165,14 +1243,21 @@ class Gravity {
           })
           .catch((error) => {
             logger.info('This is the second stage');
+            logger.error(`retrieveUserFromPassphrase().catch() error: ${JSON.stringify(error)}`);
             reject(error);
           });
       } else {
+        logger.debug('No containedDatabase and not the application account.');
+        logger.debug('getUser().retrieveUserFromApp()')
         self.retrieveUserFromApp(account, passphrase)
           .then((response) => {
+            logger.debug('getUser().retrieveUserFromApp().then()');
+            logger.debug('No ContainedDatabase');
+            logger.sensitive(`response = ${JSON.stringify(response)}`);
             resolve(response);
           })
           .catch((error) => {
+            logger.error(`getUser().retrieveUserFromApp().catch() error: ${JSON.stringify(error)}`);
             logger.info('This third the second stage');
             reject(error);
           });
@@ -1181,7 +1266,9 @@ class Gravity {
   }
 
   retrieveUserFromPassphrase(accessData) {
+    logger.verbose('####################################')
     logger.verbose(`retrieveUserFromPassphrase()`)
+    logger.verbose('####################################')
     const eventEmitter = new events.EventEmitter();
     const self = this;
     const { passphrase } = accessData;
@@ -1219,6 +1306,8 @@ class Gravity {
             userNeedsSave: false,
           });
         }
+        logger.verbose('retrieveUserFromPassphrase().done')
+        logger.verbose('####################################')
       });
 
       eventEmitter.on('check_on_pending', () => {
@@ -1292,12 +1381,15 @@ class Gravity {
           });
       });
 
+      logger.debug(`retrieveUserFromPassphrase().loadAppData()`)
       self.loadAppData(accessData)
         .then((res) => {
+          logger.debug(`retrieveUserFromPassphrase().loadAppData().then()`)
           database = res.app.tables;
           tableList = res.tables;
           ({ userRecord } = res);
           if (res.hasUserTable) {
+            logger.debug(`Found User Table.`);
             Object.keys(database).forEach((x) => {
               if (database[x].users) {
                 recordTable = database[x].users;
@@ -1305,6 +1397,7 @@ class Gravity {
             });
             eventEmitter.emit('table_access_retrieved');
           } else {
+            logger.debug(`No user Table Found.`)
             resolve({
               tableList,
               success: false,
@@ -1322,7 +1415,9 @@ class Gravity {
   }
 
   retrieveUserFromApp(account, passphrase) {
+    logger.verbose('####################################')
     logger.verbose(`retrieveUserFromApp()`)
+    logger.verbose('####################################')
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
@@ -1338,12 +1433,8 @@ class Gravity {
 
       eventEmitter.on('set_responseData', () => {
         logger.verbose(`retrieveUserFromApp().on(set_responseData)`);
-
-        logger.sensitive(`   -------------------------------------------------`)
         logger.sensitive(`   Total decryptedRecords: ${decryptedRecords.length}`);
-        logger.sensitive(`   -------------------------------------------------`)
         logger.sensitive(`   decryptedRecords = ${JSON.stringify(decryptedRecords)}`);
-        logger.sensitive(`   -------------------------------------------------`)
 
         if (decryptedRecords[0] === undefined
           || decryptedRecords[0].user_record === undefined) {
@@ -1352,6 +1443,8 @@ class Gravity {
           responseData = { recordsFound, user: decryptedRecords[0].user_record };
           resolve(responseData);
         }
+        logger.verbose('retrieveUserFromApp().done')
+        logger.verbose('####################################')
       });
 
       eventEmitter.on('check_on_pending', () => {
@@ -1371,7 +1464,7 @@ class Gravity {
           const messages = [];
 
           for( let index = 0; index < recordsTotalCount; index ++) {
-            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${index}&secretPhrase=${passphrase}`;
+            const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${records[index]}&secretPhrase=${passphrase}`;
             logger.sensitive(` calling endpoint: ${thisUrl}`);
             const message = new Promise( (resolve, reject) => {
               axios.get(thisUrl)
@@ -1433,9 +1526,11 @@ class Gravity {
       });
 
       eventEmitter.on('table_retrieved', () => {
+        logger.debug(`retrieveUserFromApp().on(table_retrieved)`);
         Object.keys(tableData).some((position) => {
           const obj = tableData[position];
           let completion = false;
+          logger.debug(` the recipient ${obj.recipientRS} needs to be ${account}`);
           if (obj.attachment.encryptedMessage.data && obj.recipientRS === account) {
             records.push(obj.transaction);
             recordsFound += 1;
@@ -1448,9 +1543,15 @@ class Gravity {
       });
 
       eventEmitter.on('table_access_retrieved', () => {
-        axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${recordTable.address}&withMessage=true&type=1`)
+        logger.debug(`retrieveUserFromApp().on(table_access_retrieved)`);
+        logger.sensitive(`getting transactions from ${recordTable.address}`);
+        const includeExpiredPrunable = '&includeExpiredPrunable=true';
+        axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${recordTable.address}&withMessage=true&type=1${includeExpiredPrunable}`)
           .then((response) => {
+            logger.debug(`retrieveUserFromaApp().axiosGet().then()`)
+            // logger.sensitive(`response.data = ${JSON.stringify(response.data)}`);
             tableData = response.data.transactions;
+            logger.sensitive(`tableData Count: ${tableData.length}`);
             eventEmitter.emit('table_retrieved');
           })
           .catch((error) => {
@@ -1459,9 +1560,12 @@ class Gravity {
           });
       });
 
+      logger.debug(`retrieveUserFromApp().loadAppData()`);
       self.loadAppData()
         .then((res) => {
+          logger.debug(`retrieveUserFromApp().loadAppData.then()`);
           database = res.app.tables;
+          logger.sensitive(`database = ${JSON.stringify(res.app.tables)}`);
           Object.keys(database).forEach((x) => {
             if (database[x].users) {
               recordTable = database[x].users;
@@ -1598,13 +1702,24 @@ class Gravity {
         return reject({ error: true, data: 'recipient missing' });
       }
 
-      return axios.post(`${server}/nxt?requestType=sendMoney&secretPhrase=${senderAddress}&recipient=${recipient}&amountNQT=${amount}&feeNQT=${feeNQT}&deadline=60`)
+      const requestUrl = `${server}/nxt?requestType=sendMoney&secretPhrase=${senderAddress}&recipient=${recipient}&amountNQT=${amount}&feeNQT=${feeNQT}&deadline=60`
+
+      logger.sensitive(`sendMoney: ${requestUrl}`);
+      gravityCLIReporter.addItemsInJson('Sending some Money', {
+        'sender': senderAddress,
+        'recepient': recipient,
+        'amountNQT': amount,
+        'feeNQT': feeNQT
+      }, `Funding` );
+
+
+      return axios.post(requestUrl)
         .then((response) => {
           if (response.data.signatureHash != null) {
             return resolve({ success: true, data: response.data });
           }
 
-          logger.info('Cannot send Jupiter to new account, Jupiter issuer has insufficient balance!');
+          logger.error('Cannot send Jupiter to new account, Jupiter issuer has insufficient balance!');
           return reject({ error: true, data: response.data });
         })
         .catch(error => reject({ error: true, fullError: error }));
@@ -1711,7 +1826,8 @@ class Gravity {
   }
 
   async startFundingMonitor(params) {
-    return this.jupiterRequest('post', {
+
+    const postParams = {
       requestType: 'startFundingMonitor',
       property: params.fundingProperty || this.fundingProperty,
       secretPhrase: params.passphrase,
@@ -1719,7 +1835,11 @@ class Gravity {
       amount: params.amount || parseInt(this.jupiter_data.minimumTableBalance, 10),
       threshold: params.threshold || parseInt(this.jupiter_data.minimumTableBalance / 2, 10),
       interval: 10,
-    });
+    }
+
+    gravityCLIReporter.addItemsInJson('Funding Properties', postParams,'Funding')
+
+    return this.jupiterRequest('post', postParams);
   }
 
   async getFundingMonitor(params = {}) {
@@ -1884,10 +2004,14 @@ class Gravity {
   }
 
   getAccountInformation(passphrase) {
+    logger.verbose('getAccountInformation()');
     const self = this;
     return new Promise((resolve, reject) => {
       axios.get(`${self.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`)
         .then((response) => {
+          logger.verbose('getAccountInformation().axios.get().then()');
+          logger.sensitive(`response = ${JSON.stringify(response.data)}`);
+
           const address = response.data.accountRS;
           resolve({
             address,
@@ -1897,7 +2021,8 @@ class Gravity {
           });
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`getAccountInformation().axios.get().catch()`)
+          logger.error(`error = ${error}`);
           logger.info('There was an error in address creation');
           reject({ success: false, message: 'There was an error in getting account information' });
         });
