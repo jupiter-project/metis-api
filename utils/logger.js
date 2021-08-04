@@ -126,7 +126,7 @@ if (mongoDbTransport && process.env.NODE_ENV === 'production') {
 }
 
 module.exports = function (callingModule) {
-  const PADDING_DEFAULT = 45;
+  const PADDING_DEFAULT = 48;
   return winston.createLogger({
     levels: customLevels.levels,
     format: winston.format.combine(
@@ -140,7 +140,7 @@ module.exports = function (callingModule) {
           const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
           const spacing = (pre.length > PADDING_DEFAULT)? 0 : PADDING_DEFAULT - pre.length
           const padding = generatePadding(spacing);
-          const output = `${label}${timestamp}|${level}|${getLabel(callingModule)}|${padding}${message}`
+          const output = `${pre}${padding}${message}`
 
           return output
         }),
