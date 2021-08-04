@@ -402,7 +402,9 @@ class Model {
           // console.log(callUrl)
           // console.log(self);
 
-          console.log('URL--->', callUrl);
+
+          logger.verbose(`axios.post(): ${callUrl}`);
+
           axios.post(callUrl)
             .then((response) => {
               // console.log(response)

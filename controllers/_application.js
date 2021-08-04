@@ -197,11 +197,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
   app.post('/v1/api/create_jupiter_account', (req, res) => {
     const formData = req.body.account_data;
-
     res.setHeader('Content-Type', 'application/json');
-
     const seedphrase = req.body.account_data.passphrase;
-
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
       .then((response) => {
         // new_account_created = true;
