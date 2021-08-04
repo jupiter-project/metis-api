@@ -17,7 +17,7 @@ class User extends Model {
       model_params: ['id', 'account', 'accounthash', 'email', 'firstname', 'alias',
         'lastname', 'secret_key', 'twofa_enabled', 'twofa_completed', 'api_key', 'encryption_password',
       ],
-      prunableOnCreate: true,
+      prunableOnCreate: false, // this was set to true. Not sure why cause once the message is pruned we loose the user creds being stored in the blockchain.
       hasDatabase: true,
     },
     accessPass);
