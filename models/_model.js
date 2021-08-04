@@ -297,7 +297,6 @@ class Model {
             }
             // console.log(finalList);
 
-            logger.sensitiveInfo(JSON.stringify({ success: true, records: finalList, records_found: finalList.length }))
             resolve({ success: true, records: finalList, records_found: finalList.length });
           })
           .catch((err) => {
@@ -311,7 +310,6 @@ class Model {
           self.loadTable(accessData)
             .then((res) => {
               tableData = res;
-              logger.sensitiveInfo(tableData);
               eventEmitter.emit('tableData_loaded');
             })
             .catch((err) => {

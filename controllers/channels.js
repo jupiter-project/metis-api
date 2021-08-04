@@ -1,8 +1,8 @@
 import _ from 'lodash';
 import mailer from 'nodemailer';
 import controller from '../config/controller';
-import { gravity } from '../config/gravity';
-import { messagesConfig } from '../config/constants';
+import {gravity} from '../config/gravity';
+import {messagesConfig} from '../config/constants';
 import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
@@ -43,7 +43,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     res.send(page);
   });
 
-  app.post('/reportUser', controller.isLoggedIn, (req, res) => {
+  app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
     const transporter = mailer.createTransport({
       service: 'gmail',
       auth: {
@@ -109,7 +109,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Get a user's invites
    */
   app.get('/v1/api/channels/invites', async (req, res) => {
-  // app.get('/channels/invites', async (req, res) => {
     logger.info('/n/n/nChannel Invites/n/n');
     logger.info(req.session);
     const { accountData } = req.user;
@@ -131,16 +130,17 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    */
   app.post('/v1/api/channels/invite', async (req, res) => {
     const { data } = req.body;
-    const { account, accessData } = req.user;
-    data.sender = account;
+    const { user } = req;
+
+    data.sender = user.userData.account;
     const invite = new Invite(data);
-    invite.user = JSON.parse(gravity.decrypt(accessData));
+    invite.user = JSON.parse(gravity.decrypt(user.accountData));
     let response;
 
     try {
       response = await invite.send();
+      const sender = user.userData.alias;
       const recipient = _.get(data, 'recipient', '');
-      const sender = _.get(data, 'senderAlias', '');
       const channelName = _.get(data, 'channel.name', '');
       getPNTokenAndSendInviteNotification(sender, recipient, channelName);
     } catch (e) {
@@ -233,21 +233,22 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Send a message
    */
-  app.post('/data/messages', controller.isLoggedIn, async (req, res) => {
+  app.post('/v1/api/data/messages', async (req, res) => {
     const { maxMessageLength } = messagesConfig;
     let hasMessage = _.get(req, 'body.data.message', null);
     let response;
 
     if (hasMessage && hasMessage.length <= maxMessageLength) {
-      const { tableData } = req.body;
-      const message = new Message(req.body.data);
-      // TODO fix issue "req.user" related to passportjs to improve this code, we should be able to
-      // TODO get that info from mobile requests
-      // message.record.sender = req.user.record.account || req?.body?.user?.account;
-      message.record.sender = _.get(req, 'user.record.account', req.body.user.account);
-      // accountData
-      // const userData = decryptUserData(req);
+      let { tableData, data } = req.body;
+      const { user } = req;
+      data = {
+        ...data,
+        name: user.userData.alias,
+        sender: user.userData.account,
+        senderAlias: user.userData.alias,
+      };
 
+      const message = new Message(data);
       let { members } = await metis.getMember({
         channel: tableData.account,
         account: tableData.publicKey,
@@ -257,13 +258,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const mentions = _.get(req, 'body.mentions', []);
       const channel = _.get(req, 'body.channel', []);
       const channelName = _.get(tableData, 'name', 'a channel');
-      const accessData = _.get(req, 'session.accessData', req.body.user.accountData);
-      const userData = JSON.parse(gravity.decrypt(accessData));
+      const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
-        const data = await message.sendMessage(userData, tableData, message.record);
-        response = data;
+        response = await message.sendMessage(userData, tableData, message.record);
         if (Array.isArray(members) && members.length > 0) {
-          const senderName = message.record.name;
+          const senderName = user.userData.alias;
           members = members.filter(member => member !== senderName && !mentions.includes(member));
 
           if (hasJsonStructure(hasMessage)) {

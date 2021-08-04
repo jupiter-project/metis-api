@@ -44,7 +44,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // SIGNUP
   // ===============================================================================
 
-  app.get('/signup', (req, res) => {
+  app.get('/v1/api/signup', (req, res) => {
     const messages = req.session.flash;
     req.session.flash = null;
     // Loads file with Signup page
@@ -170,7 +170,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // JUPITER CALLS
   // ===============================================================================
 
-  app.post('/get_jupiter_account', (req, res) => {
+  app.post('/v1/api/get_jupiter_account', (req, res) => {
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -195,7 +195,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
   // NEW ACCOUNT GENERATION
   // ===============================================================================
-  app.post('/create_jupiter_account', (req, res) => {
+  app.post('/v1/api/create_jupiter_account', (req, res) => {
     const formData = req.body.account_data;
 
     res.setHeader('Content-Type', 'application/json');
@@ -242,7 +242,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
      }));
   */
 
-  app.post('/signup',
+  app.post('/v1/api/signup',
     passport.authenticate('gravity-signup', { session: false }),
     (req, res) => {
       res.redirect('/login');
@@ -256,7 +256,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   }));
 
   // used for the mobile app
-  app.post('/appLogin', (req, res, next) => {
+  app.post('/v1/api/appLogin', (req, res, next) => {
     logger.info('\n\n\nappLogin\n\n\n');
     logger.info(JSON.stringify(req.headers));
     logger.info('\n\n\nappLogin\n\n\n');

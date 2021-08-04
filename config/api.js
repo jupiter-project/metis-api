@@ -1,4 +1,5 @@
 import find from 'find';
+import jwt from 'jsonwebtoken';
 import { gravity } from './gravity';
 
 const logger = require('../utils/logger')(module);
@@ -27,7 +28,7 @@ module.exports = (app) => {
   /**
    * Get alias
    */
-  app.get('/jupiter/alias/:aliasName', async (req, res) => {
+  app.get('/v1/api/jupiter/alias/:aliasName', async (req, res) => {
     const aliasCheckup = await gravity.getAlias(req.params.aliasName);
 
     res.send(aliasCheckup);
@@ -37,78 +38,12 @@ module.exports = (app) => {
    * Get a table associated with a user
    */
   app.get('/v1/api/users/:id/:tableName', (req, res, next) => {
-    // const params = req.body;
-    // const { data } = params;
-    const { headers } = req;
-    const { tableName } = req.params;
-    const exceptions = ['users'];
-    let model = '';
-
-    logger.info(req.user);
-    logger.info(req.headers);
-
-    // If table in route is in the exception list, then it goes lower in the route list
-    if (exceptions.includes(tableName)) {
-      next();
-    } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
-
-      const file = `../models/${model}.js`;
-
-      const Record = require(file);
-
-      // We verify the user data here
-      const recordObject = new Record(
-        {
-          user_id: req.params.id,
-          public_key: headers.user_public_key,
-          user_api_key: headers.user_api_key,
-        },
-      );
-
-      logger.info('\n\nGRAVITY DECRYPT\n\n\n');
-      logger.info(headers);
-      logger.info('\n\nGRAVITY DECRYPT\n\n\n');
-
-      recordObject.loadRecords(JSON.parse(gravity.decrypt(headers.accessdata)))
-        .then((response) => {
-          const { records } = response;
-
-          gravity.sortByDate(records);
-          res.send({ success: true, [tableName]: records, [`total_${tableName}_number`]: response.records_found });
-        })
-        .catch((error) => {
-          logger.error(error);
-          res.send({ success: false, errors: error });
-        });
-    }
-  });
-
-
-  /**
-   * Get a table associated with a user
-   */
-  app.get('/v2/api/users/:tableName', (req, res, next) => {
-    logger.info('[START]: /api/users/');
-
     const { user } = req;
     const { tableName } = req.params;
     const exceptions = ['users'];
     let model = '';
 
     logger.info(req.user);
-    logger.info(req.headers);
 
     // If table in route is in the exception list, then it goes lower in the route list
     if (exceptions.includes(tableName)) {
@@ -129,18 +64,16 @@ module.exports = (app) => {
 
       const file = `../models/${model}.js`;
 
-      console.log('FILE---->', file);
-
       const Record = require(file);
 
       // We verify the user data here
-      const recordObject = new Record(
-        {
-          user_id: user.id,
-          public_key: user.publicKey,
-          user_api_key: user.publicKey,
-        },
-      );
+      const recordObject = new Record({
+        user_id: user.id,
+        public_key: user.publicKey,
+        user_api_key: user.publicKey,
+      });
+
+      logger.info('\n\nGRAVITY DECRYPT\n\n\n');
 
       recordObject.loadRecords(JSON.parse(gravity.decrypt(user.accountData)))
         .then((response) => {
@@ -150,6 +83,59 @@ module.exports = (app) => {
           res.send({ success: true, [tableName]: records, [`total_${tableName}_number`]: response.records_found });
         })
         .catch((error) => {
+          logger.error('[loadRecords]:');
+          logger.error(error);
+          res.send({ success: false, errors: error });
+        });
+    }
+  });
+
+
+  /**
+   * Get channel records associated with a user
+   */
+  app.get('/v1/api/users/channels', (req, res, next) => {
+    const { user } = req;
+    const { tableName } = req.params;
+    const exceptions = ['users'];
+
+    logger.info(req.user);
+
+    // If table in route is in the exception list, then it goes lower in the route list
+    if (exceptions.includes(tableName)) {
+      next();
+    } else {
+      const Record = require('../models/channel.js');
+
+      // We verify the user data here
+      const recordObject = new Record({
+        user_id: user.id,
+        public_key: user.publicKey,
+        user_api_key: user.publicKey,
+      });
+
+      const userData = JSON.parse(gravity.decrypt(user.accountData));
+      recordObject.loadRecords(userData)
+        .then((response) => {
+          const { records } = response;
+          gravity.sortByDate(records);
+          if (records) {
+            return records.map((channel) => {
+              const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
+              return { ...channel, token };
+            });
+          }
+          return records;
+        })
+        .then((channelList) => {
+          res.send({
+            success: true,
+            channels: channelList,
+            total_channels_number: channelList.length,
+          });
+        })
+        .catch((error) => {
+          logger.error('[loadRecords]:');
           logger.error(error);
           res.send({ success: false, errors: error });
         });
@@ -159,7 +145,7 @@ module.exports = (app) => {
   /**
    * Create a record, assigned to the current user
    */
-  app.post('/v1/api/:tableName', (req, res, next) => {
+  app.post('/v1/api/create/:tableName', (req, res, next) => {
     const params = req.body;
     let { data } = params;
     const { tableName } = req.params;
@@ -170,29 +156,6 @@ module.exports = (app) => {
     } = req.user;
 
     const userData = JSON.parse(gravity.decrypt(accountData));
-
-    console.log('DATA--->', data);
-    console.log('PARAMS---->', params);
-    console.log('TABLENAME--->', tableName);
-
-    // const params = {
-    //   channelName,
-    //   userId: user.id,
-    //   userPublicKey: user.publicKey,
-    //   userApiKey: user.accessKey,
-    //   userAccount: user.accounthash,
-    //   accessData: user.accountData
-    // };
-
-
-
-    // passphrase: "",
-    //     password: "",
-    //     public_key: userPublicKey,
-    //     user_address: userAccount,
-    //     user_api_key: userApiKey,
-    //     user_id: userId,
-
 
     const exceptions = ['users'];
     let model = '';
@@ -207,8 +170,6 @@ module.exports = (app) => {
       user_id: id,
     };
 
-    console.log('DATA CHANNEL CREATION----->', data);
-
     // If table in route is in the exception list, then it goes lower in the route list
     if (exceptions.includes(tableName)) {
       next();
@@ -227,18 +188,13 @@ module.exports = (app) => {
       });
 
       const file = `../models/${model}.js`;
-
-      console.log('FILE---->', file);
-
       const Record = require(file);
 
 
-
       const recordObject = new Record(data);
-      console.log('recordObject---->', recordObject);
       if (recordObject.belongsTo === 'user') {
-        if (params.user) {
-          recordObject.accessLink = params.user;
+        if (accountData) {
+          recordObject.accessLink = accountData;
         }
       }
       recordObject.create()

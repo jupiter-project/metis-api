@@ -5,19 +5,21 @@ const jwt = require('jsonwebtoken');
 // ============================
 const tokenVerify = (req, res, next) => {
   const token = req.get('Authorization');
-  const omitedUrls = [
-    '/appLogin',
-    '/signup',
-    '/get_jupiter_account',
-    '/jupiter/alias/',
+  const channelToken = req.get('AuthorizationChannel');
+  const omittedUrls = [
+    '/v1/api/appLogin',
+    '/v1/api/signup',
+    '/v1/api/get_jupiter_account',
+    '/v1/api/jupiter/alias/',
   ];
-  const valid = omitedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
+  const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
-  if (valid.length > 0) {
+  if (valid.length > 0 || req.url === '/') {
     return next();
   }
+  const decodedChannel = channelToken ? jwt.decode(channelToken) : null;
 
-  jwt.verify(token, process.env.SESSION_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.SESSION_SECRET, (err, decodedUser) => {
     if (err) {
       console.log(err);
       return res.status(401).json({
@@ -25,7 +27,8 @@ const tokenVerify = (req, res, next) => {
         err,
       });
     }
-    req.user = decoded;
+    req.user = decodedUser;
+    req.channel = decodedChannel;
     next();
   });
 };

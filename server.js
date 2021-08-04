@@ -82,9 +82,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(tokenVerify);
 
-// Here is where we load the api routes. We put them here so passport deserializer
-// is not called everytime we make an api call to them
-require('./config/api.js')(app);
+
 
 // Sets public directory
 app.use(express.static(`${__dirname}/public`));
@@ -150,6 +148,10 @@ server.on('upgrade', (request, socket, head) => {
     socket.destroy();
   }
 });
+
+// Here is where we load the api routes. We put them here so passport deserializer
+// is not called everytime we make an api call to them
+require('./config/api.js')(app);
 
 const logger = require('./utils/logger')(module);
 
