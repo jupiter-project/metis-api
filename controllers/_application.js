@@ -1,4 +1,5 @@
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
@@ -44,8 +45,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // SIGNUP
   // ===============================================================================
 
-  app.get('/signup', (req, res) => {
-    logger.verbose(`app.get(signup)`)
+  app.get('/v1/api/signup', (req, res) => {
     const messages = req.session.flash;
     req.session.flash = null;
     // Loads file with Signup page
@@ -171,7 +171,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // JUPITER CALLS
   // ===============================================================================
 
-  app.post('/get_jupiter_account', (req, res) => {
+  app.post('/v1/api/get_jupiter_account', (req, res) => {
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -196,7 +196,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
   // NEW ACCOUNT GENERATION
   // ===============================================================================
-  app.post('/create_jupiter_account', (req, res) => {
+
+    app.post('/v1/api/create_jupiter_account', (req, res) => {
     gravityCLIReporter.setTitle('Creating Jupiter Account');
     logger.verbose(`app.post(create_jupiter_account)`)
     const formData = req.body.account_data;
@@ -205,6 +206,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     gravityCLIReporter.addItemsInJson('account credentials', req.body.account_data, );
 
     logger.sensitive(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
+
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -220,6 +222,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           lastname: formData.lastname,
           twofa_enabled: formData.twofa_enabled,
         };
+
         gravityCLIReporter.addItemsInJson('Account Created', {...response.data,...formData} );
         gravityCLIReporter.sendReportAndReset()
         logger.sensitive(jupiterAccount);
@@ -248,7 +251,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
      }));
   */
 
-  app.post('/signup',
+  app.post('/v1/api/signup',
     passport.authenticate('gravity-signup', { session: false }),
     (req, res) => {
       res.redirect('/login');
@@ -265,7 +268,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    *
    */
-  app.post('/appLogin', (req, res, next) => {
+    app.post('/v1/api/appLogin', (req, res, next) => {
     gravityCLIReporter.setTitle('  METIS LOGIN ');
     logger.verbose('appLogin()');
     logger.debug('--headers--')
@@ -279,6 +282,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         gravityCLIReporter.sendReportAndReset();
         return next(error);
       }
+
 
       if (!user) {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
@@ -306,11 +310,26 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         });
       }
 
-      gravityCLIReporter.addItem('Account Data', JSON.stringify(accountData));
-      user.publicKey = accountData.publicKey;
-      gravityCLIReporter.sendReport();
-      gravityCLIReporter.reset();
-      return res.json(user);
+      const token = jwt.sign(
+        { ...user },
+        process.env.SESSION_SECRET, {
+          expiresIn: process.env.JWT_TOKEN_EXPIRATION,
+        },
+      );
+      const userContainer = {
+        id: user.id,
+        profilePictureURL: user.profilePictureURL,
+        alias: user.userData.alias,
+        account: user.userData.account,
+      };
+
+        gravityCLIReporter.addItem('Account Data', JSON.stringify(accountData));
+        // user.publicKey = accountData.publicKey;
+        gravityCLIReporter.sendReport();
+        gravityCLIReporter.reset();
+
+      res.status(200).send({ userContainer, token });
+
     })(req, res, next);
   });
 
