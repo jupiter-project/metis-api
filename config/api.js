@@ -77,10 +77,6 @@ module.exports = (app) => {
         },
       );
 
-      logger.info('\n\nGRAVITY DECRYPT\n\n\n');
-      logger.info(headers);
-      logger.info('\n\nGRAVITY DECRYPT\n\n\n');
-
       recordObject.loadRecords(JSON.parse(gravity.decrypt(headers.accessdata)))
         .then((response) => {
           const { records } = response;

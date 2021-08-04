@@ -138,6 +138,8 @@ class Channel extends Model {
   }
 
   async create() {
+    // 'id', 'passphrase', 'account', 'password', 'name', 'publicKey', 'sender', 'accountId',
+
     if (!this.record.passphrase || this.record.password) {
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();

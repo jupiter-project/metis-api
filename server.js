@@ -122,7 +122,12 @@ app.use(flash()); // use connect-flash for flash messages stored in session
 const server = Object.keys(sslOptions).length >= 2
   ? require('https').createServer(sslOptions, app)
   : require('http').createServer(app);
+
 // Enables websocket
+// const MetisSocket = require('./services/metisSocketService');
+//
+// MetisSocket.init(server);
+
 const socketIO = require('socket.io');
 const socketService = require('./services/socketService');
 
@@ -135,6 +140,12 @@ io.of('/chat').on('connection', socketService.connection.bind(this));
 
 // Jupiter Web Socket implementation
 const jupiterSocketService = require('./services/jupiterSocketService');
+
+app.post('/ws', async (req, res) => {
+  await jupiterSocketService.handleMessage(req.body);
+  // console.log(req.body);
+  res.send('ok');
+});
 
 const jupiterWss = new WebSocket.Server({ noServer: true });
 jupiterWss.on('connection', jupiterSocketService.connection.bind(this));
@@ -164,7 +175,7 @@ const {
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
 metisSignup(passport); //  pass passport for configuration
-metisLogin(passport, jobs, io); //  pass passport for configuration
+metisLogin(passport, jobs, null); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
@@ -198,7 +209,7 @@ const RegistrationWorker = require('./workers/registration.js');
 // const TransferWorker = require('./workers/transfer.js');
 
 
-const registrationWorker = new RegistrationWorker(jobs, io);
+const registrationWorker = new RegistrationWorker(jobs, null);
 // registrationWorker.reloadActiveWorkers('completeRegistration')
 //   .catch((error) => { if (error.error) console.log(error.message); });
 // const transferWorker = new TransferWorker(jobs);

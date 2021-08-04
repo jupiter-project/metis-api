@@ -152,7 +152,7 @@ class Gravity {
       const decipher = crypto.createDecipher(this.algorithm, password);
       let dec = decipher.update(text, 'hex', 'utf8');
       dec += decipher.final('utf8');
-      logger.debug(`decrypted...`)
+      // logger.debug(`decrypted...`)
       logger.sensitiveInfo(dec);
       return dec;
     } catch( error){

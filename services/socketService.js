@@ -1,4 +1,3 @@
-
 const logger = require('../utils/logger')(module);
 
 const leaveChat = function (data, callback) {

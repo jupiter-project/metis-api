@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Model from './_model';
 import { gravity } from '../config/gravity';
+import transactionService from '../services/transactionService';
 
 
 class Message extends Model {
@@ -48,6 +49,11 @@ class Message extends Model {
       // console.log(self);
       axios.post(callUrl)
         .then((response) => {
+          console.log('-------------');
+          console.log('MESSAGE');
+          transactionService.saveTransaction(response.data.transactionJSON);
+          console.log(response.data.transactionJSON);
+
           if (response.data.broadcasted && response.data.broadcasted === true) {
             resolve({ success: true, message: 'Message sent!' });
           } else if (response.data.errorDescription != null) {

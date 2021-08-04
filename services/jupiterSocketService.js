@@ -1,5 +1,6 @@
-const TransactionBlocks = require('../models/transactions.js');
+// const TransactionBlocks = require('../models/transactions.js');
 const logger = require('../utils/logger')(module);
+const transactionService = require('./transactionService');
 
 // TODO This code was not called. Check if it's necessary.
 // const getDisconnectingEvent = (reason) => {
@@ -18,9 +19,7 @@ const logger = require('../utils/logger')(module);
 const handleMessage = async (message) => {
   try {
     const parsedMessage = JSON.parse(message);
-
-    const transactionBlock = new TransactionBlocks(parsedMessage);
-    await transactionBlock.save();
+    transactionService.processBlock(parsedMessage);
   } catch (e) {
     logger.error('Error on socket message', e);
   }
@@ -41,4 +40,4 @@ const connection = (ws) => {
   });
 };
 
-module.exports = { connection };
+module.exports = { handleMessage, connection };
