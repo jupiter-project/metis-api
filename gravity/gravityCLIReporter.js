@@ -7,7 +7,7 @@ class GravityCLIReporter {
 
     constructor() {
         this.title = 'Gravity CLI Reporter';
-        this.logLevel = 'info';
+        this.logLevel = 'sensitive';
         this.reportItems = []
         this.sections = {}
     }
@@ -19,7 +19,10 @@ class GravityCLIReporter {
     }
 
 
-    addItem(label, item, section = 'MAIN'){
+    addItem(label, item, sectionTitle = 'MAIN'){
+
+        const section = sectionTitle.toUpperCase();
+
         if(section){
             if(Array.isArray(this.sections[section])){
                 this.sections[section].push({label:label, item: item});
@@ -33,12 +36,16 @@ class GravityCLIReporter {
     }
 
     addItemsInJson(label, json, section = 'MAIN' ){
-        this.addItem(label, '\n----------------------------------------------------', section);
-        Object.entries(json).forEach((entry) => {
-            const [key, value] = entry;
-            this.addItem(`   ${key}`, `${JSON.stringify(value)}`, section);
-            // console.log(`${key}: ${value}`);
-        });
+
+        if(typeof json == 'string') {
+            this.addItem(label, json, section);
+        } else {
+            this.addItem(label, '', section);
+            Object.entries(json).forEach((entry) => {
+                const [key, value] = entry;
+                this.addItem(`   ${key}`, `${JSON.stringify(value)}`, section);
+            });
+        }
     }
 
     setLogLevel(level){
@@ -61,7 +68,7 @@ class GravityCLIReporter {
 
     getHeader(){
         const header = `\n\n\n\n\n\n\n\n
-#########################################################################################        
+#################################################################################################        
         
   #####                                        ######                                    
  #     # #####    ##   #    # # ##### #   #    #     # ###### #####   ####  #####  ##### 
@@ -74,7 +81,7 @@ class GravityCLIReporter {
         let out = header + `\n###`;
         out = out + `\n###   ${this.title}`;
         out = out + `\n###`;
-        out = out + '\n######################################################################################### ';
+        out = out + '\n################################################################################################# ';
         out = out + '\n\n';
 
         return out;
@@ -85,21 +92,22 @@ class GravityCLIReporter {
 
         for( const key in this.sections){
             const section = this.sections[key];
-            report = report + `\n\n SECTION : ${key}`;
+            report = report + `\n\n# ${key.toUpperCase()}`;
+            report = report + `\n#################################################################################################\n`
             for(let x = 0; x < section.length; x++){
                 const item = section[x];
-                report = report + `\n\n      ${item.label}:  ${item.item}`
+                report = report + `\n\n     ${item.label.toUpperCase()}:  ${item.item}`
             }
             // report = report + `\n\n      ${item.label}:  ${item.item}`
         }
 
         for(let i = 0; i < this.reportItems.length; i++){
             const item = this.reportItems[i];
-            report = report + `\n\n      ${item.label}:  ${item.item}`
+            report = report + `\n\n     ${item.label.toUpperCase()}:  ${item.item}`
         }
 
         report = report + '\n\n';
-        report = report + '\n######################################################################################### ';
+        report = report + '\n#################################################################################################';
 
         this.log(report);
     }
@@ -107,3 +115,4 @@ class GravityCLIReporter {
 }
 
 module.exports.gravityCLIReporter = new GravityCLIReporter();
+module.exports.GravityCLIReporter = GravityCLIReporter;
