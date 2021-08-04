@@ -12,7 +12,13 @@ class Message extends Model {
       table: 'messages',
       belongsTo: 'user',
       model_params: [
-        'sender', 'message', 'name', 'isInvitation',
+        'sender',
+        'message',
+        'name',
+        'replyMessage',
+        'replyRecipientName',
+        'isInvitation',
+        'messageVersion',
       ],
     });
     this.public_key = data.public_key;
