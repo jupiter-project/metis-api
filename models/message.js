@@ -19,6 +19,8 @@ class Message extends Model {
         'replyRecipientName',
         'isInvitation',
         'messageVersion',
+        'type',
+        'payload',
       ],
     });
     this.public_key = data.public_key;

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
 import controller from '../config/controller';
 
@@ -43,8 +44,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // SIGNUP
   // ===============================================================================
 
-  app.get('/signup', (req, res) => {
-    logger.verbose(`app.get(signup)`)
+  app.get('/v1/api/signup', (req, res) => {
     const messages = req.session.flash;
     req.session.flash = null;
     // Loads file with Signup page
@@ -170,7 +170,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // JUPITER CALLS
   // ===============================================================================
 
-  app.post('/get_jupiter_account', (req, res) => {
+  app.post('/v1/api/get_jupiter_account', (req, res) => {
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -195,12 +195,10 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
   // NEW ACCOUNT GENERATION
   // ===============================================================================
-  app.post('/create_jupiter_account', (req, res) => {
-    logger.verbose(`app.post(create_jupiter_account)`)
+  app.post('/v1/api/create_jupiter_account', (req, res) => {
     const formData = req.body.account_data;
     res.setHeader('Content-Type', 'application/json');
     const seedphrase = req.body.account_data.passphrase;
-    logger.sensitiveInfo(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -216,7 +214,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           lastname: formData.lastname,
           twofa_enabled: formData.twofa_enabled,
         };
-        logger.sensitiveInfo(jupiterAccount);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
@@ -242,7 +239,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
      }));
   */
 
-  app.post('/signup',
+  app.post('/v1/api/signup',
     passport.authenticate('gravity-signup', { session: false }),
     (req, res) => {
       res.redirect('/login');
@@ -256,7 +253,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   }));
 
   // used for the mobile app
-  app.post('/appLogin', (req, res, next) => {
+  app.post('/v1/api/appLogin', (req, res, next) => {
     logger.info('\n\n\nappLogin\n\n\n');
     logger.info(JSON.stringify(req.headers));
     logger.info('\n\n\nappLogin\n\n\n');
@@ -274,10 +271,20 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         });
       }
 
-      const accountData = JSON.parse(gravity.decrypt(userInfo.accountData));
+      const token = jwt.sign(
+        { ...userInfo },
+        process.env.SESSION_SECRET, {
+          expiresIn: process.env.JWT_TOKEN_EXPIRATION,
+        },
+      );
+      const user = {
+        id: userInfo.id,
+        profilePictureURL: userInfo.profilePictureURL,
+        alias: userInfo.userData.alias,
+        account: userInfo.userData.account,
+      };
 
-      userInfo.publicKey = accountData.publicKey;
-      return res.json(userInfo);
+      res.status(200).send({ user, token });
     })(req, res, next);
   });
 
