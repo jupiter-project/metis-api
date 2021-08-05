@@ -251,19 +251,17 @@ module.exports = (app, passport, React, ReactDOMServer) => {
      }));
   */
 
-  app.post('/v1/api/signup',
-    passport.authenticate('gravity-signup', { session: false }),
-    (req, res) => {
-      res.redirect('/login');
-    });
-
-  // process the login
-  app.post('/login', passport.authenticate('gravity-login', {
-    successRedirect: '/',
-    failureRedirect: '/login',
-    failureFlash: true,
-  }));
-
+  /**
+   *
+   */
+  app.post('/v1/api/signup',(req, res, next) => {
+    passport.authenticate('gravity-signup', (error, user, message) =>{
+      if(error){
+        return res.status(500).send({success: false, message: message});
+      }
+      return res.status(200).send({success: true, message: message});
+    })(req,res, next)
+  })
 
   /**
    *

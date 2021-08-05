@@ -2029,6 +2029,13 @@ class Gravity {
     });
   }
 
+  /**
+   *
+   * @param {object} database - database == transactions
+   * @param {string} tableName - ex 'users' or 'invites' or 'channels' or 'storage'
+   * @param {[]} currentTables - ?
+   * @returns {Promise<unknown>}
+   */
   async attachTable(database, tableName, currentTables = null) {
     logger.verbose(`attachTable()`)
     const eventEmitter = new events.EventEmitter();

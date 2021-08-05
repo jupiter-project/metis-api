@@ -120,10 +120,11 @@ const metisSignup = (passport) => {
                 encryptionKey: gravity.encrypt(params.encryption_password),
                 id: user.data.id,
             }
+
             logger.verbose(`User is created: ${JSON.stringify(payload)}`);
             gravityCLIReporter.addItemsInJson('The user is created', {...payload,...params}, 'IN CONCLUSION');
             gravityCLIReporter.sendReportAndReset();
-            return done(null, payload, req.flash('signupMessage', 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.'));
+            return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
           })
           .catch((err) => {
             logger.error('USER CREATION FAILED', JSON.stringify(err));
@@ -138,7 +139,7 @@ const metisSignup = (passport) => {
             } else {
               errorMessage = err.errors;
             }
-            return done(null, false, { message: errorMessage });
+            return done(true, false, errorMessage);
           });
       // });
 
