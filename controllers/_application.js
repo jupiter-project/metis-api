@@ -25,6 +25,35 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     res.send({ success: true });
   });
 
+  // ===========================================================
+  // This constains the versions
+  // ===========================================================
+  // Loads versions
+  app.get('/v1/api/version', (req, res) => {
+      const os = require("os");
+      const hostname = os.hostname();
+      const jupiInfoUrl = `${process.env.JUPITERSERVER}/nxt?=%2Fnxt&requestType=getBlockchainStatus`;
+    axios.get(jupiInfoUrl)
+      .then((response) => {
+        console.log(response);
+        const version = [
+          { name: 'Metis App Version', version: '1.1.2' },
+          { name: 'Metis Server', version: hostname },
+          { name: 'Metis Server Version', version: process.env.VERSION },
+          { name: 'Jupiter Network', version: response.data.isTestnet ? 'testnet' : 'prod'},
+          { name: 'Jupiter Version', version: response.data.version },
+        ];
+        res.send(version);
+      })
+      .catch((error) => {
+        logger.error(error);
+        res.send({
+          success: false,
+          message: 'There was an error getting jupiter version',
+        });
+      });
+  });
+
   // ===============================================================================
   // SIGNIN PAGE
   // ===============================================================================
