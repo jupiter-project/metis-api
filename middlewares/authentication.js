@@ -7,6 +7,8 @@ const tokenVerify = (req, res, next) => {
   const token = req.get('Authorization');
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [
+      '/create_passphrase',
+      '/v1/api/create_jupiter_account',
     '/v1/api/appLogin',
     '/v1/api/signup',
     '/v1/api/get_jupiter_account',

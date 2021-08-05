@@ -1,6 +1,7 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
+import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
 
 const logger = require('../utils/logger')(module);
@@ -224,10 +225,17 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
   // NEW ACCOUNT GENERATION
   // ===============================================================================
-  app.post('/v1/api/create_jupiter_account', (req, res) => {
+
+    app.post('/v1/api/create_jupiter_account', (req, res) => {
+    gravityCLIReporter.setTitle('Creating Jupiter Account');
+    logger.verbose(`app.post(create_jupiter_account)`)
     const formData = req.body.account_data;
     res.setHeader('Content-Type', 'application/json');
     const seedphrase = req.body.account_data.passphrase;
+    gravityCLIReporter.addItemsInJson('account credentials', req.body.account_data, );
+
+    logger.sensitive(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
+
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
       .then((response) => {
         // new_account_created = true;
@@ -243,6 +251,10 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           lastname: formData.lastname,
           twofa_enabled: formData.twofa_enabled,
         };
+
+        gravityCLIReporter.addItemsInJson('Account Created', {...response.data,...formData} );
+        gravityCLIReporter.sendReportAndReset()
+        logger.sensitive(jupiterAccount);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
@@ -268,32 +280,57 @@ module.exports = (app, passport, React, ReactDOMServer) => {
      }));
   */
 
-  app.post('/v1/api/signup',
-    passport.authenticate('gravity-signup', { session: false }),
-    (req, res) => {
-      res.redirect('/login');
-    });
+  /**
+   *
+   */
+  app.post('/v1/api/signup',(req, res, next) => {
+    passport.authenticate('gravity-signup', (error, user, message) =>{
+      if(error){
+        return res.status(500).send({success: false, message: message});
+      }
+      return res.status(200).send({success: true, message: message});
+    })(req,res, next)
+  })
 
-  // process the login
-  app.post('/login', passport.authenticate('gravity-login', {
-    successRedirect: '/',
-    failureRedirect: '/login',
-    failureFlash: true,
-  }));
+  /**
+   *
+   */
+    app.post('/v1/api/appLogin', (req, res, next) => {
+    gravityCLIReporter.setTitle('  METIS LOGIN ');
+    logger.verbose('appLogin()');
+    logger.debug('--headers--')
+    logger.sensitive(JSON.stringify(req.headers));
 
-  // used for the mobile app
-  app.post('/v1/api/appLogin', (req, res, next) => {
-    logger.info('\n\n\nappLogin\n\n\n');
-    logger.info(JSON.stringify(req.headers));
-    logger.info('\n\n\nappLogin\n\n\n');
+    passport.authenticate('gravity-login', (error, user, message) => {
+      logger.debug('passport.authentication(CALLBACK).');
 
-    passport.authenticate('gravity-login', (err, userInfo) => {
-      if (err) return next(err);
-      if (!userInfo) {
+      if (error) {
+        logger.error(`Error! ${error}`);
+        gravityCLIReporter.sendReportAndReset();
+        return next(error);
+      }
+
+
+      if (!user) {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
+        logger.error(errorMessage);
+        gravityCLIReporter.addItem('Conclusion', 'Unable to log in. Please check your credentials' );
+        gravityCLIReporter.sendReportAndReset();
+        return res.status(400).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
 
-        logger.error(new Error(errorMessage));
+      let accountData = {};
+      try {
+        logger.verbose(`attempting to decrypt the accountData`);
+        accountData = JSON.parse(gravity.decrypt(user.accountData));
+        logger.verbose(`accountData = ${JSON.stringify(accountData)}`);
 
+      } catch(error){
+        const errorMessage = 'Unable to decrypt your data.';
+        gravityCLIReporter.addItem('Account Data', 'Unable to decrypt Account Data');
         return res.status(400).json({
           success: false,
           message: errorMessage,
@@ -301,19 +338,25 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       }
 
       const token = jwt.sign(
-        { ...userInfo },
+        { ...user },
         process.env.SESSION_SECRET, {
           expiresIn: process.env.JWT_TOKEN_EXPIRATION,
         },
       );
-      const user = {
-        id: userInfo.id,
-        profilePictureURL: userInfo.profilePictureURL,
-        alias: userInfo.userData.alias,
-        account: userInfo.userData.account,
+      const userContainer = {
+        id: user.id,
+        profilePictureURL: user.profilePictureURL,
+        alias: user.userData.alias,
+        account: user.userData.account,
       };
 
-      res.status(200).send({ user, token });
+        gravityCLIReporter.addItem('Account Data', JSON.stringify(accountData));
+        // user.publicKey = accountData.publicKey;
+        gravityCLIReporter.sendReport();
+        gravityCLIReporter.reset();
+
+      res.status(200).send({ userContainer, token });
+
     })(req, res, next);
   });
 
