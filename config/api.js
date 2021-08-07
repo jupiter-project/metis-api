@@ -98,24 +98,21 @@ module.exports = (app) => {
     const { user } = req;
     const { tableName } = req.params;
     const exceptions = ['users'];
-
-    logger.info(req.user);
-
     // If table in route is in the exception list, then it goes lower in the route list
     if (exceptions.includes(tableName)) {
       next();
     } else {
-      const Record = require('../models/channel.js');
+      const ChannelRecord = require('../models/channel.js');
 
       // We verify the user data here
-      const recordObject = new Record({
+      const channelRecord = new ChannelRecord({
         user_id: user.id,
         public_key: user.publicKey,
         user_api_key: user.publicKey,
       });
 
       const userData = JSON.parse(gravity.decrypt(user.accountData));
-      recordObject.loadRecords(userData)
+      channelRecord.loadRecords(userData)
         .then((response) => {
           const { records } = response;
           gravity.sortByDate(records);
@@ -128,7 +125,7 @@ module.exports = (app) => {
           return records;
         })
         .then((channelList) => {
-          res.send({
+          res.status(200).send({
             success: true,
             channels: channelList,
             total_channels_number: channelList.length,
@@ -137,15 +134,20 @@ module.exports = (app) => {
         .catch((error) => {
           logger.error('[loadRecords]:');
           logger.error(error);
-          res.send({ success: false, errors: error });
+          res.status(500).send({
+            success: false,
+            errors: error
+          });
         });
     }
   });
+
 
   /**
    * Create a record, assigned to the current user
    */
   app.post('/v1/api/create/:tableName', (req, res, next) => {
+    logger.verbose(`app.post(/v1/api/create/:tableName)`);
     const params = req.body;
     let { data } = params;
     const { tableName } = req.params;
@@ -156,6 +158,8 @@ module.exports = (app) => {
     } = req.user;
 
     const userData = JSON.parse(gravity.decrypt(accountData));
+
+    logger.sensitive(`userData = ${ JSON.stringify(userData)}`);
 
     const exceptions = ['users'];
     let model = '';
@@ -199,11 +203,14 @@ module.exports = (app) => {
       }
       recordObject.create()
         .then((response) => {
-          res.send(response);
+          res.status(200).send(response);
         })
         .catch((err) => {
-          logger.error(err);
-          res.send(err);
+          logger.error(`app.post() recordObject.create().catch() ${ JSON.stringify(err)}`);
+          res.status(500).send({
+            success: false,
+            errors: err.errors
+          });
         });
     }
   });
