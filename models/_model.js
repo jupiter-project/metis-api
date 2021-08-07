@@ -10,6 +10,8 @@ const logger = require('../utils/logger')(module);
 class Model {
   constructor(data, accessData = null) {
     // Default values of model
+    logger.verbose(`constructor()`);
+    logger.debug(`data =${ JSON.stringify(data)}`);
     this.id = null;
     this.record = {};
     this.model = data.model;
@@ -27,6 +29,7 @@ class Model {
   }
 
   setRecord() {
+    logger.verbose(`setRecord()`);
     const record = {};
     const self = this;
 
@@ -41,7 +44,12 @@ class Model {
     self.record.date = Date.now();
 
     if (self.model === 'user') {
-      self.user = { id: self.id, api_key: self.record.api_key, public_key: self.data.public_key };
+      self.user = {
+        id: self.id,
+        api_key: self.record.api_key,
+        public_key: self.data.public_key
+      };
+
     } else {
       self.user = {
         id: self.data.user_id,
@@ -50,6 +58,8 @@ class Model {
         address: self.data.user_address,
       };
     }
+
+    logger.debug(`self.user = ${JSON.stringify(self.user)}`);
     return record;
   }
 
@@ -418,13 +428,16 @@ class Model {
           gravityCLIReporter.addItemsInJson('New Record Account', self.record , `NEW ${self.model} RECORD`);
 
           let encryptedRecord;
+          console.log(1)
           if (accessLink && accessLink.encryptionPassword) {
+            console.log(2)
             gravityCLIReporter.addItemsInJson('Encrypting Password..', accessLink.encryptionPassword , `NEW ${self.model} RECORD`);
             encryptedRecord = gravity.encrypt(
               JSON.stringify(fullRecord),
               accessLink.encryptionPassword,
             );
           } else {
+            console.log(3)
             gravityCLIReporter.addItemsInJson('New Record Account will be Encrypted with', '[Using the Metis Application Password]' , `NEW ${self.model} RECORD`);
             encryptedRecord = gravity.encrypt(JSON.stringify(fullRecord));
           }
@@ -432,10 +445,13 @@ class Model {
           let callUrl;
 
           if (self.model === 'user') {
+            console.log(4)
             if (self.prunableOnCreate) {
+              console.log(5)
               logger.info('Record is prunable');
               callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true`;
             } else {
+              console.log(6)
               callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;
             }
             gravityCLIReporter.addItemsInJson('New Record sent to Jupiter', {
@@ -444,14 +460,21 @@ class Model {
             } , `NEW ${self.model} RECORD`);
 
           } else if (self.user) {
+            console.log(7)
             // console.log('Non user call url');
+
+            logger.debug(`publicKey =  ${self.user.public_key}`)
+            logger.debug(`user = ${JSON.stringify(self.user)}`);
+
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
           } else {
+            console.log(8)
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true`;
           }
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);
 
+          console.log(9)
           axios.post(callUrl)
             .then((response) => {
               // console.log(response)
