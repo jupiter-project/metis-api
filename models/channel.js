@@ -3,6 +3,7 @@ import events from 'events';
 import Model from './_model';
 import Methods from '../config/_methods';
 import { gravity } from '../config/gravity';
+const logger = require('../utils/logger')(module);
 
 class Channel extends Model {
   constructor(data = { id: null }) {
@@ -137,8 +138,11 @@ class Channel extends Model {
     return response;
   }
 
+
   async create() {
     if (!this.record.passphrase || this.record.password) {
+      console.log('----------------------------------------------------------------------------------------------')
+      console.log('----------------------------------------------------------------------------------------------')
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();
       this.data.passphrase = this.record.passphrase;
@@ -150,7 +154,18 @@ class Channel extends Model {
       this.record.publicKey = response.publicKey;
       this.data.account = response.address;
       this.data.publicKey = response.publicKey;
+
+      logger.sensitive(`response = ${JSON.stringify(response) }`);
     }
+
+
+    console.log('----------------------------------------------------------------------------------------------')
+    console.log('----------------------------------------------------------------------------------------------')
+    console.log('----------------------------------------------------------------------------------------------')
+    logger.sensitive(`record = ${JSON.stringify(this.record)}`);
+    logger.sensitive(`data = ${JSON.stringify(this.data)}`);
+    // logger.sensitive(`publicKey = ${JSON.stringify(response.publicKey)}`);
+
 
     if (this.accessLink) {
       return super.create(JSON.parse(gravity.decrypt(this.accessLink)));
