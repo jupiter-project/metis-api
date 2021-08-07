@@ -153,8 +153,8 @@ class Gravity {
    */
   decrypt(text, password = this.password) {
     try {
-      logger.sensitive(`Decrypting with password: ${password}  AND algorithm: ${this.algorithm}`);
-      logger.sensitive(`Text to decrypt: ${text}`);
+      // logger.sensitive(`Decrypting with password: ${password}  AND algorithm: ${this.algorithm}`);
+      // logger.sensitive(`Text to decrypt: ${text}`);
 
       const decipher = crypto.createDecipher(this.algorithm, password);
       let dec = decipher.update(text, 'hex', 'utf8');
@@ -162,7 +162,7 @@ class Gravity {
       logger.sensitive(`DECRYPTED: ${dec}`)
       return dec;
     } catch( error){
-      logger.warn(`NOT ABLE 2 DECRYPT: ${error}`);
+      // logger.warn(`NOT ABLE 2 DECRYPT: ${error}`);
       throw error
     }
   }
@@ -337,7 +337,7 @@ class Gravity {
       eventEmitter.on('loaded_records', () => {
         // console.log('Records loaded. Organizing records now.');
         logger.debug('loadAppData().on(loaded_records)')
-        logger.debug(`Total records: ${records.length}`);
+        logger.debug(`Total Valid Records: ${records.length}`);
 
         if (records !== undefined && records.length > 0) {
           const tableList = [];
@@ -729,16 +729,16 @@ class Gravity {
           for ( let index = 0; index < recordsTotalCount; index++ ){
             const transactionId = records[index];
             const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${accountPropertiesHolderPassphrase}`;
-            logger.sensitive(` calling endpoint: ${thisUrl}`);
+            // logger.sensitive(`calling endpoint: ${thisUrl}`);
             const messageResponse = new Promise((resolve, reject) => {
               axios.get(thisUrl)
                   .then((response) => {
-                    logger.verbose(`axios.get.then()`);
+                    // logger.verbose(`axios.get.then()`);
 
                     let copyOfData = _.clone(response.data);
-                    copyOfData.decyptedMessage = 'REMOVED'
-                    copyOfData.decyptedMessageLength = copyOfData.decyptedMessage.length;
-                    logger.debug(`readMessage.response.data = ${JSON.stringify(copyOfData)}`);
+                    copyOfData.decryptedMessage = 'REMOVED'
+                    copyOfData.decryptedMessageLength = copyOfData.decryptedMessage.length;
+                    // logger.debug(`readMessage.response.data = ${JSON.stringify(copyOfData)}`);
 
                     if(response.data.errorCode){
                       logger.error('readMessage call returned a 200 error!');
@@ -775,7 +775,7 @@ class Gravity {
                     totalUnsuccessfulMessageRequests++;
                     return reduced
                   }
-                  logger.sensitive(`MESSAGE SUCCESSFULLY RETRIEVED: ${JSON.stringify(result)}`);
+                  // logger.sensitive(`MESSAGE SUCCESSFULLY RETRIEVED: ${JSON.stringify(result)}`);
                   totalSuccessfulMessageRequests++
                   reduced.push(result)
                   return reduced;
@@ -799,7 +799,7 @@ class Gravity {
                 }
 
                 logger.debug(`Total messages decrypted with password: ${decryptedMessages.length}`);
-                logger.debug(`Total messages NOT decrypted: ${notAbleToDecrypt.length}`);
+                logger.debug(`Total messages NOT decrypted: ${notAbleToDecrypt}`);
 
                 // The fact that array.push(item1, item2, ..., itemN) accepts multiple items to push, you can push an
                 // entire array using the spread operator applied to arguments
@@ -842,25 +842,35 @@ class Gravity {
       });
 
       eventEmitter.on('database_retrieved', () => {
-        logger.debug('  ### Parsing all the transactions ####')
+        logger.debug('Parsing all the transactions')
         logger.debug(` accountPropertiesHolder = ${accountPropertiesHolder} `);
 
         for (let obj = 0; obj < Object.keys(database).length; obj += 1) {
           let completion = false;
-          logger.debug(` Transaction content: ${JSON.stringify(database[obj])}`);
-          logger.debug(` senderRS = ${database[obj].senderRS} `);
 
+
+          // let copyOfTransaction = _.clone(database[obj]);
+          // copyOfTransaction.signature = 'REMOVED';
+          // copyOfTransaction.attachment.encryptedMessage.data_length = copyOfTransaction.attachment.encryptedMessage.data.length;
+          // copyOfTransaction.attachment.encryptedMessage.data = 'REMOVED';
+          // copyOfTransaction.attachment.encryptedMessage.nonce = 'REMOVED';
+          // logger.debug(` Transaction content: ${JSON.stringify(database[obj])}`);
+          //
+
+
+          // logger.debug(`Transaction : ${JSON.stringify(database[obj])}`);
+          // logger.debug(`Transaction  senderRS = ${database[obj].senderRS} recipientRS = ${database[obj].recipientRS} transaction = ${database[obj].transaction}`);
 
           if (database[obj].attachment.encryptedMessage && database[obj].attachment.encryptedMessage.data)
           {
 
-            gravityCLIReporter.addItemsInJson('Transaction Info', {
-              'senderRS': database[obj].senderRS,
-              'recipientRS': database[obj].recipientRS
-            } ,  reportSection );
+            // gravityCLIReporter.addItemsInJson('Transaction Info', {
+            //   'senderRS': database[obj].senderRS,
+            //   'recipientRS': database[obj].recipientRS
+            // } ,  reportSection );
 
             if( database[obj].senderRS === accountPropertiesHolder ){
-              logger.debug(`Transaction payload: ${database[obj].transaction}`)
+              // logger.debug(`Transaction payload: ${database[obj].transaction}`)
               if (scope.show_pending !== undefined && scope.show_pending > 0) {
                 if (database[obj].confirmations <= scope.show_pending) {
                   pendingRecords.push(obj.transaction);
@@ -895,7 +905,7 @@ class Gravity {
           }
         }
 
-        logger.debug(` Total records: ${records.length}`)
+        logger.debug(` Total Valid Records Found: ${records.length}`)
         logger.debug(` Total pending records: ${pendingRecords}`);
         eventEmitter.emit('records_retrieved');
       });
