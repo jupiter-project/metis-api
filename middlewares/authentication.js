@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger')(module);
 
 // ============================
 //  Verificar Token
 // ============================
 const tokenVerify = (req, res, next) => {
+  logger.debug(`tokenVerify()`);
   const token = req.get('Authorization');
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [
@@ -21,7 +23,13 @@ const tokenVerify = (req, res, next) => {
   }
   const decodedChannel = channelToken ? jwt.decode(channelToken) : null;
 
-  jwt.verify(token, process.env.SESSION_SECRET, (err, decodedUser) => {
+  let updatedToken = token;
+  if (token.startsWith('Bearer')){
+    updatedToken = updatedToken.substring(7);
+  }
+
+  jwt.verify(updatedToken, process.env.SESSION_SECRET, (err, decodedUser) => {
+    logger.debug(`tokenVerify().verify()`);
     if (err) {
       console.log(err);
       return res.status(401).json({
@@ -31,6 +39,7 @@ const tokenVerify = (req, res, next) => {
     }
     req.user = decodedUser;
     req.channel = decodedChannel;
+
     next();
   });
 };
