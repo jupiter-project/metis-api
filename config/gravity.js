@@ -1193,7 +1193,10 @@ class Gravity {
 
   // This method retrieves user info based on the account and the passphrase given
   getUser(account, passphrase, containedDatabase = null) {
-    logger.verbose(`getUser()`);
+    logger.verbose('# # # # # # ## # # # # # ## # # # # # ## # # # # # ## # # # # # ## # # # # # ## # # # # # #')
+    logger.verbose(`                                        getUser()`);
+    logger.verbose('# # # # # # ## # # # # # ## # # # # # ## # # # # # ## # # # # # ## # # # # # ## # # # # # #')
+
     const self = this;
     return new Promise((resolve, reject) => {
       if (account === process.env.APP_ACCOUNT_ADDRESS) {
@@ -1217,23 +1220,24 @@ class Gravity {
         logger.debug('Using Credentials from containedDatabase');
         logger.debug('getUser().retrieveUserFromPassphrase()');
         self.retrieveUserFromPassphrase(containedDatabase)
-          .then((response) => {
+          .then((userFromPassphraseResponse) => {
             logger.debug(`getUser().retrieveUserFromPassphrase(containedDatabase = ${!!containedDatabase}).then()`);
-            if (response.databaseFound && !response.userNeedsSave) {
+            if (userFromPassphraseResponse.databaseFound && !userFromPassphraseResponse.userNeedsSave) {
               logger.debug(`database found and userNeedsSave`);
-              resolve(response);
-            } else if (response.userRecord) {
-              logger.verbose(`response.userRecord = ${JSON.stringify(response.userRecord)}`);
-              const currentDatabase = self.tableBreakdown(response.tables);
+              resolve(userFromPassphraseResponse);
+            } else if (userFromPassphraseResponse.userRecord) {
+              logger.verbose(`response.userRecord = ${JSON.stringify(userFromPassphraseResponse.userRecord)}`);
+              const currentDatabase = self.tableBreakdown(userFromPassphraseResponse.tables);
               const returnData = {
                 recordsFound: 1,
-                user: response.userRecord,
+                user: userFromPassphraseResponse.userRecord,
                 noUserTables: !currentDatabase.includes('users'),
+                hasUserTables: currentDatabase.includes('users'),
                 userNeedsSave: true,
                 userRecordFound: true,
                 databaseFound: true,
-                tables: response.tables,
-                tableList: response.tableList,
+                tables: userFromPassphraseResponse.tables,
+                tableList: userFromPassphraseResponse.tableList,
               };
               logger.verbose(`resolve() = ${JSON.stringify(returnData)}`);
               resolve(returnData);
@@ -1245,11 +1249,11 @@ class Gravity {
               self.retrieveUserFromApp(account, passphrase)
                 .then((res) => {
                   logger.debug('getUser().retrieveUserFromPassphrase().then().retrieveUserFromApp().then()');
-                  res.noUserTables = response.noUserTables;
-                  res.databaseFound = response.databaseFound;
-                  res.database = response.database;
-                  res.userNeedsSave = response.userNeedsSave;
-                  res.tables = response.tables;
+                  res.noUserTables = userFromPassphraseResponse.noUserTables;
+                  res.databaseFound = userFromPassphraseResponse.databaseFound;
+                  res.database = userFromPassphraseResponse.database;
+                  res.userNeedsSave = userFromPassphraseResponse.userNeedsSave;
+                  res.tables = userFromPassphraseResponse.tables;
 
                   logger.sensitive(`resolve() : ${JSON.stringify(res)}`);
                   return resolve(res);
@@ -1285,6 +1289,11 @@ class Gravity {
     });
   }
 
+  /**
+   *
+   * @param {object} accessData
+   * @returns {Promise<json>} - {userRecord, tableList, noUserTables, tables, databaseFound, userNeedsSave}
+   */
   retrieveUserFromPassphrase(accessData) {
     logger.verbose('########################################################################')
     logger.verbose(`                       retrieveUserFromPassphrase(accessData = ${!!accessData})`)
@@ -1434,6 +1443,12 @@ class Gravity {
     });
   }
 
+  /**
+   *
+   * @param {string} account
+   * @param {string} passphrase
+   * @returns {Promise<json>} - {recordsFound, user} | {error, message}
+   */
   retrieveUserFromApp(account, passphrase) {
     logger.verbose('########################################################################')
     logger.verbose(`                       retrieveUserFromApp(account = ${account})`)
@@ -1458,11 +1473,14 @@ class Gravity {
 
         if (decryptedRecords[0] === undefined
           || decryptedRecords[0].user_record === undefined) {
-          resolve({ error: true, message: 'Account not on file!' });
+          return resolve({ error: true, message: 'Account not on file!' });
         } else {
+          logger.debug(`retrieveUserFromApp().on(set_responseDAta) return responseData`)
           responseData = { recordsFound, user: decryptedRecords[0].user_record };
-          resolve(responseData);
+          logger.debug(`responseData = ${JSON.stringify(responseData)}`)
+          return resolve(responseData);
         }
+
         logger.verbose('retrieveUserFromApp().done')
         logger.verbose('####################################')
       });
