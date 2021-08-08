@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { S3StreamLogger } = require('s3-streamlogger');
 
 const winston = require('winston');

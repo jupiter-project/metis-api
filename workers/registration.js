@@ -1,10 +1,12 @@
 import { gravity } from '../config/gravity';
 import Worker from './_worker';
 import User from '../models/user';
+const logger = require('../utils/logger')(module);
 
 
 class RegistrationWorker extends Worker {
   async checkRegistration(workerData, jobId, done) {
+    logger.verbose(`RegistrationWorker().checkRegistration(workerDAta = ${workerData})`)
     const data = workerData;
     const accessData = JSON.parse(gravity.decrypt(data.accountData));
     const timeNow = Date.now();
@@ -12,23 +14,34 @@ class RegistrationWorker extends Worker {
     let registrationCompleted = false;
     let res;
 
+    let completedRegistrationSteps = [];
+
     if ((timeNow - data.originalTime) > timeLimit) {
       done();
       return { success: false, message: 'Time limit reached. Job terminated.' };
     }
 
+    logger.debug(`calling GetUser(account = ${accessData.account})`);
     const response = await gravity.getUser(
       accessData.account,
       accessData.passphrase,
       accessData,
     );
 
+
+    console.log(response);
+
     const database = response.database || response.tables;
     // const { tableList } = response;
     const tableBreakdown = gravity.tableBreakdown(database);
 
     if (response.error) {
+
+      logger.debug(`checkRegistration().getUser() > response error: ${response.error}`);
       done();
+      //@TODO the following will trigger this function to run again. this means we can get into an infinite loop.
+      console.log(1)
+      logger.debug(`completed registration steps: ${completedRegistrationSteps.toString()}`)
       this.addToQueue('completeRegistration', data);
       console.log('There was an error retrieving user information');
       console.log(response);
@@ -47,9 +60,9 @@ class RegistrationWorker extends Worker {
 
 
     if (!gravity.hasTable(database, 'users') && !data.usersExists) {
-      console.log('users table does not exist');
+      logger.debug('users table does not exist');
       try {
-        console.log('Creating user table');
+        logger.debug('Creating user table');
         res = await gravity.attachTable(accessData, 'users', tableBreakdown);
         res = { success: true };
         data.usersExists = true;
@@ -58,15 +71,19 @@ class RegistrationWorker extends Worker {
         res = { error: true, fullError: e };
       }
       if (res.error) {
-        console.log(res.error);
+        logger.error(res.error);
         if (res.fullError === 'Error: Unable to save table. users is already in the database') {
           data.usersExists = true;
           data.usersConfirmed = false;
         }
       }
       done();
+      console.log(2)
+      logger.debug(`completed registration steps: ${completedRegistrationSteps.toString()}`)
       this.addToQueue('completeRegistration', data);
       return res;
+    } else {
+      completedRegistrationSteps.push(`Users Table Exists`)
     }
 
     if (gravity.hasTable(database, 'channels') && !data.channelsConfirmed) {
@@ -89,8 +106,12 @@ class RegistrationWorker extends Worker {
         console.log(res.error);
       }
       done();
+      console.log(3)
+      logger.debug(`completedRegistrationSteps ${completedRegistrationSteps.toString()}`);
       this.addToQueue('completeRegistration', data);
       return res;
+    } else {
+      completedRegistrationSteps.push(`Channels Table Exists`)
     }
 
     if (!gravity.hasTable(database, 'invites') && !data.invitesExists) {
@@ -107,8 +128,12 @@ class RegistrationWorker extends Worker {
         console.log(res.error);
       }
       done();
+      console.log(4)
+      logger.debug(`completedRegistrationSteps ${completedRegistrationSteps.toString()}`);
       this.addToQueue('completeRegistration', data);
       return res;
+    } else {
+      completedRegistrationSteps.push(`Invites Table Exists`)
     }
 
     if (response.userNeedsSave && !data.userDataBacked) {
@@ -124,6 +149,8 @@ class RegistrationWorker extends Worker {
           userSaveResponse = { error: true, fullError: e, message: 'Error saving user data backup' };
           console.log(e);
           done();
+          console.log(5)
+          logger.debug(`completedRegistrationSteps ${completedRegistrationSteps.toString()}`);
           this.addToQueue('completeRegistration', data);
           return userSaveResponse;
         }
@@ -134,8 +161,12 @@ class RegistrationWorker extends Worker {
         }
       }
       done();
+      console.log(6)
+      logger.debug(`completedRegistrationSteps ${completedRegistrationSteps.toString()}`);
       this.addToQueue('completeRegistration', data);
       return { success: true, message: 'User information is being applied' };
+    } else {
+      completedRegistrationSteps.push(`Users Saved`)
     }
 
     if (data.waitingForFullConfirmation) {
@@ -152,10 +183,29 @@ class RegistrationWorker extends Worker {
       this.socket.emit(`fullyRegistered#${accessData.account}`);
     }
 
+
+    // @Todo there's a bug in this code. It's creating an infinit loop.
+    // Registration is a big mess. It needs to be fully refactored.
+    // It seems like registration is triggered when a user trys to login.
+    // In my opinion registration should be completed at sign-up not at
+    // login.
+    // For now im adding the line below to get us past this problem. The solution has to be a complete registration
+    // refactor!
+    registrationCompleted = true;
+
     done();
     if (!registrationCompleted) {
       // console.log('No fully registered');
       // console.log(data);
+      console.log(7)
+      logger.debug(`accessData = ${JSON.stringify(accessData)}`);
+      logger.debug(`data = ${JSON.stringify(data)}`);
+      logger.debug(`response = ${JSON.stringify(response)}`);
+      logger.debug(`data.waitingForFullConfirmation = ${data.waitingForFullConfirmation}`)
+      logger.debug(`response.databaseFound = ${response.databaseFound}`);
+      logger.debug(`response.noUserTables = ${response.noUserTables}`);
+
+      logger.debug(`completedRegistrationSteps ${completedRegistrationSteps.toString()}`);
       this.addToQueue('completeRegistration', data);
     }
     return { success: true, message: 'Worker completed' };

@@ -191,7 +191,11 @@ gravity.getFundingMonitor()
 
       logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
     }
-  });
+  })
+    .catch( error => {
+      logger.error(`getFundingError: ${error}`)
+      throw error;
+    });
 
 // Worker methods
 const RegistrationWorker = require('./workers/registration.js');
