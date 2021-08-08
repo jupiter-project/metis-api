@@ -154,7 +154,7 @@ function Metis() {
     }
     const propertyParams = {
       recipient: params.channel,
-      feeNQT: propertyFee,
+      feeNQT: 100, // TODO check it 100 is a right fee
       property: gravity.encrypt(`${accountEnding(params.account)}-a-${aliases.length}`, params.password),
       value: gravity.encrypt(params.alias, params.password),
     };
