@@ -3,12 +3,13 @@ const { gravity } = require('../config/gravity');
 
 module.exports = {
   photosUpload: (req, res) => {
+    const { user } = req;
     const { base64Image, accountData } = req.body;
 
-    if (!(base64Image && accountData)) {
+    if (!(base64Image)) {
       return res.status(400).json({ msg: 'Missing parameters required.' });
     }
-    const userAccount = JSON.parse(gravity.decrypt(accountData));
+    const userAccount = JSON.parse(gravity.decrypt(user.accountData));
 
     cloudinaryConfig.uploader.upload(base64Image, {
       public_id: userAccount.account,
