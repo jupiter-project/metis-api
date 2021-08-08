@@ -28,12 +28,11 @@ module.exports = (app) => {
 
   app.post('/v1/api/data/members', async (req, res) => {
     logger.info(req.body);
-    const { account, alias } = req.user;
+    const { userData } = req.user;
     const tableData = {
       account: req.body.channeladdress,
       password: req.body.channelkey,
     };
-
     logger.info(tableData);
     let response = null;
 
@@ -41,8 +40,8 @@ module.exports = (app) => {
       response = await metis.addToMemberList({
         channel: tableData.account,
         password: tableData.password,
-        account,
-        alias,
+        account: userData.account,
+        alias: userData.alias,
       });
     } catch (error) {
       logger.error(error);
