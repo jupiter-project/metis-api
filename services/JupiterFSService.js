@@ -132,6 +132,7 @@ module.exports = {
         });
       const buffer = Buffer.from(resp.data, "base64");
       res.write(buffer, {'Content-Type':'image/jpeg'});
+      res.end(' ok');
     })
     .catch(err => {
       console.log(err);
