@@ -22,20 +22,31 @@ module.exports = {
       password: channel.channel_record.password,
     };
 
+    const defaultHeader = {
+      headers: {
+        Authorization: '',
+      },
+    };
+
     axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
       .then((response) => {
+        defaultHeader.headers.Authorization = `Bearer ${response.data.token}`;
+        return axios.get(`${process.env.JIM_SERVER}/api/v1/storage`, defaultHeader);
+      })
+      .then((responseStorageInfo) => {
+        if (!responseStorageInfo.data) {
+          return axios.post(`${process.env.JIM_SERVER}/api/v1/storage`, {}, defaultHeader);
+        }
+
+        return responseStorageInfo.data;
+      })
+      .then((() => {
         const buffer = Buffer.from(fileBase64Encoded, 'base64');
         const form = new FormData();
-        form.append('image', buffer, fileName);
+        form.append('file', buffer, fileName);
 
-        const msjHeaders = {
-          headers: {
-            Authorization: `Bearer ${response.data.token}`,
-            'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`,
-          },
-        };
-
-        return axios.post(`${process.env.JIM_SERVER}/api/v1/image`, form, msjHeaders);
+        defaultHeader.headers['Content-Type'] = `multipart/form-data; boundary=${form.getBoundary()}`;
+        return axios.post(`${process.env.JIM_SERVER}/api/v1/file`, form, defaultHeader);
       })
       .then(async (response) => {
         if (!response.data) {

@@ -9,8 +9,8 @@ const tokenVerify = (req, res, next) => {
   const token = req.get('Authorization');
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [
-      '/create_passphrase',
-      '/v1/api/create_jupiter_account',
+    '/create_passphrase',
+    '/v1/api/create_jupiter_account',
     '/v1/api/appLogin',
     '/v1/api/signup',
     '/v1/api/get_jupiter_account',
@@ -25,12 +25,12 @@ const tokenVerify = (req, res, next) => {
   const decodedChannel = channelToken ? jwt.decode(channelToken) : null;
 
   let updatedToken = token;
-  if (token.startsWith('Bearer')){
+  if (token.startsWith('Bearer')) {
     updatedToken = updatedToken.substring(7);
   }
 
   jwt.verify(updatedToken, process.env.SESSION_SECRET, (err, decodedUser) => {
-    logger.debug(`tokenVerify().verify()`);
+    logger.debug('tokenVerify().verify()');
     if (err) {
       console.log(err);
       return res.status(401).json({
