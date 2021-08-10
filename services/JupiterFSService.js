@@ -40,7 +40,7 @@ module.exports = {
 
         return responseStorageInfo.data;
       })
-      .then((() => {
+      .then(() => {
         const buffer = Buffer.from(fileBase64Encoded, 'base64');
         const form = new FormData();
         form.append('file', buffer, fileName);
