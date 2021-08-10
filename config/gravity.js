@@ -2492,7 +2492,12 @@ class Gravity {
     }
 
     if (filter.dataLink) {
-      dataObject.data = JSON.parse(JSON.parse(unEncryptedData)[filter.dataLink]);
+      const unEncryptedDataObject = JSON.parse(unEncryptedData);
+      const messageRecord = unEncryptedDataObject[filter.dataLink];
+      if (!messageRecord) {
+        return { error: true, message: 'Cannot be encrypted' };
+      }
+      dataObject.data = JSON.parse(messageRecord);
       dataObject.data.date = JSON.parse(unEncryptedData).date;
     } else {
       dataObject.data = JSON.parse(unEncryptedData);

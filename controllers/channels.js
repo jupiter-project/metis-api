@@ -227,7 +227,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       response = { success: false, fullError: e };
     }
 
-    res.send(response);
+    if (!response.success) {
+      return res.status(400).send(response);
+    }
+
+    return res.send(response);
   });
 
   /**
