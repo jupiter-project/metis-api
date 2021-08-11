@@ -39,7 +39,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         console.log(response);
         const version = [
           { name: 'Metis App Version', version: '1.1.2' },
-          { name: 'Metis Server', version: hostname },
           { name: 'Metis Server Version', version: process.env.VERSION },
           { name: 'Jupiter Network', version: response.data.isTestnet ? 'testnet' : 'prod' },
           { name: 'Jupiter Version', version: response.data.version },
