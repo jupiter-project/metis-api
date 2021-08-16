@@ -252,7 +252,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         };
 
         gravityCLIReporter.addItemsInJson('Account Created', { ...response.data, ...formData });
-        gravityCLIReporter.sendReportAndReset();
+        // gravityCLIReporter.sendReportAndReset();
         logger.sensitive(jupiterAccount);
 
         if (response.data.accountRS == null) {
@@ -305,7 +305,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
       if (error) {
         logger.error(`Error! ${error}`);
-        gravityCLIReporter.sendReportAndReset();
+        // gravityCLIReporter.sendReportAndReset();
         return next(error);
       }
 
@@ -314,7 +314,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
         logger.error(errorMessage);
         gravityCLIReporter.addItem('Conclusion', 'Unable to log in. Please check your credentials');
-        gravityCLIReporter.sendReportAndReset();
+        // gravityCLIReporter.sendReportAndReset();
         return res.status(400).json({
           success: false,
           message: errorMessage,
