@@ -119,11 +119,11 @@ class User extends Model {
   }
 
   async setAlias(passphrase) {
+    logger.verbose(`setAlias(passphrase= ${passphrase}`);
     const aliasCheckup = await gravity.getAlias(this.record.alias);
     if (aliasCheckup.accountRS === this.record.account) {
       return { success: false, message: 'Alias already set', fullResponse: aliasCheckup };
     }
-
 
     if (aliasCheckup.available) {
       const aliasResponse = await gravity.setAlias({
