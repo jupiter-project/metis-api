@@ -3,7 +3,7 @@ import { gravity } from './gravity';
 import User from '../models/user';
 import RegistrationWorker from '../workers/registration';
 import {gravityCLIReporter} from "../gravity/gravityCLIReporter";
-
+const {AccountRegistration} = require("./accountRegistration");
 // Loads up passport code
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
@@ -123,13 +123,13 @@ const metisSignup = (passport) => {
 
             logger.verbose(`User is created: ${JSON.stringify(payload)}`);
             gravityCLIReporter.addItemsInJson('The user is created', {...payload,...params}, 'IN CONCLUSION');
-            gravityCLIReporter.sendReportAndReset();
+            // gravityCLIReporter.sendReportAndReset();
             return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
           })
           .catch((err) => {
             logger.error('USER CREATION FAILED', JSON.stringify(err));
               gravityCLIReporter.addItemsInJson('Failed to create the user account', err, 'IN CONCLUSION');
-              gravityCLIReporter.sendReportAndReset();
+              // gravityCLIReporter.sendReportAndReset();
             let errorMessage;
             if (err.verification_error !== undefined && err.verification_error === true) {
               err.errors.forEach((x) => {
@@ -161,9 +161,12 @@ const metisLogin = (passport, jobs, io) => {
     passReqToCallback: 'true',
   },
   (req, account, accounthash, done) => {
-      logger.verbose(`metisLogin()`);
+      logger.verbose('#####################################################################################')
+      logger.verbose(`                                  metisLogin(passport, jobs, io)`);
+      logger.verbose('#####################################################################################')
     let user;
     let valid = true;
+
 
     const containedDatabase = {
       account,
@@ -183,122 +186,205 @@ const metisLogin = (passport, jobs, io) => {
       accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
       originalTime: Date.now(),
     };
+
+    logger.verbose(`getUser(account, jupkey, containedDatabase)`)
     gravity.getUser(account, req.body.jupkey, containedDatabase)
       .then(async (response) => {
-        if (response.error) {
+
+          logger.debug('---------------------------------------------------------------------------------------')
+          logger.debug(`-- getUser(account, jupkey, containedDatabase).then(response)`)
+          logger.debug('---------------------------------------------------------------------------------------')
+          logger.sensitive(`response=${JSON.stringify(response)}`);
+          logger.sensitive(`response.userAccountTables=${JSON.stringify(response.userAccountTables)}`);
+          logger.sensitive(`response.userRecord= ${JSON.stringify(response.userRecord)}`);
+          if(!response.userRecord){
             const doneResponse = {
                 error: null,
                 user: false,
                 message:  req.flash('loginMessage', 'Account is not registered or has not been confirmed in the blockchain.')
             }
-
-          return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-        if (response.noUserTables || response.userNeedsSave) {
-          worker.addToQueue('completeRegistration', workerData);
-        }
-        // console.log(response);
-        const data = JSON.parse(response.user);
-        data.public_key = req.body.public_key;
-        user = new User(data);
-
-        if (user.record.id === undefined) {
-            valid = false;
-
-            const doneResponse = {
-                error: null,
-                user: false,
-                message: req.flash('loginMessage', 'Account is not registered')
-            }
             return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-        if (!user.validEncryptionPassword(containedDatabase.encryptionPassword)) {
-          valid = false;
-
-            const doneResponse = {
-                error: null,
-                user: false,
-                message: req.send({ error: true, message: 'Wrong encryption password' })
-            }
-            return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-        if (!user.validPassword(accounthash)) {
-          valid = false;
-
-            const doneResponse = {
-                error: null,
-                user: false,
-                message: req.flash('loginMessage', 'Wrong hashphrase')
-            }
-            return done(doneResponse.error, doneResponse.user, doneResponse.message);
-
-        }
-
-        if (valid) {
-          req.session.public_key = req.body.public_key;
-          req.session.twofa_pass = false;
-          req.session.jup_key = gravity.encrypt(req.body.jupkey);
-          req.session.accessData = gravity.encrypt(JSON.stringify(containedDatabase));
-
-          const hasFundingProperty = await gravity.hasFundingProperty({
-            recipient: user.record.account,
-          });
-
-          if (!hasFundingProperty) {
-            const fundingResponse = await gravity.setAcountProperty({
-              recipient: user.record.account,
-            });
-            logger.info(fundingResponse);
           }
 
-            user.setAlias(req.body.jupkey)
-            .then((aliasSetting) => {
-              if (!aliasSetting.success) {
-                logger.info(aliasSetting);
+          const listOfAttachedTableNames = gravity.extractTableNamesFromTables(response.userAccountTables);
+          logger.debug(`listOfAttachedTableNames= ${JSON.stringify(listOfAttachedTableNames)}`);
+
+
+          const accountRegistration = new AccountRegistration(containedDatabase, 'fromAccount');
+          const tablesToAttach = [];
+          logger.debug(`usersTable=${JSON.stringify(response.userAccountTables.usersTable)}`)
+          logger.debug(`channelsTable=${JSON.stringify(response.userAccountTables.channelsTable)}`)
+
+            // if (!response.userAccountTables.usersTable) {
+            //     tablesToAttach.push(accountRegistration.attachTable('users'));
+            // }
+
+          if(! listOfAttachedTableNames.includes('channels')){
+              tablesToAttach.push(accountRegistration.attachTable('channels'));
+          }
+
+          // if (!response.userAccountTables.invitesTable) {
+          //     tablesToAttach.push(accountRegistration.attachTable('invites'));
+          // }
+          //
+          // if (!response.userAccountTables.storageTable) {
+          //     tablesToAttach.push(accountRegistration.attachTable('storage'));
+          // }
+          //
+
+
+          Promise.all(tablesToAttach).then( async values => {
+              logger.debug(`values= ${values.length}`);
+              const userRecord = response.userRecord;
+              userRecord.public_key = req.body.public_key;
+              user = new User(userRecord);
+              if (user.record.id === undefined) {
+                  valid = false;
+                  const doneResponse = {
+                      error: null,
+                      user: false,
+                      message: req.flash('loginMessage', 'Account is not registered')
+                  }
+                  return done(doneResponse.error, doneResponse.user, doneResponse.message);
               }
-            })
-            .catch(err => err);
-        }
-        const userProperties = await gravity.getAccountProperties({ recipient: data.account });
-        const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-
-        const userInfo = {
-            userRecordFound: response.userRecordFound,
-            noUserTables: response.noUserTables,
-            userNeedsBackup: response.userNeedsBackup,
-            accessKey: gravity.encrypt(req.body.jupkey),
-            encryptionKey: gravity.encrypt(req.body.encryptionPassword),
-            account: gravity.encrypt(account),
-            database: response.database,
-            accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
-            id: user.data.id,
-            profilePictureURL: profilePicture && profilePicture.value
-                ? profilePicture.value
-                : '',
-            userData: {
-                alias: data.alias,
-                account: data.account,
-            },
-        }
-        logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
-        gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
 
 
+              if (!user.validEncryptionPassword(containedDatabase.encryptionPassword)) {
+                valid = false;
 
-          const doneResponse = {
-              error: null,
-              user: userInfo,
-              message: 'Authentication validated!'
-          }
+                  const doneResponse = {
+                      error: null,
+                      user: false,
+                      message: req.send({ error: true, message: 'Wrong encryption password' })
+                  }
+                  return done(doneResponse.error, doneResponse.user, doneResponse.message);
+              }
 
-          return done(doneResponse.error, doneResponse.user, doneResponse.message);
+              if (!user.validPassword(accounthash)) {
+                valid = false;
+                  const doneResponse = {
+                      error: null,
+                      user: false,
+                      message: req.flash('loginMessage', 'Wrong hashphrase')
+                  }
+                  return done(doneResponse.error, doneResponse.user, doneResponse.message);
+              }
+
+              if (valid) {
+                req.session.public_key = req.body.public_key;
+                req.session.twofa_pass = false;
+                req.session.jup_key = gravity.encrypt(req.body.jupkey);
+                req.session.accessData = gravity.encrypt(JSON.stringify(containedDatabase));
+
+                const hasFundingProperty = await gravity.hasFundingProperty({
+                  recipient: user.record.account,
+                });
+
+                if (!hasFundingProperty) {
+                  const fundingResponse = await gravity.setAcountProperty({
+                    recipient: user.record.account,
+                  });
+                  logger.info(fundingResponse);
+                }
+
+                logger.debug(`setAlias()`);
+                  user.setAlias(req.body.jupkey)
+                  .then((aliasSetting) => {
+                      logger.debug(`setAlias(jupkey=${req.body.jupkey}).then(aliasSetting= ${JSON.stringify(aliasSetting)})`);
+                        if (!aliasSetting.success) {
+                          logger.info(aliasSetting);
+                        }
+                  })
+                  .catch(err => {
+                      logger.error(`error= ${JSON.stringify(err)}`)
+                  });
+              }
+
+
+              const userProperties = await gravity.getAccountProperties({ recipient: userRecord.account });
+
+
+
+
+
+              // const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
+              //
+              // const userInfo = {
+              //     userRecordFound: response.userRecordFound,
+              //     noUserTables: response.noUserTables,
+              //     userNeedsBackup: response.userNeedsBackup,
+              //     accessKey: gravity.encrypt(req.body.jupkey),
+              //     encryptionKey: gravity.encrypt(req.body.encryptionPassword),
+              //     account: gravity.encrypt(account),
+              //     database: response.database,
+              //     accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
+              //     id: user.data.id,
+              //     profilePictureURL: profilePicture && profilePicture.value
+              //         ? profilePicture.value
+              //         : '',
+              //     userData: {
+              //         alias: userRecord.alias,
+              //         account: userRecord.account,
+              //     },
+              // }
+              // logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
+              // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
+              //
+              //
+              //
+              //   const doneResponse = {
+              //       error: null,
+              //       user: userInfo,
+              //       message: 'Authentication validated!'
+              //   }
+              //
+              //   return done(doneResponse.error, doneResponse.user, doneResponse.message);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          })
+
+
       })
-
       .catch((err) => {
-
+          logger.error(`-- getUser(account, jupkey, containedDatabase).error(err)`)
         logger.error('Unable to query your user list. Please make sure you have a users table in your database.');
         logger.error(err);
 
