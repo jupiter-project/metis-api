@@ -142,45 +142,43 @@ class Model {
   }
 
   loadTable(accessLink = false) {
-    logger.verbose(`loadtable()`);
+    logger.verbose('#####################################################################################')
+    logger.verbose(`##  loadtable(accessLink = ${!!accessLink})`);
+    logger.verbose('#####################################################################################')
+
     const self = this;
     return new Promise((resolve, reject) => {
       logger.debug('-- ---- -- --- -- --- $$$$$ -- ---- -- --- -- --- 7')
       gravity.loadUserAndAppData(accessLink)
         .then((response) => {
-          logger.debug('---------------------------------------------------------------------------------------')
+          logger.verbose('---------------------------------------------------------------------------------------')
           logger.verbose(`loadTable().loadUserAndAppData(accessLink=${!!accessLink}).then(response)`);
-          logger.debug('---------------------------------------------------------------------------------------')
-          logger.verbose(`accessLink = ${accessLink}`);
+          logger.verbose('---------------------------------------------------------------------------------------')
+          logger.sensitive(`accessLink = ${JSON.stringify(accessLink)}`);
           logger.sensitive(`response = ${JSON.stringify(response)}`);
-
-          let reportData = {};
-          reportData.response = _.clone(response);
-          reportData.response.app = '_';
-          // delete reportData.response.app;
-          reportData.app = response.app;
           if(accessLink){
-            gravityCLIReporter.addItem('Loaded Table Data using', accessLink , 'TABLE');
+            logger.verbose(`Loaded Table Data using accessLink: ${JSON.stringify(accessLink)}`);
           } else {
-            gravityCLIReporter.addItem('Loaded Table Data using', 'Metis App Account' , 'TABLE');
+            logger.verbose('Loaded Table Data using  Application Account');
           }
 
-          gravityCLIReporter.addItemsInJson('Table Data', reportData.response , 'TABLE');
-          gravityCLIReporter.addItemsInJson('Table Data / app', response.app, 'TABLE');
-
-          const { tables } = response.app;
+          const tables = response.app.tables;
+          logger.sensitive(`response.app= ${JSON.stringify(response.app)}`);
 
           for (let x = 0; x < Object.keys(tables).length; x += 1) {
             if (tables[x][self.table] !== undefined) {
               const recordTable = tables[x][self.table];
-              logger.debug(recordTable);
-              resolve(recordTable);
+
+              logger.debug(`recordTable= ${JSON.stringify(recordTable)}`);
+
+              return resolve(recordTable);
               break;
             }
           }
           reject('Table could not be found');
         })
         .catch((error) => {
+          logger.error(`loadTable().loadUserAndAppData(accessLink=${!!accessLink}).error()`);
           logger.error(error);
           reject(error);
         });
@@ -401,6 +399,10 @@ class Model {
   }
 
   create(accessLink = false) {
+    logger.verbose('#####################################################################################')
+    logger.verbose(`##  create(accessLink= ${!!accessLink})`);
+    logger.verbose('#####################################################################################')
+
     const self = this;
     const eventEmitter = new events.EventEmitter();
     let recordTable;
@@ -508,6 +510,7 @@ class Model {
               reject({ success: false, errors: err });
             });
         });
+
         eventEmitter.on('request_authenticated', () => {
           logger.verbose(`create().on(request_authenticated)`);
           logger.debug(`create().loadTable()`);

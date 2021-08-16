@@ -41,6 +41,24 @@ const deserializeUser = (passport) => {
     });
 };
 
+
+const getSignUpUserInformation = (account, request) => {
+    return {
+        account,
+        email: request.body.email,
+        alias: request.body.alias,
+        firstname: request.body.firstname,
+        lastname: request.body.lastname,
+        secret_key: null,
+        twofa_enabled: false,
+        twofa_completed: false,
+        public_key: request.body.public_key,
+        encryption_password: request.body.encryption_password,
+        jup_key: gravity.encrypt(request.body.key),
+        jup_account_id: request.body.jup_account_id
+    };
+};
+
 /**
  * Signup to Metis
  * @param {*} passport
@@ -55,74 +73,62 @@ const metisSignup = (passport) => {
             passwordField: 'accounthash',
             passReqToCallback: true, // allows us to pass back the entire request to the callback
         },
-        (req, account, accounthash, done) => {
+        (request, account, accounthash, done) => {
             process.nextTick(() => {
                 logger.verbose(`metisSignUp().nextTick()`);
-                logger.debug(`request.body = ${JSON.stringify(req.body)}`);
+                logger.debug(`request.body = ${JSON.stringify(request.body)}`);
 
 
                 const reportSection = 'New user account info';
                 gravityCLIReporter.setTitle('Metis Sign Up')
                 gravityCLIReporter.addItem('Account', account, reportSection)
                 gravityCLIReporter.addItem('Account Hash', accounthash, reportSection)
-                gravityCLIReporter.addItem('Alias', req.body.alias, reportSection)
-                gravityCLIReporter.addItem('Public Key', req.body.public_key, reportSection)
-                gravityCLIReporter.addItem('Jup Account Id', req.body.jup_account_id, reportSection)
-                gravityCLIReporter.addItem('password', req.body.encryption_password, reportSection)
+                gravityCLIReporter.addItem('Alias', request.body.alias, reportSection)
+                gravityCLIReporter.addItem('Public Key', request.body.public_key, reportSection)
+                gravityCLIReporter.addItem('Jup Account Id', request.body.jup_account_id, reportSection)
+                gravityCLIReporter.addItem('password', request.body.encryption_password, reportSection)
 
-                const eventEmitter = new events.EventEmitter();
-                const params = req.body;
-                let user;
-
+                // const eventEmitter = new events.EventEmitter();
+                // const requestBody = request.body;
                 logger.info('Saving new account data in Jupiter...');
-                const data = {
-                    account,
-                    email: params.email,
-                    alias: params.alias,
-                    firstname: params.firstname,
-                    lastname: params.lastname,
-                    secret_key: null,
-                    twofa_enabled: (params.twofa_enabled === 'true'),
-                    twofa_completed: false,
-                    public_key: params.public_key,
-                    encryption_password: params.encryption_password,
-                };
-
-                logger.debug('Instantiating User()');
-                logger.sensitive('With the following data');
-                logger.sensitive(`data = ${JSON.stringify(data)}`);
-                user = new User(data);
+                const signUpUserInformation = getSignUpUserInformation(account, request);
+                logger.debug('Instantiating User() With the following data...');
+                logger.sensitive(`data = ${JSON.stringify(signUpUserInformation)}`);
+                const user = new User(signUpUserInformation);
 
                 logger.verbose(`metisSignup().userCreate()`);
                 user.create()
                     .then(async () => {
-                        logger.verbose(`metisSignup().userCreate().then()`);
-                        req.session.twofa_pass = false;
-                        req.session.public_key = req.body.public_key;
-                        req.session.jup_key = gravity.encrypt(req.body.key);
+                        logger.verbose('---------------------------------------------------------------------------------------')
+                        logger.verbose(`--  metisSignup().userCreate().then()`);
+                        logger.verbose('---------------------------------------------------------------------------------------')
+
+                        // request.session.public_key = request.body.public_key;
+                        // request.session.jup_key = gravity.encrypt(request.body.key);
+
                         let moneyTransfer;
                         try {
                             moneyTransfer = await gravity.sendMoney(
-                                req.body.jup_account_id,
+                                signUpUserInformation.jup_account_id,
                                 parseInt(0.05 * 100000000, 10),
                             );
                         } catch (e) {
                             logger.error(e);
                             moneyTransfer = e;
                         }
-                        logger.verbose(`Sent money to ${req.body.jup_account_id}`);
+                        logger.verbose(`Sent money to ${signUpUserInformation.jup_account_id}`);
                         if (!moneyTransfer.success) {
                             logger.info('SendMoney was not completed');
                         }
 
                         const payload = {
-                            accessKey: req.session.jup_key,
-                            encryptionKey: gravity.encrypt(params.encryption_password),
+                            accessKey: request.session.jup_key,
+                            encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
                             id: user.data.id,
                         }
 
                         logger.verbose(`User is created: ${JSON.stringify(payload)}`);
-                        gravityCLIReporter.addItemsInJson('The user is created', {...payload, ...params}, 'IN CONCLUSION');
+                        gravityCLIReporter.addItemsInJson('The user is created', {...payload, ...requestBody}, 'IN CONCLUSION');
                         // gravityCLIReporter.sendReportAndReset();
                         return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
                     })
@@ -133,7 +139,7 @@ const metisSignup = (passport) => {
                         let errorMessage;
                         if (err.verification_error !== undefined && err.verification_error === true) {
                             err.errors.forEach((x) => {
-                                req.flash('signupMessage', err.errors[x]);
+                                request.flash('signupMessage', err.errors[x]);
                             });
                             errorMessage = 'There were validation errors';
                         } else {
