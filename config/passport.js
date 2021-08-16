@@ -287,58 +287,59 @@ const metisLogin = (passport, jobs, io) => {
                   logger.info(fundingResponse);
                 }
 
-                logger.debug(`setAlias()`);
-                  user.setAlias(req.body.jupkey)
-                  .then((aliasSetting) => {
-                      logger.debug(`setAlias(jupkey=${req.body.jupkey}).then(aliasSetting= ${JSON.stringify(aliasSetting)})`);
-                        if (!aliasSetting.success) {
-                          logger.info(aliasSetting);
-                        }
-                  })
-                  .catch(err => {
-                      logger.error(`error= ${JSON.stringify(err)}`)
-                  });
+                // logger.sensitive(`setAlias(passphrase= ${req.body.jupkey})`);
+                //   user.setAlias(req.body.jupkey)
+                //   .then((aliasSetting) => {
+                //       logger.debug(`setAlias(passphrase=${req.body.jupkey}).then(aliasSetting= ${JSON.stringify(aliasSetting)})`);
+                //         if (!aliasSetting.success) {
+                //           logger.info(aliasSetting);
+                //         }
+                //   })
+                //   .catch(err => {
+                //       logger.error(`error= ${JSON.stringify(err)}`)
+                //   });
+
+
+
+
               }
 
 
               const userProperties = await gravity.getAccountProperties({ recipient: userRecord.account });
+              const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
 
 
 
+              const userInfo = {
+                  userRecordFound: response.userRecordFound,
+                  noUserTables: response.noUserTables,
+                  userNeedsBackup: response.userNeedsBackup,
+                  accessKey: gravity.encrypt(req.body.jupkey),
+                  encryptionKey: gravity.encrypt(req.body.encryptionPassword),
+                  account: gravity.encrypt(account),
+                  database: response.database,
+                  accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
+                  id: user.data.id,
+                  profilePictureURL: profilePicture && profilePicture.value
+                      ? profilePicture.value
+                      : '',
+                  userData: {
+                      alias: userRecord.alias,
+                      account: userRecord.account,
+                  },
+              }
+              logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
+              gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
 
 
-              // const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-              //
-              // const userInfo = {
-              //     userRecordFound: response.userRecordFound,
-              //     noUserTables: response.noUserTables,
-              //     userNeedsBackup: response.userNeedsBackup,
-              //     accessKey: gravity.encrypt(req.body.jupkey),
-              //     encryptionKey: gravity.encrypt(req.body.encryptionPassword),
-              //     account: gravity.encrypt(account),
-              //     database: response.database,
-              //     accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
-              //     id: user.data.id,
-              //     profilePictureURL: profilePicture && profilePicture.value
-              //         ? profilePicture.value
-              //         : '',
-              //     userData: {
-              //         alias: userRecord.alias,
-              //         account: userRecord.account,
-              //     },
-              // }
-              // logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
-              // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
-              //
-              //
-              //
-              //   const doneResponse = {
-              //       error: null,
-              //       user: userInfo,
-              //       message: 'Authentication validated!'
-              //   }
-              //
-              //   return done(doneResponse.error, doneResponse.user, doneResponse.message);
+
+                const doneResponse = {
+                    error: null,
+                    user: userInfo,
+                    message: 'Authentication validated!'
+                }
+
+                return done(doneResponse.error, doneResponse.user, doneResponse.message);
 
 
 
