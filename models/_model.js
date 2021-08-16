@@ -145,9 +145,12 @@ class Model {
     logger.verbose(`loadtable()`);
     const self = this;
     return new Promise((resolve, reject) => {
-      gravity.loadAppData(accessLink)
+      logger.debug('-- ---- -- --- -- --- $$$$$ -- ---- -- --- -- --- 7')
+      gravity.loadUserAndAppData(accessLink)
         .then((response) => {
-          logger.verbose(`loadTable().loadAppData(accessLink).then()`);
+          logger.debug('---------------------------------------------------------------------------------------')
+          logger.verbose(`loadTable().loadUserAndAppData(accessLink=${!!accessLink}).then(response)`);
+          logger.debug('---------------------------------------------------------------------------------------')
           logger.verbose(`accessLink = ${accessLink}`);
           logger.sensitive(`response = ${JSON.stringify(response)}`);
 
@@ -329,11 +332,11 @@ class Model {
 
             for (let z = 0; z < ids.length; z += 1) {
               const id = ids[z];
-              
+
               gravity.sortByDate(recordsBreakdown[id].versions);
               const thisRecords = recordsBreakdown[id].versions;
               const lastRecord = thisRecords.length - 1;
-              
+
               const createdAt = thisRecords[lastRecord].date;
               finalList.push({
                 id,
@@ -341,7 +344,7 @@ class Model {
                 date: createdAt,
               });
             }
-            
+
 
             logger.sensitive(JSON.stringify({ success: true, records: finalList, records_found: finalList.length }))
             resolve({ success: true, records: finalList, records_found: finalList.length });
@@ -427,16 +430,16 @@ class Model {
           gravityCLIReporter.addItemsInJson('New Record Account', self.record , `NEW ${self.model} RECORD`);
 
           let encryptedRecord;
-          
+
           if (accessLink && accessLink.encryptionPassword) {
-            
+
             gravityCLIReporter.addItemsInJson('Encrypting Password..', accessLink.encryptionPassword , `NEW ${self.model} RECORD`);
             encryptedRecord = gravity.encrypt(
               JSON.stringify(fullRecord),
               accessLink.encryptionPassword,
             );
           } else {
-            
+
             gravityCLIReporter.addItemsInJson('New Record Account will be Encrypted with', '[Using the Metis Application Password]' , `NEW ${self.model} RECORD`);
             encryptedRecord = gravity.encrypt(JSON.stringify(fullRecord));
           }
@@ -444,13 +447,13 @@ class Model {
           let callUrl;
 
           if (self.model === 'user') {
-            
+
             if (self.prunableOnCreate) {
-              
+
               logger.info('Record is prunable');
               callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true`;
             } else {
-              
+
               callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;
             }
             gravityCLIReporter.addItemsInJson('New Record sent to Jupiter', {
@@ -459,24 +462,24 @@ class Model {
             } , `NEW ${self.model} RECORD`);
 
           } else if (self.user) {
-            
-            
+
+
 
             logger.debug(`publicKey =  ${self.user.public_key}`)
             logger.debug(`user = ${JSON.stringify(self.user)}`);
 
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
           } else {
-            
+
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true`;
           }
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);
 
-          
+
           axios.post(callUrl)
             .then((response) => {
-              
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 resolve({ success: true, message: 'Record created' });
               } else if (response.data.errorDescription != null) {
@@ -557,10 +560,10 @@ class Model {
           const User = require('./user.js');
           gravity.findById(self.user.id, 'user')
             .then((response) => {
-              
+
               user = new User(response.record);
-              
-              
+
+
               eventEmitter.emit('authenticate_user_request');
             })
             .catch((err) => {
@@ -655,10 +658,10 @@ class Model {
           } else {
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true`;
           }
-          
+
           axios.post(callUrl)
             .then((response) => {
-              
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 resolve({ success: true, message: 'Record created', record: self.record });
               } else if (response.data.errorDescription != null) {
@@ -708,7 +711,7 @@ class Model {
           gravity.findById(self.user.id, 'user')
             .then((response) => {
               user = new User(response.record);
-              
+
               eventEmitter.emit('authenticate_user_request');
             })
             .catch((err) => {
