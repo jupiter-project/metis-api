@@ -119,13 +119,23 @@ class User extends Model {
   }
 
   async setAlias(passphrase) {
-    logger.verbose(`setAlias(passphrase= ${passphrase}`);
+    logger.verbose('###############################################################################################')
+    logger.verbose(`## setAlias(passphrase= ${passphrase}`);
+    logger.verbose('###############################################################################################')
+
+    logger.debug(`alias= ${this.record.alias}`);
+
     const aliasCheckup = await gravity.getAlias(this.record.alias);
+
+    logger.debug(`aliasCheckup= ${JSON.stringify(aliasCheckup)}`);
+
     if (aliasCheckup.accountRS === this.record.account) {
       return { success: false, message: 'Alias already set', fullResponse: aliasCheckup };
     }
 
+
     if (aliasCheckup.available) {
+
       const aliasResponse = await gravity.setAlias({
         passphrase,
         alias: this.record.alias,

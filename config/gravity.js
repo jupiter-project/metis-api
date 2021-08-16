@@ -1982,7 +1982,9 @@ class Gravity {
   }
 
   async getAlias(aliasName) {
-    logger.verbose(`getAlias(aliasName= ${aliasName}`);
+    logger.verbose('###############################################################################################')
+    logger.verbose(`## getAlias(aliasName= ${aliasName}`);
+    logger.verbose('###############################################################################################')
     const aliasCheckup = await this.jupiterRequest('get', {
       aliasName,
       requestType: 'getAlias',
@@ -2004,7 +2006,9 @@ class Gravity {
   }
 
   async setAlias(params) {
-    logger.info(params);
+    logger.verbose('###############################################################################################')
+    logger.info(`## params= ${JSON.stringify(params)}`);
+    logger.verbose('###############################################################################################')
     return this.jupiterRequest('post', {
       requestType: 'setAlias',
       aliasName: params.alias,
