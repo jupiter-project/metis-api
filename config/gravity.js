@@ -1373,7 +1373,7 @@ class Gravity {
   getUser(account, passphrase, containedDatabase = null) {
     logger.verbose('###############################################################################################')
     logger.verbose(`###############################################################################################\n`)
-    logger.verbose(`                      getUser(account=${JSON.stringify(account)}, passphrase, containedDatabase=${!!containedDatabase})\n`);
+    logger.verbose(`##    getUser(account=${JSON.stringify(account)}, passphrase, containedDatabase=${!!containedDatabase})\n`);
     logger.verbose('###############################################################################################')
     logger.verbose('###############################################################################################')
 
@@ -1435,7 +1435,7 @@ class Gravity {
 
 
               // ------------------------------------------------------------------------------------------------------------------------------
-              logger.verbose(`So now we have the Application Users Table! Next we need to find the user in ApplicationUserTable(ie appliationUserTable == jupiter account).`)
+              logger.verbose(`So now we have the Application Users Table! Next we need to find the user in ApplicationUsersTable.`)
               logger.verbose(`getUser().getRecords(from application).then().getRecords(applicationUsersTable)`)
               // ------------------------------------------------------------------------------------------------------------------------------
               this.getRecords(
@@ -1450,11 +1450,8 @@ class Gravity {
                     logger.verbose(`getUser().getRecords(from application).then().getRecords(applicationUsersTable).THEN(applicationUsersTableRecordsResponse)`)
                     logger.debug('---------------------------------------------------------------------------------------')
                     logger.sensitive(`-- applicationUsersTableRecordsResponse= ${JSON.stringify(applicationAccountUsersTableRecordsResponse)}`);
-
                       const userRecord = this.getUserRecord(applicationAccountUsersTableRecordsResponse.records);
-
                       logger.sensitive(`-- userRecord=${JSON.stringify(userRecord)}`);
-
                       logger.sensitive(`-- retreived user password = ${userRecord.encryption_password}, containedDatabasePassword = ${containedDatabase.encryptionPassword}`);
                       logger.sensitive(`-- retreived user password = ${userRecord['encryption_password']}, containedDatabasePassword = ${containedDatabase.encryptionPassword}`);
 
@@ -1466,6 +1463,9 @@ class Gravity {
                         throw new Error('Implement new user creation functionality!');
                       }
 
+                    logger.debug('---------------------------------------------------------------------------------------')
+                    logger.verbose(`--   Compare the given password with the password in the usersTable`)
+                    logger.debug('---------------------------------------------------------------------------------------')
                       if(!(userRecord.encryption_password == containedDatabase.encryptionPassword)){
                         logger.warn('Not valid password');
                         throw new Error(`The password is not valid. Need to return the proper reject()`);
@@ -1982,6 +1982,7 @@ class Gravity {
   }
 
   async getAlias(aliasName) {
+    logger.verbose(`getAlias(aliasName= ${aliasName}`);
     const aliasCheckup = await this.jupiterRequest('get', {
       aliasName,
       requestType: 'getAlias',
