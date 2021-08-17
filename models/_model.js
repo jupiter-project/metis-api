@@ -160,14 +160,11 @@ class Model {
           logger.sensitive(`accessLink = ${JSON.stringify(accountCredentials)}`);
           logger.sensitive(`response = ${JSON.stringify(response)}`);
 
-          const appAccountTables = response.app.tables;
-          logger.sensitive(`response.app= ${JSON.stringify(response.app)}`);
-
-          for (let x = 0; x < Object.keys(appAccountTables).length; x += 1) {
-            if (appAccountTables[x][thisTableName] !== undefined) {
-              const table = appAccountTables[x][thisTableName];
-              logger.debug(`table= ${JSON.stringify(table)}`);
-              return resolve(table);
+          for (let x = 0; x < accountTables.length; x += 1) {
+            if (accountTables[x].name === thisTableName) {
+              const recordTable = accountTables[x];
+              logger.debug(`recordTable= ${JSON.stringify(recordTable)}`);
+              return resolve(recordTable);
               break;
             }
           }
