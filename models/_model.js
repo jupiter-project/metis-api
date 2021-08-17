@@ -162,12 +162,11 @@ class Model {
             logger.verbose('Loaded Table Data using  Application Account');
           }
 
-          const tables = response.app.tables;
+          const tables = response.tables;
           logger.sensitive(`response.app= ${JSON.stringify(response.app)}`);
-
-          for (let x = 0; x < Object.keys(tables).length; x += 1) {
-            if (tables[x][self.table] !== undefined) {
-              const recordTable = tables[x][self.table];
+          for (let x = 0; x < tables.length; x += 1) {
+            if (tables[x].name === self.table) {
+              const recordTable = tables[x];
 
               logger.debug(`recordTable= ${JSON.stringify(recordTable)}`);
 
