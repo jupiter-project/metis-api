@@ -89,7 +89,7 @@ class Channel extends Model {
         });
 
         eventEmitter.on('request_authenticated', () => {
-          self.loadTable(accessLink)
+          self.loadAppTable(accessLink)
             .then((res) => {
               recordTable = res;
               eventEmitter.emit('id_generated');

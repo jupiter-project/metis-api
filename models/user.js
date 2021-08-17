@@ -153,6 +153,13 @@ class User extends Model {
     return aliasCheckup;
   }
 
+
+  async make(accessData) {
+
+
+  }
+
+
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
     const record = super.setRecord(this.data);
@@ -215,9 +222,9 @@ class User extends Model {
         self.accessData
       ) {
         try {
-          // console.log(self.accessData);
+          // console.log(self.accountCredentials);
           const accessKey = gravity.decrypt(self.accessData.accessKey);
-          // const encryptionKey = gravity.decrypt(self.accessData.encryptionKey);
+          // const encryptionKey = gravity.decrypt(self.accountCredentials.encryptionKey);
           const account = gravity.decrypt(self.accessData.account);
           const accountData = JSON.parse(gravity.decrypt(self.accessData.accountData));
           const record = await gravity.getUser(account, accessKey, accountData);
@@ -247,7 +254,7 @@ class User extends Model {
         reject({ false: false, verification_error: true, errors: self.verify().messages });
       } else {
         const accessKey = gravity.decrypt(self.accessData.accessKey);
-        // const encryptionKey = gravity.decrypt(self.accessData.encryptionKey);
+        // const encryptionKey = gravity.decrypt(self.accountCredentials.encryptionKey);
         const account = gravity.decrypt(self.accessData.account);
         const accountData = JSON.parse(gravity.decrypt(self.accessData.accountData));
         const record = await gravity.getUser(account, accessKey, accountData);

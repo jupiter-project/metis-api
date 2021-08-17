@@ -76,35 +76,25 @@ const metisSignup = (passport) => {
         (request, account, accounthash, done) => {
             process.nextTick(() => {
                 logger.verbose(`metisSignUp().nextTick()`);
-                logger.debug(`request.body = ${JSON.stringify(request.body)}`);
-
-
-                const reportSection = 'New user account info';
-                gravityCLIReporter.setTitle('Metis Sign Up')
-                gravityCLIReporter.addItem('Account', account, reportSection)
-                gravityCLIReporter.addItem('Account Hash', accounthash, reportSection)
-                gravityCLIReporter.addItem('Alias', request.body.alias, reportSection)
-                gravityCLIReporter.addItem('Public Key', request.body.public_key, reportSection)
-                gravityCLIReporter.addItem('Jup Account Id', request.body.jup_account_id, reportSection)
-                gravityCLIReporter.addItem('password', request.body.encryption_password, reportSection)
-
-                // const eventEmitter = new events.EventEmitter();
-                // const requestBody = request.body;
+                logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
                 logger.info('Saving new account data in Jupiter...');
                 const signUpUserInformation = getSignUpUserInformation(account, request);
                 logger.debug('Instantiating User() With the following data...');
-                logger.sensitive(`data = ${JSON.stringify(signUpUserInformation)}`);
-                const user = new User(signUpUserInformation);
+                logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
 
-                logger.verbose(`metisSignup().userCreate()`);
+                accountRebistration.register(account)
+                    .then(
+                        done();
+                    )
+
+
+                const user = new User(signUpUserInformation);
+                logger.verbose(`metisSignup().user.create()`);
                 user.create()
                     .then(async () => {
                         logger.verbose('---------------------------------------------------------------------------------------')
-                        logger.verbose(`--  metisSignup().userCreate().then()`);
+                        logger.verbose(`--  metisSignup().user.create().then()`);
                         logger.verbose('---------------------------------------------------------------------------------------')
-
-                        // request.session.public_key = request.body.public_key;
-                        // request.session.jup_key = gravity.encrypt(request.body.key);
 
                         let moneyTransfer;
                         try {
