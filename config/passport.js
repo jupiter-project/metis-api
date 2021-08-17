@@ -3,6 +3,9 @@ import { gravity } from './gravity';
 import User from '../models/user';
 import RegistrationWorker from '../workers/registration';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
+import JupiterAPIService from "../services/jupiterAPIService";
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 
 const { AccountRegistration } = require('./accountRegistration');
 // Loads up passport code
@@ -77,69 +80,54 @@ const metisSignup = (passport) => {
                 logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
                 logger.info('Saving new account data in Jupiter...');
                 const signUpUserInformation = getSignUpUserInformation(account, request);
-                logger.debug('Instantiating User() With the following data...');
                 logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
 
-                accountRebistration.register(account)
-                    .then(
-                        done();
-                    )
+                const newUserGravityAccountProperties = new GravityAccountProperties(
+                    signUpUserInformation.account, //address
+                    signUpUserInformation.jup_account_id, // account Id
+                    signUpUserInformation.public_key, // public key
+                    signUpUserInformation.request.body.key, // passphrase
+                    signUpUserInformation.hash, //password hash
+                    signUpUserInformation.encryption_password, //password
+                    process.env.ENCRYPT_ALGORITHM, // algorithm
+                    signUpUserInformation.email, //email
+                    signUpUserInformation.firstName, //firstname
+                    signUpUserInformation.lastName // lastname
+                )
 
+                newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
 
-                const user = new User(signUpUserInformation);
-                logger.verbose(`metisSignup().user.create()`);
-                user.create()
-                    .then(async () => {
-                        logger.verbose('---------------------------------------------------------------------------------------')
-                        logger.verbose(`--  metisSignup().user.create().then()`);
-                        logger.verbose('---------------------------------------------------------------------------------------')
+                const TRANSFER_FEE = 100
+                const ACCOUNT_CREATION_FEE = 750; // 500 + 250
+                const STANDARD_FEE = 500;
+                const MINIMUM_TABLE_BALANCE = 50000
+                const MINIMUM_APP_BALANCE = 100000
+                const MONEY_DECIMALS = 8;
+                const DEADLINE = 60;
 
-                        let moneyTransfer;
-                        try {
-                            moneyTransfer = await gravity.sendMoney(
-                                signUpUserInformation.jup_account_id,
-                                parseInt(0.05 * 100000000, 10),
-                            );
-                        } catch (e) {
-                            logger.error(e);
-                            moneyTransfer = e;
-                        }
-                        logger.verbose(`Sent money to ${signUpUserInformation.jup_account_id}`);
-                        if (!moneyTransfer.success) {
-                            logger.info('SendMoney was not completed');
-                        }
+                const appAccountProperties = new ApplicationAccountProperties(
+                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE,  TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
+                );
 
-                        const payload = {
-                            accessKey: request.session.jup_key,
-                            encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
-                            id: user.data.id,
-                        }
+                const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+                const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, jupiterAPIService);
 
-                        logger.verbose(`User is created: ${JSON.stringify(payload)}`);
-                        gravityCLIReporter.addItemsInJson('The user is created', {...payload, ...requestBody}, 'IN CONCLUSION');
-                        // gravityCLIReporter.sendReportAndReset();
+                accountRegistration.register()
+                    .then( response => {
+                        const payload = {}
+                        // const payload = {
+                        //     accessKey: request.session.jup_key,
+                        //     encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
+                        //     id: user.data.id,
+                        // }
+
                         return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
                     })
-                    .catch((err) => {
-                        logger.error('USER CREATION FAILED', JSON.stringify(err));
-                        gravityCLIReporter.addItemsInJson('Failed to create the user account', err, 'IN CONCLUSION');
-                        // gravityCLIReporter.sendReportAndReset();
-                        let errorMessage;
-                        if (err.verification_error !== undefined && err.verification_error === true) {
-                            err.errors.forEach((x) => {
-                                request.flash('signupMessage', err.errors[x]);
-                            });
-                            errorMessage = 'There were validation errors';
-                        } else {
-                            errorMessage = err.errors;
-                        }
-                        return done(true, false, errorMessage);
-                    });
+                    .catch( error => {
+
+                    })
             });
-          return done(true, false, errorMessage);
-        });
     });
-  }));
 };
 
 /**

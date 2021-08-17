@@ -1632,7 +1632,7 @@ class Gravity {
     logger.verbose('########################################################################################')
     logger.sensitive(`accessData=${JSON.stringify(accessData)}`);
 
-    // const { passphrase } = accountCredentials;
+    // const { passphrase } = accountProperties;
     let userAccountTables;
 
     return new Promise((resolve, reject) => {
