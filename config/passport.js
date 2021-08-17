@@ -106,14 +106,14 @@ const metisSignup = (passport) => {
                 const DEADLINE = 60;
 
                 const appAccountProperties = new ApplicationAccountProperties(
-                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE,  TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
+                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
                 );
 
                 const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
                 const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, jupiterAPIService);
 
                 accountRegistration.register()
-                    .then( response => {
+                    .then(response => {
                         const payload = {}
                         // const payload = {
                         //     accessKey: request.session.jup_key,
@@ -123,12 +123,12 @@ const metisSignup = (passport) => {
 
                         return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
                     })
-                    .catch( error => {
+                    .catch(error => {
 
                     })
             });
-    });
-};
+        }))
+    };
 
 /**
  *

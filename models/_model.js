@@ -144,7 +144,7 @@ class Model {
     logger.verbose('#####################################################################################')
 
     if(!accountCredentials){
-      throw new Error('accountCredentials cannot be empty');
+      throw new Error('accountProperties cannot be empty');
     }
 
 
