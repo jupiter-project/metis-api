@@ -155,23 +155,26 @@ module.exports = (app) => {
       id,
       accessKey,
       accountData,
+      userData,
     } = req.user;
 
-    const userData = JSON.parse(gravity.decrypt(accountData));
+    const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
 
-    logger.sensitive(`userData = ${ JSON.stringify(userData)}`);
+    logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
 
     const exceptions = ['users'];
     let model = '';
     data = {
       ...data,
-      address: userData.account,
+      address: decryptedAccountData.account,
       passphrase: '',
       password: '',
-      public_key: userData.publicKey,
-      user_address: userData.account,
+      public_key: decryptedAccountData.publicKey,
+      user_address: decryptedAccountData.account,
       user_api_key: accessKey,
       user_id: id,
+      sender: userData.account,
+      createdBy: userData.account,
     };
 
     // If table in route is in the exception list, then it goes lower in the route list
