@@ -61,6 +61,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   app.get('/v1/api/aliases', (req, res) => {
     const {account} = req.query
     const aliases = `${process.env.JUPITERSERVER}/nxt?requestType=getAliases&account=${account}`;
+    console.log(aliases);
     axios.get(aliases)
       .then((response) => {
         console.log(response);
