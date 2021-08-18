@@ -62,10 +62,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const {account} = req.query
     const aliases = `${process.env.JUPITERSERVER}/nxt?requestType=getAliases&account=${account}`;
     console.log(aliases);
+    res.setHeader('Content-Type', 'application/json');
     axios.get(aliases)
       .then((response) => {
         console.log('response--------------', response);
-        res.send(response);
+        res.send(JSON.parse(response));
       })
       .catch((error) => {
         logger.error('error------------------', error);
