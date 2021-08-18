@@ -54,6 +54,27 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       });
   });
 
+    // ===========================================================
+  // This constains the aliases from an account
+  // ===========================================================
+  // Loads aliases
+  app.get('/v1/api/aliases', (req, res) => {
+    const {account} = req.query
+    const aliases = `${process.env.JUPITERSERVER}/nxt?requestType=getAliases&account=${account}`;
+    axios.get(aliases)
+      .then((response) => {
+        console.log(response);
+        res.send(response);
+      })
+      .catch((error) => {
+        logger.error(error);
+        res.send({
+          success: false,
+          message: 'There was an error getting aliases from jupiter',
+        });
+      });
+  });
+
   // ===============================================================================
   // SIGNIN PAGE
   // ===============================================================================
