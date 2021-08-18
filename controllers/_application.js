@@ -64,11 +64,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     console.log(aliases);
     axios.get(aliases)
       .then((response) => {
-        console.log(response);
+        console.log('response--------------', response);
         res.send(response);
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error('error------------------', error);
         res.send({
           success: false,
           message: 'There was an error getting aliases from jupiter',
