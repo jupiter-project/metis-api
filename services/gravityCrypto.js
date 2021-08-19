@@ -75,10 +75,10 @@ class GravityCrypto {
     }
 
 
-    decryptOrNull(data){
+    decryptOrNull(data) {
         try {
             return this.decrypt(data)
-        } catch(error){
+        } catch (error) {
             logger.info(`not able to decrypt. returning null.  ${error}`);
             return null;
         }

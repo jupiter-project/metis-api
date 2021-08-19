@@ -3,10 +3,12 @@ import { gravity } from './gravity';
 import User from '../models/user';
 import RegistrationWorker from '../workers/registration';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-import JupiterAPIService from "../services/jupiterAPIService";
+
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 
+
+const { JupiterAPIService } =  require('../services/jupiterAPIService');
 const { AccountRegistration } = require('./accountRegistration');
 // Loads up passport code
 const LocalStrategy = require('passport-local').Strategy;
@@ -45,20 +47,24 @@ const deserializeUser = (passport) => {
 };
 
 
-const getSignUpUserInformation = (account, request) => ({
-  account,
-  email: request.body.email,
-  alias: request.body.alias,
-  firstname: request.body.firstname,
-  lastname: request.body.lastname,
-  secret_key: null,
-  twofa_enabled: false,
-  twofa_completed: false,
-  public_key: request.body.public_key,
-  encryption_password: request.body.encryption_password,
-  jup_key: gravity.encrypt(request.body.key),
-  jup_account_id: request.body.jup_account_id,
-});
+const getSignUpUserInformation = (account, request) => {
+    return {
+        account,
+        email: request.body.email,
+        alias: request.body.alias,
+        firstname: request.body.firstname,
+        lastname: request.body.lastname,
+        secret_key: null,
+        twofa_enabled: false,
+        twofa_completed: false,
+        public_key: request.body.public_key,
+        encryption_password: request.body.encryption_password,
+        passphrase: request.body.key,
+        jup_key: gravity.encrypt(request.body.key), // passphrase
+        jup_account_id: request.body.jup_account_id
+    }
+}
+
 
 /**
  * Signup to Metis
@@ -86,7 +92,7 @@ const metisSignup = (passport) => {
                     signUpUserInformation.account, //address
                     signUpUserInformation.jup_account_id, // account Id
                     signUpUserInformation.public_key, // public key
-                    signUpUserInformation.request.body.key, // passphrase
+                    signUpUserInformation.passphrase, // passphrase
                     signUpUserInformation.hash, //password hash
                     signUpUserInformation.encryption_password, //password
                     process.env.ENCRYPT_ALGORITHM, // algorithm
@@ -112,9 +118,14 @@ const metisSignup = (passport) => {
                 const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
                 const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, jupiterAPIService);
 
+                logger.debug(`accountRegistration().register()`);
                 accountRegistration.register()
                     .then(response => {
+                        logger.verbose('---------------------------------------------------------------------------------------');
+                        logger.verbose(`--  metisSignUp().accountRegistration.register().then(response= ${!!response})`);
+                        logger.verbose('---------------------------------------------------------------------------------------');
                         const payload = {}
+
                         // const payload = {
                         //     accessKey: request.session.jup_key,
                         //     encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
@@ -158,6 +169,16 @@ const metisLogin = (passport, jobs, io) => {
       publicKey: req.body.public_key,
       accountId: req.body.jup_account_id,
     };
+
+
+      /**
+       * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
+       * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
+       * to provide their new password.  The current problem is that current when going through the signup process
+       * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
+       * account. This was we can register their current jup account with metis.
+       */
+
 
     logger.debug('--------------------------------');
     logger.sensitive(JSON.stringify(containedDatabase));

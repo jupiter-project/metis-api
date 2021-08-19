@@ -308,28 +308,24 @@ class Gravity {
   }
 
 
-
-
-
-
-
   loadAccountData(accountCredentials ) { // -> getREcords
     logger.verbose('#####################################################################################')
-    logger.verbose(`                       accountCredentials(containedDatabase = ${!!accountCredentials})`)
+    logger.verbose(`                       loadAccountData(accountCredentials = ${!!accountCredentials})`)
     logger.verbose('#####################################################################################')
-    logger.sensitive(`containedDatabase = ${JSON.stringify(accountCredentials)}`);
+    logger.sensitive(`accountCredentials = ${JSON.stringify(accountCredentials)}`);
 
     return new Promise((resolve, reject) => {
-      logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${ownerAddress}, transactionSender=${accountPropertiesHolder}, passphrase)`);
-      self.getRecords(
-          accountCredentials.account,
-          accountCredentials.account,
+
+      logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
+      this.getRecords(
+          accountCredentials.address,
+          accountCredentials.address,
           accountCredentials.passphrase,
           { size: 'all', show_pending: null, show_unconfirmed: false },
           accountCredentials.password )
           .then((recordsContainer) => { //{records,last_record,pending}
             logger.debug('---------------------------------------------------------------------------------------')
-            logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(address=${ownerAddress}, transactionSender=${accountPropertiesHolder}).THEN()`);
+            logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
             logger.debug('---------------------------------------------------------------------------------------')
             logger.debug(`-- response = ${JSON.stringify(recordsContainer)}`);
 
@@ -396,8 +392,8 @@ class Gravity {
 
   /**
    *
-   * @param containedDatabase
-   * @returns {Promise<{numberOfRecords,success,app,hasUserTable,userRecord,message} | {numberOfRecords,success,app: {tables,appData,address},message,tables,hasUserTable,userRecord}>} - {numberOfRecords,success,app,hasUserTable,userRecord,message} | {numberOfRecords,success,app: {tables,appData,address},message,tables,hasUserTable,userRecord}
+   * @param {object | false} containedDatabase
+   * @returns {Promise<{numberOfRecords,success,app,hasUserTable,userRecord,message} | {numberOfRecords,success,app: {tables,appData,address},message,tables,hasUserTable,userRecord}>} -
    */
   loadUserAndAppData(containedDatabase = false) { // -> getREcords
     logger.verbose('#####################################################################################')
@@ -644,6 +640,14 @@ class Gravity {
       'confirmed': null
     }
   }
+
+  // convertAttachTableResponseToProperTableContainer(attachTableResponse){
+  //   return {
+  //     'name':
+  //   }
+  //
+  // }
+
 
   //"user_record":{"id":"16197549842640237948","account":"JUP-69A8-6EHC-JCJ9-6NARY","accounthash":"$2a$08$AUrbDXw.MKuZFTG3FIf8zejjWdELWmChA6USnM6WkW/iuWY3kKHiS","alias":"Port Rowenahaven","secret_key":null,"twofa_enabled":false,"twofa_complet
 
@@ -936,7 +940,7 @@ class Gravity {
       eventEmitter.on('records_retrieved', () => {
 
         logger.debug(`getRecords().on(records_retrieved)`);
-        logger.debug('  Calling readMessage for each MessageTransaction received from the AccountHolder')
+        logger.debug('  Calling readMessage for each MessageTransaction received from the Table Account')
         logger.debug(`Message Transaction count: ${records.length}`);
 
         if (records.length <= 0) {
@@ -2277,10 +2281,14 @@ class Gravity {
     }
   }
 
-  createNewAddress(passphrase) {
-    const self = this;
+  /**
+   *
+   * @param {string} passphrase
+   * @returns {Promise<{address, publicKey, success}>}
+   */
+  createNewJupiterAccount(passphrase) {
     return new Promise((resolve, reject) => {
-      axios.get(`${self.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`)
+      axios.get(`${this.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`)
         .then((response) => {
           const address = response.data.accountRS;
           resolve({ address, publicKey: response.data.publicKey, success: true });
@@ -2321,18 +2329,18 @@ class Gravity {
 
   /**
    *
-   * @param {object} attachTableToThisAccount - database == transactions
+   * @param {object} accountCredentials - database == transactions
    * @param {string} tableName - ex 'users' or 'invites' or 'channels' or 'storage'
    * @param {[]} currentTables - ?
    * @returns {Promise<unknown>}
    */
-  async attachTable(attachTableToThisAccount, tableName, currentTables = null) {
+  async attachTable(accountCredentials, tableName, currentTables = null) {
     logger.verbose('#############################################################################################################')
-    logger.verbose(`##  attachTable(database=${!!attachTableToThisAccount} , tableName=${tableName}, currentTables=${currentTables})`);
+    logger.verbose(`##  attachTable(database=${!!accountCredentials} , tableName=${tableName}, currentTables=${currentTables})`);
     logger.verbose('#############################################################################################################')
-    logger.sensitive(`database=${JSON.stringify(attachTableToThisAccount)}`);
+    logger.sensitive(`database=${JSON.stringify(accountCredentials)}`);
 
-    console.log(attachTableToThisAccount);
+    console.log(accountCredentials);
 
     const defaultTableNames =   AccountRegistration.defaultTableNames;
 
@@ -2345,7 +2353,7 @@ class Gravity {
     // let listOfTableNames = [];
     // let app;
     let newTableAddress;
-    let passphrase;
+    let newPassphrase;
     // let current_tables;
     let record;
     let tableNamesContainer;
@@ -2363,7 +2371,7 @@ class Gravity {
         logger.verbose(`attachTable().on(table_created)`)
         // This code will send Jupiter to the recently created table newTableAddress so that it is
         // able to record information
-        self.sendMoney(newTableAddress)
+        this.sendMoney(newTableAddress)
           .then((response) => {
             logger.info(`Table ${tableName} funded with JUP.`);
             resolve({
@@ -2372,7 +2380,7 @@ class Gravity {
               data: response.data,
               jupiter_response: response.data,
               tables: listOfTableNames,
-              others: self.tables,
+              others: this.tables,
             });
           })
           .catch((err) => {
@@ -2383,7 +2391,7 @@ class Gravity {
 
       eventEmitter.on('address_retrieved', async () => {
         logger.verbose(`attachTable().on(address_retrieved)`)
-        const encryptedData = self.encrypt(JSON.stringify(record), attachTableToThisAccount.encryptionPassword);
+        const encryptedData = self.encrypt(JSON.stringify(record), accountCredentials.encryptionPassword);
 
 
         if (tableName === 'channels' && tableNamesContainer.tables.length < 2) {
@@ -2400,15 +2408,15 @@ class Gravity {
 
         const encryptedTableData = self.encrypt(
           JSON.stringify(tableNamesContainer),
-          attachTableToThisAccount.encryptionPassword,
+          accountCredentials.encryptionPassword,
         );
 
         logger.debug(`Sending a jupiter message`);
         logger.debug(`tableListRecord=${tableNamesContainer}`);
 
-        const recipientPublicKey = (attachTableToThisAccount.publicKey | attachTableToThisAccount.publicKey == 'undefined')?`&recipientPublicKey=${attachTableToThisAccount.publicKey}`:''
+        const recipientPublicKey = (accountCredentials.publicKey | accountCredentials.publicKey == 'undefined')?`&recipientPublicKey=${accountCredentials.publicKey}`:''
 
-        const callUrl = `${self.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${attachTableToThisAccount.passphrase}&recipient=${attachTableToThisAccount.account}&messageToEncrypt=${encryptedData}&feeNQT=${self.jupiter_data.feeNQT}&deadline=${self.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+        const callUrl = `${self.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${self.jupiter_data.feeNQT}&deadline=${self.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
         logger.debug(`callurl= ${callUrl}`);
         let response;
 
@@ -2422,7 +2430,7 @@ class Gravity {
         if (response.data.broadcasted && !response.error) {
           logger.info(`Table ${tableName} pushed to the blockchain and linked to your account...`);
           // const recipientPublicKey = (database.publicKey | database.publicKey == 'undefined')? `&recipientPublicKey=${database.publicKey}`:''
-          const tableListUpdateUrl = `${self.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${attachTableToThisAccount.passphrase}&recipient=${attachTableToThisAccount.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(self.jupiter_data.feeNQT / 2)}&deadline=${self.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+          const tableListUpdateUrl = `${self.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(self.jupiter_data.feeNQT / 2)}&deadline=${self.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
           logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
           try {
             response = await axios.post(tableListUpdateUrl);
@@ -2466,15 +2474,13 @@ class Gravity {
       eventEmitter.on('tableName_obtained', () => {
         logger.verbose(`attachTable().on(tableName_obtained)`)
         logger.info('These are the tables');
-        logger.info(`tables = ${self.tables}`);
-        logger.info(`tableList = ${listOfTableNames}`);
+        logger.info(`this.tables = ${this.tables}`);
+        logger.info(`listOfTableNames = ${listOfTableNames}`);
         logger.info(`currentTables = ${currentTables}`);
         // let databaseCurrentTableMatch = true;
         let tableInCurrentTableList = false;
         if (currentTables) {
-          console.log(1)
           if (!(listOfTableNames.includes(tableName) && currentTables.includes(tableName))) {
-            console.log(2)
             tableInCurrentTableList = currentTables.includes(tableName);
           }
         }
@@ -2487,32 +2493,24 @@ class Gravity {
         ) {
           reject(`Error: Unable to save table. ${tableName} is already in the database`);
         } else {
-          passphrase = self.generate_passphrase();
-
+          newPassphrase = self.generate_passphrase();
           logger.debug(`CreateNewAddress()`)
-
-          self.createNewAddress(passphrase)
-            .then((response) => {
+          this.createNewJupiterAccount(newPassphrase)
+            .then((newJupiterAccountResponse) => { //{address, publicKey, success}
               logger.debug('---------------------------------------------------------------------------------------')
-              logger.debug(`-- attachTable().createNewAddress().THEN(response)`)
+              logger.debug(`-- attachTable(accountCredentials, tableName).createNewJupiterAccount(newPassphrase).THEN(newJupiterAccountResponse)`)
               logger.debug('---------------------------------------------------------------------------------------')
+              logger.debug(`newJupiterAccountResponse= ${newJupiterAccountResponse}`)
 
-              logger.verbose('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-              console.log(response);
-              logger.verbose('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
-
-
-              if (response.success === true && response.address && response.address.length > 0) {
-                logger.debug('The accouns was successfully created.')
-
-                newTableAddress  = response.address;
-
-                logger.debug(`address=${newTableAddress}`);
+              if (newJupiterAccountResponse.success === true && newJupiterAccountResponse.address && newJupiterAccountResponse.address.length > 0) {
+                logger.debug('The account was successfully created.')
+                newTableAddress  = newJupiterAccountResponse.address;
+                logger.debug(`newTableAddress=${newTableAddress}`);
                 record = {
                   [tableName]: {
                     address: newTableAddress,
-                    passphrase,
-                    public_key: response.public_key,
+                    passphrase: newPassphrase,
+                    public_key: newJupiterAccountResponse.public_key,
                   },
                 };
                 listOfTableNames.push(tableName);
@@ -2524,7 +2522,7 @@ class Gravity {
 
                 eventEmitter.emit('address_retrieved');
               } else {
-                logger.error(`attachTable().createNewAddress().then() error: ${JSON.stringify(response)}`);
+                logger.error(`attachTable().createNewAddress().then() error: ${JSON.stringify(newJupiterAccountResponse)}`);
                 reject('There was an error');
               }
             })
@@ -2538,11 +2536,11 @@ class Gravity {
 
       eventEmitter.on('verified_balance', () => {
         logger.verbose(`attachTable().on(verified_balance)`)
-        logger.debug(`attachTable().loadUserAndAppData(database=${!!attachTableToThisAccount})`)
-        self.loadUserAndAppData(attachTableToThisAccount)
-          .then((response) => {
+        logger.debug(`attachTable().loadUserAndAppData(database=${!!accountCredentials})`)
+        this.loadUserAndAppData(accountCredentials)
+          .then((response) => { //  {numberOfRecords,success,app:{tables,appData,address}, message,tables,hasUserTable,userRecord}
             logger.verbose('---------------------------------------------------------------------------------------')
-            logger.verbose(`-- attachTable().loadUserAndAppData(database=${!!attachTableToThisAccount}).then(response=${!!response})`);
+            logger.verbose(`-- attachTable().loadUserAndAppData(database=${!!accountCredentials}).then(response=${!!response})`);
             logger.verbose('---------------------------------------------------------------------------------------')
             logger.sensitive(`response=${JSON.stringify(response)}`);
             listOfTableNames = this.extractTableNamesFromTables(response.tables);
@@ -3022,7 +3020,7 @@ class Gravity {
         } else {
           passphrase = self.generate_passphrase();
 
-          self.createNewAddress(passphrase)
+          self.createNewJupiterAccount(passphrase)
             .then((response) => {
               if (response.success === true && response.address && response.address.length > 0) {
                 ({ address } = response);
