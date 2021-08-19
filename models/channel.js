@@ -14,7 +14,7 @@ class Channel extends Model {
       table: 'channels',
       belongsTo: 'user',
       model_params: [
-        'id', 'passphrase', 'account', 'password', 'name', 'publicKey', 'sender', 'accountId',
+        'id', 'passphrase', 'account', 'password', 'name', 'publicKey', 'sender', 'accountId', 'createdBy',
       ],
     });
     this.public_key = data.public_key;
