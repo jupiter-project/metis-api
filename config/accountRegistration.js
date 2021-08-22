@@ -2,6 +2,7 @@
 // const gravity = require('../config/gravity');
 // import User from '../models/user';
 const {JupiterAccountProperties} = require("../gravity/jupiterAccountProperties");
+const {JupiterFundingService} = require("../services/jupiterFundingService");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -11,21 +12,21 @@ class AccountRegistration {
 
     /**
      *
-     * @param {GravityAccountProperties} accountProperties
-     * @param {JupiterAPIService} jupiterAPIService
-     */
-
-    /**
-     *
      * @param {GravityAccountProperties} newUserAccountProperties
      * @param {GravityAccountProperties} applicationGravityAccountProperties
      * @param {jupiterAPIService} jupiterAPIService
      * @param {Gravity} gravity
      */
-    constructor(newUserAccountProperties, applicationGravityAccountProperties, jupiterAPIService, gravity) {
+    constructor( newUserAccountProperties,
+                 applicationGravityAccountProperties,
+                 jupiterAPIService,
+                 jupiterFundingService,
+                 gravity
+    ){
         this.newUserAccountProperties = newUserAccountProperties;
         this.applicationAccountProperties = applicationGravityAccountProperties;
         this.jupiterAPIService = jupiterAPIService;
+        this.jupiterFundingService = jupiterFundingService;
         this.gravity = gravity;
     }
 
@@ -41,73 +42,68 @@ class AccountRegistration {
         }
     }
 
-    /**
-     *
-     * @returns {Promise<void>}
-     */
+
     async register() {
         logger.verbose('#####################################################################################');
         logger.verbose(`## register()`)
         logger.verbose('#####################################################################################');
 
-
-
         return new Promise((resolve, reject) => {
             logger.verbose(`register().attachAllDefaultTables()`);
-
             const funds = parseInt(0.1 * 100000000, 10);
-
-            logger.verbose(`register().sendMoney(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
-
-            const waitFiveSeconds = 5;
-            const waitTenSeconds = 50;
-            this.gravity.sendMoneyAndWait(
-                this.newUserAccountProperties.address, // to
-                funds,
-                this.applicationAccountProperties.passphrase, //from
-                waitTenSeconds
-            ).then(sendMoneyResponse => {
+            console.log(`funds: `, funds);
+            // logger.verbose(`register().provideInitialStandardUserFunds(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
+            this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
+                .then(sendMoneyResponse => {
                 logger.verbose('---------------------------------------------------------------------------------------');
-                logger.verbose(`-- register().sendMoney().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
+                logger.verbose(`-- register().transferAndWait().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
                 logger.verbose('---------------------------------------------------------------------------------------');
 
+                // console.log('---- sendmoneyresponse --');
+                // console.log(sendMoneyResponse);
 
-                logger.verbose(`register().sendMoney().then().attachAllDefaultTables()`)
-                this.attachAllDefaultTables()
-                    .then(attachedTablesResponse => {
-                        logger.debug('---------------------------------------------------------------------------------------');
-                        logger.debug(`-- register().sendMoney().then().attachAllDefaultTables().then(attacjedTablesResponse= ${!!attachedTablesResponse})`);
-                        logger.debug('---------------------------------------------------------------------------------------');
-                        logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
+                this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)
+                    .then( waitForConfirmationResponse => {
 
-                        const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
-                        logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
-                        const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
-                        const userRecord = this.newUserAccountProperties.generateUserRecord('test');
-                        logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
+                        logger.verbose(`register().sendMoney().then().attachAllDefaultTables()`)
+                        this.attachAllDefaultTables()
+                            .then(attachedTablesResponse => {
+                                logger.debug('---------------------------------------------------------------------------------------');
+                                logger.debug(`-- register().sendMoney().then().attachAllDefaultTables().then(attacjedTablesResponse= ${!!attachedTablesResponse})`);
+                                logger.debug('---------------------------------------------------------------------------------------');
+                                logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
 
-                        const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
+                                const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
+                                logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
+                                const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
+                                const userRecord = this.newUserAccountProperties.generateUserRecord('test');
+                                logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
 
-                        console.log(2);
-                        console.log(usersTableProperties.passphrase);
-                        this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
-                            .then(response => {
-                                logger.debug(`response.data= ${response.data}`);
-                                return resolve('resolve something');
+                                const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
+
+                                this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
+                                    .then(response => {
+                                        logger.debug(`response.data= ${response.data}`);
+                                        return resolve('resolve something');
+                                    })
+                                    .catch(error => {
+                                        console.log(error);
+                                        // logger.error(`error= ${JSON.stringify(error)}`);
+                                        return reject(error);
+                                    })
+
                             })
                             .catch(error => {
-                                console.log(error);
-                                // logger.error(`error= ${JSON.stringify(error)}`);
-                                return reject(error);
+                                logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                                logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
+                                logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                                logger.error(`error= ${JSON.stringify(error)}`);
+                                reject(error);
                             })
 
                     })
-                    .catch(error => {
-                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                        logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
-                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                        logger.error(`error= ${JSON.stringify(error)}`);
-                        reject(error);
+                    .catch( error => {
+
                     })
             })
                 .catch(error => {
@@ -119,6 +115,122 @@ class AccountRegistration {
         })
 
     }
+
+
+    // sendMoneyResponse
+    // data:
+    //     { signatureHash:'e270a572455f1ce2c5252f0721a78f62e2ccc79e259e4c9f78523badc2e0179d',
+    //         transactionJSON:
+    //             {
+    //                 senderPublicKey:'8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068',
+    //                 signature:
+    //                     '43dc04867c8d9cb22a97df0af48679a6b068263ef5d42ca5f30a327884cbcd012c494f9877868b59ca10cc13d28568ef4f5ab4f26dbba5fbf1270f8e5fc9bc55',
+    //                 feeNQT: '500',
+    //                 type: 0,
+    //                 fullHash:
+    //                     '22bb4aa75dfa0525cc35f80e544356e368a14507321aca988b749cbfb067d47d',
+    //                 version: 1,
+    //                 phased: false,
+    //                 ecBlockId: '18058591858968842477',
+    //                 signatureHash:
+    //                     'e270a572455f1ce2c5252f0721a78f62e2ccc79e259e4c9f78523badc2e0179d',
+    //                 attachment: [Object],
+    //                 senderRS: 'JUP-KMRG-9PMP-87UD-3EXSF',
+    //                 subtype: 0,
+    //                 amountNQT: '10000000',
+    //                 sender: '1649351268274589422',
+    //                 recipientRS: 'JUP-YWWX-CSYK-7HC5-38CLB',
+    //                 recipient: '1497805687284003741',
+    //                 ecBlockHeight: 205251,
+    //                 deadline: 60,
+    //                 transaction: '2667813634432482082',
+    //                 timestamp: 121036222,
+    //                 height: 2147483647
+    //             },
+    //         unsignedTransactionBytes:'123',
+    //         broadcasted: true,
+    //         requestProcessingTime: 4,
+    //         transactionBytes:'123',
+    //         fullHash: '22bb4aa75dfa0525cc35f80e544356e368a14507321aca988b749cbfb067d47d',
+    //         transaction: '2667813634432482082'
+    //     }
+
+
+
+
+    /**
+     *
+     * @returns {Promise<void>}
+     */
+    // async register() {
+    //     logger.verbose('#####################################################################################');
+    //     logger.verbose(`## register()`)
+    //     logger.verbose('#####################################################################################');
+    //
+    //     return new Promise((resolve, reject) => {
+    //         logger.verbose(`register().attachAllDefaultTables()`);
+    //         const funds = parseInt(0.1 * 100000000, 10);
+    //         logger.verbose(`register().sendMoney(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
+    //         const waitFiveSeconds = 5;
+    //         const waitTenSeconds = 50;
+    //         this.gravity.sendMoneyAndWait(
+    //             this.newUserAccountProperties.address, // to
+    //             funds,
+    //             this.applicationAccountProperties.passphrase, //from
+    //             waitTenSeconds
+    //         ).then(sendMoneyResponse => {
+    //             logger.verbose('---------------------------------------------------------------------------------------');
+    //             logger.verbose(`-- register().sendMoney().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
+    //             logger.verbose('---------------------------------------------------------------------------------------');
+    //
+    //
+    //             logger.verbose(`register().sendMoney().then().attachAllDefaultTables()`)
+    //             this.attachAllDefaultTables()
+    //                 .then(attachedTablesResponse => {
+    //                     logger.debug('---------------------------------------------------------------------------------------');
+    //                     logger.debug(`-- register().sendMoney().then().attachAllDefaultTables().then(attacjedTablesResponse= ${!!attachedTablesResponse})`);
+    //                     logger.debug('---------------------------------------------------------------------------------------');
+    //                     logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
+    //
+    //                     const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
+    //                     logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
+    //                     const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
+    //                     const userRecord = this.newUserAccountProperties.generateUserRecord('test');
+    //                     logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
+    //
+    //                     const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
+    //
+    //                     console.log(2);
+    //                     console.log(usersTableProperties.passphrase);
+    //                     this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
+    //                         .then(response => {
+    //                             logger.debug(`response.data= ${response.data}`);
+    //                             return resolve('resolve something');
+    //                         })
+    //                         .catch(error => {
+    //                             console.log(error);
+    //                             // logger.error(`error= ${JSON.stringify(error)}`);
+    //                             return reject(error);
+    //                         })
+    //
+    //                 })
+    //                 .catch(error => {
+    //                     logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                     logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
+    //                     logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                     logger.error(`error= ${JSON.stringify(error)}`);
+    //                     reject(error);
+    //                 })
+    //         })
+    //             .catch(error => {
+    //                 logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                 logger.error(`error= ${JSON.stringify(error)}`);
+    //                 logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                 reject(error);
+    //             })
+    //     })
+    //
+    // }
 
 
     /**

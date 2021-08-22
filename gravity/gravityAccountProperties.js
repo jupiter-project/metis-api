@@ -65,11 +65,13 @@ class GravityAccountProperties extends JupiterAccountProperties {
     addApplicationAccountProperties(applicationAccountProperties){
         this.isApp = true
         this.deadline = applicationAccountProperties.deadline;
-        this.feeNQT = applicationAccountProperties.feeNQT;
-        this.transferFeeNQT = applicationAccountProperties.transferFeeNQT;
         this.minimumTableBalance = applicationAccountProperties.minimumTableBalance;
         this.minimumAppBalance = applicationAccountProperties.minimumAppBalance;
         this.moneyDecimals = applicationAccountProperties.moneyDecimals;
+        this.transferFeeNQT = applicationAccountProperties.transferFeeNQT;
+        this.feeNQT = applicationAccountProperties.feeNQT;
+        this.standardFeeNQT = applicationAccountProperties.standardFeeNQT;
+        this.accountCreationFeeNQT = applicationAccountProperties.accountCreationFeeNQT;
     }
 
 
@@ -81,8 +83,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
             account: this.address
         }
     }
-
-
 
     generateUserRecord(generatingTransactionId) {
         logger.verbose('#####################################################################################');

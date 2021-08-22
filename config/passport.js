@@ -6,6 +6,7 @@ import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {JupiterFundingService} from "../services/jupiterFundingService";
 
 
 const { JupiterAPIService } =  require('../services/jupiterAPIService');
@@ -71,6 +72,7 @@ const getSignUpUserInformation = (account, request) => {
  * @param {*} passport
  */
 const metisSignup = (passport) => {
+
     logger.verbose('#####################################################################################')
     logger.verbose(`##  metisSignup(passport)`);
     logger.verbose('#####################################################################################')
@@ -86,7 +88,6 @@ const metisSignup = (passport) => {
                 logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
                 logger.info('Saving new account data in Jupiter...');
 
-
                 const applicationGravityAccountProperties = new GravityAccountProperties(
                     process.env.APP_ACCOUNT_ADDRESS,
                     process.env.APP_ACCOUNT_ID,
@@ -100,8 +101,19 @@ const metisSignup = (passport) => {
                     ''
                 )
 
+                const TRANSFER_FEE = 100
+                const ACCOUNT_CREATION_FEE = 750;
+                const STANDARD_FEE = 500;
+                const MINIMUM_TABLE_BALANCE = 50000
+                const MINIMUM_APP_BALANCE = 100000
+                const MONEY_DECIMALS = 8;
+                const DEADLINE = 60;
 
+                const appAccountProperties = new ApplicationAccountProperties(
+                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
+                );
 
+                applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
 
 
                 const signUpUserInformation = getSignUpUserInformation(account, request);
@@ -122,24 +134,14 @@ const metisSignup = (passport) => {
 
                 logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
 
-
-
                 newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
 
-                const TRANSFER_FEE = 100
-                const ACCOUNT_CREATION_FEE = 750; // 500 + 250
-                const STANDARD_FEE = 500;
-                const MINIMUM_TABLE_BALANCE = 50000
-                const MINIMUM_APP_BALANCE = 100000
-                const MONEY_DECIMALS = 8;
-                const DEADLINE = 60;
+                const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, applicationGravityAccountProperties);
+                const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties )
 
-                const appAccountProperties = new ApplicationAccountProperties(
-                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
-                );
+                const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, applicationGravityAccountProperties, jupiterAPIService, jupiterFundingService, gravity);
 
-                const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-                const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, applicationGravityAccountProperties, jupiterAPIService, gravity);
+
 
                 logger.debug(`accountRegistration().register()`);
                 accountRegistration.register()

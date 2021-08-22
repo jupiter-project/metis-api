@@ -1,3 +1,5 @@
+const logger = require('../utils/logger')(module);
+
 /**
  *
  */
@@ -21,12 +23,12 @@ class ApplicationAccountProperties {
         this.feeNQT = standardFeeNQT;
         this.standardFeeNQT = standardFeeNQT;
         this.accountCreationFeeNQT = accountCreationFeeNQT;
+
+        logger.debug(`accountCreationFeeNQT= ${accountCreationFeeNQT}`);
     }
 }
 
 module.exports.ApplicationAccountProperties = ApplicationAccountProperties;
-
-
 
 const TRANSFER_FEE = 100
 const ACCOUNT_CREATION_FEE = 750; // 500 + 250
