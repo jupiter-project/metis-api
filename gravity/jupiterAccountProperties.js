@@ -1,3 +1,6 @@
+const logger = require('../utils/logger')(module);
+
+
 /**
  *
  */
@@ -26,9 +29,10 @@ class JupiterAccountProperties {
                 twofactorAuthenticationEnabled = false,
                 twofactorAuthenticationcompleted = false
     ) {
+
         this.address = address;
         this.accountId = accountId;
-        this.publicKey = publicKey;
+        this.publicKey = this.validateValue(publicKey);
         this.passphrase = passphrase;
         this.email = email;
         this.firstName = firstName;
@@ -36,6 +40,28 @@ class JupiterAccountProperties {
         this.alias = alias;
         this.twofactorAuthenticationEnabled = twofactorAuthenticationEnabled;
         this.twofactorAuthenticationcompleted = twofactorAuthenticationcompleted;
+    }
+
+
+
+    static createProperties(address, passphrase, publicKey){
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## createProperties(address=${address}, passphrase=${passphrase}, publicKey=${publicKey})`);
+        logger.verbose('#####################################################################################');
+
+        return new JupiterAccountProperties(
+            address,
+            null,
+            publicKey,
+            passphrase
+        )
+    }
+
+    validateValue(value){
+        if(value == 'undefined'){
+            return null
+        }
+        return value;
     }
 }
 

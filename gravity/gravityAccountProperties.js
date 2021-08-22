@@ -1,5 +1,6 @@
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
-const {GravityCrypto} = require("./gravityCrypto");
+const {GravityCrypto} = require("../services/gravityCrypto");
+const logger = require('../utils/logger')(module);
 
 /**
  *
@@ -20,8 +21,18 @@ class GravityAccountProperties extends JupiterAccountProperties {
      * @param {string} lastName
      * @param {JupiterAccountProperties} applicationAccountProperties
      */
-    constructor(address, accountId, publicKey, passphrase, hash, password,
-                algorithm , email = '', firstName = '', lastName = '', applicationAccountProperties= null) {
+    constructor(address,
+                accountId,
+                publicKey,
+                passphrase,
+                hash,
+                password,
+                algorithm ,
+                email = '',
+                firstName = '',
+                lastName = '',
+                applicationAccountProperties= null
+    ) {
         super(address, accountId, publicKey, passphrase, email , firstName , lastName );
         this.passwordHash = hash;
         this.password = password;
@@ -62,9 +73,28 @@ class GravityAccountProperties extends JupiterAccountProperties {
     }
 
 
-    generateUserRecord(generatingTransactionId){
+    generateAccessData(){
+        return {
+            encryptionPassword: this.password,
+            publicKey: this.publicKey,
+            passphrase: this.passphrase,
+            account: this.address
+        }
+    }
+
+
+
+    generateUserRecord(generatingTransactionId) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## generateUserRecord()`);
+        logger.verbose('#####################################################################################');
         logger.error(`Need to confirm the api_key is correct!`)
         logger.error(`Need to confirm the secret_key is correct!`)
+
+        if(!generatingTransactionId){
+            throw new Error('generatingTransactionId cannot be empty');
+        }
+
         return {
             id: generatingTransactionId,
             user_record: {

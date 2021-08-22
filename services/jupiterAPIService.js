@@ -40,24 +40,43 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async jupiterRequest(rtype, params, data = {}) {
-        // logger.debug(`jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
+        logger.verbose('#####################################################################################');
+        logger.debug(`## jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
+        logger.verbose('#####################################################################################');
         const url = this.jupiterUrl(params);
-        // logger.debug(url);
+        logger.debug(`url= ${url}`);
 
+
+
+        // axios({
+        //     method: 'post',
+        //     url: '/login',
+        //     data: {
+        //         firstName: 'Finn',
+        //         lastName: 'Williams'
+        //     }
+        // });
         return new Promise((resolve, reject) => {
-            axios(url, rtype, data)
+            axios({url: url, method: rtype, data: data})
                 .then(response => {
                     if(response.error) {
-                        return reject(response)
+                        logger.error(`jupiterRequest().response.error`)
+                        logger.error(`error= ${JSON.stringify(response.error)}`);
+                        return reject(response.error)
                     }
 
-                    if(response.data && response.data.errorDescription !== null) {
-                        return reject(response);
+                    if(response.data && response.data.errorDescription  && response.data.errorDescription !== null) {
+                        logger.error(`jupiterRequest().response.data.error`);
+                        console.log(response.data)
+                        logger.error(`error= ${JSON.stringify(response.data.errorDescription)}`)
+                        return reject(response.data.errorDescription);
                     }
 
                     return resolve(response);
                 })
-                .catch(error => {
+                .catch( error => {
+                    logger.error(`jupiterRequest().axios.catch(error)`)
+                    logger.error(`error= ${error}`);
                     reject(error);
                 })
         }  )
@@ -69,6 +88,11 @@ class JupiterAPIService {
     }
 
     async post(params, data = {}) {
+        logger.sensitive('#####################################################################################');
+        logger.sensitive(`## post()`)
+        logger.sensitive('#####################################################################################');
+        logger.sensitive(`params= ${JSON.stringify(params)}`);
+        logger.sensitive(`data= ${JSON.stringify(data)}`);
         return this.jupiterRequest('post', params, data);
     }
 
@@ -211,14 +235,18 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async postEncipheredPrunableMessage(fromJupiterProperties, toJupiterProperties,message, feeNQT = this.appProps.feeNQT) {
-        logger.verbose(`postSimplePrunableMessage()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postEncipheredPrunableMessage()`);
+        logger.verbose('#####################################################################################');
         const isPrunable = true;
         const encipher = true;
         return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
     }
 
     async postEncipheredMessage(fromJupiterProperties, toJupiterProperties,message, feeNQT = this.appProps.feeNQT) {
-        logger.verbose(`postSimplePrunableMessage()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postEncipheredMessage()`);
+        logger.verbose('#####################################################################################');
         const isPrunable = false;
         const encipher = true;
         return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
@@ -234,7 +262,9 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher= true, feeNQT = this.appProps.feeNQT, isPrunable = false) {
-        logger.verbose(`postSimpleMessage()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postSimpleMessage()`);
+        logger.verbose('#####################################################################################');
 
         let params = {}
 
@@ -246,6 +276,10 @@ class JupiterAPIService {
             params.messageToEncrypt = message;
         } else {
             params.message = message;
+        }
+
+        if(!fromJupiterProperties.passphrase){
+            throw new Error('Passphrase cannot be empty');
         }
 
         return new Promise( (resolve, reject) => {
@@ -261,13 +295,16 @@ class JupiterAPIService {
                 }
             })
                 .then((response) => {
+                    logger.debug(`then()`);
                     if (response.data.broadcasted && response.data.broadcasted === true) {
                         return resolve(response);
                     }
+                    logger.error(`then(error)`);
                     return reject({errorType: 'responseValueNotAsExpected', message: response});
                 })
                 .catch( error  => {
-                    reject({errorType: 'requestError', message: error});
+                    logger.error(`error()`);
+                    return reject({errorType: 'requestError', message: error});
                 });
         })
     }

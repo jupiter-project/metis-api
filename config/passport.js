@@ -85,6 +85,25 @@ const metisSignup = (passport) => {
                 logger.verbose(`metisSignUp().nextTick()`);
                 logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
                 logger.info('Saving new account data in Jupiter...');
+
+
+                const applicationGravityAccountProperties = new GravityAccountProperties(
+                    process.env.APP_ACCOUNT_ADDRESS,
+                    process.env.APP_ACCOUNT_ID,
+                    process.env.APP_PUBLIC_KEY,
+                    process.env.APP_ACCOUNT,
+                    '',
+                    process.env.ENCRYPT_PASSWORD,
+                    process.env.ENCRYPT_ALGORITHM,
+                    process.env.APP_EMAIL,
+                    process.env.APP_NAME,
+                    ''
+                )
+
+
+
+
+
                 const signUpUserInformation = getSignUpUserInformation(account, request);
                 logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
 
@@ -101,6 +120,10 @@ const metisSignup = (passport) => {
                     signUpUserInformation.lastName // lastname
                 )
 
+                logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
+
+
+
                 newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
 
                 const TRANSFER_FEE = 100
@@ -116,7 +139,7 @@ const metisSignup = (passport) => {
                 );
 
                 const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-                const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, jupiterAPIService);
+                const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, applicationGravityAccountProperties, jupiterAPIService, gravity);
 
                 logger.debug(`accountRegistration().register()`);
                 accountRegistration.register()
@@ -125,7 +148,6 @@ const metisSignup = (passport) => {
                         logger.verbose(`--  metisSignUp().accountRegistration.register().then(response= ${!!response})`);
                         logger.verbose('---------------------------------------------------------------------------------------');
                         const payload = {}
-
                         // const payload = {
                         //     accessKey: request.session.jup_key,
                         //     encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
@@ -135,7 +157,10 @@ const metisSignup = (passport) => {
                         return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
                     })
                     .catch(error => {
-
+                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                        logger.error(`xx  metisSignUp().accountRegistration.register().catch(error= ${!!error})`);
+                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                        logger.error(`error= ${JSON.stringify(error)}`);
                     })
             });
         }))

@@ -5,6 +5,7 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
+const AccountRegistration  = require('../config/accountRegistration');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
@@ -308,6 +309,11 @@ class Gravity {
   }
 
 
+  /**
+   *
+   * @param {object} accountCredentials
+   * @returns {Promise<unknown>}
+   */
   loadAccountData(accountCredentials ) { // -> getREcords
     logger.verbose('#####################################################################################')
     logger.verbose(`                       loadAccountData(accountCredentials = ${!!accountCredentials})`)
@@ -1973,8 +1979,44 @@ class Gravity {
     });
   }
 
+
+  sendMoneyAndWait(recipient, transferAmount, sender, secondsToWait=50) {
+    logger.verbose('#####################################################################################');
+    logger.verbose(` sendMoneyAndWait(recipient=${recipient}, tansferMoney=${transferAmount}, sender=${sender}, seccondsToWait= ${secondsToWait})`);
+    logger.verbose('#####################################################################################');
+
+    const milliseconds = secondsToWait * 1000;
+    return new Promise( (resolve, reject) => {
+      this.sendMoney(recipient, transferAmount, sender)
+          .then(response => {
+            setTimeout(async () => {
+              return resolve(response)
+            }, milliseconds );
+          })
+          .catch(error => {
+            return reject(error);
+          })
+    })
+  }
+
+  /**
+   *
+   * @param recipient
+   * @param transferAmount
+   * @param sender
+   * @returns {Promise<unknown>}
+   */
   sendMoney(recipient, transferAmount, sender) {
-    logger.verbose(`sendMoney()`)
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+
+
+    logger.verbose('#####################################################################################');
+    logger.verbose(`sendMoney(recipient= ${recipient}, transferAmount= ${transferAmount}, sender= ${sender})`)
+    logger.verbose('#####################################################################################');
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
     const feeNQT = 100;
@@ -2342,7 +2384,7 @@ class Gravity {
 
     console.log(accountCredentials);
 
-    const defaultTableNames =   AccountRegistration.defaultTableNames;
+    const defaultTableNames =   ['users', 'channels','invites', 'storage']
 
     if( ! defaultTableNames.includes(tableName)){
       throw new Error('table name must be a string!');
@@ -2354,6 +2396,7 @@ class Gravity {
     // let app;
     let newTableAddress;
     let newPassphrase;
+    let newPublicKey;
     // let current_tables;
     let record;
     let tableNamesContainer;
@@ -2368,20 +2411,33 @@ class Gravity {
 
 
       eventEmitter.on('table_created', () => {
-        logger.verbose(`attachTable().on(table_created)`)
+        logger.verbose(`EVENT-EMITTER: attachTable().on(table_created)`)
+        console.log('2. ||||||||||||||||||||||||||||||||||||||||||||||| ------ |||||||||||||||||||||||||||||||||||||||||||||')
         // This code will send Jupiter to the recently created table newTableAddress so that it is
         // able to record information
-        this.sendMoney(newTableAddress)
+        logger.debug(`attachTable().sendMoneyAndWait(newTableAddress= ${newTableAddress})`)
+        this.sendMoneyAndWait(newTableAddress )
           .then((response) => {
-            logger.info(`Table ${tableName} funded with JUP.`);
-            resolve({
-              success: true,
-              message: `Table ${tableName} pushed to the blockchain and funded.`,
-              data: response.data,
-              jupiter_response: response.data,
-              tables: listOfTableNames,
-              others: this.tables,
-            });
+            logger.verbose('---------------------------------------------------------------------------------------');
+            logger.debug(`attachTable().sendMoney(newTableAddress).then(response)`)
+            logger.verbose('---------------------------------------------------------------------------------------');
+            logger.info(`newTableAddress= ${tableName}`);
+
+            return resolve({
+              name: tableName,
+              address: newTableAddress,
+              passphrase: newPassphrase,
+              publicKey: newPublicKey
+            })
+
+            // resolve({
+            //   success: true,
+            //   message: `Table ${tableName} pushed to the blockchain and funded.`,
+            //   data: response.data,
+            //   jupiter_response: response.data,
+            //   tables: listOfTableNames,
+            //   others: this.tables,
+            // });
           })
           .catch((err) => {
             logger.error(err);
@@ -2390,9 +2446,8 @@ class Gravity {
       });
 
       eventEmitter.on('address_retrieved', async () => {
-        logger.verbose(`attachTable().on(address_retrieved)`)
-        const encryptedData = self.encrypt(JSON.stringify(record), accountCredentials.encryptionPassword);
-
+        logger.verbose(`EVENT-EMITTER: attachTable().on(address_retrieved)`)
+        const encryptedData = this.encrypt(JSON.stringify(record), accountCredentials.encryptionPassword);
 
         if (tableName === 'channels' && tableNamesContainer.tables.length < 2) {
           tableNamesContainer.tables = ['users', 'channels'];
@@ -2406,31 +2461,34 @@ class Gravity {
           tableNamesContainer.tables = ['users', 'channels', 'invites', 'storage'];
         }
 
-        const encryptedTableData = self.encrypt(
+        const encryptedTableData = this.encrypt(
           JSON.stringify(tableNamesContainer),
           accountCredentials.encryptionPassword,
         );
 
-        logger.debug(`Sending a jupiter message`);
-        logger.debug(`tableListRecord=${tableNamesContainer}`);
+        logger.sensitive(`tableListRecord= ${JSON.stringify(tableNamesContainer)}`);
 
-        const recipientPublicKey = (accountCredentials.publicKey | accountCredentials.publicKey == 'undefined')?`&recipientPublicKey=${accountCredentials.publicKey}`:''
 
-        const callUrl = `${self.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${self.jupiter_data.feeNQT}&deadline=${self.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+        const recipientPublicKey = (accountCredentials.publicKey)?`&recipientPublicKey=${accountCredentials.publicKey}`:''
+
+        logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
+
+        console.log('1. ||||||||||||||||||||||||||||||||||||||||||||||| ------ |||||||||||||||||||||||||||||||||||||||||||||')
+        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
         logger.debug(`callurl= ${callUrl}`);
         let response;
-
         try {
+          logger.debug(`Sending a jupiter message`);
           response = await axios.post(callUrl);
         } catch (e) {
-          logger.error(e);
+          logger.error(`Error: ${JSON.stringify(e)}`);
           response = { error: true, fullError: e };
         }
 
         if (response.data.broadcasted && !response.error) {
           logger.info(`Table ${tableName} pushed to the blockchain and linked to your account...`);
           // const recipientPublicKey = (database.publicKey | database.publicKey == 'undefined')? `&recipientPublicKey=${database.publicKey}`:''
-          const tableListUpdateUrl = `${self.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(self.jupiter_data.feeNQT / 2)}&deadline=${self.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(this.jupiter_data.feeNQT / 2)}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
           logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
           try {
             response = await axios.post(tableListUpdateUrl);
@@ -2455,25 +2513,20 @@ class Gravity {
             });
           }
         } else if (response.data.errorDescription != null) {
-          logger.info('There was an Error');
-          logger.info(response);
-          logger.info(response.data);
-          logger.error(`Error: ${response.data.errorDescription}`);
+          logger.error(`Error: ${JSON.stringify(response.data)}`);
           reject({
             success: false,
             message: response.data.errorDescription,
             jupiter_response: response.data,
           });
         } else {
-          logger.info('Unable to save data in the blockchain');
-          logger.info(response.data);
+          logger.error(`Error: ${JSON.stringify(response.data)}`);
           reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: response.data });
         }
       });
 
       eventEmitter.on('tableName_obtained', () => {
         logger.verbose(`attachTable().on(tableName_obtained)`)
-        logger.info('These are the tables');
         logger.info(`this.tables = ${this.tables}`);
         logger.info(`listOfTableNames = ${listOfTableNames}`);
         logger.info(`currentTables = ${currentTables}`);
@@ -2488,24 +2541,25 @@ class Gravity {
         logger.debug(`tableInCurrentTableList= ${tableInCurrentTableList}`)
 
         if ((
-          self.tables.indexOf(tableName) >= 0 || listOfTableNames.indexOf(tableName) >= 0)
+          this.tables.indexOf(tableName) >= 0 || listOfTableNames.indexOf(tableName) >= 0)
           && tableInCurrentTableList
         ) {
           reject(`Error: Unable to save table. ${tableName} is already in the database`);
         } else {
-          newPassphrase = self.generate_passphrase();
+          newPassphrase = this.generate_passphrase();
           logger.debug(`CreateNewAddress()`)
           this.createNewJupiterAccount(newPassphrase)
             .then((newJupiterAccountResponse) => { //{address, publicKey, success}
               logger.debug('---------------------------------------------------------------------------------------')
               logger.debug(`-- attachTable(accountCredentials, tableName).createNewJupiterAccount(newPassphrase).THEN(newJupiterAccountResponse)`)
               logger.debug('---------------------------------------------------------------------------------------')
-              logger.debug(`newJupiterAccountResponse= ${newJupiterAccountResponse}`)
+              logger.sensitive(`newJupiterAccountResponse= ${JSON.stringify(newJupiterAccountResponse)}`);
 
               if (newJupiterAccountResponse.success === true && newJupiterAccountResponse.address && newJupiterAccountResponse.address.length > 0) {
                 logger.debug('The account was successfully created.')
                 newTableAddress  = newJupiterAccountResponse.address;
                 logger.debug(`newTableAddress=${newTableAddress}`);
+                newPublicKey = newJupiterAccountResponse.public_key;
                 record = {
                   [tableName]: {
                     address: newTableAddress,
@@ -2556,19 +2610,35 @@ class Gravity {
   }
 
 
+  /**
+   *
+   * @param {object} tables
+   * @returns {array}
+   */
   extractTableNamesFromTables(tables) {
-    logger.debug(`tables=${JSON.stringify(tables)}`);
+    logger.verbose('#####################################################################################');
+    logger.verbose(`## extractTableNamesFromTables(tables= ${!!tables})`)
+    logger.verbose('#####################################################################################');
+    logger.debug(`tables= ${JSON.stringify(tables)}`);
 
-    const tableNames = tables.reduce( (reduced, table) => {
+    /**
+     * Example:
+     * tables= [
+     {"name":"users","address":null,"passphrase":null,"confirmed":null},
+     {"name":"channels","address":null,"passphrase":null,"confirmed":null},
+     {"name":"invites","address":null,"passphrase":null,"confirmed":null},
+     {"name":"storage","address":null,"passphrase":null,"confirmed":null}]
+     */
+
+    const extractedTableNames = tables.reduce( (reduced, table) => {
       if(table.address){
         reduced.push(table.name);
       }
       return reduced;
     }, []);
 
-    logger.debug(`tableNames= ${tableNames}`)
-
-    return tableNames
+    logger.debug(`extractedTableNames= ${extractedTableNames}`)
+    return extractedTableNames
   }
 
 
