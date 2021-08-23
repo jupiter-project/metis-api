@@ -3,10 +3,15 @@ import { gravity } from './gravity';
 import User from '../models/user';
 import RegistrationWorker from '../workers/registration';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-import JupiterAPIService from '../services/jupiterAPIService';
-import { ApplicationAccountProperties } from '../gravity/applicationAccountProperties';
-import { GravityAccountProperties } from '../gravity/gravityAccountProperties';
 
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {JupiterFundingService} from "../services/jupiterFundingService";
+import {JupiterAccountService} from "../services/jupiterAccountService";
+import {TableService} from "../services/tableService";
+
+
+const { JupiterAPIService } =  require('../services/jupiterAPIService');
 const { AccountRegistration } = require('./accountRegistration');
 // Loads up passport code
 const LocalStrategy = require('passport-local').Strategy;
@@ -45,90 +50,133 @@ const deserializeUser = (passport) => {
 };
 
 
-const getSignUpUserInformation = (account, request) => ({
-  account,
-  email: request.body.email,
-  alias: request.body.alias,
-  firstname: request.body.firstname,
-  lastname: request.body.lastname,
-  secret_key: null,
-  twofa_enabled: false,
-  twofa_completed: false,
-  public_key: request.body.public_key,
-  encryption_password: request.body.encryption_password,
-  jup_key: gravity.encrypt(request.body.key),
-  jup_account_id: request.body.jup_account_id,
-});
+const getSignUpUserInformation = (account, request) => {
+    return {
+        account,
+        email: request.body.email,
+        alias: request.body.alias,
+        firstname: request.body.firstname,
+        lastname: request.body.lastname,
+        secret_key: null,
+        twofa_enabled: false,
+        twofa_completed: false,
+        public_key: request.body.public_key,
+        encryption_password: request.body.encryption_password,
+        passphrase: request.body.key,
+        jup_key: gravity.encrypt(request.body.key), // passphrase
+        jup_account_id: request.body.jup_account_id
+    }
+}
+
 
 /**
  * Signup to Metis
  * @param {*} passport
  */
 const metisSignup = (passport) => {
-  logger.verbose('#####################################################################################');
-  logger.verbose('##  metisSignup(passport)');
-  logger.verbose('#####################################################################################');
 
-  passport.use('gravity-signup', new LocalStrategy({
-    usernameField: 'account',
-    passwordField: 'accounthash',
-    passReqToCallback: true, // allows us to pass back the entire request to the callback
-  },
-  (request, account, accounthash, done) => {
-    process.nextTick(() => {
-      logger.verbose('metisSignUp().nextTick()');
-      logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
-      logger.info('Saving new account data in Jupiter...');
-      const signUpUserInformation = getSignUpUserInformation(account, request);
-      logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
+    logger.verbose('#####################################################################################')
+    logger.verbose(`##  metisSignup(passport)`);
+    logger.verbose('#####################################################################################')
 
-      const newUserGravityAccountProperties = new GravityAccountProperties(
-        signUpUserInformation.account, // address
-        signUpUserInformation.jup_account_id, // account Id
-        signUpUserInformation.public_key, // public key
-        signUpUserInformation.request.body.key, // passphrase
-        signUpUserInformation.hash, // password hash
-        signUpUserInformation.encryption_password, // password
-        process.env.ENCRYPT_ALGORITHM, // algorithm
-        signUpUserInformation.email, // email
-        signUpUserInformation.firstName, // firstname
-        signUpUserInformation.lastName, // lastname
-      );
+    passport.use('gravity-signup', new LocalStrategy({
+            usernameField: 'account',
+            passwordField: 'accounthash',
+            passReqToCallback: true, // allows us to pass back the entire request to the callback
+        },
+        (request, account, accounthash, done) => {
+            process.nextTick(() => {
+                logger.verbose(`metisSignUp().nextTick()`);
+                logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
+                logger.info('Saving new account data in Jupiter...');
 
-      newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
+                const applicationGravityAccountProperties = new GravityAccountProperties(
+                    process.env.APP_ACCOUNT_ADDRESS,
+                    process.env.APP_ACCOUNT_ID,
+                    process.env.APP_PUBLIC_KEY,
+                    process.env.APP_ACCOUNT,
+                    '',
+                    process.env.ENCRYPT_PASSWORD,
+                    process.env.ENCRYPT_ALGORITHM,
+                    process.env.APP_EMAIL,
+                    process.env.APP_NAME,
+                    ''
+                )
 
-      const TRANSFER_FEE = 100;
-      const ACCOUNT_CREATION_FEE = 750; // 500 + 250
-      const STANDARD_FEE = 500;
-      const MINIMUM_TABLE_BALANCE = 50000;
-      const MINIMUM_APP_BALANCE = 100000;
-      const MONEY_DECIMALS = 8;
-      const DEADLINE = 60;
+                const TRANSFER_FEE = 100
+                const ACCOUNT_CREATION_FEE = 750;
+                const STANDARD_FEE = 500;
+                const MINIMUM_TABLE_BALANCE = 50000
+                const MINIMUM_APP_BALANCE = 100000
+                const MONEY_DECIMALS = 8;
+                const DEADLINE = 60;
 
-      const appAccountProperties = new ApplicationAccountProperties(
-        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-      );
+                const appAccountProperties = new ApplicationAccountProperties(
+                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
+                );
 
-      const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-      const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, jupiterAPIService);
+                applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
 
-      accountRegistration.register()
-        .then((response) => {
-          const payload = {};
-          // const payload = {
-          //     accessKey: request.session.jup_key,
-          //     encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
-          //     id: user.data.id,
-          // }
 
-          return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
-        })
-        .catch((error) => {
+                const signUpUserInformation = getSignUpUserInformation(account, request);
+                logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
 
-        });
-    });
-  }));
-};
+                const newUserGravityAccountProperties = new GravityAccountProperties(
+                    signUpUserInformation.account, //address
+                    signUpUserInformation.jup_account_id, // account Id
+                    signUpUserInformation.public_key, // public key
+                    signUpUserInformation.passphrase, // passphrase
+                    signUpUserInformation.hash, //password hash
+                    signUpUserInformation.encryption_password, //password
+                    process.env.ENCRYPT_ALGORITHM, // algorithm
+                    signUpUserInformation.email, //email
+                    signUpUserInformation.firstName, //firstname
+                    signUpUserInformation.lastName // lastname
+                )
+
+                logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
+
+                newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
+
+                const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, applicationGravityAccountProperties);
+                const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
+                // const tableService = new TableService();
+                // const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService);
+
+                const accountRegistration = new AccountRegistration(
+                    newUserGravityAccountProperties,
+                    applicationGravityAccountProperties,
+                    jupiterAPIService,
+                    jupiterFundingService,
+                    'jupiterAccountService',
+                    'tableService',
+                    gravity
+                );
+
+                logger.debug(`accountRegistration().register()`);
+                accountRegistration.register()
+                    .then(response => {
+                        logger.verbose('---------------------------------------------------------------------------------------');
+                        logger.verbose(`--  metisSignUp().accountRegistration.register().then(response= ${!!response})`);
+                        logger.verbose('---------------------------------------------------------------------------------------');
+                        const payload = {}
+                        // const payload = {
+                        //     accessKey: request.session.jup_key,
+                        //     encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
+                        //     id: user.data.id,
+                        // }
+
+                        return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
+                    })
+                    .catch(error => {
+                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                        logger.error(`xx  metisSignUp().accountRegistration.register().catch(error= ${!!error})`);
+                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                        logger.error(`error= ${JSON.stringify(error)}`);
+                    })
+            });
+        }))
+    };
 
 /**
  *
@@ -158,6 +206,16 @@ const metisLogin = (passport, jobs, io) => {
       publicKey: req.body.public_key,
       accountId: req.body.jup_account_id,
     };
+
+
+      /**
+       * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
+       * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
+       * to provide their new password.  The current problem is that current when going through the signup process
+       * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
+       * account. This was we can register their current jup account with metis.
+       */
+
 
     logger.debug('--------------------------------');
     logger.sensitive(JSON.stringify(containedDatabase));
@@ -253,7 +311,6 @@ const metisLogin = (passport, jobs, io) => {
           }
 
           if (valid) {
-            //  TODO remove all session assigments
             req.session.public_key = req.body.public_key;
             req.session.twofa_pass = false;
             req.session.jup_key = gravity.encrypt(req.body.jupkey);

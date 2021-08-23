@@ -40,24 +40,43 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async jupiterRequest(rtype, params, data = {}) {
-        // logger.debug(`jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
+        logger.verbose('#####################################################################################');
+        logger.debug(`## jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
+        logger.verbose('#####################################################################################');
         const url = this.jupiterUrl(params);
-        // logger.debug(url);
+        logger.debug(`url= ${url}`);
 
+
+
+        // axios({
+        //     method: 'post',
+        //     url: '/login',
+        //     data: {
+        //         firstName: 'Finn',
+        //         lastName: 'Williams'
+        //     }
+        // });
         return new Promise((resolve, reject) => {
-            axios(url, rtype, data)
+            axios({url: url, method: rtype, data: data})
                 .then(response => {
                     if(response.error) {
-                        return reject(response)
+                        logger.error(`jupiterRequest().response.error`)
+                        logger.error(`error= ${JSON.stringify(response.error)}`);
+                        return reject(response.error)
                     }
 
-                    if(response.data && response.data.errorDescription !== null) {
-                        return reject(response);
+                    if(response.data && response.data.errorDescription  && response.data.errorDescription !== null) {
+                        logger.error(`jupiterRequest().response.data.error`);
+                        console.log(response.data)
+                        logger.error(`error= ${JSON.stringify(response.data.errorDescription)}`)
+                        return reject(response.data.errorDescription);
                     }
 
                     return resolve(response);
                 })
-                .catch(error => {
+                .catch( error => {
+                    logger.error(`jupiterRequest().axios.catch(error)`)
+                    logger.error(`error= ${error}`);
                     reject(error);
                 })
         }  )
@@ -69,6 +88,11 @@ class JupiterAPIService {
     }
 
     async post(params, data = {}) {
+        logger.sensitive('#####################################################################################');
+        logger.sensitive(`## post()`)
+        logger.sensitive('#####################################################################################');
+        logger.sensitive(`params= ${JSON.stringify(params)}`);
+        logger.sensitive(`data= ${JSON.stringify(data)}`);
         return this.jupiterRequest('post', params, data);
     }
 
@@ -133,9 +157,9 @@ class JupiterAPIService {
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
     async getBlockChainTransactions(address) {
-        logger.verbose(`_________________________________________________________________________`)
-        logger.verbose(`getBlockChainTransactions(account: ${address})`);
-        logger.verbose('-------------------------------------------------------------------------')
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## getBlockChainTransactions(account: ${address})`);
+        logger.verbose('#####################################################################################');
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         };
@@ -149,10 +173,20 @@ class JupiterAPIService {
     }
 
 
+    async getTransaction(transactionId) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## getTransaction(transactionId: ${transactionId})`);
+        logger.verbose('#####################################################################################');
+        if(!gu.isWellFormedJupiterTransactionId(transactionId)){
+            throw new Error(`Jupiter transaction id not valid: ${transactionId}`);
+        };
 
+        return this.get( {
+            requestType: 'getTransaction',
+            transaction: transactionId
+        });
 
-
-
+    }
 
 
 
@@ -211,14 +245,18 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async postEncipheredPrunableMessage(fromJupiterProperties, toJupiterProperties,message, feeNQT = this.appProps.feeNQT) {
-        logger.verbose(`postSimplePrunableMessage()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postEncipheredPrunableMessage()`);
+        logger.verbose('#####################################################################################');
         const isPrunable = true;
         const encipher = true;
         return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
     }
 
     async postEncipheredMessage(fromJupiterProperties, toJupiterProperties,message, feeNQT = this.appProps.feeNQT) {
-        logger.verbose(`postSimplePrunableMessage()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postEncipheredMessage()`);
+        logger.verbose('#####################################################################################');
         const isPrunable = false;
         const encipher = true;
         return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
@@ -234,7 +272,9 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher= true, feeNQT = this.appProps.feeNQT, isPrunable = false) {
-        logger.verbose(`postSimpleMessage()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postSimpleMessage()`);
+        logger.verbose('#####################################################################################');
 
         let params = {}
 
@@ -246,6 +286,10 @@ class JupiterAPIService {
             params.messageToEncrypt = message;
         } else {
             params.message = message;
+        }
+
+        if(!fromJupiterProperties.passphrase){
+            throw new Error('Passphrase cannot be empty');
         }
 
         return new Promise( (resolve, reject) => {
@@ -261,34 +305,37 @@ class JupiterAPIService {
                 }
             })
                 .then((response) => {
+                    logger.debug(`then()`);
                     if (response.data.broadcasted && response.data.broadcasted === true) {
                         return resolve(response);
                     }
+                    logger.error(`then(error)`);
                     return reject({errorType: 'responseValueNotAsExpected', message: response});
                 })
                 .catch( error  => {
-                    reject({errorType: 'requestError', message: error});
+                    logger.error(`error()`);
+                    return reject({errorType: 'requestError', message: error});
                 });
         })
     }
 
-    /**
-     *
-     * @param fromJupiterAccount
-     * @param toJupiterAccount
-     * @returns {Promise<unknown>}
-     */
-    async provideInitialStandardFunds(fromJupiterAccount, toJupiterAccount){
-        logger.verbose(`provideInitialStandardFunds()`);
-
-        logger.error('fix this!')
-        const applicationJupiterAccount = this.sdf
-        // const standardFeeNQT = 100;
-        // const accountCreationFee = 750; // 500 + 250
-        const initialAmount = this.appProps.minimumAppBalance - this.appProps.standardFeeNQT - this.appProps.accountCreationFeeNQT;
-
-        return this.transferMoney(fromJupiterAccount, toJupiterAccount,initialAmount, this.appProps.standardFeeNQT);
-    }
+    // /**
+    //  *
+    //  * @param fromJupiterAccount
+    //  * @param toJupiterAccount
+    //  * @returns {Promise<unknown>}
+    //  */
+    // async provideInitialStandardFunds(fromJupiterAccount, toJupiterAccount){
+    //     logger.verbose(`provideInitialStandardFunds()`);
+    //
+    //     logger.error('fix this!')
+    //     const applicationJupiterAccount = this.sdf
+    //     // const standardFeeNQT = 100;
+    //     // const accountCreationFee = 750; // 500 + 250
+    //     const initialAmount = this.appProps.minimumAppBalance - this.appProps.standardFeeNQT - this.appProps.accountCreationFeeNQT;
+    //
+    //     return this.transferMoney(fromJupiterAccount, toJupiterAccount,initialAmount, this.appProps.standardFeeNQT);
+    // }
 
 
     /**
@@ -300,18 +347,25 @@ class JupiterAPIService {
      * @returns {Promise<unknown>}
      */
     async transferMoney(fromJupiterAccount, toJupiterAccount, amount, feeNQT = this.appProps.feeNQT) {
-        logger.verbose(`transferMoney()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## transferMoney(fromProperties, toPropertie, amount, feeNQT)`);
+        logger.verbose('#####################################################################################');
         return new Promise((resolve, reject) => {
             if (!gu.isNumberGreaterThanZero(amount)) {
-                return reject();
+                return reject('problem with amount');
             }
-            if(fromJupiterAccount){
-                return reject();
+            if(!fromJupiterAccount){
+                return reject('problem with fromProperty');
             }
 
-            if(toJupiterAccount){
-                return reject();
+            if(!toJupiterAccount){
+                return reject('problem with toProperties');
             }
+
+            logger.debug(`from: ${fromJupiterAccount.address}`);
+            logger.debug(`to: ${toJupiterAccount.address}`);
+            logger.debug(`amount: ${amount}`);
+            logger.debug(`feeNQT: ${feeNQT}`);
 
             this.post( {
                 requestType: 'sendMoney',
