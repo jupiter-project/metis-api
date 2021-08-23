@@ -44,7 +44,7 @@ class JupiterAccountProperties {
 
 
 
-    static createProperties(address, passphrase, publicKey){
+    static createProperties(address = null, passphrase = null, publicKey = null){
         logger.verbose('#####################################################################################');
         logger.verbose(`## createProperties(address=${address}, passphrase=${passphrase}, publicKey=${publicKey})`);
         logger.verbose('#####################################################################################');

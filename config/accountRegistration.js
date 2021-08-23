@@ -21,12 +21,16 @@ class AccountRegistration {
                  applicationGravityAccountProperties,
                  jupiterAPIService,
                  jupiterFundingService,
+                 jupiterAccountService,
+                 tableService,
                  gravity
     ){
         this.newUserAccountProperties = newUserAccountProperties;
         this.applicationAccountProperties = applicationGravityAccountProperties;
         this.jupiterAPIService = jupiterAPIService;
         this.jupiterFundingService = jupiterFundingService;
+        this.jupiterAccountService = jupiterAccountService;
+        this.tableService= tableService;
         this.gravity = gravity;
     }
 
@@ -50,8 +54,8 @@ class AccountRegistration {
 
         return new Promise((resolve, reject) => {
             logger.verbose(`register().attachAllDefaultTables()`);
-            const funds = parseInt(0.1 * 100000000, 10);
-            console.log(`funds: `, funds);
+            // const funds = parseInt(0.1 * 100000000, 10);
+            // console.log(`funds: `, funds);
             // logger.verbose(`register().provideInitialStandardUserFunds(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
             this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
                 .then(sendMoneyResponse => {
@@ -64,13 +68,15 @@ class AccountRegistration {
 
                 this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)
                     .then( waitForConfirmationResponse => {
+                        logger.verbose(`register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse)`);
 
-                        logger.verbose(`register().sendMoney().then().attachAllDefaultTables()`)
+                        logger.verbose(`attachAllDefaultTables()`);
                         this.attachAllDefaultTables()
                             .then(attachedTablesResponse => {
-                                logger.debug('---------------------------------------------------------------------------------------');
-                                logger.debug(`-- register().sendMoney().then().attachAllDefaultTables().then(attacjedTablesResponse= ${!!attachedTablesResponse})`);
-                                logger.debug('---------------------------------------------------------------------------------------');
+                                logger.verbose('---------------------------------------------------------------------------------------');
+                                logger.verbose(`-- register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse).attachAllDefaultTables().then(attachedTablesResponse= ${!!attachedTablesResponse})`);
+                                logger.verbose('---------------------------------------------------------------------------------------');
+
                                 logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
 
                                 const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
@@ -243,8 +249,7 @@ class AccountRegistration {
         logger.verbose('#####################################################################################');
         return new Promise((resolve, reject) => {
 
-            logger.verbose(`attachAllDefaultTables().loadAccountData(accountProperties)`)
-
+            logger.verbose(`   attachAllDefaultTables().loadAccountData(accountProperties= ${!!this.newUserAccountProperties})`)
             this.gravity.loadAccountData(this.newUserAccountProperties)
                 .then(accountData => {  //{tables: [], userRecord: null}
                     logger.verbose('---------------------------------------------------------------------------------------');
@@ -297,9 +302,9 @@ class AccountRegistration {
                         })
                 })
                 .catch( error => {
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                    logger.error(`attachAllDefaultTables().loadAccountData().catch(error = ${!!error})`);
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                    logger.error(`ERROR ______________________________________________________________________________`)
+                    logger.error(`__    attachAllDefaultTables().loadAccountData(accountProperties).catch(error = ${!!error})`);
+                    logger.error(`_______________________________________________________________________________ ERROR`)
                     logger.error(`error= ${JSON.stringify(error)}`);
                     reject(error)
                 })
@@ -323,6 +328,29 @@ class AccountRegistration {
             const accessData = this.newUserAccountProperties.generateAccessData();
             logger.debug(`accessData= ${JSON.stringify(accessData)}`);
 
+            // this.jupiterAccountService.getStatement(this.newUserAccountProperties)
+            //     .then(accountStatement => {
+            //         if (!(accountStatement.hasMinimumAppBalance && accountStatement.hasMinimumTableBalance)) {
+            //             return reject(' needs minimal balances');
+            //         }
+            //
+            //         this.tableService.attachTable(this.newUserAccountProperties, tableName)
+            //             .then(response => {
+            //
+            //
+            //
+            //
+            //             })
+            //             .catch( error => {
+            //
+            //
+            //
+            //             })
+            //     })
+            //     .catch( error => {
+            //
+            //     })
+
             logger.verbose(`-- attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName})`);
             this.gravity.attachTable(accessData, tableName)
                 .then(res => { // {name, address, passphrase, publicKey}
@@ -330,19 +358,6 @@ class AccountRegistration {
                     logger.verbose(`-- attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName}).THEN(res= ${!!res})`)
                     logger.verbose('---------------------------------------------------------------------------------------');
                     logger.sensitive(`res= ${JSON.stringify(res)}`)
-
-                        // [{"name":"users","address":"JUP-X53Y-G95B-VLG5-D2G3W","passphrase":"forever edge flag grip disappear pay true separate example darkness bottom sneak","confirmed":true},{"name":"channels","address":null,"passphrase":null,"confirmed":null},{"name":"invites","address":null,"passphrase":null,"confirmed":null},{"name":"storage","address":null,"passphrase":null,"confirmed":null}]
-
-
-                    // const attachedTable = {
-                    //     name: tableName,
-                    //     address: res.data.transactionJSON.recipientRS,
-                    //     passphrase: 'goeshere',
-                    //     account: res.data.transactionJSON.recipient,
-                    //     publicKey: 'here',
-                    //     transaction: res.dta.transactionJSON.transaction
-                    // }
-                    // logger.sensitive(`attachedTable= ${JSON.stringify(res)}`);
                     resolve(res);
                 })
                 .catch(error => {

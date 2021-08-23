@@ -157,9 +157,9 @@ class JupiterAPIService {
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
     async getBlockChainTransactions(address) {
-        logger.verbose(`_________________________________________________________________________`)
-        logger.verbose(`getBlockChainTransactions(account: ${address})`);
-        logger.verbose('-------------------------------------------------------------------------')
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## getBlockChainTransactions(account: ${address})`);
+        logger.verbose('#####################################################################################');
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         };
@@ -173,10 +173,20 @@ class JupiterAPIService {
     }
 
 
+    async getTransaction(transactionId) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## getTransaction(transactionId: ${transactionId})`);
+        logger.verbose('#####################################################################################');
+        if(!gu.isWellFormedJupiterTransactionId(transactionId)){
+            throw new Error(`Jupiter transaction id not valid: ${transactionId}`);
+        };
 
+        return this.get( {
+            requestType: 'getTransaction',
+            transaction: transactionId
+        });
 
-
-
+    }
 
 
 
@@ -309,23 +319,23 @@ class JupiterAPIService {
         })
     }
 
-    /**
-     *
-     * @param fromJupiterAccount
-     * @param toJupiterAccount
-     * @returns {Promise<unknown>}
-     */
-    async provideInitialStandardFunds(fromJupiterAccount, toJupiterAccount){
-        logger.verbose(`provideInitialStandardFunds()`);
-
-        logger.error('fix this!')
-        const applicationJupiterAccount = this.sdf
-        // const standardFeeNQT = 100;
-        // const accountCreationFee = 750; // 500 + 250
-        const initialAmount = this.appProps.minimumAppBalance - this.appProps.standardFeeNQT - this.appProps.accountCreationFeeNQT;
-
-        return this.transferMoney(fromJupiterAccount, toJupiterAccount,initialAmount, this.appProps.standardFeeNQT);
-    }
+    // /**
+    //  *
+    //  * @param fromJupiterAccount
+    //  * @param toJupiterAccount
+    //  * @returns {Promise<unknown>}
+    //  */
+    // async provideInitialStandardFunds(fromJupiterAccount, toJupiterAccount){
+    //     logger.verbose(`provideInitialStandardFunds()`);
+    //
+    //     logger.error('fix this!')
+    //     const applicationJupiterAccount = this.sdf
+    //     // const standardFeeNQT = 100;
+    //     // const accountCreationFee = 750; // 500 + 250
+    //     const initialAmount = this.appProps.minimumAppBalance - this.appProps.standardFeeNQT - this.appProps.accountCreationFeeNQT;
+    //
+    //     return this.transferMoney(fromJupiterAccount, toJupiterAccount,initialAmount, this.appProps.standardFeeNQT);
+    // }
 
 
     /**
@@ -337,18 +347,25 @@ class JupiterAPIService {
      * @returns {Promise<unknown>}
      */
     async transferMoney(fromJupiterAccount, toJupiterAccount, amount, feeNQT = this.appProps.feeNQT) {
-        logger.verbose(`transferMoney()`);
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## transferMoney(fromProperties, toPropertie, amount, feeNQT)`);
+        logger.verbose('#####################################################################################');
         return new Promise((resolve, reject) => {
             if (!gu.isNumberGreaterThanZero(amount)) {
-                return reject();
+                return reject('problem with amount');
             }
-            if(fromJupiterAccount){
-                return reject();
+            if(!fromJupiterAccount){
+                return reject('problem with fromProperty');
             }
 
-            if(toJupiterAccount){
-                return reject();
+            if(!toJupiterAccount){
+                return reject('problem with toProperties');
             }
+
+            logger.debug(`from: ${fromJupiterAccount.address}`);
+            logger.debug(`to: ${toJupiterAccount.address}`);
+            logger.debug(`amount: ${amount}`);
+            logger.debug(`feeNQT: ${feeNQT}`);
 
             this.post( {
                 requestType: 'sendMoney',

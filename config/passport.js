@@ -7,6 +7,8 @@ import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {JupiterFundingService} from "../services/jupiterFundingService";
+import {JupiterAccountService} from "../services/jupiterAccountService";
+import {TableService} from "../services/tableService";
 
 
 const { JupiterAPIService } =  require('../services/jupiterAPIService');
@@ -137,11 +139,19 @@ const metisSignup = (passport) => {
                 newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
 
                 const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, applicationGravityAccountProperties);
-                const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties )
+                const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
+                // const tableService = new TableService();
+                // const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService);
 
-                const accountRegistration = new AccountRegistration(newUserGravityAccountProperties, applicationGravityAccountProperties, jupiterAPIService, jupiterFundingService, gravity);
-
-
+                const accountRegistration = new AccountRegistration(
+                    newUserGravityAccountProperties,
+                    applicationGravityAccountProperties,
+                    jupiterAPIService,
+                    jupiterFundingService,
+                    'jupiterAccountService',
+                    'tableService',
+                    gravity
+                );
 
                 logger.debug(`accountRegistration().register()`);
                 accountRegistration.register()

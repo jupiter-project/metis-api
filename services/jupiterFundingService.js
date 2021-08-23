@@ -16,8 +16,8 @@ class JupiterFundingService {
 
     constructor(jupiterAPIService, applicationProperties) {
 
-        console.log('-2-2-2-2-2-2-2-2-2-2-2-2-2-2-2-')
-console.log(applicationProperties)
+
+// console.log(applicationProperties)
 
         // this.feeNQT = 100;
         this.feeNQT = parseInt(applicationProperties.feeNQT);
