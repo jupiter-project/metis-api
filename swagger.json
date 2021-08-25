@@ -1,0 +1,145 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Metis API",
+    "description": "Metis API documentation",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "host": "localhost:4000",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "Users",
+      "description": "API for users in the system"
+    }
+  ],
+  "schemes": ["http"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/v1/api/get_jupiter_account": {
+      "post": {
+        "tags": ["get_jupiter_account"],
+        "description": "Get the jupiter account",
+        "parameters": [
+          {
+            "name": "jup_passphrase",
+            "in": "body",
+            "description": "User passphrase",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "New user is created"
+          }
+        }
+      }
+    },
+    "/v1/api/appLogin": {
+      "post": {
+        "tags": ["appLogin"],
+        "description": "Create new user in system",
+        "parameters": [
+          {
+            "name": "account",
+            "in": "body",
+            "description": "User account",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accounthash",
+            "in": "body",
+            "description": "User account hash",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "public_key",
+            "in": "body",
+            "description": "User public key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jupkey",
+            "in": "body",
+            "description": "User jup key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "encryptionPassword",
+            "in": "body",
+            "description": "User encryption password",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "Logged in success"
+          }
+        }
+      }
+    },
+    "/v1/api/users/channels": {
+      "get": {
+        "tags": ["/v1/api/users/channels"],
+        "summary": "Get all user channels",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/api/data/messages/confirmed/0": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["/v1/api/data/messages/confirmed/0"],
+        "summary": "Get all channel messages",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "name": "channelaccess",
+            "in": "header",
+            "description": "channel access object",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  }
+}
