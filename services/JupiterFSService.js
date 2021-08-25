@@ -47,11 +47,17 @@ const jupiterUpload = (
 
 module.exports = {
   channelProfileDisplay: (req, res) => {
-    const { jupAccount } = req.params;
-    gravity.getAccountProperties({ recipient: jupAccount })
+    const { channel } = req;
+
+    if (!channel) {
+      return res.status(500).json({ msg: 'No channel info' });
+    }
+
+    gravity.getAccountProperties({ recipient: channel.channel_record.account })
       .then((userProperties) => {
         const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-        res.send(profilePicture || {});
+        const response = { url: profilePicture.value || null };
+        res.send(response);
       })
       .catch((error) => {
         console.log('Something went wrong', error);
@@ -60,13 +66,14 @@ module.exports = {
   },
   channelProfileUpload: (req, res) => {
     console.log('[channelProfileUpload]: Start');
-    const { channel } = req;
-    const fileBase64Encoded = req.body.file.data;
-    const fileName = req.body.file.name;
+    const { user, channel } = req;
+    const fileBase64Encoded = req.body.base64Image;
+    const fileName = user.userData.account;
 
     if (!(fileBase64Encoded) || !channel || !fileName) {
       return res.status(400).json({ msg: 'Missing parameters required.' });
     }
+
     jupiterUpload(
       channel.channel_record.account,
       channel.channel_record.passphrase,
