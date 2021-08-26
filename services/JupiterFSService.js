@@ -3,10 +3,12 @@ import { gravity } from '../config/gravity';
 
 const FormData = require('form-data');
 const axios = require('axios');
+const { getPNTokensAndSendPushNotification } = require('./messageService');
 
 module.exports = {
   fileUpload: (req, res) => {
     console.log('[fileUpload]: Start');
+    const { members } = req.body;
     const { user, channel } = req;
     const fileBase64Encoded = req.body.file.data;
     const fileName = req.body.file.name;
@@ -63,7 +65,17 @@ module.exports = {
         const tableData = channel.channel_record;
         const userData = JSON.parse(gravity.decrypt(user.accountData));
         const messageModel = new Message(dataMessage);
-        await messageModel.sendMessage(userData, tableData, messageModel.record);
+        return messageModel.sendMessage(userData, tableData, messageModel.record);
+      })
+      .then(() => {
+        if (Array.isArray(members) && members.length > 0) {
+          const pnTitle = `${channel.channel_record.name}`;
+          const senderName = user.userData.alias;
+          const message = `${senderName} sent an image`;
+          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle);
+        }
+      })
+      .then(() => {
         res.status(200).json({});
       })
       .catch((error) => {
