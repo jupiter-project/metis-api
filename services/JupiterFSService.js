@@ -1,5 +1,6 @@
 import Message from '../models/message';
 import { gravity } from '../config/gravity';
+import metis from '../config/metis';
 
 const FormData = require('form-data');
 const axios = require('axios');
@@ -8,7 +9,6 @@ const { getPNTokensAndSendPushNotification } = require('./messageService');
 module.exports = {
   fileUpload: (req, res) => {
     console.log('[fileUpload]: Start');
-    const { members } = req.body;
     const { user, channel } = req;
     const fileBase64Encoded = req.body.file.data;
     const fileName = req.body.file.name;
@@ -67,7 +67,12 @@ module.exports = {
         const messageModel = new Message(dataMessage);
         return messageModel.sendMessage(userData, tableData, messageModel.record);
       })
-      .then(() => {
+      .then(() => metis.getMember({
+        channel: channel.channel_record.account,
+        account: channel.channel_record.publicKey,
+        password: channel.channel_record.password,
+      }))
+      .then(({ members }) => {
         if (Array.isArray(members) && members.length > 0) {
           const pnTitle = `${channel.channel_record.name}`;
           const senderName = user.userData.alias;
