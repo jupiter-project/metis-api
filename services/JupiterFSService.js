@@ -1,8 +1,10 @@
 import Message from '../models/message';
 import { gravity } from '../config/gravity';
+import metis from '../config/metis';
 
 const FormData = require('form-data');
 const axios = require('axios');
+const { getPNTokensAndSendPushNotification } = require('./messageService');
 
 const jupiterUpload = (
   channelAccount,
@@ -174,6 +176,19 @@ module.exports = {
         const userData = JSON.parse(gravity.decrypt(user.accountData));
         const messageModel = new Message(dataMessage);
         return messageModel.sendMessage(userData, tableData, messageModel.record);
+      })
+      .then(() => metis.getMember({
+        channel: channel.channel_record.account,
+        account: channel.channel_record.publicKey,
+        password: channel.channel_record.password,
+      }))
+      .then(({ members }) => {
+        if (Array.isArray(members) && members.length > 0) {
+          const pnTitle = `${channel.channel_record.name}`;
+          const senderName = user.userData.alias;
+          const message = `${senderName} sent an image`;
+          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle);
+        }
       })
       .then(() => res.status(200).json({}))
       .catch((error) => {
