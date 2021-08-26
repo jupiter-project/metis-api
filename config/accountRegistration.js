@@ -3,6 +3,7 @@
 // import User from '../models/user';
 const {JupiterAccountProperties} = require("../gravity/jupiterAccountProperties");
 const {JupiterFundingService} = require("../services/jupiterFundingService");
+const {applicationAccountProperties} = require("../gravity/applicationAccountProperties");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -14,7 +15,10 @@ class AccountRegistration {
      *
      * @param {GravityAccountProperties} newUserAccountProperties
      * @param {GravityAccountProperties} applicationGravityAccountProperties
-     * @param {jupiterAPIService} jupiterAPIService
+     * @param {JupiterAPIService} jupiterAPIService
+     * @param {JupiterFundingService} jupiterFundingService
+     * @param {JupiterAccountService} jupiterAccountService
+     * @param {TableService} tableService
      * @param {Gravity} gravity
      */
     constructor( newUserAccountProperties,
@@ -35,7 +39,7 @@ class AccountRegistration {
     }
 
     defaultTableNames() {
-        return ['users', 'channels', 'invites', 'storage']
+        return ['channels', 'invites', 'storage']
     }
 
 
@@ -48,79 +52,150 @@ class AccountRegistration {
 
 
     async register() {
-        logger.verbose('#####################################################################################');
+        logger.verbose('###########################################');
         logger.verbose(`## register()`)
-        logger.verbose('#####################################################################################');
+        logger.verbose('###########################################');
 
-        return new Promise((resolve, reject) => {
-            logger.verbose(`register().attachAllDefaultTables()`);
+        return new Promise(async (resolve, reject) => {
             // const funds = parseInt(0.1 * 100000000, 10);
             // console.log(`funds: `, funds);
             // logger.verbose(`register().provideInitialStandardUserFunds(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
-            this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
-                .then(sendMoneyResponse => {
-                logger.verbose('---------------------------------------------------------------------------------------');
-                logger.verbose(`-- register().transferAndWait().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
-                logger.verbose('---------------------------------------------------------------------------------------');
 
-                // console.log('---- sendmoneyresponse --');
-                // console.log(sendMoneyResponse);
 
-                this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)
-                    .then( waitForConfirmationResponse => {
-                        logger.verbose(`register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse)`);
+            // Get Metis Data
+            logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`)
+            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            logger.debug('++                    fetch account data from Metis Account')
+            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
+                .then(applicationAccountData => {
+                    logger.verbose('----------------------------------------');
+                    logger.verbose(`-- register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties}).then(applicationAccountData)`)
+                    logger.verbose('----------------------------------------');
 
-                        logger.verbose(`attachAllDefaultTables()`);
-                        this.attachAllDefaultTables()
-                            .then(attachedTablesResponse => {
-                                logger.verbose('---------------------------------------------------------------------------------------');
-                                logger.verbose(`-- register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse).attachAllDefaultTables().then(attachedTablesResponse= ${!!attachedTablesResponse})`);
-                                logger.verbose('---------------------------------------------------------------------------------------');
 
-                                logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
+                    // logger.sensitive(`applicationAccountData= ${JSON.stringify(applicationAccountData)}`);
+                    logger.sensitive(`applicationAccountData.attachedTables= ${JSON.stringify(applicationAccountData.attachedTables)}`);
+                    const applicationUsersTableProperties = this.tableService.extractTableFromTablesOrNull('users', applicationAccountData.attachedTables );
+                    logger.sensitive(`applicationUsersTableProperties= ${JSON.stringify(applicationUsersTableProperties)}`);
 
-                                const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
-                                logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
-                                const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
-                                const userRecord = this.newUserAccountProperties.generateUserRecord('test');
-                                logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
+                    if(!applicationUsersTableProperties){
+                        // throw new Error('there is no application users table!')
+                        reject('there is no application users table!')
+                    }
 
-                                const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
 
-                                this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
-                                    .then(response => {
-                                        logger.debug(`response.data= ${response.data}`);
-                                        return resolve('resolve something');
-                                    })
-                                    .catch(error => {
-                                        console.log(error);
-                                        // logger.error(`error= ${JSON.stringify(error)}`);
-                                        return reject(error);
-                                    })
+                    applicationUsersTableProperties.setCrypto(this.applicationAccountProperties.crypto.decryptionPassword);
 
-                            })
-                            .catch(error => {
-                                logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                                logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
-                                logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                                logger.error(`error= ${JSON.stringify(error)}`);
-                                reject(error);
-                            })
+                    logger.sensitive(`applicationUsersTableProperties= ${JSON.stringify(applicationUsersTableProperties)}`);
 
-                    })
-                    .catch( error => {
 
-                    })
-            })
-                .catch(error => {
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                    logger.error(`error= ${JSON.stringify(error)}`);
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                    reject(error);
+                    // Get Metis Users Table data
+                    logger.info('Get Metis Users Table Data');
+                    logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                    logger.debug('++                    fetch account data from Metis Users Table Account')
+                    logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                    console.log(applicationUsersTableProperties.crypto);
+
+                    this.jupiterAccountService.fetchAccountData(applicationUsersTableProperties)
+                        .then(applicationUsersTableData => {
+                            logger.verbose('----------------------------------------');
+                            logger.verbose('register().fetchAccountData(applicationAccountProperties).fetchAccountData(applicationUsersTableProperties).then(applicationUsersTableData)');
+                            logger.verbose('----------------------------------------');
+                            logger.sensitive(`applicationUsersTableProperties= ${JSON.stringify(applicationUsersTableProperties)}`);
+
+                            const userAccountPropertiesFoundInApplication = this.tableService.extractUserPropertiesFromRecordsOrNull(this.newUserAccountProperties.address, applicationUsersTableData.allRecords)
+
+                            if (userAccountPropertiesFoundInApplication) {
+                                return resolve('already registered');
+                            }
+
+                            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                            logger.debug('++                    User is not in the Metis Records. ')
+                            logger.debug('++                    Get New User Account Data. ')
+                            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                            // Get User Account Data
+                            this.jupiterAccountService.fetchAccountData(this.newUserAccountProperties)
+                                .then( newUserAccountData => {
+                                    logger.verbose('----------------------------------------');
+                                    logger.verbose(`-- fetchAccountData(newUserAccountData).then()`);
+                                    logger.verbose('----------------------------------------');
+
+                                    this.jupiterAccountService.addAccountToMetisUsersTable(this.newUserAccountProperties) // TODO Add to Metis users table at the very end
+                                        .then( addToMetisUsersTableResponse => {
+                                            logger.verbose('----------------------------------------');
+                                            logger.verbose(`-- addAccountToMetisUsersTable(newUserAccountData).then()`);
+                                            logger.verbose('----------------------------------------');
+                                            this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
+                                                .then(sendMoneyResponse => {
+                                                    logger.verbose('----------------------------------------');
+                                                    logger.verbose(`-- register().transferAndWait().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
+                                                    logger.verbose('----------------------------------------');
+
+                                                    // console.log('---- sendmoneyresponse --');
+                                                    // console.log(sendMoneyResponse);
+
+                                                    this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)// TODO This should probably go to JupiterTransactionsService
+                                                        .then( waitForConfirmationResponse => {
+                                                            logger.verbose('----------------------------------------');
+                                                            logger.verbose('waitForTransactionConfirmation().then()');
+                                                            logger.verbose('----------------------------------------');
+                                                            logger.verbose(`register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse)`);
+                                                            logger.verbose(`attachAllDefaultTables()`);
+                                                            this.attachAllDefaultTables()
+                                                                .then(attachedTablesResponse => {
+                                                                    logger.verbose('----------------------------------------');
+                                                                    logger.verbose('attachAllDefaultTables().then()');
+                                                                    logger.verbose('----------------------------------------');
+                                                                    logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
+                                                                    logger.sensitive('@# @# @# @# @# @#@# @# @# @# @# @#@# @# @# @# @# @#@# @# @# @# @# @#@# @# @# @# @# @#@# @# @# @# @# @#')
+                                                                    return resolve('done');
+                                                                    // const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
+                                                                    // logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
+                                                                    // const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
+                                                                    // const userRecord = this.newUserAccountProperties.generateUserRecord('test');
+                                                                    // logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
+                                                                    // const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
+                                                                    // this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
+                                                                    //     .then(response => {
+                                                                    //         logger.debug(`response.data= ${response.data}`);
+                                                                    //         return resolve('resolve something');
+                                                                    //     })
+                                                                    //     .catch(error => {
+                                                                    //         console.log(error);
+                                                                    //         // logger.error(`error= ${JSON.stringify(error)}`);
+                                                                    //         return reject(error);
+                                                                    //     })
+
+                                                                })
+                                                                .catch(error => {
+                                                                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                                                                    logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
+                                                                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                                                                    logger.error(`error= ${JSON.stringify(error)}`);
+                                                                    reject(error);
+                                                                })
+
+                                                        })
+                                                        .catch( error => {
+                                                            return reject('Did not get a payment confirmation!')
+                                                        })
+                                                })
+                                                .catch(error => {
+                                                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                                                    logger.error(`error= ${JSON.stringify(error)}`);
+                                                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                                                    reject(error);
+                                                })
+                                        })
+
+                                })
+                        })
                 })
         })
-
     }
+
+
 
 
     // sendMoneyResponse
