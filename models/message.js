@@ -17,10 +17,10 @@ class Message extends Model {
         'name',
         'replyMessage',
         'replyRecipientName',
-        'isInvitation',
+        'isInvitation', //TODO change to messageType = 'new member welcome'
         'messageVersion',
-        'type',
-        'payload',
+        'type', //TODO change type to messageType
+        'payload', //TODO update type when attachment is included in the message
       ],
     });
     this.public_key = data.public_key;
