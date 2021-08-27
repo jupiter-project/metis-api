@@ -374,6 +374,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       gravityCLIReporter.sendReport();
       gravityCLIReporter.reset();
 
+      console.log('LOGIN TOKEN-------->', token);
       res.status(200).send({ user: userContainer, token });
     })(req, res, next);
   });
