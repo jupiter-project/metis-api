@@ -104,7 +104,8 @@ module.exports = {
     gravity.getAccountProperties({ recipient: channel.channel_record.account })
       .then((userProperties) => {
         const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-        const response = profilePicture.value === '{"threshold":"25000"}' ? '' : { url: profilePicture.value || null };
+        const url = profilePicture && profilePicture.value ? profilePicture.value : null;
+        const response = url === '{"threshold":"25000"}' ? { url: null } : { url };
         res.send(response);
       })
       .catch((error) => {
