@@ -31,6 +31,9 @@ class GravityCrypto {
 
 
     decrypt(data) {
+        // logger.verbose('################');
+        // logger.verbose('## decrypt(data)');
+        // logger.verbose('################');
 
         if(data === '') {
             throw new Error('the data to decrypt is empty');
@@ -40,11 +43,14 @@ class GravityCrypto {
             throw new Error('the data to decrypt is not a string');
         }
 
-        const decipher = crypto.createDecipher(this.decryptionAlgorithm, this.decryptionPassword);
-        let dec = decipher.update(data, 'hex', 'utf8');
-        dec += decipher.final('utf8');
-
-        return dec;
+        try {
+            const decipher = crypto.createDecipher(this.decryptionAlgorithm, this.decryptionPassword);
+            let dec = decipher.update(data, 'hex', 'utf8');
+            dec += decipher.final('utf8');
+            return dec;
+        } catch (error){
+            throw new Error('unable to decrypt');
+        }
     }
 
 
@@ -79,7 +85,7 @@ class GravityCrypto {
         try {
             return this.decrypt(data)
         } catch (error) {
-            logger.info(`not able to decrypt. returning null.  ${error}`);
+            // logger.info(`not able to decrypt. returning null.  ${error}`);
             return null;
         }
     }

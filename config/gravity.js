@@ -2007,13 +2007,6 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   sendMoney(recipient, transferAmount, sender) {
-    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-    console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-
-
     logger.verbose('#####################################################################################');
     logger.verbose(`sendMoney(recipient= ${recipient}, transferAmount= ${transferAmount}, sender= ${sender})`)
     logger.verbose('#####################################################################################');
@@ -2412,11 +2405,11 @@ class Gravity {
 
       eventEmitter.on('table_created', () => {
         logger.verbose(`EVENT-EMITTER: attachTable().on(table_created)`)
-        console.log('2. ||||||||||||||||||||||||||||||||||||||||||||||| ------ |||||||||||||||||||||||||||||||||||||||||||||')
+
         // This code will send Jupiter to the recently created table newTableAddress so that it is
         // able to record information
         logger.debug(`attachTable().sendMoneyAndWait(newTableAddress= ${newTableAddress})`)
-        this.sendMoneyAndWait(newTableAddress )
+        this.sendMoney(newTableAddress )
           .then((response) => {
             logger.verbose('---------------------------------------------------------------------------------------');
             logger.debug(`attachTable().sendMoney(newTableAddress).then(response)`)
@@ -2473,7 +2466,6 @@ class Gravity {
 
         logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
 
-        console.log('1. ||||||||||||||||||||||||||||||||||||||||||||||| ------ |||||||||||||||||||||||||||||||||||||||||||||')
         const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
         logger.debug(`callurl= ${callUrl}`);
         let response;
@@ -2621,6 +2613,9 @@ class Gravity {
     logger.verbose('#####################################################################################');
     logger.debug(`tables= ${JSON.stringify(tables)}`);
 
+    if(!tables) {
+      return []
+    }
     /**
      * Example:
      * tables= [

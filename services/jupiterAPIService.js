@@ -40,13 +40,11 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async jupiterRequest(rtype, params, data = {}) {
-        logger.verbose('#####################################################################################');
-        logger.debug(`## jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
-        logger.verbose('#####################################################################################');
+        // logger.verbose('#####################################################################################');
+        // logger.debug(`## jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
+        // logger.verbose('#####################################################################################');
         const url = this.jupiterUrl(params);
-        logger.debug(`url= ${url}`);
-
-
+        // logger.sensitive(`jupiterRequest > url= ${url}`);
 
         // axios({
         //     method: 'post',
