@@ -13,7 +13,6 @@ import {JupiterTransactionsService} from "../services/jupiterTransactionsService
 
 const { JupiterAPIService } =  require('../services/jupiterAPIService');
 const { AccountRegistration } = require('./accountRegistration');
-// Loads up passport code
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
 
@@ -50,6 +49,12 @@ const deserializeUser = (passport) => {
 };
 
 
+/**
+ *
+ * @param account
+ * @param requestBody
+ * @returns {{public_key, firstname, twofa_enabled: boolean, jup_account_id: *, lastname, secret_key: null, twofa_completed: boolean, jup_key: string, alias: (string|*), encryption_password: (string|*), passphrase, account, email}}
+ */
 const getSignUpUserInformation = (account, requestBody) => {
     return {
         account,
@@ -68,27 +73,29 @@ const getSignUpUserInformation = (account, requestBody) => {
     }
 }
 
-
-
-
+/**
+ *
+ * @param account
+ * @param requestBody
+ * @returns {Promise<unknown>}
+ */
 const metisRegistration = async (account, requestBody) => {
     logger.verbose('#####################################################################################');
     logger.verbose(`metisRegistration()`);
     logger.verbose('#####################################################################################');
     logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
-    logger.info('Saving new account data in Jupiter...');
 
     const applicationGravityAccountProperties = new GravityAccountProperties(
         process.env.APP_ACCOUNT_ADDRESS,
         process.env.APP_ACCOUNT_ID,
         process.env.APP_PUBLIC_KEY,
         process.env.APP_ACCOUNT,
-        '',
+        '',// hash
         process.env.ENCRYPT_PASSWORD,
         process.env.ENCRYPT_ALGORITHM,
         process.env.APP_EMAIL,
         process.env.APP_NAME,
-        ''
+        '' // lastname
     )
 
     const TRANSFER_FEE = 100
@@ -104,7 +111,6 @@ const metisRegistration = async (account, requestBody) => {
     );
 
     applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
 
     const signUpUserInformation = getSignUpUserInformation(account, requestBody);
     logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
@@ -143,7 +149,6 @@ const metisRegistration = async (account, requestBody) => {
     );
 
     logger.debug(`metisRegistration().accountRegistration().register()`);
-
     return new Promise( (resolve, reject) => {
         accountRegistration.register()
             .then(response => {
@@ -158,11 +163,10 @@ const metisRegistration = async (account, requestBody) => {
                 logger.error(`_  metisRegistration().accountRegistration.register().catch(error= ${!!error})`);
                 logger.error(`_______`)
                 logger.error(`error= ${JSON.stringify(error)}`);
+
                 return reject(error)
             })
     } )
-
-
 }
 
 /**

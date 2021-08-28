@@ -2440,6 +2440,7 @@ class Gravity {
 
       eventEmitter.on('address_retrieved', async () => {
         logger.verbose(`EVENT-EMITTER: attachTable().on(address_retrieved)`)
+
         const encryptedData = this.encrypt(JSON.stringify(record), accountCredentials.encryptionPassword);
 
         if (tableName === 'channels' && tableNamesContainer.tables.length < 2) {
@@ -2556,7 +2557,7 @@ class Gravity {
                   [tableName]: {
                     address: newTableAddress,
                     passphrase: newPassphrase,
-                    public_key: newJupiterAccountResponse.public_key,
+                    public_key: newJupiterAccountResponse.publicKey,
                   },
                 };
                 listOfTableNames.push(tableName);
@@ -3093,7 +3094,7 @@ class Gravity {
                   [tableName]: {
                     address,
                     passphrase,
-                    public_key: response.public_key,
+                    public_key: response.publicKey
                   },
                 };
                 tableList.push(tableName);

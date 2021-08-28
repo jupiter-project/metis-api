@@ -12,42 +12,11 @@ class JupiterAccountService {
     }
 
 
-    async checkIfAccountIsRegistered(accountProperties){
-        return new Promise( (resolve, reject) => {
-            return resolve(false)
-        })
-    }
-
-
-
-// .then(attachedTablesResponse => {
-    //                     logger.debug('---------------------------------------------------------------------------------------');
-    //                     logger.debug(`-- register().sendMoney().then().attachAllDefaultTables().then(attacjedTablesResponse= ${!!attachedTablesResponse})`);
-    //                     logger.debug('---------------------------------------------------------------------------------------');
-    //                     logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
-    //
-    //                     const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
-    //                     logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
-    //                     const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
-    //                     const userRecord = this.newUserAccountProperties.generateUserRecord('test');
-    //                     logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
-    //
-    //                     const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
-    //
-    //                     console.log(2);
-    //                     console.log(usersTableProperties.passphrase);
-    //                     this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
-    //                         .then(response => {
-    //                             logger.debug(`response.data= ${response.data}`);
-    //                             return resolve('resolve something');
-    //                         })
-    //                         .catch(error => {
-    //                             console.log(error);
-    //                             // logger.error(`error= ${JSON.stringify(error)}`);
-    //                             return reject(error);
-    //                         })
-    //
-    //                 })
+    // async checkIfAccountIsRegistered(accountProperties){
+    //     return new Promise( (resolve, reject) => {
+    //         return resolve(false)
+    //     })
+    // }
 
     async addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties){
         logger.verbose('###########################################');
@@ -63,9 +32,15 @@ class JupiterAccountService {
                     logger.verbose('----------------------------------------');
                     logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
                     logger.verbose('----------------------------------------');
+
                     logger.debug(`transactionId= ${transactionId}`)
                     const userRecord = accountProperties.generateUserRecord(transactionId);
-                    const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
+                    logger.debug(`userRecord= ${JSON.stringify(userRecord)}`)
+                    // const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
+                    logger.debug(`metisUsersTableProperties.crypto = ${JSON.stringify(metisUsersTableProperties.crypto)}`);
+                    const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
+                    // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
+                    logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
                     this.jupiterAPIService.postEncipheredMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord)
                         .then(response => {
                             logger.verbose('----------------------------------------');
@@ -119,43 +94,31 @@ class JupiterAccountService {
         });
     }
 
-
-
-
     /**
      *
      * @returns {JupiterAccountService}
      */
-    getUserAccountService(){
-        const userAccountService = this.getAccountService('user');
-        return userAccountService;
-    }
+    // getUserAccountService(){
+    //     const userAccountService = this.getAccountService('user');
+    //     return userAccountService;
+    // }
 
     /**
      *
      * @param {string} name
      * @returns {JupiterAccountService}
      */
-    getAccountService(name){
-        if(!this.accountServiceExists(name)){
-            throw new Error(`No Account Services exists with name: ${name}`);
-        }
-        const accountServices = this.accountServices.filter( accountService => accountService.name == name );
-        return accountServices[0];
-    }
+    // getAccountService(name){
+    //     if(!this.accountServiceExists(name)){
+    //         throw new Error(`No Account Services exists with name: ${name}`);
+    //     }
+    //     const accountServices = this.accountServices.filter( accountService => accountService.name == name );
+    //     return accountServices[0];
+    // }
 
-    /**
-     *
-     * @returns {Promise<unknown>}
-     */
-    // getUserAccount() {
+    // fetchAccountTables(accountProperties){
     //     return new Promise((resolve, reject) => {
-    //         const userAccountService = this.getUserAccountService();
     //
-    //         if (this.isLoginWithApplicationAddress(userAccountService.gravityAccountProperties.address)) {
-    //             logger.debug('Logging in with Application Account');
-    //             return resolve({user: JSON.stringify(this.generateApplicationAccountCredentialsJson())});
-    //         }
     //         this.retrieveUserAccountPayload()
     //             .then((response) => {
     //                 logger.verbose('getUserAccount().retrieveUserAccountPayload().then()');
@@ -163,18 +126,7 @@ class JupiterAccountService {
     //                     return resolve(response);
     //                 } else if (response.userRecord) {
     //                     const currentDatabase = this.tableBreakdown(response.tables);
-    //                     const returnData = {
-    //                         recordsFound: 999999999999,
-    //                         user: response.userRecord,
-    //                         noUserTables: !currentDatabase.includes('users'),
-    //                         userNeedsSave: true,
-    //                         userRecordFound: true,
-    //                         databaseFound: true,
-    //                         tables: response.tables,
-    //                         tableList: response.tableList,
-    //                     };
-    //                     logger.debug(`resolved!`)
-    //                     return resolve(returnData);
+    //                     return resolve(response.tables);
     //                 }
     //                 // logger.debug(`response: ${JSON.stringify(response)}`);
     //                 // logger.debug('retrieveUserFromApp().before()');
@@ -207,154 +159,109 @@ class JupiterAccountService {
     //     });
     // }
 
-
-
-    fetchAccountTables(accountProperties){
-        return new Promise((resolve, reject) => {
-
-            this.retrieveUserAccountPayload()
-                .then((response) => {
-                    logger.verbose('getUserAccount().retrieveUserAccountPayload().then()');
-                    if (response.databaseFound && !response.userNeedsSave) {
-                        return resolve(response);
-                    } else if (response.userRecord) {
-                        const currentDatabase = this.tableBreakdown(response.tables);
-                        return resolve(response.tables);
-                    }
-                    // logger.debug(`response: ${JSON.stringify(response)}`);
-                    // logger.debug('retrieveUserFromApp().before()');
-                    this.retrieveAccountFromApp(
-                        userAccountService.gravityAccountProperties.address,
-                        userAccountService.gravityAccountProperties.passphrase
-                    )
-                        .then((res) => {
-                            logger.verbose('getAccount().retrieveApplicationAccountPayload().then().retrieveAccountFromApp.then()')
-                            res.noUserTables = response.noUserTables;
-                            res.databaseFound = response.databaseFound;
-                            res.database = response.database;
-                            res.userNeedsSave = response.userNeedsSave;
-                            res.tables = response.tables;
-                            logger.debug(res);
-                            return resolve(res);
-                        })
-                        .catch((error) => {
-                            const errorMessage = `getUserAccount().retrieveUserAccountPayload().then().retrieveAccountFromApp().catch() > Error: ${error}`;
-                            logger.error(errorMessage);
-                            return reject(error);
-                        });
-
-                })
-                .catch(error => {
-                    const errorMessage = `getAccount() error: ${error}`;
-                    logger.error(errorMessage);
-                    reject(error);
-                });
-        });
-    }
-
     /**
      *
      * @returns {Promise<{recordsFound,database,tables,user,databaseFound,userNeedsSave}>} - {recordsFound,database,tables,user,databaseFound,userNeedsSave}
      */
-    retrieveUserAccountPayload() {
-        logger.verbose('retrieveUserAccountPayload()');
-        const userAccountService = this.getUserAccountService();
-
-        return new Promise((resolve, reject) => {
-            this.getUserAccountData()
-                .then( userAccountData => { // { numberOfRecords,success,app: {tables,appData:{name,address,description}, address}, message, tables: {}, hasUserTable,userRecord }
-                    logger.verbose(`retrieveUserAccountPayload().getUserAccountData().then()`);
-                    logger.debug(JSON.stringify(userAccountData));
-                    let appTables = userAccountData.app.tables;
-                    let tables = userAccountData.tables;
-                    let userRecord = userAccountData.userRecord;
-                    if (!userAccountData.hasUserTable) {
-                        // {tableList, success, noUserTables, tables, userRecord}
-                        return resolve({
-                            tableList: tables,
-                            success: false,
-                            noUserTables: true,
-                            tables: appTables,
-                            userRecord: userRecord,
-                        });
-                    }
-
-                    let recordTable = this.gravityTablesService.extractUsersTableFromAppTables(appTables);
-                    logger.verbose(`TOTAL recordTable: ${recordTable.length}`);
-                    if (recordTable === null) {
-                        logger.debug(`No Record Table Found.`);
-                        return resolve(`No Record Table Found.`);
-                    }
-
-                    logger.debug(`recordTable: ${recordTable}`)
-                    this.jupiterApi.getBlockChainMessageTransactions(recordTable.address)
-                        .then((blockChainMessageTransactions) => {
-                            logger.verbose(`retrieveApplicationAccountPayload().getUserAccountData().getBlockChainMessageTransactions().then()`);
-                            const messageTransactions = userAccountService.transactions.filterMessageTransactionsByRecipientOrSender(blockChainMessageTransactions);
-                            const messageTransactionIds = userAccountService.transactions.extractTransactionIds(messageTransactions);
-                            logger.error(`this needs to get fixed!  ${recordTable}`);
-                            userAccountService.readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)
-                                .then(messages => {
-                                    logger.verbose(`getAppAccountData().then().getBlockChainMessageTransactions().then().readMessagesFromMessageTransactionIds().then()`);
-                                    logger.error(`Not sure which account to use for decruption+`);
-                                    const decryptedMessages = userAccountService.messages.decryptMessages(
-                                        messages,
-                                        this.appJupiterAccountService.crypto
-                                    );
-                                    return resolve({
-                                        recordsFound: 1,
-                                        database: appTables,
-                                        tables: undefined,
-                                        user: decryptedMessages[0].user_record,
-                                        databaseFound: true,
-                                        userNeedsSave: false,
-                                    });
-
-
-                                    //no user record found
-                                    // resolve({
-                                    //   userRecord,
-                                    //   tableList,
-                                    //   noUserTables: false,
-                                    //   tables: database,
-                                    //   databaseFound: true,
-                                    //   userNeedsSave: true,
-                                    // });
-
-
-                                })
-                                .catch(error => {
-                                    logger.error(`Error with Reading Messages: ${error}`);
-                                    reject(`Error with Reading Messages: ${error}`);
-                                })
-                        })
-                        .catch(error => {
-                            const errorMessage = `getBlockChainMessageTransactions().catch() ${error}`;
-                            logger.error(errorMessage);
-                            reject(errorMessage);
-                        })
-                })
-                .catch((error) => {
-                    const errorMessage = `retrieveAccountFromPassphrase() getAppAccountData().catch() ${error}`
-                    logger.error(errorMessage);
-                    reject(errorMessage);
-                });
-        });
-    }
+    // retrieveUserAccountPayload() {
+    //     logger.verbose('retrieveUserAccountPayload()');
+    //     const userAccountService = this.getUserAccountService();
+    //
+    //     return new Promise((resolve, reject) => {
+    //         this.getUserAccountData()
+    //             .then( userAccountData => { // { numberOfRecords,success,app: {tables,appData:{name,address,description}, address}, message, tables: {}, hasUserTable,userRecord }
+    //                 logger.verbose(`retrieveUserAccountPayload().getUserAccountData().then()`);
+    //                 logger.debug(JSON.stringify(userAccountData));
+    //                 let appTables = userAccountData.app.tables;
+    //                 let tables = userAccountData.tables;
+    //                 let userRecord = userAccountData.userRecord;
+    //                 if (!userAccountData.hasUserTable) {
+    //                     // {tableList, success, noUserTables, tables, userRecord}
+    //                     return resolve({
+    //                         tableList: tables,
+    //                         success: false,
+    //                         noUserTables: true,
+    //                         tables: appTables,
+    //                         userRecord: userRecord,
+    //                     });
+    //                 }
+    //
+    //                 let recordTable = this.gravityTablesService.extractUsersTableFromAppTables(appTables);
+    //                 logger.verbose(`TOTAL recordTable: ${recordTable.length}`);
+    //                 if (recordTable === null) {
+    //                     logger.debug(`No Record Table Found.`);
+    //                     return resolve(`No Record Table Found.`);
+    //                 }
+    //
+    //                 logger.debug(`recordTable: ${recordTable}`)
+    //                 this.jupiterApi.getBlockChainMessageTransactions(recordTable.address)
+    //                     .then((blockChainMessageTransactions) => {
+    //                         logger.verbose(`retrieveApplicationAccountPayload().getUserAccountData().getBlockChainMessageTransactions().then()`);
+    //                         const messageTransactions = userAccountService.transactions.filterMessageTransactionsByRecipientOrSender(blockChainMessageTransactions);
+    //                         const messageTransactionIds = userAccountService.transactions.extractTransactionIds(messageTransactions);
+    //                         logger.error(`this needs to get fixed!  ${recordTable}`);
+    //                         userAccountService.readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)
+    //                             .then(messages => {
+    //                                 logger.verbose(`getAppAccountData().then().getBlockChainMessageTransactions().then().readMessagesFromMessageTransactionIds().then()`);
+    //                                 logger.error(`Not sure which account to use for decruption+`);
+    //                                 const decryptedMessages = userAccountService.messages.decryptMessages(
+    //                                     messages,
+    //                                     this.appJupiterAccountService.crypto
+    //                                 );
+    //                                 return resolve({
+    //                                     recordsFound: 1,
+    //                                     database: appTables,
+    //                                     tables: undefined,
+    //                                     user: decryptedMessages[0].user_record,
+    //                                     databaseFound: true,
+    //                                     userNeedsSave: false,
+    //                                 });
+    //
+    //
+    //                                 //no user record found
+    //                                 // resolve({
+    //                                 //   userRecord,
+    //                                 //   tableList,
+    //                                 //   noUserTables: false,
+    //                                 //   tables: database,
+    //                                 //   databaseFound: true,
+    //                                 //   userNeedsSave: true,
+    //                                 // });
+    //
+    //
+    //                             })
+    //                             .catch(error => {
+    //                                 logger.error(`Error with Reading Messages: ${error}`);
+    //                                 reject(`Error with Reading Messages: ${error}`);
+    //                             })
+    //                     })
+    //                     .catch(error => {
+    //                         const errorMessage = `getBlockChainMessageTransactions().catch() ${error}`;
+    //                         logger.error(errorMessage);
+    //                         reject(errorMessage);
+    //                     })
+    //             })
+    //             .catch((error) => {
+    //                 const errorMessage = `retrieveAccountFromPassphrase() getAppAccountData().catch() ${error}`
+    //                 logger.error(errorMessage);
+    //                 reject(errorMessage);
+    //             });
+    //     });
+    // }
 
 
     /**
      *
      * @returns { numberOfRecords,success,app: {tables,appData:{name,address,description}, address}, message, tables: {}, hasUserTable,userRecord }
      */
-    getUserAccountData(accountProperties) { // ie gravity.loadAppData
-        logger.verbose('getUserAccountData()');
-        return new Promise((resolve, reject) => {
-            this.getAccountData(accountProperties)
-                .then( response => resolve(response))
-                .catch( error => reject(error));
-        })
-    }
+    // getUserAccountData(accountProperties) { // ie gravity.loadAppData
+    //     logger.verbose('getUserAccountData()');
+    //     return new Promise((resolve, reject) => {
+    //         this.getAccountData(accountProperties)
+    //             .then( response => resolve(response))
+    //             .catch( error => reject(error));
+    //     })
+    // }
 
 
 //
@@ -395,6 +302,7 @@ class JupiterAccountService {
 // reject({success: false, error: 'There was an error loading records'});
 // });
 // });
+
 
 
 

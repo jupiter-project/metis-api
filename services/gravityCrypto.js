@@ -57,7 +57,7 @@ class GravityCrypto {
     encryptJson(json){
         try {
             const jsonString = JSON.stringify(json);
-            this.encrypt(jsonString);
+            return this.encrypt(jsonString);
         } catch(error){
             logger.error(`not ablet to encrypt the json object`);
             throw error;

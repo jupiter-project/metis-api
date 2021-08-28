@@ -3,10 +3,6 @@ const logger = require('../utils/logger')(module);
 const axios = require('axios');
 const queryString = require('query-string');
 
-/**
- *
- *
- */
 class JupiterAPIService {
     /**
      *
@@ -25,10 +21,9 @@ class JupiterAPIService {
      */
     jupiterUrl(givenParams) {
         const params = givenParams;
-        // params.deadline = this.deadline;
-        // params.feeNQT = this.feeNQT;
         const url = `${this.jupiterHost}/nxt?`;
         const query = queryString.stringify(params);
+
         return url + query
     }
 
@@ -40,20 +35,8 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async jupiterRequest(rtype, params, data = {}) {
-        // logger.verbose('#####################################################################################');
-        // logger.debug(`## jupiterRequest(rtype: ${rtype}, params: ${params}, data: ${data})`)
-        // logger.verbose('#####################################################################################');
         const url = this.jupiterUrl(params);
         // logger.sensitive(`jupiterRequest > url= ${url}`);
-
-        // axios({
-        //     method: 'post',
-        //     url: '/login',
-        //     data: {
-        //         firstName: 'Finn',
-        //         lastName: 'Williams'
-        //     }
-        // });
         return new Promise((resolve, reject) => {
             axios({url: url, method: rtype, data: data})
                 .then(response => {
@@ -171,10 +154,15 @@ class JupiterAPIService {
     }
 
 
+    /**
+     *
+     * @param {string} transactionId
+     * @returns {Promise<*>}
+     */
     async getTransaction(transactionId) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## getTransaction(transactionId: ${transactionId})`);
-        logger.verbose('#####################################################################################');
+        // logger.verbose('#####################################################################################');
+        // logger.verbose(`## getTransaction(transactionId: ${transactionId})`);
+        // logger.verbose('#####################################################################################');
         if(!gu.isWellFormedJupiterTransactionId(transactionId)){
             throw new Error(`Jupiter transaction id not valid: ${transactionId}`);
         };
@@ -183,7 +171,6 @@ class JupiterAPIService {
             requestType: 'getTransaction',
             transaction: transactionId
         });
-
     }
 
 
@@ -251,7 +238,7 @@ class JupiterAPIService {
         return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
     }
 
-    async postEncipheredMessage(fromJupiterProperties, toJupiterProperties,message, feeNQT = this.appProps.feeNQT) {
+    async postEncipheredMessage(fromJupiterProperties, toJupiterProperties, message, feeNQT = this.appProps.feeNQT) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## postEncipheredMessage()`);
         logger.verbose('#####################################################################################');
@@ -317,24 +304,6 @@ class JupiterAPIService {
         })
     }
 
-    // /**
-    //  *
-    //  * @param fromJupiterAccount
-    //  * @param toJupiterAccount
-    //  * @returns {Promise<unknown>}
-    //  */
-    // async provideInitialStandardFunds(fromJupiterAccount, toJupiterAccount){
-    //     logger.verbose(`provideInitialStandardFunds()`);
-    //
-    //     logger.error('fix this!')
-    //     const applicationJupiterAccount = this.sdf
-    //     // const standardFeeNQT = 100;
-    //     // const accountCreationFee = 750; // 500 + 250
-    //     const initialAmount = this.appProps.minimumAppBalance - this.appProps.standardFeeNQT - this.appProps.accountCreationFeeNQT;
-    //
-    //     return this.transferMoney(fromJupiterAccount, toJupiterAccount,initialAmount, this.appProps.standardFeeNQT);
-    // }
-
 
     /**
      *
@@ -386,16 +355,6 @@ class JupiterAPIService {
 
         })
     }
-
-
-
-//     if (recipientPublicKey) {
-//         callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true`;
-//     } else {
-//     callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&messageIsPrunable=true&compressMessageToEncrypt=true`;
-// }
-
-
 
 
     /**

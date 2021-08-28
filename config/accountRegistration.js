@@ -123,6 +123,9 @@ class AccountRegistration {
                                             logger.verbose('----------------------------------------');
                                             logger.verbose(`-- addAccountToMetisUsersTable(newUserAccountData).then()`);
                                             logger.verbose('----------------------------------------');
+                                            logger.debug(`newUserRecordTransactionId= ${newUserRecordTransactionId}`)
+
+
                                             this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
                                                 .then(sendMoneyResponse => {
                                                     logger.verbose('----------------------------------------');

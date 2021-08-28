@@ -27,7 +27,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 passphrase,
                 hash,
                 password,
-                algorithm ,
+                algorithm = 'aes-256-cbc',
                 email = '',
                 firstName = '',
                 lastName = '',
@@ -35,16 +35,32 @@ class GravityAccountProperties extends JupiterAccountProperties {
     ) {
         super(address, accountId, publicKey, passphrase, email , firstName , lastName );
         this.passwordHash = hash;
-        this.password = password;
-        this.algorithm = algorithm;
+        // this.password = password;
+        // this.algorithm = algorithm;
         this.isApp = false;
-        this.crypto = new GravityCrypto( this.algorithm, this.password );
+        // this.crypto = new GravityCrypto( this.algorithm, this.password );
+
+
+        this.crypto = null;
+        if(algorithm && password){
+            this.crypto = new GravityCrypto( algorithm, password );
+        }
+
+
+
         this.aliasList = [];
         if(!(applicationAccountProperties == null)){
             this.addApplicationAccountProperties(applicationAccountProperties);
         }
     }
 
+
+    setCrypto(password, algorithm = 'aes-256-cbc'){
+        if(algorithm && password){
+            return this.crypto = new GravityCrypto( algorithm, password );
+        }
+        throw new Error('provide a password and algorithm');
+    }
 
     addAlias(aliasName){
         this.aliasList.push(aliasName);
@@ -77,7 +93,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
     generateAccessData(){
         return {
-            encryptionPassword: this.password,
+            encryptionPassword: this.crypto.decryptionPassword,
             publicKey: this.publicKey,
             passphrase: this.passphrase,
             account: this.address

@@ -10,71 +10,6 @@ class TableService {
         this.jupiterTransactionsService = jupiterTransactionsService;
     }
 
-
-    // /**
-    //  *
-    //  * @param accountProperties
-    //  * @returns {Promise<unknown>}
-    //  */
-    // fetchAttachedTables(accountProperties) { // ie gravity.loadAppData
-    //     logger.verbose('#####################################################################################');
-    //     logger.verbose('## fetchAttachedTables()');
-    //     logger.verbose('#####################################################################################');
-    //     logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
-    //
-    //
-    //     return new Promise((resolve, reject) => {
-    //         this.jupiterTransactionsService.fetchMessages(accountProperties)  //gravity.getRecords()
-    //             .then((transactionMessages) => {
-    //                 logger.verbose('---------------------------------------------------------------------------------------');
-    //                 logger.verbose(`fetchAttachedTables().fetchMessages().then(transactionMessages)`);
-    //                 logger.verbose('---------------------------------------------------------------------------------------');
-    //                 logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
-    //
-    //                 // const tableProperties = this.tableService.extractTablePropertiesFromMessages('users' ,transactionMessages);
-    //                 // logger.verbose(`TOTAL tableProperties: ${tableProperties.length}`);
-    //
-    //                 const attachedTables = this.extractTablesFromMessages(transactionMessages);
-    //                 logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
-    //
-    //                 // let tableList = this.tableService.extractTableListFromRecords(records);
-    //                 // logger.verbose(`TOTAL tableList: ${tableList.length}`);
-    //                 // tableList = this.gravityObjectMapper.sortByDate(tableList);
-    //
-    //                 // const currentList = this.gravityTablesService.extractCurrentListFromTableList(tableList);
-    //                 // logger.verbose(`TOTAL currentList: ${currentList.length}`);
-    //                 // const tableData = this.tableService.extractTableData(currentList, attachedTables);
-    //                 // logger.verbose(`TOTAL tableData: ${tableData.length}`);
-    //
-    //                 // let accountDataContainer = this.this.getAccountDataContainer()();
-    //                 // accountDataContainer.numberOfRecords = recordsFound;
-    //                 // accountDataContainer.tableNames = currentList;
-    //                 // accountDataContainer.tableData = tableData;
-    //                 // accountDataContainer.accountRecord = tableProperties;
-    //                 // accountDataContainer.accountProperties = accountProperties;
-    //
-    //                 return resolve(attachedTables);
-    //             })
-    //             .catch((error) => {
-    //                 logger.error(`fetchMessagesContainer.catch() ${error}`);
-    //                 reject({success: false, error: 'There was an error loading records'});
-    //             });
-    //     });
-    // }
-
-    // const applicationUsersTableProperties = this.extractTablePropertiesFromTables('user', applicationAccountData.attachedTables);
-
-    // extractTablePropertiesFromTablesOrNull( tableName, tables) {
-    //     const table = tables.filter( table => table.tableName == tableName );
-    //
-    //     if(table.length > 0){
-    //         return new TableAccountProperties(table[0].address,table[0].passphrase,'',table[0].password)
-    //     }
-    //
-    //     return null;
-    // }
-
-
     /**
      *
      * @param currentListArray
@@ -326,9 +261,13 @@ class TableService {
                     const re = /\w+_record/;
                     if(re.test(keys[i])){
                         console.log('FOUND the key: ', keys[i]);
-                        const record = JSON.parse(message[keys[i]])
-                        logger.debug(`record= ${JSON.stringify(record)}`);
-
+                        let record = message[keys[i]];
+                        try {
+                            record = JSON.parse(message[keys[i]])
+                        } catch (error) {
+                            // do nothing
+                        }
+                        logger.sensitive(`record= ${JSON.stringify(record)}`);
                         // console.log(keys[i], 'tableName')
                         record.name = keys[i];
                         record.date = message.date
@@ -350,9 +289,9 @@ class TableService {
      * *  { id: '8381644747484745663',user_record:{"id":"123","account":"JUP-","accounthash":"123","email":"","firstname":"next"," +
      *      ""alias":"next","lastname":"","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"123",
      *      "encryption_password":"next"}, date: 1629813396685 },
-     * @param address
-     * @param records
-     * @returns {null}
+     * @param {string} address
+     * @param {{id,user_record:{id,account,accounthash,email,firstname,alias,lastname,secret_key,twofa_enabled,twofa_completed,api_key,encryption_password}, date }} records
+     * @returns {null | GravityAccountProperties}
      */
     extractUserPropertiesFromRecordsOrNull(address, records){
         const record = records.filter(record => record.account == address);
@@ -372,7 +311,7 @@ class TableService {
             record.secret_key,
             record.accounthash,
             record.encryption_password,
-            null,
+            null, //algorithm
             record.email,
             record.firstname,
             record.lastname
@@ -384,6 +323,11 @@ class TableService {
     }
 
 
+    /**
+     *
+     * @param messages
+     * @returns {*[]}
+     */
     extractTablesFromMessages(messages) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## extractTablesFromMessages(messages.length= ${messages.length})`);
@@ -403,12 +347,6 @@ class TableService {
         }
 
         const uniqueTableNames = tableNames.filter(unique)
-
-        // logger.debug(`latestTableNames= ${uniqueTableNames}`);
-        // console.log('$ $ $ $ $ $ $ $ $$ $ $ $ $ $ $ $ $$ $ $ $ $ $ $ $ $$ $ $ $ $ $ $ $ $$ $ $ $ $ $ $ $ $$ $ $ $ $ $ $ $ $')
-
-
-        // return new TableAccountProperties(table[0].address,table[0].passphrase,'',table[0].password)
         const tables = []
         for (let i = 0; i < uniqueTableNames.length; i++) {
             const latestTable = this.extractLatestTableFromMessages(uniqueTableNames[i], messages); // { address: 'JUP----',passphrase:'single commit gun screw' }
@@ -416,71 +354,126 @@ class TableService {
                 tables.push( new TableAccountProperties(uniqueTableNames[i], latestTable.address, latestTable.passphrase, latestTable.password));
             }
         }
+        logger.sensitive(`tables= ${JSON.stringify(tables)}`);
 
-        logger.debug(`tables= ${JSON.stringify(tables)}`);
         return tables;
     }
 
 
 
-
-
-    // fetchTableProperties(tableName, accountOwnerProperties ){
-    fetchTablePropertiesFromAccountOwner(tableName, accountOwnerProperties ){
-
-    }
-
-
-
-
-    /**
-     *
-     * @param tableOwnerProperties
-     * @param nameOfTableToAttach
-     * @param currentTables
-     * @returns {Promise<unknown>}
-     */
-    async attachTable(tableOwnerProperties, nameOfTableToAttach) {
-        logger.verbose('##############################################################')
-        logger.verbose('attachTable()');
-        logger.verbose('##############################################################')
-        return new Promise((resolve, reject) => {
-            this.gravityService.getUserAccountData() // gravity.loadAppData
-                .then((userAccountData) => {
-
-                    if(!gu.jsonPropertyIsNonEmptyArray('tables', userAccountData)){
-                        return reject('Table name cannot be undefined');
-                    }
-
-                    let userAccountTableNames = userAccountData.tables; //tableList
-                    let isTableInCurrentTableList = currentTables.includes(nameOfTableToAttach);
-
-                    if(currentTables.includes(nameOfTableToAttach) && userAccountTableNames.includes(nameOfTableToAttach)){
-                        return reject(`Error: Unable to save table. ${nameOfTableToAttach} is already in the database`);
-                    }
-
-                    const passphrase = gu.generatePassphrase();
-                    logger.debug(`passphrase: ${passphrase}`);
-
-                    this.setUpNewGravityAccount(
-                        tableOwnerProperties.address,
-                        tableOwnerProperties.publicKey,
-                        nameOfTableToAttach,
-                        userAccountTableNames,
-                        passphrase,
-                        tableOwnerProperties.encryptionPassword,
-                        this.applicationAccountInfo.algorithm)
-                        .then(response => {
-                            return resolve(response);
-                        })
-                })
-                .catch( error =>{
-                    logger.error(error);
-                    reject(error);
-                })
-        });
-    }
-
 }
 
 module.exports.TableService = TableService;
+
+
+
+/**
+ *
+ * @param tableOwnerProperties
+ * @param nameOfTableToAttach
+ * @param currentTables
+ * @returns {Promise<unknown>}
+ */
+// async attachTable(tableOwnerProperties, nameOfTableToAttach) {
+//     logger.verbose('##############################################################')
+//     logger.verbose('attachTable()');
+//     logger.verbose('##############################################################')
+//     return new Promise((resolve, reject) => {
+//         this.gravityService.getUserAccountData() // gravity.loadAppData
+//             .then((userAccountData) => {
+//
+//                 if(!gu.jsonPropertyIsNonEmptyArray('tables', userAccountData)){
+//                     return reject('Table name cannot be undefined');
+//                 }
+//
+//                 let userAccountTableNames = userAccountData.tables; //tableList
+//                 let isTableInCurrentTableList = currentTables.includes(nameOfTableToAttach);
+//
+//                 if(currentTables.includes(nameOfTableToAttach) && userAccountTableNames.includes(nameOfTableToAttach)){
+//                     return reject(`Error: Unable to save table. ${nameOfTableToAttach} is already in the database`);
+//                 }
+//
+//                 const passphrase = gu.generatePassphrase();
+//                 logger.debug(`passphrase: ${passphrase}`);
+//
+//                 this.setUpNewGravityAccount(
+//                     tableOwnerProperties.address,
+//                     tableOwnerProperties.publicKey,
+//                     nameOfTableToAttach,
+//                     userAccountTableNames,
+//                     passphrase,
+//                     tableOwnerProperties.encryptionPassword,
+//                     this.applicationAccountInfo.algorithm)
+//                     .then(response => {
+//                         return resolve(response);
+//                     })
+//             })
+//             .catch( error =>{
+//                 logger.error(error);
+//                 reject(error);
+//             })
+//     });
+// }
+
+// /**
+//  *
+//  * @param accountProperties
+//  * @returns {Promise<unknown>}
+//  */
+// fetchAttachedTables(accountProperties) { // ie gravity.loadAppData
+//     logger.verbose('#####################################################################################');
+//     logger.verbose('## fetchAttachedTables()');
+//     logger.verbose('#####################################################################################');
+//     logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
+//
+//
+//     return new Promise((resolve, reject) => {
+//         this.jupiterTransactionsService.fetchMessages(accountProperties)  //gravity.getRecords()
+//             .then((transactionMessages) => {
+//                 logger.verbose('---------------------------------------------------------------------------------------');
+//                 logger.verbose(`fetchAttachedTables().fetchMessages().then(transactionMessages)`);
+//                 logger.verbose('---------------------------------------------------------------------------------------');
+//                 logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+//
+//                 // const tableProperties = this.tableService.extractTablePropertiesFromMessages('users' ,transactionMessages);
+//                 // logger.verbose(`TOTAL tableProperties: ${tableProperties.length}`);
+//
+//                 const attachedTables = this.extractTablesFromMessages(transactionMessages);
+//                 logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
+//
+//                 // let tableList = this.tableService.extractTableListFromRecords(records);
+//                 // logger.verbose(`TOTAL tableList: ${tableList.length}`);
+//                 // tableList = this.gravityObjectMapper.sortByDate(tableList);
+//
+//                 // const currentList = this.gravityTablesService.extractCurrentListFromTableList(tableList);
+//                 // logger.verbose(`TOTAL currentList: ${currentList.length}`);
+//                 // const tableData = this.tableService.extractTableData(currentList, attachedTables);
+//                 // logger.verbose(`TOTAL tableData: ${tableData.length}`);
+//
+//                 // let accountDataContainer = this.this.getAccountDataContainer()();
+//                 // accountDataContainer.numberOfRecords = recordsFound;
+//                 // accountDataContainer.tableNames = currentList;
+//                 // accountDataContainer.tableData = tableData;
+//                 // accountDataContainer.accountRecord = tableProperties;
+//                 // accountDataContainer.accountProperties = accountProperties;
+//
+//                 return resolve(attachedTables);
+//             })
+//             .catch((error) => {
+//                 logger.error(`fetchMessagesContainer.catch() ${error}`);
+//                 reject({success: false, error: 'There was an error loading records'});
+//             });
+//     });
+// }
+
+// const applicationUsersTableProperties = this.extractTablePropertiesFromTables('user', applicationAccountData.attachedTables);
+
+// extractTablePropertiesFromTablesOrNull( tableName, tables) {
+//     const table = tables.filter( table => table.tableName == tableName );
+//
+//     if(table.length > 0){
+//         return new TableAccountProperties(table[0].address,table[0].passphrase,'',table[0].password)
+//     }
+//
+//     return null;
+// }
