@@ -10,6 +10,7 @@ import {JupiterFundingService} from "../services/jupiterFundingService";
 import {JupiterAccountService} from "../services/jupiterAccountService";
 import {TableService} from "../services/tableService";
 import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {FundingNotConfirmedError} from "../errors/metisError";
 
 const { JupiterAPIService } =  require('../services/jupiterAPIService');
 const { AccountRegistration } = require('./accountRegistration');
@@ -159,10 +160,16 @@ const metisRegistration = async (account, requestBody) => {
                 return resolve(response);
             })
             .catch(error => {
-                logger.error(`_______`)
+                logger.error(`********************`)
                 logger.error(`_  metisRegistration().accountRegistration.register().catch(error= ${!!error})`);
-                logger.error(`_______`)
+                logger.error(`********************`)
                 logger.error(`error= ${JSON.stringify(error)}`);
+
+                logger.error(`instance= ${Object.getPrototypeOf(error)}`)
+                if (error instanceof FundingNotConfirmedError) {
+                    console.log('@ @ @')
+                    return reject('FUnding Problem!!!')
+                }
 
                 return reject(error)
             })

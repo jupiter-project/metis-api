@@ -4,6 +4,7 @@
 const {JupiterAccountProperties} = require("../gravity/jupiterAccountProperties");
 const {JupiterFundingService} = require("../services/jupiterFundingService");
 const {applicationAccountProperties} = require("../gravity/applicationAccountProperties");
+const {FundingNotConfirmedError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -54,7 +55,8 @@ class AccountRegistration {
     async register() {
         logger.verbose('###########################################');
         logger.verbose(`## register()`)
-        logger.verbose('###########################################');
+        logger.verbose('##');
+        logger.verbose('##');
 
         return new Promise(async (resolve, reject) => {
             // const funds = parseInt(0.1 * 100000000, 10);
@@ -149,22 +151,29 @@ class AccountRegistration {
                                                                     return resolve('done');
                                                                 })
                                                                 .catch(error => {
-                                                                    logger.error(`_______`)
-                                                                    logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
-                                                                    logger.error(`_______`)
+                                                                    logger.error(`********************`)
+                                                                    logger.error(`** register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
+                                                                    logger.error(`********************`)
                                                                     logger.error(`error= ${JSON.stringify(error)}`);
                                                                     reject(error);
                                                                 })
 
                                                         })
                                                         .catch( error => {
-                                                            return reject('Did not get a payment confirmation!')
+                                                            logger.error(`********************`)
+                                                            logger.error(`waitForTransactionConfirmation().catch()`)
+                                                            logger.error(`********************`)
+                                                            logger.error(`error= ${error}`);
+
+                                                            return reject( new FundingNotConfirmedError());
                                                         })
                                                 })
                                                 .catch(error => {
-                                                    logger.error(`_______`)
-                                                    logger.error(`error= ${JSON.stringify(error)}`);
-                                                    logger.error(`_______`)
+                                                    logger.error(`********************`)
+                                                    logger.error(`********************`)
+                                                    logger.error(`_ error= ${JSON.stringify(error)}`);
+                                                    logger.error(`********************`)
+                                                    logger.error(`********************`)
                                                     reject(error);
                                                 })
                                         })
@@ -275,17 +284,17 @@ class AccountRegistration {
     //
     //                 })
     //                 .catch(error => {
-    //                     logger.error(`_______`)
+    //                     logger.error(`********************`)
     //                     logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
-    //                     logger.error(`_______`)
+    //                     logger.error(`********************`)
     //                     logger.error(`error= ${JSON.stringify(error)}`);
     //                     reject(error);
     //                 })
     //         })
     //             .catch(error => {
-    //                 logger.error(`_______`)
+    //                 logger.error(`********************`)
     //                 logger.error(`error= ${JSON.stringify(error)}`);
-    //                 logger.error(`_______`)
+    //                 logger.error(`********************`)
     //                 reject(error);
     //             })
     //     })
@@ -300,9 +309,11 @@ class AccountRegistration {
      * @returns {Promise<unknown>}
      */
     async attachAllDefaultTables() {
-        logger.verbose('#####################################################################################');
+        logger.verbose('################################################################');
         logger.verbose(`## attachAllDefaultTables()`);
-        logger.verbose('#####################################################################################');
+        logger.verbose('##');
+        logger.verbose('##');
+
         return new Promise((resolve, reject) => {
             logger.verbose(`   attachAllDefaultTables().loadAccountData(accountProperties= ${!!this.newUserAccountProperties})`)
 
@@ -410,9 +421,9 @@ class AccountRegistration {
                     resolve(res);
                 })
                 .catch(error => {
-                    logger.error(`_______`)
+                    logger.error(`********************`)
                     logger.error(`__ attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName}).error(error)`)
-                    logger.error(`_______`)
+                    logger.error(`********************`)
                     logger.error(`error= ${JSON.stringify(error)}`);
                     reject(new Error('error!!!!!'));
                 })

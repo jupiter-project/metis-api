@@ -148,8 +148,18 @@ class TableService {
     }
 
 
-
+    /**
+     *
+     * @param tableName
+     * @param tables
+     * @returns {null|*}
+     */
     extractTableFromTablesOrNull(tableName , tables){
+        logger.verbose('######################################');
+        logger.verbose(`extractTableFromTablesOrNull(tableName= ${tableName}, tables)`);
+        logger.verbose('######################################');
+
+        logger.debug(`tables= ${JSON.stringify(tables)}`);
         if(!tableName){
             return null;
         }
@@ -161,19 +171,12 @@ class TableService {
             return null;
         }
 
-        const filtered = tables.filter(tableProperties => tableProperties.name == 'users');
-
-
-        console.log('r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$')
-        console.log('r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$')
-        console.log('r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$r$ r$')
-        console.log(filtered);
-
+        const filtered = tables.filter(tableProperties => tableProperties.name == tableName);
 
         if(!filtered && filtered.length < 1){
             return null
         }
-
+        logger.debug(`found table: ${filtered[0].name}`);
         return filtered[0];
     }
 
@@ -248,27 +251,30 @@ class TableService {
      *  { id: '8381644747484745663',user_record:{"id":"123","account":"JUP-","accounthash":"123","email":"","firstname":"next"," +
      *      ""alias":"next","lastname":"","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"123",
      *      "encryption_password":"next"}, date: 1629813396685 },
-     * @param messages
+     * @param {[]}messages
      */
     extractRecordsFromMessages(messages){
+        logger.verbose('#####################################################################################');
+        logger.verbose('## extractRecordsFromMessages(messages)');
+        logger.verbose('##');
+        logger.insane(`   messages= ${JSON.stringify(messages)}`);
 
         const records = messages.reduce( (reduced, message) => {
                 // const extractLatestTablesListFromMessages(messages)
                 const keys = (Object.keys(message))
                 for(let i = 0; i<keys.length; i++){
-                    console.log('**');
-                    console.log('key:', keys[i]);
+                    // console.log('**');
+                    // console.log('key:', keys[i]);
                     const re = /\w+_record/;
                     if(re.test(keys[i])){
-                        console.log('FOUND the key: ', keys[i]);
+                        // console.log('FOUND the key: ', keys[i]);
                         let record = message[keys[i]];
                         try {
                             record = JSON.parse(message[keys[i]])
                         } catch (error) {
                             // do nothing
                         }
-                        logger.sensitive(`record= ${JSON.stringify(record)}`);
-                        // console.log(keys[i], 'tableName')
+                        logger.insane(`record= ${JSON.stringify(record)}`);
                         record.name = keys[i];
                         record.date = message.date
                         reduced.push(record);
@@ -329,10 +335,9 @@ class TableService {
      * @returns {*[]}
      */
     extractTablesFromMessages(messages) {
-        logger.verbose('#####################################################################################');
+        logger.verbose('###############################################################');
         logger.verbose(`## extractTablesFromMessages(messages.length= ${messages.length})`);
-        logger.verbose('#####################################################################################');
-        // logger.sensitive(`messages= ${JSON.stringify(messages)}`);
+        logger.verbose('##');
 
         if (messages.length === 0) {
             return [];

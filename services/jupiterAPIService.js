@@ -316,7 +316,7 @@ class JupiterAPIService {
     async transferMoney(fromJupiterAccount, toJupiterAccount, amount, feeNQT = this.appProps.feeNQT) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## transferMoney(fromProperties, toPropertie, amount, feeNQT)`);
-        logger.verbose('#####################################################################################');
+        logger.verbose('## ');
         return new Promise((resolve, reject) => {
             if (!gu.isNumberGreaterThanZero(amount)) {
                 return reject('problem with amount');
@@ -329,10 +329,13 @@ class JupiterAPIService {
                 return reject('problem with toProperties');
             }
 
-            logger.debug(`from: ${fromJupiterAccount.address}`);
-            logger.debug(`to: ${toJupiterAccount.address}`);
-            logger.debug(`amount: ${amount}`);
-            logger.debug(`feeNQT: ${feeNQT}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            logger.info(`++ Transferring Money`);
+            logger.info(`++ from: ${fromJupiterAccount.address}`);
+            logger.info(`++ to: ${toJupiterAccount.address}`);
+            logger.info(`++ amount: ${amount}`);
+            logger.info(`++ feeNQT: ${feeNQT}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
             this.post( {
                 requestType: 'sendMoney',

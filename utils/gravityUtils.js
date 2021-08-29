@@ -50,18 +50,21 @@ const isWellFormedJupiterAddress = function(address){
 }
 
 /**
- *
+ * 503065877100931330
  * @param {number} transactionId
  * @returns {boolean}
  */
 const isWellFormedJupiterTransactionId = function(transactionId){
-    const re = /^[0-9]{20}$/
+    const re = /^[0-9]{15,25}$/
     if(re.test(transactionId)){
         return true;
     }
 
     return false;
 }
+
+
+
 
 /**
  * example: 0cd7ba1e744ab9aa316d02b45d14088e01d11906199fac34a9c4f0835902cb31

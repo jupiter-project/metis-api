@@ -250,6 +250,8 @@ class JupiterAccountService {
     // }
 
 
+
+
     /**
      *
      * @returns { numberOfRecords,success,app: {tables,appData:{name,address,description}, address}, message, tables: {}, hasUserTable,userRecord }
@@ -309,8 +311,8 @@ class JupiterAccountService {
 
     fetchAccountData(accountProperties) {
         logger.verbose('#####################################################################################');
-        logger.verbose('## fetchAccountData()');
-        logger.verbose('#####################################################################################');
+        logger.verbose('## fetchAccountData(accountProperties)');
+        logger.verbose('##');
         return new Promise((resolve, reject) => {
 
             this.jupiterTransactionsService.fetchMessages(accountProperties)
@@ -319,10 +321,16 @@ class JupiterAccountService {
                     logger.verbose(`fetchAccountData().fetchMessages().then(transactionMessages)`);
                     logger.verbose('---------------------------------------------------------------------------------------');
                     // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+
+
                     const attachedTables = this.tableService.extractTablesFromMessages(transactionMessages);
                     logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
+                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+
 
                     const records = this.tableService.extractRecordsFromMessages(transactionMessages);
+
                     this.jupiterAPIService.getAccountInformation(accountProperties.passphrase)
                         .then(accountInformationResponse => {
                             accountProperties.publicKey = accountInformationResponse.publicKey;
