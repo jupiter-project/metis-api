@@ -9,7 +9,18 @@ import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 
+
 class Gravity {
+
+  static SUBTYPES = {
+    ACCOUNT_INFO: 12,
+    CHANNEL_INVITATION: 13,
+    CHANNEL_MEMBER: 14,
+    METIS_MESSAGE: 15
+  }
+
+
+
   constructor() {
     this.algorithm = process.env.ENCRYPT_ALGORITHM;
     this.password = process.env.ENCRYPT_PASSWORD;
@@ -2006,9 +2017,9 @@ class Gravity {
     }
 
     if (recipientPublicKey) {
-      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true`;
+      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.METIS_MESSAGE}`;
     } else {
-      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&messageIsPrunable=true&compressMessageToEncrypt=true`;
+      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&messageIsPrunable=true&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.METIS_MESSAGE}`;
     }
 
     logger.info(callUrl);
