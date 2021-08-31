@@ -1,6 +1,6 @@
 import axios from 'axios';
 import Model from './_model';
-import { gravity } from '../config/gravity';
+import { Gravity, gravity } from '../config/gravity';
 
 
 class Message extends Model {
@@ -17,10 +17,10 @@ class Message extends Model {
         'name',
         'replyMessage',
         'replyRecipientName',
-        'isInvitation', //TODO change to messageType = 'new member welcome'
+        'isInvitation', // TODO change to messageType = 'new member welcome'
         'messageVersion',
-        'type', //TODO change type to messageType
-        'payload', //TODO update type when attachment is included in the message
+        'type', // TODO change type to messageType
+        'payload', // TODO update type when attachment is included in the message
       ],
     });
     this.public_key = data.public_key;
@@ -52,7 +52,7 @@ class Message extends Model {
         tableData.password,
       );
 
-      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
+      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.METIS_MESSAGE}`;
       // console.log(self);
       axios.post(callUrl)
         .then((response) => {

@@ -2,7 +2,8 @@ import axios from 'axios';
 import events from 'events';
 import Model from './_model';
 import Methods from '../config/_methods';
-import { gravity } from '../config/gravity';
+import { Gravity, gravity } from '../config/gravity';
+
 const logger = require('../utils/logger')(module);
 
 class Channel extends Model {
@@ -71,7 +72,7 @@ class Channel extends Model {
             accessLink.encryptionPassword,
           );
 
-          const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true`;
+          const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.CHANNEL_INVITATION}`;
 
           axios.post(callUrl)
             .then((response) => {
