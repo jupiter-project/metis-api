@@ -16,6 +16,8 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/get_jupiter_account',
     '/v1/api/jupiter/alias/',
     '/v1/api/version',
+    '/v1/api/pn/token',
+    '/v1/api/pn/badge_counter',
   ];
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
