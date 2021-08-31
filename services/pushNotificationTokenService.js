@@ -24,15 +24,14 @@ module.exports = {
           }
           return null;
         })
-        .then(oldValue => res.json({ ok: true, oldValue }))
+        .then(tokenList => res.json({ success: true, tokenList }))
         .catch((error) => {
           logger.error(error);
           res.status(400).json({ ok: false, error });
         });
     } else {
       const error = {
-        ok: false,
-        error: 'bad request',
+        success: false,
         message: 'Alias, Token and JupId are required',
       };
       logger.error(error);
@@ -48,7 +47,7 @@ module.exports = {
         : { $push: { mutedChannels: body.channelId } };
 
       findNotificationAndUpdate(filter, update)
-        .then(notification => res.json({ ok: true, notification }))
+        .then(notification => res.json({ success: true, notification }))
         .catch((error) => {
           logger.error(error);
           res.status(400).json({ ok: false, error });
@@ -70,7 +69,7 @@ module.exports = {
         .then(([response]) => {
           const { mutedChannels } = response || { mutedChannels: [] };
           res.json({
-            ok: true,
+            success: true,
             mutedChannels,
           });
         })
@@ -89,15 +88,10 @@ module.exports = {
     }
   },
   setBadgePnCounter: (req, res) => {
-    const { body } = req;
-    if (body.alias) {
-      updateBadgeCounter(body.alias, body.badge || 0)
-        .then((response) => {
-          res.json({
-            ok: true,
-            response,
-          });
-        });
+    const { alias, badge } = req.body;
+    if (alias) {
+      updateBadgeCounter(alias, badge || 0)
+        .then(response => res.json({ success: true, response }));
     } else {
       const error = {
         ok: false,

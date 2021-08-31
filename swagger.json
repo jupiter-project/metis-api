@@ -35,6 +35,37 @@
         }
       }
     },
+    "/v1/api/reportUser": {
+      "post": {
+        "tags": ["Report user"],
+        "description": "Report a user",
+        "parameters": [
+          {
+            "name": "signup",
+            "in": "body",
+            "description": "Create new account in system",
+            "schema": {
+              "$ref": "#/definitions/ReportUserRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "Report User success",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
     "/v1/api/create_jupiter_account": {
       "post": {
         "tags": ["signup"],
@@ -98,7 +129,7 @@
             "in": "body",
             "description": "Create new account in system",
             "schema": {
-              "$ref": "#/definitions/UserSignUp"
+              "$ref": "#/definitions/UserSignUpRequest"
             }
           }
         ],
@@ -107,7 +138,7 @@
           "200": {
             "description": "Sign up success",
             "schema": {
-              "$ref": "#/definitions/UserSignUp"
+              "$ref": "#/definitions/DefaultResponse"
             }
           }
         }
@@ -123,7 +154,7 @@
             "in": "body",
             "description": "User passphrase",
             "schema": {
-              "$ref": "#/definitions/GetJupiterAccount"
+              "$ref": "#/definitions/GetJupiterAccountRequest"
             }
           }
         ],
@@ -148,7 +179,7 @@
             "in": "body",
             "description": "User logs in",
             "schema": {
-              "$ref": "#/definitions/Login"
+              "$ref": "#/definitions/LoginRequest"
             }
           }
         ],
@@ -193,7 +224,7 @@
             "in": "body",
             "description": "User creates a channel",
             "schema": {
-              "$ref": "#/definitions/ChannelCreation"
+              "$ref": "#/definitions/ChannelCreationRequest"
             }
           }
         ],
@@ -203,6 +234,148 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/channel/profile": {
+      "post": {
+        "tags": ["Channels"],
+        "description": "Upload channel profile picture",
+        "parameters": [
+          {
+            "name": "channel creation",
+            "in": "body",
+            "description": "User creates a channel",
+            "schema": {
+              "$ref": "#/definitions/ChannelProfilePictureRequest"
+            }
+          },
+          {
+            "name": "AuthorizationChannel",
+            "in": "header",
+            "description": "channel token",
+            "type": "string"
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PostChannelProfilePictureResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Channels"],
+        "summary": "Get channel profile picture",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/GetChannelProfilePictureResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Channels"],
+        "summary": "Delete channel profile picture",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/GetChannelProfilePictureResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/data/members": {
+      "post": {
+        "tags": ["Members"],
+        "description": "Create new channel member in blockchain",
+        "parameters": [
+          {
+            "name": "member creation",
+            "in": "body",
+            "description": "User add a channel member",
+            "schema": {
+              "$ref": "#/definitions/PostMemberRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PostMembersResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Members"],
+        "summary": "Get all channel members",
+        "parameters": [
+          {
+            "name": "channeladdress",
+            "in": "header",
+            "description": "channel jupiter account",
+            "type": "string"
+          },
+          {
+            "name": "channelkey",
+            "in": "header",
+            "description": "channel enryption password",
+            "type": "string"
+          },
+          {
+            "name": "channelpublic",
+            "in": "header",
+            "description": "channel public key",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/GetMembersResponse"
             }
           },
           "403": {
@@ -276,7 +449,7 @@
             "in": "body",
             "description": "User sends a message",
             "schema": {
-              "$ref": "#/definitions/MessageCreation"
+              "$ref": "#/definitions/MessageCreationRequest"
             }
           }
         ],
@@ -286,6 +459,221 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/file": {
+      "post": {
+        "tags": ["Messages"],
+        "description": "Create new channel message in blockchain",
+        "parameters": [
+          {
+            "name": "AuthorizationChannel",
+            "in": "header",
+            "description": "channel token",
+            "type": "string"
+          },
+          {
+            "name": "Upload file in chat",
+            "in": "body",
+            "description": "Upload file in chat",
+            "schema": {
+              "$ref": "#/definitions/PostChannelAttachmentRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/profile-picture": {
+      "post": {
+        "tags": ["User"],
+        "description": "Update user profile picture",
+        "parameters": [
+          {
+            "name": "Update user profile picture",
+            "in": "body",
+            "description": "Update user profile picture",
+            "schema": {
+              "$ref": "#/definitions/PostUserProfilePictureRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PostUserProfilePictureResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/profile-picture/{id}": {
+      "get": {
+        "tags": ["User"],
+        "summary": "Get user profile picture",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/PostUserProfilePictureResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/profile-picture/{accountData}": {
+      "delete": {
+        "tags": ["User"],
+        "summary": "Delete user profile picture",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/pn/token": {
+      "post": {
+        "tags": ["PushNotification"],
+        "description": "Update user push notification token",
+        "parameters": [
+          {
+            "name": "Update user push notification token",
+            "in": "body",
+            "description": "Update user push notification token",
+            "schema": {
+              "$ref": "#/definitions/PostPushNotificationTokenRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PostPushNotificationResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/pn/mute_channels": {
+      "put": {
+        "tags": ["PushNotification"],
+        "description": "Update user push notification token for specific channels",
+        "parameters": [
+          {
+            "name": "Update user push notification token for specific channels",
+            "in": "body",
+            "description": "Update user push notification token for specific channels",
+            "schema": {
+              "$ref": "#/definitions/PutPushNotificationTokenForMutedChannelsRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PutPushNotificationTokenForMutedChannelsResponse"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/pn/mute_channels/{alias}": {
+      "get": {
+        "tags": ["PushNotification"],
+        "summary": "Get user muted channels",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/GetUserMutedChannelsRequest"
+            }
+          },
+          "403": {
+            "description": "Not authenticated",
+            "schema": {
+              "$ref": "#/definitions/DefaultResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/api/pn/badge_counter": {
+      "post": {
+        "tags": ["PushNotification"],
+        "description": "Update push notification badge counter",
+        "parameters": [
+          {
+            "name": "Update push notification badge counter",
+            "in": "body",
+            "description": "Update push notification badge counter",
+            "schema": {
+              "$ref": "#/definitions/PostBadgeCounterRequest"
+            }
+          }
+        ],
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/PostBadgeCounterResponse"
             }
           },
           "403": {
@@ -307,7 +695,7 @@
             "in": "body",
             "description": "User sends a message",
             "schema": {
-              "$ref": "#/definitions/InviteCreation"
+              "$ref": "#/definitions/InviteCreationRequest"
             }
           }
         ],
@@ -359,7 +747,7 @@
             "in": "body",
             "description": "User sends a message",
             "schema": {
-              "$ref": "#/definitions/AcceptInvite"
+              "$ref": "#/definitions/AcceptInviteRequest"
             }
           }
         ],
@@ -382,7 +770,7 @@
     }
   },
   "definitions": {
-    "UserSignUp": {
+    "UserSignUpRequest": {
       "required": ["alias", "account", "accounthash", "twofa_enabled", "public_key", "key", "jup_account_id", "encryption_password"],
       "properties": {
         "alias": {
@@ -419,7 +807,150 @@
         }
       }
     },
-    "GetJupiterAccount": {
+    "PostUserProfilePictureRequest": {
+      "type": "object",
+      "properties": {
+        "base64Image": {
+          "type": "string"
+        }
+      }
+    },
+    "PutPushNotificationTokenForMutedChannelsRequest": {
+      "type": "object",
+      "properties": {
+        "alias": {
+          "type": "string"
+        },
+        "channelId": {
+          "type": "string"
+        },
+        "isMuted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "GetUserMutedChannelsRequest": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "mutedChannels": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    },
+    "PutPushNotificationTokenForMutedChannelsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "mutedChannels": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    },
+    "PostPushNotificationResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "tokenList": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    },
+    "PostBadgeCounterResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "response": {
+          "type": "object"
+        }
+      }
+    },
+    "PostBadgeCounterRequest": {
+      "type": "object",
+      "properties": {
+        "alias": {
+          "type": "string"
+        },
+        "badge": {
+          "type": "number"
+        }
+      }
+    },
+    "PostPushNotificationTokenRequest": {
+      "type": "object",
+      "properties": {
+        "alias": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "jupId": {
+          "type": "string"
+        },
+        "deleteToken": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PostChannelAttachmentRequest": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "description": "base 64 image"
+            },
+            "name": {
+              "type": "string",
+              "description": "file name"
+            }
+          }
+        },
+        "message": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "description": "message"
+            },
+            "mentions": {
+              "type": "array",
+              "description": "mentioned member list",
+              "items": {}
+            }
+          }
+        }
+      }
+    },
+    "ReportUserRequest": {
+      "properties": {
+        "reporter": {
+          "type": "string",
+          "description": "user Jup account"
+        },
+        "message": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "GetJupiterAccountRequest": {
       "properties": {
         "jup_passphrase": {
           "type": "string",
@@ -427,7 +958,7 @@
         }
       }
     },
-    "Login": {
+    "LoginRequest": {
       "properties": {
         "account": {
           "type": "string",
@@ -458,7 +989,8 @@
         },
         "mentions": {
           "type": "array",
-          "description": "String array of mentioned members"
+          "description": "String array of mentioned members",
+          "items": {}
         },
         "replyMessage": {
           "type": "string"
@@ -509,7 +1041,7 @@
         }
       }
     },
-    "InviteCreation": {
+    "InviteCreationRequest": {
       "type": "object",
       "properties": {
         "data": {
@@ -526,7 +1058,7 @@
         }
       }
     },
-    "MessageCreation": {
+    "MessageCreationRequest": {
       "type": "object",
       "properties": {
         "data": {
@@ -542,10 +1074,14 @@
         "channel": {
           "type": "object",
           "description": "Channel info"
+        },
+        "mentions": {
+          "type": "array",
+          "items": {}
         }
       }
     },
-    "ChannelCreation": {
+    "ChannelCreationRequest": {
       "type": "object",
       "properties": {
         "data": {
@@ -556,6 +1092,95 @@
               "description": "Channel name"
             }
           }
+        }
+      }
+    },
+    "PostMemberRequest": {
+      "type": "object",
+      "properties": {
+        "channeladdress": {
+          "type": "string",
+          "description": "Channel jup account"
+        },
+        "channelkey": {
+          "type": "string",
+          "description": "Channel password"
+        }
+      }
+    },
+    "PostMembersResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "fullResponse": {
+          "type": "object"
+        }
+      }
+    },
+    "GetMembersResponse": {
+      "type": "object",
+      "properties": {
+        "aliases":  {
+          "type": "array",
+          "items": {}
+        },
+        "members":  {
+          "type": "array",
+          "items": {}
+        },
+        "memberProfilePicture": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MemberProfilePicture"
+          }
+        }
+      }
+    },
+    "MemberProfilePicture": {
+      "type": "object",
+      "properties": {
+        "alias": {
+          "type": "string"
+        },
+        "urlProfile": {
+          "type": "string"
+        }
+      }
+    },
+    "ChannelProfilePictureRequest": {
+      "type": "object",
+      "properties": {
+        "base64Image": {
+          "type": "string"
+        }
+      }
+    },
+    "PostChannelProfilePictureResponse": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "PostUserProfilePictureResponse": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "GetChannelProfilePictureResponse": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
         }
       }
     },
@@ -609,7 +1234,7 @@
         }
       }
     },
-    "AcceptInvite": {
+    "AcceptInviteRequest": {
       "type": "object",
       "properties": {
         "data": {
