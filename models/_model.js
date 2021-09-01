@@ -1,9 +1,9 @@
 import axios from 'axios';
 import events from 'events';
-import { gravity } from '../config/gravity';
+import { Gravity, gravity } from '../config/gravity';
 import validate from './_validations';
-import {gravityCLIReporter} from "../gravity/gravityCLIReporter";
-import _ from "lodash";
+import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
+import _ from 'lodash';
 
 const logger = require('../utils/logger')(module);
 
@@ -102,7 +102,7 @@ class Model {
       });
 
       if (table.public_key) {
-        callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${table.passphrase}&recipient=${table.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${100}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${table.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
+        callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${table.passphrase}&recipient=${table.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${100}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${table.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
         eventEmitter.emit('data_prepared');
       } else {
         logger.debug(`No public_key. Getting Account Info`);
@@ -110,7 +110,7 @@ class Model {
           .then((response) => {
             logger.debug(`generateId().getAccountInformation().then()`);
             const { publicKey } = response;
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${table.passphrase}&recipient=${table.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${100}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${publicKey}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${table.passphrase}&recipient=${table.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${100}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${publicKey}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
             logger.sensitive(`Calling sendMessage(): ${callUrl}`);
             eventEmitter.emit('data_prepared');
           })
@@ -329,11 +329,11 @@ class Model {
 
             for (let z = 0; z < ids.length; z += 1) {
               const id = ids[z];
-              
+
               gravity.sortByDate(recordsBreakdown[id].versions);
               const thisRecords = recordsBreakdown[id].versions;
               const lastRecord = thisRecords.length - 1;
-              
+
               const createdAt = thisRecords[lastRecord].date;
               finalList.push({
                 id,
@@ -341,7 +341,7 @@ class Model {
                 date: createdAt,
               });
             }
-            
+
 
             logger.sensitive(JSON.stringify({ success: true, records: finalList, records_found: finalList.length }))
             resolve({ success: true, records: finalList, records_found: finalList.length });
@@ -427,16 +427,16 @@ class Model {
           gravityCLIReporter.addItemsInJson('New Record Account', self.record , `NEW ${self.model} RECORD`);
 
           let encryptedRecord;
-          
+
           if (accessLink && accessLink.encryptionPassword) {
-            
+
             gravityCLIReporter.addItemsInJson('Encrypting Password..', accessLink.encryptionPassword , `NEW ${self.model} RECORD`);
             encryptedRecord = gravity.encrypt(
               JSON.stringify(fullRecord),
               accessLink.encryptionPassword,
             );
           } else {
-            
+
             gravityCLIReporter.addItemsInJson('New Record Account will be Encrypted with', '[Using the Metis Application Password]' , `NEW ${self.model} RECORD`);
             encryptedRecord = gravity.encrypt(JSON.stringify(fullRecord));
           }
@@ -444,14 +444,14 @@ class Model {
           let callUrl;
 
           if (self.model === 'user') {
-            
+
             if (self.prunableOnCreate) {
-              
+
               logger.info('Record is prunable');
-              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true`;
+              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
             } else {
-              
-              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;
+
+              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
             }
             gravityCLIReporter.addItemsInJson('New Record sent to Jupiter', {
               recipient: self.record.account,
@@ -459,24 +459,24 @@ class Model {
             } , `NEW ${self.model} RECORD`);
 
           } else if (self.user) {
-            
-            
+
+
 
             logger.debug(`publicKey =  ${self.user.public_key}`)
             logger.debug(`user = ${JSON.stringify(self.user)}`);
 
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
           } else {
-            
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true`;
+
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
           }
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);
 
-          
+
           axios.post(callUrl)
             .then((response) => {
-              
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 resolve({ success: true, message: 'Record created' });
               } else if (response.data.errorDescription != null) {
@@ -557,10 +557,10 @@ class Model {
           const User = require('./user.js');
           gravity.findById(self.user.id, 'user')
             .then((response) => {
-              
+
               user = new User(response.record);
-              
-              
+
+
               eventEmitter.emit('authenticate_user_request');
             })
             .catch((err) => {
@@ -605,7 +605,7 @@ class Model {
       recipientPublicKey = publicKeyRetrieval.publicKey;
     }
 
-    const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true`;
+    const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
 
     let response;
 
@@ -649,16 +649,16 @@ class Model {
           const encryptedRecord = gravity.encrypt(JSON.stringify(fullRecord));
           let callUrl;
           if (self.model === 'user') {
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
           } else if (self.user) {
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
           } else {
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true`;
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${recordTable.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${recordTable.public_key}&compressMessageToEncrypt=true&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
           }
-          
+
           axios.post(callUrl)
             .then((response) => {
-              
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 resolve({ success: true, message: 'Record created', record: self.record });
               } else if (response.data.errorDescription != null) {
@@ -708,7 +708,7 @@ class Model {
           gravity.findById(self.user.id, 'user')
             .then((response) => {
               user = new User(response.record);
-              
+
               eventEmitter.emit('authenticate_user_request');
             })
             .catch((err) => {

@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt-nodejs';
 import axios from 'axios';
 import Model from './_model';
 import methods from '../config/_methods';
-import { gravity } from '../config/gravity';
+import { Gravity, gravity } from '../config/gravity';
 
 const logger = require('../utils/logger')(module);
 
@@ -255,7 +255,7 @@ class User extends Model {
           JSON.stringify(fullRecord),
           self.record.encryption_password,
         );
-        let callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}`;
+        let callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&subtype=${Gravity.SUBTYPES.ARBITRARY_MESSAGE}`;
 
         if (self.record.public_key) {
           callUrl += `&recipientPublicKey=${self.record.public_key}&compressMessageToEncrypt=true`;

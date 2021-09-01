@@ -13,6 +13,7 @@ const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOU
 
 class Gravity {
   static SUBTYPES = {
+    ARBITRARY_MESSAGE: 1,
     ACCOUNT_INFO: 12,
     CHANNEL_INVITATION: 13,
     CHANNEL_MEMBER: 14,
