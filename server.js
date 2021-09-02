@@ -80,7 +80,6 @@ const swaggerUiOptions = {
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
 
 app.use((req, res, next) => {
   if (req.url !== '/favicon.ico') {
@@ -95,8 +94,8 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
 app.use(tokenVerify);
-
 
 
 // Sets public directory
