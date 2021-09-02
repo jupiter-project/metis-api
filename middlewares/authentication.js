@@ -5,7 +5,7 @@ const logger = require('../utils/logger')(module);
 //  Verificar Token
 // ============================
 const tokenVerify = (req, res, next) => {
-  logger.debug(`tokenVerify()`);
+  logger.debug(`tokenVerify()`, [req.url, req]);
   const token = req.get('Authorization');
   console.log('[Token]:', token);
   const channelToken = req.get('AuthorizationChannel');
@@ -19,7 +19,6 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/version',
     '/api-docs',
   ];
-
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
   if (valid.length > 0 || req.url === '/') {
