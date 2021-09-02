@@ -5,8 +5,9 @@ const logger = require('../utils/logger')(module);
 //  Verificar Token
 // ============================
 const tokenVerify = (req, res, next) => {
-  logger.debug(`tokenVerify()`);
+  logger.debug(`tokenVerify() ${req.url}`);
   const token = req.get('Authorization');
+  console.log('[Token]:', token);
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [
     '/create_passphrase',
@@ -16,11 +17,17 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/get_jupiter_account',
     '/v1/api/jupiter/alias/',
     '/v1/api/version',
+    '/api-docs',
   ];
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
   if (valid.length > 0 || req.url === '/') {
     return next();
+  }
+
+
+  if (!token) {
+    return res.status(403).send({ success: false, message: 'Please provide a token' });
   }
   const decodedChannel = channelToken ? jwt.decode(channelToken) : null;
 
