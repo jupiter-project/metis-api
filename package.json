@@ -111,6 +111,7 @@
     "s3-streamlogger": "^1.7.0",
     "socket.io": "^4.1.2",
     "speakeasy": "^2.0.0",
+    "swagger-ui-express": "^4.1.6",
     "toastr": "^2.1.4",
     "webpack": "^3.3.0",
     "winston": "^3.3.3",
