@@ -63,20 +63,8 @@ const RedisStore = require('connect-redis')(session);
 const find = require('find');
 
 const mongoose = require('mongoose');
-
 const swaggerDocument = require('./swagger.json');
-const swaggerUiOptions = {
-  swaggerOptions: {
-    basicAuth: {
-      name: 'Authorization',
-      schema: {
-        type: 'basic',
-        in: 'header',
-      },
-      value: 'Basic <user:password>',
-    },
-  },
-};
+
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
@@ -95,6 +83,7 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
+
 app.use(tokenVerify);
 
 

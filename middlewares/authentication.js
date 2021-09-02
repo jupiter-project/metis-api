@@ -5,7 +5,7 @@ const logger = require('../utils/logger')(module);
 //  Verificar Token
 // ============================
 const tokenVerify = (req, res, next) => {
-  logger.debug(`tokenVerify() ${req.url}`);
+  logger.debug(`tokenVerify(), URL:  ${req.url}`);
   const token = req.get('Authorization');
   console.log('[Token]:', token);
   const channelToken = req.get('AuthorizationChannel');
