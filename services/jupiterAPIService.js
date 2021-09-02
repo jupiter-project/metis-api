@@ -371,17 +371,17 @@ class JupiterAPIService {
     async getDecipheredData(dataToDecipher, address, passphrase, nonce){
         logger.verbose('getDecipheredData()')
 
-        // @TODO need to validate all params!!!
+        // @TODO we need to create Custom Errors. for example: FundingNotConfirmedError
 
         if(!gu.isWellFormedPassphrase(passphrase)) {
-            throw new Error();
+            // @TODO we need to create Custom Errors
+            throw new Error('Please provide a valid passphrase');
         }
-
 
         if(!gu.isWellFormedJupiterAddress(address)) {
-            throw new Error();
+            // @TODO we need to create Custom Errors. for example: FundingNotConfirmedError
+            throw new Error('Please provide a valid address');
         }
-
 
         return this.get( {
             requestType: 'decryptFrom',

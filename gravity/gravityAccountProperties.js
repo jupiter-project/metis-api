@@ -67,10 +67,11 @@ class GravityAccountProperties extends JupiterAccountProperties {
     }
 
 
-    getCurrentAlias(){
+    getCurrentAliasOrNull(){
         if(this.aliasList.length > 0){
             return this.aliasList[0]
         }
+        return null;
     }
 
 
@@ -119,7 +120,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 accounthash: this.passwordHash,
                 email: this.email,
                 firstname: this.firstName,
-                alias: this.getCurrentAlias(),
+                alias: this.getCurrentAliasOrNull(),
                 lastname: this.lastName,
                 secret_key: this.passphrase,
                 twofa_enabled: false,
