@@ -132,12 +132,19 @@ module.exports = {
           passphrase,
           recipient: account,
           value: url,
-          feeNQT: 100,
+          feeNQT: 2000,
           property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
         };
         return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
       })
-      .then(([url]) => res.status(200).json({ url }))
+      .then((response) => {
+        const [url, accountPropertyResponse] = response;
+        if (accountPropertyResponse && accountPropertyResponse.errorDescription) {
+          throw new Error(accountPropertyResponse.errorDescription);
+        }
+
+        res.status(200).json({ url });
+      })
       .catch((error) => {
         console.log('Something went wrong', error);
         res.status(500).json({ msg: 'Something went wrong', error });
