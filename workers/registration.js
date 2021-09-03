@@ -60,8 +60,6 @@ class RegistrationWorker extends Worker {
     if (response.error) {
       logger.debug(`checkRegistration().getUser() > response error: ${response.error}`);
       done();
-      logger.error(`LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 58 `);
-      logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 58`);
       this.addToQueue('completeRegistration', workerData);
       return { error: true, message: 'Error retrieving user information' };
     }
@@ -78,12 +76,6 @@ class RegistrationWorker extends Worker {
 
 
     if (!gravity.hasTable(userAccountTables, 'users') && !workerData.usersExists) {
-      console.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-      console.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-      console.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-      console.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-      console.log('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-
 
       logger.debug('users table does not exist');
       try {
@@ -104,7 +96,6 @@ class RegistrationWorker extends Worker {
         }
       }
       done();
-      logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 90`);
       this.addToQueue('completeRegistration', workerData);
       return res;
     } else {
@@ -134,8 +125,6 @@ class RegistrationWorker extends Worker {
         console.log(res.error);
       }
       done();
-      logger.error(`LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 123`);
-      logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 123`);
       this.addToQueue('completeRegistration', workerData);
       return res;
     } else {
@@ -156,8 +145,7 @@ class RegistrationWorker extends Worker {
         console.log(res.error);
       }
       done();
-      logger.error(`LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 143 `);
-      logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 143`);
+
       this.addToQueue('completeRegistration', workerData);
       return res;
     } else {
@@ -177,8 +165,7 @@ class RegistrationWorker extends Worker {
           userSaveResponse = { error: true, fullError: e, message: 'Error saving user data backup' };
           console.log(e);
           done();
-          logger.error(`LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 163 `);
-          logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 163`);
+
           this.addToQueue('completeRegistration', workerData);
           return userSaveResponse;
         }
@@ -190,8 +177,7 @@ class RegistrationWorker extends Worker {
       }
       done();
       logger.debug(`completedRegistrationSteps ${completedRegistrationSteps.toString()}`);
-      logger.error(`LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 176`);
-      logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 176`);
+
       this.addToQueue('completeRegistration', workerData);
       return { success: true, message: 'User information is being applied' };
     } else {
@@ -232,8 +218,6 @@ class RegistrationWorker extends Worker {
       logger.debug(`data.waitingForFullConfirmation = ${workerData.waitingForFullConfirmation}`)
       logger.debug(`response.applicationTablesFound = ${response.applicationTablesFound}`);
       logger.debug(`response.noUserTables = ${response.noUserTables}`);
-      logger.error(`LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 217`);
-      logger.error(`******************************************  LOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOPLOOP -- 217`);
       this.addToQueue('completeRegistration', workerData);
     }
     return { success: true, message: 'Worker completed' };

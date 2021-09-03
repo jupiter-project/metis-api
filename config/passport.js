@@ -9,11 +9,11 @@ import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {JupiterFundingService} from "../services/jupiterFundingService";
 import {JupiterAccountService} from "../services/jupiterAccountService";
 import {TableService} from "../services/tableService";
-
+import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {FundingNotConfirmedError} from "../errors/metisError";
 
 const { JupiterAPIService } =  require('../services/jupiterAPIService');
 const { AccountRegistration } = require('./accountRegistration');
-// Loads up passport code
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
 
@@ -50,31 +50,137 @@ const deserializeUser = (passport) => {
 };
 
 
-const getSignUpUserInformation = (account, request) => {
+/**
+ *
+ * @param account
+ * @param requestBody
+ * @returns {{public_key, firstname, twofa_enabled: boolean, jup_account_id: *, lastname, secret_key: null, twofa_completed: boolean, jup_key: string, alias: (string|*), encryption_password: (string|*), passphrase, account, email}}
+ */
+const getSignUpUserInformation = (account, requestBody) => {
     return {
         account,
-        email: request.body.email,
-        alias: request.body.alias,
-        firstname: request.body.firstname,
-        lastname: request.body.lastname,
+        email: requestBody.email,
+        alias: requestBody.alias,
+        firstname: requestBody.firstname,
+        lastname: requestBody.lastname,
         secret_key: null,
         twofa_enabled: false,
         twofa_completed: false,
-        public_key: request.body.public_key,
-        encryption_password: request.body.encryption_password,
-        passphrase: request.body.key,
-        jup_key: gravity.encrypt(request.body.key), // passphrase
-        jup_account_id: request.body.jup_account_id
+        public_key: requestBody.public_key,
+        encryption_password: requestBody.encryption_password,
+        passphrase: requestBody.key,
+        jup_key: gravity.encrypt(requestBody.key), // passphrase
+        jup_account_id: requestBody.jup_account_id
     }
 }
 
+/**
+ *
+ * @param account
+ * @param requestBody
+ * @returns {Promise<unknown>}
+ */
+const metisRegistration = async (account, requestBody) => {
+    logger.verbose('#####################################################################################');
+    logger.verbose(`metisRegistration()`);
+    logger.verbose('#####################################################################################');
+    logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
+
+    const applicationGravityAccountProperties = new GravityAccountProperties(
+        process.env.APP_ACCOUNT_ADDRESS,
+        process.env.APP_ACCOUNT_ID,
+        process.env.APP_PUBLIC_KEY,
+        process.env.APP_ACCOUNT,
+        '',// hash
+        process.env.ENCRYPT_PASSWORD,
+        process.env.ENCRYPT_ALGORITHM,
+        process.env.APP_EMAIL,
+        process.env.APP_NAME,
+        '' // lastname
+    )
+
+    const TRANSFER_FEE = 100
+    const ACCOUNT_CREATION_FEE = 750;
+    const STANDARD_FEE = 500;
+    const MINIMUM_TABLE_BALANCE = 50000
+    const MINIMUM_APP_BALANCE = 100000
+    const MONEY_DECIMALS = 8;
+    const DEADLINE = 60;
+
+    const appAccountProperties = new ApplicationAccountProperties(
+        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
+    );
+
+    applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
+
+    const signUpUserInformation = getSignUpUserInformation(account, requestBody);
+    logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
+
+    const newUserGravityAccountProperties = new GravityAccountProperties(
+        signUpUserInformation.account, //address
+        signUpUserInformation.jup_account_id, // account Id
+        signUpUserInformation.public_key, // public key
+        signUpUserInformation.passphrase, // passphrase
+        signUpUserInformation.hash, //password hash
+        signUpUserInformation.encryption_password, //password
+        process.env.ENCRYPT_ALGORITHM, // algorithm
+        signUpUserInformation.email, //email
+        signUpUserInformation.firstName, //firstname
+        signUpUserInformation.lastName // lastname
+    )
+
+    logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
+
+    newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
+
+    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
+    const jupiterTransactionsService = new  JupiterTransactionsService(jupiterAPIService);
+    const tableService = new TableService(jupiterTransactionsService);
+    const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
+
+    const accountRegistration = new AccountRegistration(
+        newUserGravityAccountProperties,
+        applicationGravityAccountProperties,
+        jupiterAPIService,
+        jupiterFundingService,
+        jupiterAccountService,
+        tableService,
+        gravity
+    );
+
+    logger.debug(`metisRegistration().accountRegistration().register()`);
+    return new Promise( (resolve, reject) => {
+        accountRegistration.register()
+            .then(response => {
+                logger.verbose('---------------------------------------------------------------------------------------');
+                logger.verbose(`--  metisRegistration().accountRegistration.register().then(response= ${!!response})`);
+                logger.verbose('---------------------------------------------------------------------------------------');
+
+                return resolve(response);
+            })
+            .catch(error => {
+                logger.error(`********************`)
+                logger.error(`_  metisRegistration().accountRegistration.register().catch(error= ${!!error})`);
+                logger.error(`********************`)
+                logger.error(`error= ${JSON.stringify(error)}`);
+
+                logger.error(`instance= ${Object.getPrototypeOf(error)}`)
+                if (error instanceof FundingNotConfirmedError) {
+                    console.log('@ @ @')
+                    return reject('FUnding Problem!!!')
+                }
+
+                return reject(error)
+            })
+    } )
+}
 
 /**
  * Signup to Metis
  * @param {*} passport
  */
 const metisSignup = (passport) => {
-
     logger.verbose('#####################################################################################')
     logger.verbose(`##  metisSignup(passport)`);
     logger.verbose('#####################################################################################')
@@ -86,79 +192,8 @@ const metisSignup = (passport) => {
         },
         (request, account, accounthash, done) => {
             process.nextTick(() => {
-                logger.verbose(`metisSignUp().nextTick()`);
-                logger.sensitive(`request.body = ${JSON.stringify(request.body)}`);
-                logger.info('Saving new account data in Jupiter...');
-
-                const applicationGravityAccountProperties = new GravityAccountProperties(
-                    process.env.APP_ACCOUNT_ADDRESS,
-                    process.env.APP_ACCOUNT_ID,
-                    process.env.APP_PUBLIC_KEY,
-                    process.env.APP_ACCOUNT,
-                    '',
-                    process.env.ENCRYPT_PASSWORD,
-                    process.env.ENCRYPT_ALGORITHM,
-                    process.env.APP_EMAIL,
-                    process.env.APP_NAME,
-                    ''
-                )
-
-                const TRANSFER_FEE = 100
-                const ACCOUNT_CREATION_FEE = 750;
-                const STANDARD_FEE = 500;
-                const MINIMUM_TABLE_BALANCE = 50000
-                const MINIMUM_APP_BALANCE = 100000
-                const MONEY_DECIMALS = 8;
-                const DEADLINE = 60;
-
-                const appAccountProperties = new ApplicationAccountProperties(
-                    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
-                );
-
-                applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
-
-                const signUpUserInformation = getSignUpUserInformation(account, request);
-                logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
-
-                const newUserGravityAccountProperties = new GravityAccountProperties(
-                    signUpUserInformation.account, //address
-                    signUpUserInformation.jup_account_id, // account Id
-                    signUpUserInformation.public_key, // public key
-                    signUpUserInformation.passphrase, // passphrase
-                    signUpUserInformation.hash, //password hash
-                    signUpUserInformation.encryption_password, //password
-                    process.env.ENCRYPT_ALGORITHM, // algorithm
-                    signUpUserInformation.email, //email
-                    signUpUserInformation.firstName, //firstname
-                    signUpUserInformation.lastName // lastname
-                )
-
-                logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
-
-                newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
-
-                const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, applicationGravityAccountProperties);
-                const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
-                // const tableService = new TableService();
-                // const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService);
-
-                const accountRegistration = new AccountRegistration(
-                    newUserGravityAccountProperties,
-                    applicationGravityAccountProperties,
-                    jupiterAPIService,
-                    jupiterFundingService,
-                    'jupiterAccountService',
-                    'tableService',
-                    gravity
-                );
-
-                logger.debug(`accountRegistration().register()`);
-                accountRegistration.register()
+                metisRegistration(account, request.body)
                     .then(response => {
-                        logger.verbose('---------------------------------------------------------------------------------------');
-                        logger.verbose(`--  metisSignUp().accountRegistration.register().then(response= ${!!response})`);
-                        logger.verbose('---------------------------------------------------------------------------------------');
                         const payload = {}
                         // const payload = {
                         //     accessKey: request.session.jup_key,
@@ -167,12 +202,6 @@ const metisSignup = (passport) => {
                         // }
 
                         return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
-                    })
-                    .catch(error => {
-                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                        logger.error(`xx  metisSignUp().accountRegistration.register().catch(error= ${!!error})`);
-                        logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                        logger.error(`error= ${JSON.stringify(error)}`);
                     })
             });
         }))

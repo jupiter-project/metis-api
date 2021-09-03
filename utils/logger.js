@@ -81,15 +81,17 @@ const customLevels = {
     info: 2,
     verbose: 3,
     debug: 4,
-    sensitive: 5
+    sensitive: 5,
+    insane: 6
   },
   colors: {
     error: 'red',
     warn: 'yellow',
     info: 'white',
     verbose: 'green',
-    debug: 'red',
-    sensitive: 'blue'
+    debug: 'blue',
+    sensitive: 'blue',
+    insane: 'yellow'
   }
 };
 

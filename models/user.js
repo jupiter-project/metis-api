@@ -154,11 +154,6 @@ class User extends Model {
   }
 
 
-  async make(accessData) {
-
-
-  }
-
 
   setRecord() {
     // We set default data in this method after calling for the class setRecord method

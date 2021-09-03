@@ -35,7 +35,7 @@ class JupiterFundingService {
         this.jupiterAPIService = jupiterAPIService;
         this.applicationProperties = applicationProperties;
         this.intervalTimeInSeconds = 5; //5
-        this.maxWaitTimeLimitInSeconds = 90;//seconds
+        this.maxWaitTimeLimitInSeconds = 120;//seconds
     }
 
     async waitForTransactionConfirmation(transactionId){

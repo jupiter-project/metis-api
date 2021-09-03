@@ -141,8 +141,6 @@ class Channel extends Model {
 
   async create() {
     if (!this.record.passphrase || this.record.password) {
-      console.log('----------------------------------------------------------------------------------------------')
-      console.log('----------------------------------------------------------------------------------------------')
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();
       this.data.passphrase = this.record.passphrase;
@@ -159,9 +157,6 @@ class Channel extends Model {
     }
 
 
-    console.log('----------------------------------------------------------------------------------------------')
-    console.log('----------------------------------------------------------------------------------------------')
-    console.log('----------------------------------------------------------------------------------------------')
     logger.sensitive(`record = ${JSON.stringify(this.record)}`);
     logger.sensitive(`data = ${JSON.stringify(this.data)}`);
     // logger.sensitive(`publicKey = ${JSON.stringify(response.publicKey)}`);

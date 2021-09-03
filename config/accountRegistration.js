@@ -3,6 +3,8 @@
 // import User from '../models/user';
 const {JupiterAccountProperties} = require("../gravity/jupiterAccountProperties");
 const {JupiterFundingService} = require("../services/jupiterFundingService");
+const {applicationAccountProperties} = require("../gravity/applicationAccountProperties");
+const {FundingNotConfirmedError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -14,7 +16,10 @@ class AccountRegistration {
      *
      * @param {GravityAccountProperties} newUserAccountProperties
      * @param {GravityAccountProperties} applicationGravityAccountProperties
-     * @param {jupiterAPIService} jupiterAPIService
+     * @param {JupiterAPIService} jupiterAPIService
+     * @param {JupiterFundingService} jupiterFundingService
+     * @param {JupiterAccountService} jupiterAccountService
+     * @param {TableService} tableService
      * @param {Gravity} gravity
      */
     constructor( newUserAccountProperties,
@@ -35,7 +40,7 @@ class AccountRegistration {
     }
 
     defaultTableNames() {
-        return ['users', 'channels', 'invites', 'storage']
+        return ['channels', 'invites', 'storage']
     }
 
 
@@ -48,79 +53,137 @@ class AccountRegistration {
 
 
     async register() {
-        logger.verbose('#####################################################################################');
+        logger.verbose('###########################################');
         logger.verbose(`## register()`)
-        logger.verbose('#####################################################################################');
+        logger.verbose('##');
+        logger.verbose('##');
 
-        return new Promise((resolve, reject) => {
-            logger.verbose(`register().attachAllDefaultTables()`);
+        return new Promise(async (resolve, reject) => {
             // const funds = parseInt(0.1 * 100000000, 10);
             // console.log(`funds: `, funds);
             // logger.verbose(`register().provideInitialStandardUserFunds(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
-            this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
-                .then(sendMoneyResponse => {
-                logger.verbose('---------------------------------------------------------------------------------------');
-                logger.verbose(`-- register().transferAndWait().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
-                logger.verbose('---------------------------------------------------------------------------------------');
 
-                // console.log('---- sendmoneyresponse --');
-                // console.log(sendMoneyResponse);
 
-                this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)
-                    .then( waitForConfirmationResponse => {
-                        logger.verbose(`register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse)`);
+            // Get Metis Data
+            logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`)
+            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            logger.debug('++                    fetch account data from Metis Account')
+            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
+                .then(applicationAccountData => {
+                    logger.verbose('----------------------------------------');
+                    logger.verbose(`-- register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties}).then(applicationAccountData)`)
+                    logger.verbose('----------------------------------------');
 
-                        logger.verbose(`attachAllDefaultTables()`);
-                        this.attachAllDefaultTables()
-                            .then(attachedTablesResponse => {
-                                logger.verbose('---------------------------------------------------------------------------------------');
-                                logger.verbose(`-- register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse).attachAllDefaultTables().then(attachedTablesResponse= ${!!attachedTablesResponse})`);
-                                logger.verbose('---------------------------------------------------------------------------------------');
 
-                                logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
+                    // logger.sensitive(`applicationAccountData= ${JSON.stringify(applicationAccountData)}`);
+                    logger.sensitive(`applicationAccountData.attachedTables= ${JSON.stringify(applicationAccountData.attachedTables)}`);
+                    const applicationUsersTableProperties = this.tableService.extractTableFromTablesOrNull('users', applicationAccountData.attachedTables );
+                    logger.sensitive(`applicationUsersTableProperties= ${JSON.stringify(applicationUsersTableProperties)}`);
 
-                                const usersTableCreds = this.findTableByName('users', attachedTablesResponse);
-                                logger.debug(`usersTableCreds= ${JSON.stringify(usersTableCreds)}`);
-                                const usersTableProperties = JupiterAccountProperties.createProperties(usersTableCreds.address, usersTableCreds.passphrase, usersTableCreds.publicKey);
-                                const userRecord = this.newUserAccountProperties.generateUserRecord('test');
-                                logger.sensitive(`userRecord= ${JSON.stringify(userRecord)}`);
+                    if(!applicationUsersTableProperties){
+                        // throw new Error('there is no application users table!')
+                        reject('there is no application users table!')
+                    }
 
-                                const encryptedUserRecord = this.newUserAccountProperties.crypto.encryptJson(userRecord);
+                    applicationUsersTableProperties.setCrypto(this.applicationAccountProperties.crypto.decryptionPassword);
+                    logger.sensitive(`applicationUsersTableProperties= ${JSON.stringify(applicationUsersTableProperties)}`);
 
-                                this.jupiterAPIService.postEncipheredMessage(usersTableProperties, this.newUserAccountProperties, encryptedUserRecord)
-                                    .then(response => {
-                                        logger.debug(`response.data= ${response.data}`);
-                                        return resolve('resolve something');
-                                    })
-                                    .catch(error => {
-                                        console.log(error);
-                                        // logger.error(`error= ${JSON.stringify(error)}`);
-                                        return reject(error);
-                                    })
+                    // Get Metis Users Table data
+                    logger.info('Get Metis Users Table Data');
+                    logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                    logger.debug('++                    fetch account data from Metis Users Table Account')
+                    logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                    console.log(applicationUsersTableProperties.crypto);
 
-                            })
-                            .catch(error => {
-                                logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                                logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
-                                logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                                logger.error(`error= ${JSON.stringify(error)}`);
-                                reject(error);
-                            })
+                    this.jupiterAccountService.fetchAccountData(applicationUsersTableProperties)
+                        .then(applicationUsersTableData => {
+                            logger.verbose('----------------------------------------');
+                            logger.verbose('register().fetchAccountData(applicationAccountProperties).fetchAccountData(applicationUsersTableProperties).then(applicationUsersTableData)');
+                            logger.verbose('----------------------------------------');
+                            logger.sensitive(`applicationUsersTableProperties= ${JSON.stringify(applicationUsersTableProperties)}`);
 
-                    })
-                    .catch( error => {
+                            const userAccountPropertiesFoundInApplication = this.tableService.extractUserPropertiesFromRecordsOrNull(this.newUserAccountProperties.address, applicationUsersTableData.allRecords)
 
-                    })
-            })
-                .catch(error => {
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                    logger.error(`error= ${JSON.stringify(error)}`);
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                    reject(error);
+                            if (userAccountPropertiesFoundInApplication) {
+                                return resolve('already registered');
+                            }
+
+                            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                            logger.debug('++                    User is not in the Metis Records. ')
+                            logger.debug('++                    Get New User Account Data. ')
+                            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                            // Get User Account Data
+                            this.jupiterAccountService.fetchAccountData(this.newUserAccountProperties)
+                                .then( newUserAccountData => {
+                                    logger.verbose('----------------------------------------');
+                                    logger.verbose(`-- fetchAccountData(newUserAccountData).then()`);
+                                    logger.verbose('----------------------------------------');
+
+                                    this.jupiterAccountService.addRecordToMetisUsersTable(this.newUserAccountProperties,  applicationUsersTableProperties) // TODO Add to Metis users table at the very end
+                                        .then( newUserRecordTransactionId => {
+                                            logger.verbose('----------------------------------------');
+                                            logger.verbose(`-- addAccountToMetisUsersTable(newUserAccountData).then()`);
+                                            logger.verbose('----------------------------------------');
+                                            logger.debug(`newUserRecordTransactionId= ${newUserRecordTransactionId}`)
+
+
+                                            this.jupiterFundingService.provideInitialStandardUserFunds(this.newUserAccountProperties)
+                                                .then(sendMoneyResponse => {
+                                                    logger.verbose('----------------------------------------');
+                                                    logger.verbose(`-- register().transferAndWait().then(sendMoneyResponse= ${!!sendMoneyResponse})`);
+                                                    logger.verbose('----------------------------------------');
+
+                                                    this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)// TODO This should probably go to JupiterTransactionsService
+                                                        .then( waitForConfirmationResponse => {
+                                                            logger.verbose('----------------------------------------');
+                                                            logger.verbose('waitForTransactionConfirmation().then()');
+                                                            logger.verbose('----------------------------------------');
+                                                            logger.verbose(`register().provideInitialStandardUserFunds(newUserAccountProperties).then(sendMoneyResponse).waitForTransactionConfirmation(transactionId).then(waitForConfirmationResponse)`);
+                                                            logger.verbose(`attachAllDefaultTables()`);
+                                                            this.attachMissingDefaultTables(newUserAccountData.attachedTables)
+                                                                .then(attachedTablesResponse => {
+                                                                    logger.verbose('----------------------------------------');
+                                                                    logger.verbose('attachAllDefaultTables().then()');
+                                                                    logger.verbose('----------------------------------------');
+                                                                    logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
+
+                                                                    return resolve('done');
+                                                                })
+                                                                .catch(error => {
+                                                                    logger.error(`********************`)
+                                                                    logger.error(`** register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
+                                                                    logger.error(`********************`)
+                                                                    logger.error(`error= ${JSON.stringify(error)}`);
+                                                                    reject(error);
+                                                                })
+
+                                                        })
+                                                        .catch( error => {
+                                                            logger.error(`********************`)
+                                                            logger.error(`waitForTransactionConfirmation().catch()`)
+                                                            logger.error(`********************`)
+                                                            logger.error(`error= ${error}`);
+
+                                                            return reject( new FundingNotConfirmedError());
+                                                        })
+                                                })
+                                                .catch(error => {
+                                                    logger.error(`********************`)
+                                                    logger.error(`********************`)
+                                                    logger.error(`_ error= ${JSON.stringify(error)}`);
+                                                    logger.error(`********************`)
+                                                    logger.error(`********************`)
+                                                    reject(error);
+                                                })
+                                        })
+
+                                })
+                        })
                 })
         })
-
     }
+
 
 
     // sendMoneyResponse
@@ -221,17 +284,17 @@ class AccountRegistration {
     //
     //                 })
     //                 .catch(error => {
-    //                     logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                     logger.error(`********************`)
     //                     logger.error(`register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
-    //                     logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                     logger.error(`********************`)
     //                     logger.error(`error= ${JSON.stringify(error)}`);
     //                     reject(error);
     //                 })
     //         })
     //             .catch(error => {
-    //                 logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                 logger.error(`********************`)
     //                 logger.error(`error= ${JSON.stringify(error)}`);
-    //                 logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+    //                 logger.error(`********************`)
     //                 reject(error);
     //             })
     //     })
@@ -239,77 +302,88 @@ class AccountRegistration {
     // }
 
 
+
+
     /**
      *
      * @returns {Promise<unknown>}
      */
     async attachAllDefaultTables() {
-        logger.verbose('#####################################################################################');
+        logger.verbose('################################################################');
         logger.verbose(`## attachAllDefaultTables()`);
-        logger.verbose('#####################################################################################');
-        return new Promise((resolve, reject) => {
+        logger.verbose('##');
+        logger.verbose('##');
 
+        return new Promise((resolve, reject) => {
             logger.verbose(`   attachAllDefaultTables().loadAccountData(accountProperties= ${!!this.newUserAccountProperties})`)
+
+            // @TODO change this to this.jupiterAccountService.fetchAccountData(this.newUserAccountProperties)
             this.gravity.loadAccountData(this.newUserAccountProperties)
                 .then(accountData => {  //{tables: [], userRecord: null}
-                    logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`-- attachAllDefaultTables().loadAccountData().then(accountData)`)
-                    logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.sensitive(`accountData= ${JSON.stringify(accountData)}`);
-                    // logger.sensitive(`accountData.tables= ${JSON.stringify(accountData.tables)}`);
-
-                    const listOfAttachedTableNames = this.gravity.extractTableNamesFromTables(accountData.tables);
-                    logger.debug(`listOfAttachedTableNames= ${listOfAttachedTableNames}`);
-                    logger.debug(`AccountRegistration.defaultTableNames= ${this.defaultTableNames()}`);
-
-                    const listOfMissingTableNames = this.defaultTableNames().filter(defaultTableName => {
-                        // logger.debug(`isArray? ${Array.isArray(listOfAttachedTableNames)}`)
-                        return !listOfAttachedTableNames.includes(defaultTableName)
-                    })
-                    logger.debug(`listOfMissingTableNames= ${listOfMissingTableNames}`);
-                    const newTables = [];
-                    // if(listOfMissingTableNames.length > 1) {
-                    //     for (let i = 0; i < 1; i++) {
-
-                    for ( let i = 0; i < listOfMissingTableNames.length; i++ ) {
-                            logger.debug(`listOfMissingTableNames[i]= ${listOfMissingTableNames[i]}`)
-                            newTables.push(this.attachTable(listOfMissingTableNames[i])) // // {name, address, passphrase, publicKey}
-                        }
-                    // }
-
-                    // accountData.tables = [{name, address, passphrase, confirmed}]
-                    logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables))`)
-                    Promise.all(newTables)
-                        .then(results => { // [{success,message, data, jupiter_response, tables, others}]
-                            logger.verbose('---------------------------------------------------------------------------------------');
-                            logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables).then(results= ${!!results})`);
-                            logger.verbose('---------------------------------------------------------------------------------------');
-                            logger.verbose(`results= ${JSON.stringify(results)}`);
-
-
-                            if(Array.isArray(results) && results.length > 0){
-                                const allTables = [...accountData.tables, ...results];
-                                logger.verbose(`allTables= ${JSON.stringify(allTables)}`);
-                                return resolve(allTables);
-                            }
-
-                            logger.verbose(`accountData.tables= ${JSON.stringify(accountData.tables)}`); //accountData.tables= [{"name":"users","address":"JUP-","passphrase":"tickle awl","confirmed":true}]
-
-                            return resolve(accountData.tables);
-                        })
-                        .catch(error => {
-                            reject(error);
-                        })
+                    return this.attachMissingDefaultTables(accountData.tables);
                 })
                 .catch( error => {
-                    logger.error(`ERROR ______________________________________________________________________________`)
+                    logger.error(`________________________`)
                     logger.error(`__    attachAllDefaultTables().loadAccountData(accountProperties).catch(error = ${!!error})`);
-                    logger.error(`_______________________________________________________________________________ ERROR`)
+                    logger.error(`________________________`)
                     logger.error(`error= ${JSON.stringify(error)}`);
                     reject(error)
                 })
         })
     }
+
+
+    async attachMissingDefaultTables(currentlyAttachedTables) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## attachMissingDefaultTables(currentlyAttachedTables)`);
+        logger.verbose('#####################################################################################');
+        logger.debug(`currentlyAttachedTables.length= ${currentlyAttachedTables.length}`);
+
+
+        return new Promise((resolve, reject) => {
+            logger.verbose(` attachMissingDefaultTables().loadAccountData(accountProperties= ${!!this.newUserAccountProperties})`)
+            const listOfAttachedTableNames = this.gravity.extractTableNamesFromTables(currentlyAttachedTables);
+            logger.debug(`listOfAttachedTableNames= ${listOfAttachedTableNames}`);
+            logger.debug(`AccountRegistration.defaultTableNames= ${this.defaultTableNames()}`);
+
+            const listOfMissingTableNames = this.defaultTableNames().filter(defaultTableName => {
+                return !listOfAttachedTableNames.includes(defaultTableName)
+            })
+            logger.debug(`listOfMissingTableNames= ${listOfMissingTableNames}`);
+
+            const newTables = [];
+            for ( let i = 0; i < listOfMissingTableNames.length; i++ ) {
+                logger.debug(`listOfMissingTableNames[i]= ${listOfMissingTableNames[i]}`)
+                newTables.push(this.attachTable(listOfMissingTableNames[i])) // // {name, address, passphrase, publicKey}
+            }
+            // }
+
+            // accountData.tables = [{name, address, passphrase, confirmed}]
+            logger.verbose(`-- attachMissingDefaultTables().PromiseAll(newTables))`)
+            Promise.all(newTables)
+                .then(results => { // [{success,message, data, jupiter_response, tables, others}]
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables).then(results= ${!!results})`);
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`results= ${JSON.stringify(results)}`);
+                    logger.verbose(`currentlyAttachedTables= ${currentlyAttachedTables}`)
+
+                    if(Array.isArray(results) && results.length > 0){
+                        const allTables = [...currentlyAttachedTables, ...results];
+                        logger.verbose(`allTables= ${JSON.stringify(allTables)}`);
+                        return resolve(allTables);
+                    }
+
+                    logger.verbose(`currentlyAttachedTables= ${JSON.stringify(currentlyAttachedTables)}`); //accountData.tables= [{"name":"users","address":"JUP-","passphrase":"tickle awl","confirmed":true}]
+
+                    return resolve(currentlyAttachedTables);
+                })
+                .catch(error => {
+                    reject(error);
+                })
+        })
+    }
+
 
 
     async retrieveCurrentTables() {
@@ -333,24 +407,10 @@ class AccountRegistration {
             //         if (!(accountStatement.hasMinimumAppBalance && accountStatement.hasMinimumTableBalance)) {
             //             return reject(' needs minimal balances');
             //         }
-            //
             //         this.tableService.attachTable(this.newUserAccountProperties, tableName)
             //             .then(response => {
-            //
-            //
-            //
-            //
             //             })
-            //             .catch( error => {
             //
-            //
-            //
-            //             })
-            //     })
-            //     .catch( error => {
-            //
-            //     })
-
             logger.verbose(`-- attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName})`);
             this.gravity.attachTable(accessData, tableName)
                 .then(res => { // {name, address, passphrase, publicKey}
@@ -361,9 +421,9 @@ class AccountRegistration {
                     resolve(res);
                 })
                 .catch(error => {
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
-                    logger.error(`xx attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName}).error(error)`)
-                    logger.error(`xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+                    logger.error(`********************`)
+                    logger.error(`__ attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName}).error(error)`)
+                    logger.error(`********************`)
                     logger.error(`error= ${JSON.stringify(error)}`);
                     reject(new Error('error!!!!!'));
                 })

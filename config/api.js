@@ -112,8 +112,6 @@ module.exports = (app) => {
       });
 
       const userData = JSON.parse(gravity.decrypt(user.accountData));
-      console.log('User--->', user);
-      console.log('USer data--->', userData);
       channelRecord.loadRecords(userData)
         .then((response) => {
           const { records } = response;

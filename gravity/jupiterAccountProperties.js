@@ -1,4 +1,5 @@
 const logger = require('../utils/logger')(module);
+const gu = require('../utils/gravityUtils');
 
 
 /**
@@ -32,7 +33,7 @@ class JupiterAccountProperties {
 
         this.address = address;
         this.accountId = accountId;
-        this.publicKey = this.validateValue(publicKey);
+        this.publicKey = gu.isWellFormedPublicKey(publicKey);
         this.passphrase = passphrase;
         this.email = email;
         this.firstName = firstName;
@@ -57,12 +58,6 @@ class JupiterAccountProperties {
         )
     }
 
-    validateValue(value){
-        if(value == 'undefined'){
-            return null
-        }
-        return value;
-    }
 }
 
 module.exports.JupiterAccountProperties = JupiterAccountProperties;
