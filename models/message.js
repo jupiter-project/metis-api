@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Model from './_model';
 import { gravity } from '../config/gravity';
+import {feeManagerSingleton, FeeManager} from '../services/FeeManager';
 
 
 class Message extends Model {
@@ -52,8 +53,8 @@ class Message extends Model {
         tableData.password,
       );
 
-      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
-      // console.log(self);
+      const fee = feeManagerSingleton.getFee('account_record');
+      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
       axios.post(callUrl)
         .then((response) => {
           if (response.data.broadcasted && response.data.broadcasted === true) {
