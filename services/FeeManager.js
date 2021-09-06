@@ -8,15 +8,7 @@ const logger = require('../utils/logger')(module);
 // Asset Creation = 50 JUP
 // NFT Creation = 50 JUP
 
-// const feeTypes = {
-//     'nft_creation': 'nft_creationg',
-//     'asset_creation': 'asset_creation',
-//     'shuffling': 'shuffling',
-//     'chat': 'chat',
-//     'storage': 'storage',
-//     'regular_transaction': 'regular_transaction',
-//     'account_record': 'account_record'
-// }
+
 
 
 
@@ -24,7 +16,17 @@ class FeeManager {
 
     constructor( accountRecordFee  ) {
         this.fees = [];
-        this.fees.push({feeType: 'account_record', fee: accountRecordFee})
+        this.fees.push({feeType: FeeManager.feeTypes.account_record, fee: accountRecordFee})
+    }
+
+    static feeTypes = {
+        'nft_creation': 'nft_creationg',
+        'asset_creation': 'asset_creation',
+        'shuffling': 'shuffling',
+        'chat': 'chat',
+        'storage': 'storage',
+        'regular_transaction': 'regular_transaction',
+        'account_record': 'account_record'
     }
 
     getFee(feeType){
