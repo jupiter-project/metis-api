@@ -28,7 +28,12 @@ class FeeManager {
     }
 
     getFee(feeType){
-        return this.fees.filter( fee => { return  feeType ===  fee.feeType});
+        const fees =  this.fees.filter( fee => { return  feeType ===  fee.feeType})
+        if(fees.length > 0){
+            return fees[0]
+        }
+
+        throw new Error('Fee doesnt exist');
     }
 
 }
