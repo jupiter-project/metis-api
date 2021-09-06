@@ -14,13 +14,18 @@ const logger = require('../utils/logger')(module);
 
 class FeeManager {
 
-    constructor( accountRecordFee  ) {
+    constructor( accountRecordFee, nftCreationFee, assetCreationFee, shufflingFee, chatFee, regularTransactionFee   ) {
         this.fees = [];
+        this.fees.push({feeType: FeeManager.feeTypes.nft_creation, fee: nftCreationFee})
+        this.fees.push({feeType: FeeManager.feeTypes.asset_creation, fee: assetCreationFee})
+        this.fees.push({feeType: FeeManager.feeTypes.shuffling, fee: shufflingFee})
+        this.fees.push({feeType: FeeManager.feeTypes.chat, fee: chatFee})
+        this.fees.push({feeType: FeeManager.feeTypes.regular_transaction, fee: regularTransactionFee})
         this.fees.push({feeType: FeeManager.feeTypes.account_record, fee: accountRecordFee})
     }
 
     static feeTypes = {
-        'nft_creation': 'nft_creationg',
+        'nft_creation': 'nft_creation',
         'asset_creation': 'asset_creation',
         'shuffling': 'shuffling',
         'chat': 'chat',
@@ -29,6 +34,11 @@ class FeeManager {
         'account_record': 'account_record'
     }
 
+    /**
+     *
+     * @param feeType
+     * @returns {*}
+     */
     getFee(feeType){
         const fees =  this.fees.filter( fee => { return  feeType ===  fee.feeType})
         if(fees.length > 0){
@@ -42,5 +52,10 @@ class FeeManager {
 
 module.exports.FeeManager = FeeManager;
 module.exports.feeManagerSingleton = new FeeManager(
-    process.env.ACCOUNT_RECORD_FEE
+    process.env.ACCOUNT_RECORD_FEE,
+    99,
+    98,
+    97,
+    96,
+    95
 );
