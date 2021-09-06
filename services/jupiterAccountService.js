@@ -42,9 +42,11 @@ class JupiterAccountService {
                     // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
 
-                    this.jupiterAPIService.postMetisMessage();
+                    // this.jupiterAPIService.postMetisMessage();
 
-                    this.jupiterAPIService.postEncipheredMessage(   metisUsersTableProperties, accountProperties, encryptedUserRecord)
+                    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+                    // Transaction fee 0.000001 JUP less than minimum fee 0.000150 JUP at height 247689'
+                    this.jupiterAPIService.postEncipheredMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord, fee.fee)
                         .then(response => {
                             logger.verbose('----------------------------------------');
                             logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).postEncipheredMessage().then(response)`);
@@ -82,12 +84,14 @@ class JupiterAccountService {
         logger.verbose('###########################################');
         logger.verbose('## generateId()');
         logger.verbose('###########################################');
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+        console.log('--------------------------', fee);
         return new Promise((resolve, reject) => {
             this.jupiterAPIService.postEncipheredMessage(
                 metisUsersTableProperties,
                 accountProperties,
                 'Generating Id for record',
-                100)
+                fee.fee)
                 .then(response => {
                     return resolve(response.data.transaction);
                 })
