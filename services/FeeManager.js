@@ -76,9 +76,9 @@ class FeeManager {
 module.exports.FeeManager = FeeManager;
 module.exports.feeManagerSingleton = new FeeManager(
     process.env.ACCOUNT_RECORD_FEE,
-    99,
-    98,
-    97,
-    96,
-    95
+    process.env.NFT_CREATION_FEE,
+    process.env.ASSET_CREATION_FEE,
+    process.env.SHUFFLING_FEE,
+    process.env.CHAT_FEE,
+    process.env.REGULAR_TRANSACTION_FEE
 );

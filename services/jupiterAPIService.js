@@ -248,55 +248,6 @@ class JupiterAPIService {
     }
 
 
-    async postMetisMessage(fromJupiterProperties, toJupiterProperties, message, subtype, encipher= true, feeNQT , isPrunable = false) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## postSimpleMessage()`);
-        logger.verbose('#####################################################################################');
-
-        let params = {}
-
-        if(isPrunable){
-            params.encryptedMessageIsPrunable = 'true';
-        }
-
-        if(encipher){
-            params.messageToEncrypt = message;
-        } else {
-            params.message = message;
-        }
-
-        if(!fromJupiterProperties.passphrase){
-            throw new Error('Passphrase cannot be empty');
-        }
-
-        return new Promise( (resolve, reject) => {
-            this.post( {
-                ...params,
-                ...{
-                    requestType: 'sendMetisMessage',
-                    secretPhrase: fromJupiterProperties.passphrase,
-                    recipient: toJupiterProperties.address,
-                    recipientPublicKey: toJupiterProperties.publicKey,
-                    feeNQT: feeNQT,
-                    deadline: this.appProps.deadline
-                }
-            })
-                .then((response) => {
-                    logger.debug(`then()`);
-                    if (response.data.broadcasted && response.data.broadcasted === true) {
-                        return resolve(response);
-                    }
-                    logger.error(`then(error)`);
-                    return reject({errorType: 'responseValueNotAsExpected', message: response});
-                })
-                .catch( error  => {
-                    logger.error(`error()`);
-                    return reject({errorType: 'requestError', message: error});
-                });
-        })
-    }
-
-
     /**
      *
      * @param {JupiterAccountProperties} toJupiterProperties
