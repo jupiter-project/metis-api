@@ -41,7 +41,10 @@ class JupiterAccountService {
                     const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
                     // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
-                    this.jupiterAPIService.postEncipheredMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord)
+
+                    this.jupiterAPIService.postMetisMessage();
+
+                    this.jupiterAPIService.postEncipheredMessage(   metisUsersTableProperties, accountProperties, encryptedUserRecord)
                         .then(response => {
                             logger.verbose('----------------------------------------');
                             logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).postEncipheredMessage().then(response)`);

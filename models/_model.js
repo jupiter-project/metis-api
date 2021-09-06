@@ -5,6 +5,7 @@ import validate from './_validations';
 import {gravityCLIReporter} from "../gravity/gravityCLIReporter";
 import _ from "lodash";
 import User from "./user.js";
+import {FeeManager} from "../services/FeeManager";
 
 const logger = require('../utils/logger')(module);
 
@@ -437,8 +438,12 @@ class Model {
 
             if (self.prunableOnCreate) {
 
+              const fee = FeeManager.getFee(FeeManager.feeTypes.account_record);
+              const typeSubType = FeeManager.getTypeSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+
+
               logger.info('Record is prunable');
-              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true`;
+              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&subtype=${typeSubType.subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true`;
             } else {
 
               callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;

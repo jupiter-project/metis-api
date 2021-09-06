@@ -53,7 +53,7 @@ class Message extends Model {
         tableData.password,
       );
 
-      const fee = feeManagerSingleton.getFee('account_record');
+      const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
       const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
       axios.post(callUrl)
         .then((response) => {
