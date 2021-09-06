@@ -9,17 +9,14 @@ const logger = require('../utils/logger')(module);
 // NFT Creation = 50 JUP
 
 
-
-
-
 class FeeManager {
 
     constructor( accountRecordFee, nftCreationFee, assetCreationFee, shufflingFee, chatFee, regularTransactionFee   ) {
         this.fees = [];
-        this.fees.push({feeType: FeeManager.feeTypes.nft_creation, fee: nftCreationFee})
-        this.fees.push({feeType: FeeManager.feeTypes.asset_creation, fee: assetCreationFee})
-        this.fees.push({feeType: FeeManager.feeTypes.shuffling, fee: shufflingFee})
-        this.fees.push({feeType: FeeManager.feeTypes.chat, fee: chatFee})
+        this.fees.push({feeType: FeeManager.feeTypes.nft_creation, fee: nftCreationFee, subtype: 1, type: 1 })
+        this.fees.push({feeType: FeeManager.feeTypes.asset_creation, fee: assetCreationFee, subtype: 1, type:1})
+        this.fees.push({feeType: FeeManager.feeTypes.shuffling, fee: shufflingFee, type: 1, subtype:1})
+        this.fees.push({feeType: FeeManager.feeTypes.chat, fee: chatFee,  type: 1, subtype:1})
         this.fees.push({feeType: FeeManager.feeTypes.regular_transaction, fee: regularTransactionFee})
         this.fees.push({feeType: FeeManager.feeTypes.account_record, fee: accountRecordFee})
     }
@@ -34,12 +31,23 @@ class FeeManager {
         'account_record': 'account_record'
     }
 
+    //// Data, JIM, IO = 0.00007 JUP (~2400 JUP per GB of data)
+    getStorageFee(feeType, fileSize){
+        return 100;
+    }
+
+
+    getFeeByTypeSubType(type, subtype){
+
+    }
+
     /**
      *
      * @param feeType
      * @returns {*}
      */
     getFee(feeType){
+
         const fees =  this.fees.filter( fee => { return  feeType ===  fee.feeType})
         if(fees.length > 0){
             return fees[0]
@@ -48,14 +56,29 @@ class FeeManager {
         throw new Error('Fee doesnt exist');
     }
 
+    getTransactionType(feeType){
+        const typeSubType =  this.fees.reduce( (reducer, fee) => {
+            if(feeType ===  fee.feeType){
+                return reducer.push({ type: fee.type, subtype: fee.subtype});
+            }
+            return reducer;
+        }, [])
+
+        if(typeSubType.length < 1){
+            throw new Error('Type doesnt exist');
+        }
+
+        return typeSubType
+    }
+
 }
 
 module.exports.FeeManager = FeeManager;
 module.exports.feeManagerSingleton = new FeeManager(
     process.env.ACCOUNT_RECORD_FEE,
-    99,
-    98,
-    97,
-    96,
-    95
+    process.env.NFT_CREATION_FEE,
+    process.env.ASSET_CREATION_FEE,
+    process.env.SHUFFLING_FEE,
+    process.env.CHAT_FEE,
+    process.env.REGULAR_TRANSACTION_FEE
 );

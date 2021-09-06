@@ -247,6 +247,7 @@ class JupiterAPIService {
         return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
     }
 
+
     /**
      *
      * @param {JupiterAccountProperties} toJupiterProperties

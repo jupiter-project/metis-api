@@ -1,4 +1,3 @@
-import {feeManagerSingleton, FeeManager} from './FeeManager';
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const logger = require('../utils/logger')(module);
 
@@ -42,6 +41,8 @@ class JupiterAccountService {
                     const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
                     // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
+
+                    // this.jupiterAPIService.postMetisMessage();
 
                     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
                     // Transaction fee 0.000001 JUP less than minimum fee 0.000150 JUP at height 247689'
