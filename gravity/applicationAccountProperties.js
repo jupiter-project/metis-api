@@ -1,7 +1,7 @@
 const logger = require('../utils/logger')(module);
 
 /**
- *
+ * @TODO this class is obsolete. We should use the FeeManager.
  */
 class ApplicationAccountProperties {
     /**
@@ -14,7 +14,7 @@ class ApplicationAccountProperties {
      * @param minimumAppBalance
      * @param moneyDecimals
      */
-    constructor(deadline, standardFeeNQT, accountCreationFeeNQT,  transferFeeNQT, minimumTableBalance, minimumAppBalance, moneyDecimals) {
+    constructor(deadline, standardFeeNQT, accountCreationFeeNQT, transferFeeNQT, minimumTableBalance, minimumAppBalance, moneyDecimals) {
         this.deadline = deadline;
         this.minimumTableBalance = minimumTableBalance;
         this.minimumAppBalance = minimumAppBalance;
@@ -23,21 +23,16 @@ class ApplicationAccountProperties {
         this.feeNQT = standardFeeNQT;
         this.standardFeeNQT = standardFeeNQT;
         this.accountCreationFeeNQT = accountCreationFeeNQT;
-
-        logger.debug(`accountCreationFeeNQT= ${accountCreationFeeNQT}`);
     }
 }
 
 module.exports.ApplicationAccountProperties = ApplicationAccountProperties;
-
-const TRANSFER_FEE = 100
-const ACCOUNT_CREATION_FEE = 750; // 500 + 250
-const STANDARD_FEE = 500;
-const MINIMUM_TABLE_BALANCE = 50000
-const MINIMUM_APP_BALANCE = 100000
-const MONEY_DECIMALS = 8;
-const DEADLINE = 60;
-
 module.exports.applicationAccountProperties = new ApplicationAccountProperties(
-    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE,  TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS
+    process.env.JUPITER_DEADLINE,
+    process.env.JUPITER_FEE_NQT,
+    process.env.USER_ACCOUNT_CREATION_FEE,
+    process.env.TRANSFER_FEE,
+    process.env.JUPITER_MININUM_TABLE_BALANCE,
+    process.env.JUPITER_MINIMUM_APP_BALANCE,
+    process.env.JUPITER_MONEY_DECIMALS
 );
