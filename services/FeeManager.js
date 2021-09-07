@@ -11,16 +11,17 @@ const logger = require('../utils/logger')(module);
 
 class FeeManager {
 
-    constructor( accountInfoFee, nftCreationFee, assetCreationFee, shufflingFee, chatFee, regularTransactionFee, invitationToChannelFee, metisChannelMemberFee   ) {
+    constructor( accountInfoFee, nftCreationFee, assetCreationFee, shufflingFee, chatFee, regularTransactionFee, invitationToChannelFee, metisChannelMemberFee, table_account_record   ) {
         this.fees = [];
-        this.fees.push({feeType: FeeManager.feeTypes.nft_creation, fee: nftCreationFee, subtype: 1, type: 1 })
-        this.fees.push({feeType: FeeManager.feeTypes.asset_creation, fee: assetCreationFee, subtype: 1, type:1})
-        this.fees.push({feeType: FeeManager.feeTypes.shuffling, fee: shufflingFee, type: 1, subtype:1})
-        this.fees.push({feeType: FeeManager.feeTypes.chat, fee: chatFee,  type: 1, subtype: FeeManager.typeOneSubtypes.metisMessage})
-        this.fees.push({feeType: FeeManager.feeTypes.regular_transaction, fee: regularTransactionFee})
-        this.fees.push({feeType: FeeManager.feeTypes.account_record, fee: accountInfoFee, type: 1, subtype: FeeManager.typeOneSubtypes.accountInfo})
-        this.fees.push({feeType: FeeManager.feeTypes.invitation_to_channel, fee: invitationToChannelFee, type: 1, subtype: FeeManager.typeOneSubtypes.metisChannelInvitation})
+        this.fees.push({feeType: FeeManager.feeTypes.nft_creation, fee: nftCreationFee, subtype: 1, type: 1 });
+        this.fees.push({feeType: FeeManager.feeTypes.asset_creation, fee: assetCreationFee, subtype: 1, type:1});
+        this.fees.push({feeType: FeeManager.feeTypes.shuffling, fee: shufflingFee, type: 1, subtype:1});
+        this.fees.push({feeType: FeeManager.feeTypes.chat, fee: chatFee,  type: 1, subtype: FeeManager.typeOneSubtypes.metisMessage});
+        this.fees.push({feeType: FeeManager.feeTypes.regular_transaction, fee: regularTransactionFee});
+        this.fees.push({feeType: FeeManager.feeTypes.account_record, fee: accountInfoFee, type: 1, subtype: FeeManager.typeOneSubtypes.accountInfo});
+        this.fees.push({feeType: FeeManager.feeTypes.invitation_to_channel, fee: invitationToChannelFee, type: 1, subtype: FeeManager.typeOneSubtypes.metisChannelInvitation});
         this.fees.push({feeType: FeeManager.feeTypes.accept_channel_invitation, fee: metisChannelMemberFee, type:1, subtype: FeeManager.typeOneSubtypes.metisChannelMember});
+        this.fees.push({feeType: FeeManager.feeTypes.table_account_record, fee: table_account_record});
     }
 
     static feeTypes = {
@@ -33,7 +34,8 @@ class FeeManager {
         'account_info': 'account_info',
         'account_record': 'account_info',
         'invitation_to_channel': 'invitation_to_channel',
-        'accept_channel_invitation': 'accept_channel_invitation'
+        'accept_channel_invitation': 'accept_channel_invitation',
+        'table_account_record': 'table_account_record',
     }
 
 
@@ -108,7 +110,8 @@ module.exports.feeManagerSingleton = new FeeManager(
     process.env.CHAT_FEE,
     process.env.REGULAR_TRANSACTION_FEE,
     process.env.INVITATION_TO_CHANNEL_FEE,
-    process.env.METIS_CHANNEL_MEMBER_FEE
+    process.env.METIS_CHANNEL_MEMBER_FEE,
+    process.env.TABLE_ACCOUNT_RECORD,
 );
 
 

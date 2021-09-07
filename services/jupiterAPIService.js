@@ -19,13 +19,13 @@ class JupiterAPIService {
      * @param {object} givenParams
      * @returns {string}
      */
-    jupiterUrl(givenParams) {
-        const params = givenParams;
-        const url = `${this.jupiterHost}/nxt?`;
-        const query = queryString.stringify(params);
+  jupiterUrl(givenParams) {
+    const params = givenParams;
+    const url = `${this.jupiterHost}/nxt?`;
+    const query = queryString.stringify(params);
 
-        return url + query
-    }
+    return url + query;
+}
 
     /**
      *
@@ -36,7 +36,7 @@ class JupiterAPIService {
      */
     async jupiterRequest(rtype, params, data = {}) {
         const url = this.jupiterUrl(params);
-        // logger.sensitive(`jupiterRequest > url= ${url}`);
+        logger.sensitive(`jupiterRequest > url= ${url}`);
         return new Promise((resolve, reject) => {
             axios({url: url, method: rtype, data: data})
                 .then(response => {
@@ -248,6 +248,15 @@ class JupiterAPIService {
     }
 
 
+    async postEncipheredMetisMessage(fromJupiterProperties, toJupiterProperties, message, feeNQT = this.appProps.feeNQT, subtype) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## postEncipheredMessage()`);
+        logger.verbose('#####################################################################################');
+        const isPrunable = false;
+        const encipher = true;
+        return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable, subtype );
+    }
+
     /**
      *
      * @param {JupiterAccountProperties} toJupiterProperties
@@ -257,7 +266,7 @@ class JupiterAPIService {
      * @param {string} feeNQT
      * @returns {Promise<*>}
      */
-    async postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher= true, feeNQT = this.appProps.feeNQT, isPrunable = false) {
+    async postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher= true, feeNQT = this.appProps.feeNQT, isPrunable = false, subtype) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## postSimpleMessage()`);
         logger.verbose('#####################################################################################');
@@ -274,6 +283,10 @@ class JupiterAPIService {
             params.message = message;
         }
 
+        if(subtype){
+            params.subtype = subtype;
+        }
+
         if(!fromJupiterProperties.passphrase){
             throw new Error('Passphrase cannot be empty');
         }
@@ -282,7 +295,7 @@ class JupiterAPIService {
             this.post( {
                 ...params,
                 ...{
-                    requestType: 'sendMessage',
+                    requestType: 'sendMetisMessage',
                     secretPhrase: fromJupiterProperties.passphrase,
                     recipient: toJupiterProperties.address,
                     recipientPublicKey: toJupiterProperties.publicKey,
