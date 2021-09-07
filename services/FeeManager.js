@@ -120,7 +120,7 @@ class FeeManager {
 
     }
 
-    static FeeTypes = {
+    static feeTypes = {
         'nft_creation': 'nft_creation',
         'asset_creation': 'asset_creation',
         'shuffling': 'shuffling',

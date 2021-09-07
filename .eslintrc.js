@@ -1,4 +1,4 @@
-module.exports = { 
+module.exports = {
     "env": {
         "browser":true,
         "node": true,
@@ -8,6 +8,7 @@ module.exports = {
     "parser":"babel-eslint",
     "extends": "airbnb",
     "rules": {
+        "max-len": 120,
         "no-console" : "off",
         "global-require" : "off",
         "import/no-dynamic-require" : "off",
