@@ -438,8 +438,8 @@ class Model {
 
             if (self.prunableOnCreate) {
 
-              const fee = FeeManager.getFee(FeeManager.feeTypes.account_record);
-              const typeSubType = FeeManager.getTypeSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+              const fee = FeeManager.getFee(FeeManager.FeeTypes.account_record);
+              const typeSubType = FeeManager.getTypeSubType(FeeManager.FeeTypes.account_record); //{type:1, subtype:12}
 
 
               logger.info('Record is prunable');
