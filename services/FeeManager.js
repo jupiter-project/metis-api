@@ -10,7 +10,6 @@ const logger = require('../utils/logger')(module);
 // Asset Creation = 50 JUP
 // NFT Creation = 50 JUP
 
-
 class FeeManager {
 
     constructor(
@@ -27,97 +26,107 @@ class FeeManager {
         accountPropertyFee,
         accountPropertyDeletionFee,
         newUserFundingFee,
-        newTableFundingFee
+        newTableFundingFee,
+        accountRecordFee
     ) {
         this.fees = [];
         this.fees.push({
-            feeType: FeeManager.FeeTypes.nft_creation,
+            feeType: FeeManager.feeTypes.nft_creation,
             fee: nftCreationFee,
             type: 99,
             subtype: 99
         })
         this.fees.push({
-            feeType: FeeManager.FeeTypes.asset_creation,
+            feeType: FeeManager.feeTypes.asset_creation,
             fee: assetCreationFee,
             type: 99,
             subtype: 99
         })
         this.fees.push({
-            feeType: FeeManager.FeeTypes.shuffling,
+            feeType: FeeManager.feeTypes.shuffling,
             fee: shufflingFee,
             type: 99,
             subtype: 99
         })
         this.fees.push({
-            feeType: FeeManager.FeeTypes.chat,
+            feeType: FeeManager.feeTypes.chat,
             fee: chatFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
         })
         this.fees.push({
-            feeType: FeeManager.FeeTypes.regular_transaction,
+            feeType: FeeManager.feeTypes.regular_transaction,
             fee: regularTransactionFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
         })
+
+
         this.fees.push({
-            feeType: FeeManager.FeeTypes.account_record,
+            feeType: FeeManager.feeTypes.account_record,
+            fee: accountRecordFee,
+            type: FeeManager.TransactionTypes.messaging_voting_aliases,
+            subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
+        })
+
+
+        this.fees.push({
+            feeType: FeeManager.feeTypes.account_info,
             fee: accountInfoFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
         })
+
         this.fees.push({
-            feeType: FeeManager.FeeTypes.invitation_to_channel,
+            feeType: FeeManager.feeTypes.invitation_to_channel,
             fee: invitationToChannelFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelInvitation
         })
         this.fees.push({
-            feeType: FeeManager.FeeTypes.accept_channel_invitation,
+            feeType: FeeManager.feeTypes.accept_channel_invitation,
             fee: metisChannelMemberFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelMember
         });
         this.fees.push({
-            feeType: FeeManager.FeeTypes.arbitrary_message,
+            feeType: FeeManager.feeTypes.arbitrary_message,
             fee: arbitraryMessageFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
         });
         this.fees.push({
-            feeType: FeeManager.FeeTypes.alias_assignment,
+            feeType: FeeManager.feeTypes.alias_assignment,
             fee: aliasAssigmentFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.aliasAssignment
         });
         this.fees.push({
-            feeType: FeeManager.FeeTypes.account_property,
+            feeType: FeeManager.feeTypes.account_property,
             fee: accountPropertyFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.accountProperty
         });
         this.fees.push({
-            feeType: FeeManager.FeeTypes.account_property_deletion,
+            feeType: FeeManager.feeTypes.account_property_deletion,
             fee: accountPropertyDeletionFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.accountPropertyDeletion
         });
 
         this.fees.push({
-            feeType: FeeManager.FeeTypes.new_user_funding,
+            feeType: FeeManager.feeTypes.new_user_funding,
             fee: newUserFundingFee,
             type: FeeManager.TransactionTypes.payment,
             subtype: 0 // Ordinary Payment
         });
 
         this.fees.push({
-            feeType: FeeManager.FeeTypes.new_table_funding,
+            feeType: FeeManager.feeTypes.new_table_funding,
             fee: newTableFundingFee,
             type: FeeManager.TransactionTypes.payment,
             subtype: 0 // Ordinary Payment
         });
-
-
     }
 
     static feeTypes = {
@@ -128,7 +137,7 @@ class FeeManager {
         'storage': 'storage',
         'regular_transaction': 'regular_transaction',
         'account_info': 'account_info',
-        'account_record': 'account_info',
+        'account_record': 'account_record',
         'invitation_to_channel': 'invitation_to_channel',
         'accept_channel_invitation': 'accept_channel_invitation',
         'arbitrary_message': 'arbitrary_message', //subtype 0
@@ -214,6 +223,22 @@ class FeeManager {
 }
 
 module.exports.FeeManager = FeeManager;
+
+// accountInfoFee,
+//     nftCreationFee,
+//     assetCreationFee,
+//     shufflingFee,
+//     chatFee,
+//     regularTransactionFee,
+//     invitationToChannelFee,
+//     metisChannelMemberFee,
+//     arbitraryMessageFee,
+//     aliasAssigmentFee,
+//     accountPropertyFee,
+//     accountPropertyDeletionFee,
+//     newUserFundingFee,
+//     newTableFundingFee,
+//     accountRecordFee
 module.exports.feeManagerSingleton = new FeeManager(
     process.env.ACCOUNT_INFO_FEE,
     process.env.NFT_CREATION_FEE,
@@ -227,8 +252,7 @@ module.exports.feeManagerSingleton = new FeeManager(
     process.env.ALIAS_ASSIGNMENT_FEE,
     process.env.ACCOUNT_PROPERTY_FEE,
     process.env.ACCOUNT_PROPERTY_DELETION_FEE,
-    process.env.NEW_USER_FUNDING,
-    process.env.NEW_TABLE_FUNDING
+    process.env.NEW_USER_FUNDING_FEE,
+    process.env.NEW_TABLE_FUNDING_FEE,
+    process.env.ACCOUNT_RECORD_FEE
 );
-
-

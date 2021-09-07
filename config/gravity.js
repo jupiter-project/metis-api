@@ -1,3 +1,5 @@
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
 require('dotenv').config();
 const axios = require('axios');
 const crypto = require('crypto');
@@ -7,6 +9,7 @@ const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
 const AccountRegistration  = require('../config/accountRegistration');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
+
 
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 
@@ -18,11 +21,11 @@ class Gravity {
     this.version = process.env.VERSION;
     this.jupiter_data = {
       server: process.env.JUPITERSERVER,
-      feeNQT: 500,
-      deadline: 60,
-      minimumTableBalance: 50000,
-      minimumAppBalance: 100000,
-      moneyDecimals: 8,
+      feeNQT: feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction), // was hardcoded 500
+      deadline: process.env.JUPITER_DEADLINE, //60
+      minimumTableBalance: fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table),  //was hardcoded 50000,
+      minimumAppBalance: fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user),   // was hard coded 100000,
+      moneyDecimals:  process.env.JUPITER_MONEY_DECIMALS,  // was hardcoded 8,
       version: process.env.VERSION,
     };
     this.generate_passphrase = methods.generate_passphrase;

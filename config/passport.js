@@ -4,13 +4,16 @@ import User from '../models/user';
 import RegistrationWorker from '../workers/registration';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 
-import { ApplicationAccountProperties } from '../gravity/applicationAccountProperties';
-import { GravityAccountProperties } from '../gravity/gravityAccountProperties';
-import { JupiterFundingService } from '../services/jupiterFundingService';
-import { JupiterAccountService } from '../services/jupiterAccountService';
-import { TableService } from '../services/tableService';
-import { JupiterTransactionsService } from '../services/jupiterTransactionsService';
-import { FundingNotConfirmedError } from '../errors/metisError';
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {JupiterFundingService} from "../services/jupiterFundingService";
+import {JupiterAccountService} from "../services/jupiterAccountService";
+import {TableService} from "../services/tableService";
+import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {FundingNotConfirmedError} from "../errors/metisError";
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
+import {add} from "lodash";
 
 const { JupiterAPIService } = require('../services/jupiterAPIService');
 const { AccountRegistration } = require('./accountRegistration');
@@ -84,6 +87,7 @@ const metisRegistration = async (account, requestBody) => {
   logger.verbose('#####################################################################################');
   logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
 
+
   const applicationGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
     process.env.APP_ACCOUNT_ID,
@@ -97,14 +101,15 @@ const metisRegistration = async (account, requestBody) => {
     '', // lastname
   );
 
-  const TRANSFER_FEE = 100;
-  const ACCOUNT_CREATION_FEE = 750;
-  const STANDARD_FEE = 500;
-  const MINIMUM_TABLE_BALANCE = 500000;
-  const MINIMUM_APP_BALANCE = 100000;
-  const MONEY_DECIMALS = 8;
-  const DEADLINE = 60;
+  const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding); //@TODO break this into user and table funding fee.
+  const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+  const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);;
+  const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+  const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+  const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+  const DEADLINE = process.env.JUPITER_DEADLINE;
 
+  //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
   const appAccountProperties = new ApplicationAccountProperties(
     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
   );
