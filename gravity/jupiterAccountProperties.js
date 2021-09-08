@@ -15,9 +15,9 @@ class JupiterAccountProperties {
      * @param {string} email
      * @param {string} firstName
      * @param {string} lastName
-     * @param alias
-     * @param twofactorAuthenticationEnabled
-     * @param twofactorAuthenticationcompleted
+     * @param {string} alias
+     * @param {boolean} twofactorAuthenticationEnabled
+     * @param {boolean} twofactorAuthenticationcompleted
      */
     constructor(address,
                 accountId,
@@ -31,9 +31,22 @@ class JupiterAccountProperties {
                 twofactorAuthenticationcompleted = false
     ) {
 
+        if(!gu.isWellFormedPublicKey(publicKey)){
+            throw new Error('public key is not valid');
+        }
+
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error('address key is not valid');
+        }
+
+        if(!gu.isWellFormedPassphrase(passphrase)){
+            throw new Error('passphrase key is not valid');
+        }
+
+
         this.address = address;
         this.accountId = accountId;
-        this.publicKey = gu.isWellFormedPublicKey(publicKey);
+        this.publicKey = publicKey;
         this.passphrase = passphrase;
         this.email = email;
         this.firstName = firstName;

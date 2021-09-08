@@ -1,4 +1,5 @@
 import gu from "../utils/gravityUtils";
+import {request} from "express";
 const logger = require('../utils/logger')(module);
 const axios = require('axios');
 const queryString = require('query-string');
@@ -207,102 +208,225 @@ class JupiterAPIService {
     }
 
 
+
+
+    async sendSimpleNonEncipheredMessage(from, to, message, fee, prunable) {
+        return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMessage', from, to, message, fee, prunable, null)
+    }
+
+
+    async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, prunable, subtype) {
+        return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, prunable, subtype)
+    }
+
+
+
+
+
     /**
-     *
-     * @param {JupiterAccountProperties} fromJupiterProperties
-     * @param {JupiterAccountProperties} toJupiterProperties
+     * sends an enciphered, non-prunable , compressed message*
+     * @param {GravityAccountProperties} from
+     * @param {GravityAccountProperties} to
      * @param {string} message
-     * @param {boolean} encipher
-     * @param {string} feeNQT
-     * @returns {Promise<*>}
+     * @param {number} fee
+     * @param {boolean} prunable
+     * @returns {Promise<unknown>}
      */
-    async sendMessage(fromJupiterProperties, toJupiterProperties,  message, encipher= true, feeNQT = this.appProps.feeNQT) {
-        return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT);
+    async sendSimpleNonEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, prunable, subtype) {
+
+        if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){ throw new Error('invalid request type') }
+
+        if(requestType == 'sendMetisMessage' && !subtype) {
+            throw new Error('subtype is invalid');
+        }
+
+        return this.sendMetisMessageOrMessage(
+            requestType,
+            to.address,
+            to.publicKey,
+            from.passphrase,
+            from.publicKey,
+            fee,
+            this.appProps.deadline,
+            null,
+            null,
+            message,
+            true,
+            prunable,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            subtype
+        )
     }
 
 
     /**
+     * sends an enciphered, non-prunable , compressed message*
+     * @param {GravityAccountProperties} from
+     * @param {GravityAccountProperties} to
+     * @param {string} message
+     * @param {number} fee
+     * @param {boolean} prunable
+     * @returns {Promise<unknown>}
+     */
+    async sendSimpleEncipheredMessage(from, to, message, fee, prunable) {
+        return this.sendSimpleEncipheredMessageOrMetisMessage('sendMessage', from, to, message, fee, prunable, null)
+    }
+
+    /**
      *
-     * @param toJupiterProperties
-     * @param fromJupiterProperties
+     * @param from
+     * @param to
      * @param message
-     * @param feeNQT
+     * @param fee
+     * @param prunable
+     * @param subtype
      * @returns {Promise<*>}
      */
-    async postEncipheredPrunableMessage(fromJupiterProperties, toJupiterProperties,message, feeNQT = this.appProps.feeNQT) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## postEncipheredPrunableMessage()`);
-        logger.verbose('#####################################################################################');
-        const isPrunable = true;
-        const encipher = true;
-        return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
-    }
-
-    async postEncipheredMessage(fromJupiterProperties, toJupiterProperties, message, feeNQT = this.appProps.feeNQT) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## postEncipheredMessage()`);
-        logger.verbose('#####################################################################################');
-        const isPrunable = false;
-        const encipher = true;
-        return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable )
+    async sendSimpleEncipheredMetisMessage(from, to, message, fee, prunable, subtype) {
+        return this.sendSimpleEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, prunable, subtype)
     }
 
 
-    async postEncipheredMetisMessage(fromJupiterProperties, toJupiterProperties, message, feeNQT = this.appProps.feeNQT, subtype) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## postEncipheredMessage()`);
-        logger.verbose('#####################################################################################');
-        const isPrunable = false;
-        const encipher = true;
-        return this.postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher, feeNQT, isPrunable, subtype );
+    async sendSimpleEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, prunable, subtype) {
+
+        if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){ throw new Error('invalid request type') }
+
+        if(requestType == 'sendMetisMessage' && !subtype) {
+            throw new Error('subtype is invalid');
+        }
+
+        return this.sendMetisMessageOrMessage(
+            requestType,
+            to.address,
+            to.publicKey,
+            from.passphrase,
+            from.publicKey,
+            fee,
+            this.appProps.deadline,
+            null,
+            null,
+            null,
+            null,
+            null,
+            message,
+            true,
+            null,
+            null,
+            prunable,
+            true,
+            null,
+            null,
+            null,
+            null,
+            null,
+            subtype
+        )
     }
 
     /**
      *
-     * @param {JupiterAccountProperties} toJupiterProperties
-     * @param {JupiterAccountProperties} fromJupiterProperties
+     * @param {string} recipient
+     * @param {string} recipientPublicKey
+     * @param {string} secretPhrase
+     * @param {string} publicKey
+     * @param {number} feeNQT
+     * @param {number} deadline
+     * @param {string} referencedTransactionFullHash
+     * @param {string} broadcast
      * @param {string} message
-     * @param {boolean} encipher
-     * @param {string} feeNQT
-     * @returns {Promise<*>}
+     * @param {boolean} messageIsText
+     * @param {boolean} messageIsPrunable
+     * @param {string} messageToEncrypt
+     * @param {boolean} messageToEncryptIsText
+     * @param {string} encryptedMessageData
+     * @param {string} encryptedMessageNonce
+     * @param {boolean} encryptedMessageIsPrunable
+     * @param {string} compressMessageToEncrypt
+     * @param {string} messageToEncryptToSelf
+     * @param {boolean} messageToEncryptToSelfIsText
+     * @param {string} encryptToSelfMessageData
+     * @param {string} encryptToSelfMessageNonce
+     * @param {boolean} compressMessageToEncryptToSelf
+     * @returns {Promise<unknown>}
      */
-    async postSimpleMessage(fromJupiterProperties, toJupiterProperties, message, encipher= true, feeNQT = this.appProps.feeNQT, isPrunable = false, subtype) {
+    async sendMetisMessageOrMessage(
+        requestType,
+        recipient,
+        recipientPublicKey,
+        secretPhrase,
+        publicKey,
+        feeNQT,
+        deadline,
+        referencedTransactionFullHash,
+        broadcast,
+        message,
+        messageIsText,
+        messageIsPrunable,
+        messageToEncrypt,
+        messageToEncryptIsText,
+        encryptedMessageData,
+        encryptedMessageNonce,
+        encryptedMessageIsPrunable,
+        compressMessageToEncrypt,
+        messageToEncryptToSelf,
+        messageToEncryptToSelfIsText,
+        encryptToSelfMessageData,
+        encryptToSelfMessageNonce,
+        compressMessageToEncryptToSelf,
+        subtype
+    ) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## postSimpleMessage()`);
+        logger.verbose(`## sendMessage( recipient: ${recipient}, feeNQT: ${feeNQT} )`);
         logger.verbose('#####################################################################################');
 
         let params = {}
 
-        if(isPrunable){
-            params.encryptedMessageIsPrunable = 'true';
-        }
-
-        if(encipher){
-            params.messageToEncrypt = message;
+        if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){
+            throw new Error('invalid request type')
         } else {
-            params.message = message;
+            params.requestType = requestType;
+        }
+        if(requestType == 'sendMetisMessage' && !subtype) {
+            throw new Error('subtype is invalid');
+        } else {
+            params.subtype = subtype
         }
 
-        if(subtype){
-            params.subtype = subtype;
-        }
-
-        if(!fromJupiterProperties.passphrase){
-            throw new Error('Passphrase cannot be empty');
-        }
+        if(recipient){ params.recipient = recipient } else { throw new Error('recipient is required') }
+        if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey } else { throw new Error('recipientPublicKey is required')}
+        if(secretPhrase){ params.secretPhrase = secretPhrase } else { throw new Error('secretPhrase is required')}
+        if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
+        if(feeNQT){ params.feeNQT = feeNQT } else { throw new Error('feeNQT is required')}
+        if(deadline){ params.deadline = deadline } else { throw new Error('deadline is required')}
+        if(referencedTransactionFullHash){ params.referencedTransactionFullHash = referencedTransactionFullHash }
+        if(broadcast){ params.broadcast = broadcast }
+        if(message){ params.message = message }
+        if(messageIsText || messageIsText === 'true'){ params.messageIsText = 'true'}
+        if(messageIsPrunable){ params.messageIsPrunable = 'true'}
+        if(messageToEncrypt){ params.messageToEncrypt = messageToEncrypt}
+        if(messageToEncryptIsText){ params.messageToEncryptIsText = 'true'}
+        if(encryptedMessageData){ params.encryptedMessageData = encryptedMessageData}
+        if(encryptedMessageNonce){ params.encryptedMessageNonce = encryptedMessageNonce}
+        if(encryptedMessageIsPrunable || encryptedMessageIsPrunable === 'true'){ params.encryptedMessageIsPrunable = 'true'}
+        if(compressMessageToEncrypt || compressMessageToEncrypt == 'true' ){ params.compressMessageToEncrypt = 'true'}
+        if(messageToEncryptToSelf){ params.messageToEncryptToSelf = messageToEncryptToSelf }
+        if(messageToEncryptToSelfIsText){ params.messageToEncryptToSelfIsText = 'true'}
+        if(encryptToSelfMessageData){ params.encryptToSelfMessageData = encryptToSelfMessageData}
+        if(encryptToSelfMessageNonce){ params.encryptToSelfMessageNonce = encryptToSelfMessageNonce}
+        if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ params.compressMessageToEncryptToSelf = 'true'}
 
         return new Promise( (resolve, reject) => {
-            this.post( {
-                ...params,
-                ...{
-                    requestType: 'sendMetisMessage',
-                    secretPhrase: fromJupiterProperties.passphrase,
-                    recipient: toJupiterProperties.address,
-                    recipientPublicKey: toJupiterProperties.publicKey,
-                    feeNQT: feeNQT,
-                    deadline: this.appProps.deadline
-                }
-            })
+            this.post(params)
                 .then((response) => {
                     logger.debug(`then()`);
                     if (response.data.broadcasted && response.data.broadcasted === true) {
@@ -317,6 +441,7 @@ class JupiterAPIService {
                 });
         })
     }
+
 
 
     /**
