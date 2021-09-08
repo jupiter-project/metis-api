@@ -24,6 +24,14 @@ class JupiterFundingService {
         this.feeNQT = parseInt(applicationProperties.feeNQT);
         // this.tableCreation = 750;
         this.tableCreation = parseInt(applicationProperties.accountCreationFeeNQT)
+
+
+
+        console.log('minuser', applicationProperties.minimumAppBalance)
+        console.log('mintable', applicationProperties.minimumTableBalance)
+        console.log('fee', applicationProperties.feeNQT)
+        console.log('acccreate', applicationProperties.accountCreationFeeNQT)
+
         this.defaultNewUserTransferAmount = parseInt(applicationProperties.minimumAppBalance) - parseInt(applicationProperties.feeNQT) - parseInt(applicationProperties.accountCreationFeeNQT)
         this.defaultNewTableTransferAmount = parseInt(applicationProperties.minimumTableBalance) - parseInt(applicationProperties.feeNQT) - parseInt(applicationProperties.accountCreationFeeNQT)
 

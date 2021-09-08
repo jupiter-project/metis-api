@@ -101,12 +101,11 @@ class GravityAccountProperties extends JupiterAccountProperties {
         }
     }
 
+
     generateUserRecord(generatingTransactionId) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## generateUserRecord()`);
         logger.verbose('#####################################################################################');
-        logger.error(`Need to confirm the api_key is correct!`)
-        logger.error(`Need to confirm the secret_key is correct!`)
 
         if(!generatingTransactionId){
             throw new Error('generatingTransactionId cannot be empty');

@@ -211,12 +211,14 @@ class JupiterAPIService {
 
 
     async sendSimpleNonEncipheredMessage(from, to, message, fee, prunable) {
-        return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMessage', from, to, message, fee, prunable, null)
+        return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMessage', from, to, message, fee, null, prunable)
     }
 
 
-    async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, prunable, subtype) {
-        return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, prunable, subtype)
+    async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
+        console.log('- - - - - ')
+        console.log(subtype);
+        return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, subtype, prunable)
     }
 
 
@@ -232,10 +234,11 @@ class JupiterAPIService {
      * @param {boolean} prunable
      * @returns {Promise<unknown>}
      */
-    async sendSimpleNonEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, prunable, subtype) {
+    async sendSimpleNonEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, subtype, prunable) {
 
         if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){ throw new Error('invalid request type') }
 
+        console.log(subtype)
         if(requestType == 'sendMetisMessage' && !subtype) {
             throw new Error('subtype is invalid');
         }
@@ -292,12 +295,12 @@ class JupiterAPIService {
      * @param subtype
      * @returns {Promise<*>}
      */
-    async sendSimpleEncipheredMetisMessage(from, to, message, fee, prunable, subtype) {
-        return this.sendSimpleEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, prunable, subtype)
+    async sendSimpleEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
+        return this.sendSimpleEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, subtype, prunable)
     }
 
 
-    async sendSimpleEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, prunable, subtype) {
+    async sendSimpleEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, subtype, prunable ) {
 
         if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){ throw new Error('invalid request type') }
 

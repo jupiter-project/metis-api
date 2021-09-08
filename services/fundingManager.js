@@ -36,7 +36,13 @@ class FundingManager {
         const fundAmount = this.funding.filter(fundAmount => {
             return fundingType === fundAmount.fundingType
         })
+
+        console.log(this.funding)
+
+        console.log(fundAmount)
+
         if (fundAmount.length > 0) {
+            console.log('amount', fundAmount[0].amount)
             return fundAmount[0].amount
         }
 

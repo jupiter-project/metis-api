@@ -109,6 +109,10 @@ const metisRegistration = async (account, requestBody) => {
   const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
   const DEADLINE = process.env.JUPITER_DEADLINE;
 
+  console.log('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
+  console.log('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
+
+
   //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
   const appAccountProperties = new ApplicationAccountProperties(
     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,

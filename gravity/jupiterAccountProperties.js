@@ -31,6 +31,7 @@ class JupiterAccountProperties {
                 twofactorAuthenticationcompleted = false
     ) {
 
+        //d7eb6f6854193941a7d45738e763331c28bd947956d7fe96b6b5969dea9af967
         if(!gu.isWellFormedPublicKey(publicKey)){
             throw new Error('public key is not valid');
         }

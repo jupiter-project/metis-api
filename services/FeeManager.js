@@ -216,7 +216,7 @@ class FeeManager {
     getTransactionType(feeType) {
         const typeSubType = this.fees.reduce((reducer, fee) => {
             if (feeType === fee.feeType) {
-                return reducer.push({type: fee.type, subtype: fee.subtype});
+                reducer.push({type: fee.type, subtype: fee.subtype});
             }
             return reducer;
         }, [])
@@ -225,7 +225,11 @@ class FeeManager {
             throw new Error('Type doesnt exist');
         }
 
-        return typeSubType
+        console.log(' $$$$$$$ ')
+        console.log(typeSubType);
+
+
+        return typeSubType[0]
     }
 
 }

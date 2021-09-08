@@ -1,5 +1,6 @@
 const {FeeManager, feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {fundingManagerSingleton} = require("./fundingManager");
 const logger = require('../utils/logger')(module);
 
 
@@ -31,7 +32,7 @@ class JupiterAccountService {
             this.generateId(accountProperties, metisUsersTableProperties)
                 .then(transactionId =>{
                     logger.verbose('----------------------------------------');
-                    logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
+                    logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
                     logger.verbose('----------------------------------------');
 
                     logger.debug(`transactionId= ${transactionId}`)
@@ -46,11 +47,15 @@ class JupiterAccountService {
                     // this.jupiterAPIService.postMetisMessage();
 
                     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+                    const transactionType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record);
+                    const subtype = transactionType.subtype;
+
+
                     // Transaction fee 0.000001 JUP less than minimum fee 0.000150 JUP at height 247689'
-                    this.jupiterAPIService.postEncipheredMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord, fee)
+                    this.jupiterAPIService.sendSimpleEncipheredMetisMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord,fee, subtype)
                         .then(response => {
                             logger.verbose('----------------------------------------');
-                            logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).postEncipheredMessage().then(response)`);
+                            logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).sendSimpleEncipheredMetisMessage().then(response)`);
                             logger.verbose('----------------------------------------');
                             // logger.sensitive(`response.data= ${response.data}`);
 
@@ -86,13 +91,21 @@ class JupiterAccountService {
         logger.verbose('## generateId()');
         logger.verbose('###########################################');
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+        const transactionType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record);
+        const subtype = transactionType.subtype;
         console.log('--------------------------', fee);
+        console.log(subtype)
         return new Promise((resolve, reject) => {
-            this.jupiterAPIService.postEncipheredMessage(
+
+
+            this.jupiterAPIService.sendSimpleNonEncipheredMetisMessage(
                 metisUsersTableProperties,
                 accountProperties,
                 'Generating Id for record',
-                fee)
+                fee,
+                subtype,
+                false
+                )
                 .then(response => {
                     return resolve(response.data.transaction);
                 })
