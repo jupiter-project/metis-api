@@ -37,7 +37,7 @@ class FundingManager {
             return fundingType === fundAmount.fundingType
         })
         if (fundAmount.length > 0) {
-            return fundAmount[0]
+            return fundAmount[0].amount
         }
 
         throw new Error('Funding doesnt exist');

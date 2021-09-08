@@ -1,3 +1,4 @@
+const {feeManagerSingleton} = require("./FeeManager");
 const {resolve} = require("path");
 const {reject} = require("lodash");
 const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
@@ -69,8 +70,8 @@ class JupiterFundingService {
 
     /**
      *
-     * @param fromJupiterAccount
-     * @param toJupiterAccount
+     * @param recipientProperties
+     * @param fee
      * @returns {Promise<unknown>}
      */
     async provideInitialStandardUserFunds(recipientProperties){
@@ -81,7 +82,7 @@ class JupiterFundingService {
         // const accountCreationFee = 750; // 500 + 250
         const initialAmount = this.defaultNewUserTransferAmount;
         console.log(initialAmount);
-        return this.transfer(this.applicationProperties, recipientProperties, initialAmount);
+        return this.transfer(this.applicationProperties, recipientProperties, initialAmount, this.applicationProperties.minimumTableBalance);
     }
 
 
@@ -100,9 +101,10 @@ class JupiterFundingService {
      * @param {GravityAccountProperties } senderProperties
      * @param {GravityAccountProperties} recipientProperties
      * @param {number} transferAmount
+     * @param {number} fee
      * @returns {Promise<unknown>}
      */
-     transfer(senderProperties, recipientProperties, transferAmount ) {
+     transfer(senderProperties, recipientProperties, transferAmount, fee = this.feeNQT ) {
         logger.verbose('#####################################################################################');
         logger.verbose(`transfer(senderProperties= ${!!senderProperties}, recipientProperties= ${!!recipientProperties}, transferAmount= ${transferAmount})`)
         logger.verbose('#####################################################################################');
@@ -121,7 +123,7 @@ class JupiterFundingService {
             throw new Error('sender missing');
         }
 
-        return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, transferAmount, this.feeNQT )
+        return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, transferAmount, fee )
     }
 
 

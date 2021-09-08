@@ -30,24 +30,24 @@ class FeeManager {
         accountRecordFee
     ) {
         this.fees = [];
-        this.fees.push({
-            feeType: FeeManager.feeTypes.nft_creation,
-            fee: nftCreationFee,
-            type: 99,
-            subtype: 99
-        })
-        this.fees.push({
-            feeType: FeeManager.feeTypes.asset_creation,
-            fee: assetCreationFee,
-            type: 99,
-            subtype: 99
-        })
-        this.fees.push({
-            feeType: FeeManager.feeTypes.shuffling,
-            fee: shufflingFee,
-            type: 99,
-            subtype: 99
-        })
+        // this.fees.push({
+        //     feeType: FeeManager.feeTypes.nft_creation,
+        //     fee: nftCreationFee,
+        //     type: 91,
+        //     subtype: 99
+        // })
+        // this.fees.push({
+        //     feeType: FeeManager.feeTypes.asset_creation,
+        //     fee: assetCreationFee,
+        //     type: 99,
+        //     subtype: 99
+        // })
+        // this.fees.push({
+        //     feeType: FeeManager.feeTypes.shuffling,
+        //     fee: shufflingFee,
+        //     type: 99,
+        //     subtype: 99
+        // })
         this.fees.push({
             feeType: FeeManager.feeTypes.chat,
             fee: chatFee,
@@ -69,6 +69,12 @@ class FeeManager {
             subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
         })
 
+        this.fees.push({
+            feeType: FeeManager.feeTypes.table_account_record,
+            fee: accountRecordFee,
+            type: FeeManager.TransactionTypes.messaging_voting_aliases,
+            subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
+        })
 
         this.fees.push({
             feeType: FeeManager.feeTypes.account_info,
@@ -145,7 +151,8 @@ class FeeManager {
         'account_property': 'account_property',
         'account_property_deletion': 'account_property_deletion',
         'new_user_funding':'new_user_funding',
-        'new_table_funding':'new_table_funding'
+        'new_table_funding':'new_table_funding',
+        'table_account_record':'table_account_record',
     }
 
     static TransactionTypes = {
@@ -199,7 +206,7 @@ class FeeManager {
             return feeType === fee.feeType
         })
         if (fees.length > 0) {
-            return fees[0]
+            return fees[0].fee // TODO this has to return the fee not the full object
         }
 
         throw new Error('Fee doesnt exist');

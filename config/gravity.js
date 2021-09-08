@@ -2015,7 +2015,7 @@ class Gravity {
     logger.verbose('#####################################################################################');
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
-    const feeNQT = 100;
+    const feeNQT = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
     const tableCreation = 750;
     let amount = transferAmount;
     const senderAddress = sender || process.env.APP_ACCOUNT;
@@ -2047,6 +2047,7 @@ class Gravity {
           }
 
           logger.error('Cannot send Jupiter to new account, Jupiter issuer has insufficient balance!');
+          logger.error(JSON.stringify(response.data));
           return reject({ error: true, data: response.data });
         })
         .catch(error => reject({ error: true, fullError: error }));
@@ -2470,7 +2471,9 @@ class Gravity {
 
         logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
 
-        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+
+        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
         logger.debug(`callurl= ${callUrl}`);
         let response;
         try {
@@ -2484,7 +2487,7 @@ class Gravity {
         if (response.data.broadcasted && !response.error) {
           logger.info(`Table ${tableName} pushed to the blockchain and linked to your account...`);
           // const recipientPublicKey = (database.publicKey | database.publicKey == 'undefined')? `&recipientPublicKey=${database.publicKey}`:''
-          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(this.jupiter_data.feeNQT / 2)}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(fee / 2)}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
           logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
           try {
             response = await axios.post(tableListUpdateUrl);

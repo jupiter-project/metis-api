@@ -103,7 +103,7 @@ const metisRegistration = async (account, requestBody) => {
 
   const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding); //@TODO break this into user and table funding fee.
   const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);;
+  const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
   const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
   const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
   const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
