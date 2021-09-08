@@ -66,7 +66,7 @@ class FeeManager {
             feeType: FeeManager.feeTypes.account_record,
             fee: accountRecordFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
-            subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
+            subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountInfo
         })
 
         this.fees.push({
@@ -178,7 +178,7 @@ class FeeManager {
         transactionApproval: 9,
         accountProperty: 10,
         accountPropertyDeletion: 11,
-        metisAccountInfo: 12,
+        metisAccountInfo: 12, // account_record
         metisChannelInvitation: 13,
         metisChannelMember: 14,
         metisMessage: 15
@@ -186,6 +186,7 @@ class FeeManager {
 
 
     //// Data, JIM, IO = 0.00007 JUP (~2400 JUP per GB of data)
+    //fyi, the cost to storage data with the current fees is around 2,28 jup/mb, 2400 jup/gb
     getStorageFee(feeType, fileSize) {
         return 100;
     }
