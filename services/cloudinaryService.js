@@ -41,14 +41,9 @@ module.exports = {
     res.send(profilePicture || null);
   },
   deleteProfilePicture: async (req, res) => {
-    const { accountData } = req.params;
-
-    if (!accountData) {
-      return res.status(400).json({ msg: 'Missing parameters required.' });
-    }
-
-    try {
-      const userAccount = JSON.parse(gravity.decrypt(accountData));
+    const { user } = req;
+    try {     
+      const userAccount = JSON.parse(gravity.decrypt(user.accountData));
       const addressBreakdown = userAccount.account.split('-');
       const accountPropertyParams = {
         recipient: userAccount.account,
