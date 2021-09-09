@@ -2131,6 +2131,7 @@ class Gravity {
       requestType: 'getAlias',
     });
 
+    logger.debug('Alias check up ' + JSON.stringify(aliasCheckup));
     if (
       aliasCheckup.errorDescription
       && aliasCheckup.errorDescription === 'Unknown alias'
@@ -2300,8 +2301,8 @@ class Gravity {
 
     if (!recipientRS.toLowerCase().includes('jup-')) {
       try{
-        aliasResponse = (await this.getAlias(recipientRS));
-        logger.info(aliasResponse);
+        aliasResponse = await this.getAlias(recipientRS);
+        logger.info('Alias ' + JSON.stringify(aliasResponse));
         recipient = aliasResponse.accountRS;
       } catch (error){
        throw new Error('Not valid alias');

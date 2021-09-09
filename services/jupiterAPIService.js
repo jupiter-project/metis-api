@@ -535,6 +535,42 @@ class JupiterAPIService {
 
     }
 
+    async getAlias(aliasName) {
+        logger.verbose('###############################################################################################')
+        logger.verbose(`## getAlias(aliasName= ${aliasName})`);
+        logger.verbose('###############################################################################################')
+        const aliasCheckup = await this.jupiterRequest('get', {
+            aliasName,
+            requestType: 'getAlias',
+        });
+
+        logger.debug('Alias check up ' + JSON.stringify(aliasCheckup));
+        if (aliasCheckup.errorDescription && aliasCheckup.errorDescription === 'Unknown alias') {
+            return { available: true };
+        }
+
+        if (aliasCheckup.errorDescription) {
+            aliasCheckup.error = true;
+            return { aliasCheckup };
+        }
+
+        return aliasCheckup;
+    }
+
+    async setAlias(params) {
+        logger.verbose('###############################################################################################')
+        logger.info(`## params= ${JSON.stringify(params)}`);
+        logger.verbose('###############################################################################################')
+
+        return this.jupiterRequest('post', {
+            requestType: 'setAlias',
+            aliasName: params.alias,
+            secretPhrase: params.passphrase,
+            aliasURI: `acct:${params.account}@nxt`,
+            feeNQT: 1000,
+        });
+    }
+
 }
 
 module.exports.JupiterAPIService = JupiterAPIService;

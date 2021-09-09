@@ -5,6 +5,7 @@ const { JupiterAccountProperties } = require('../gravity/jupiterAccountPropertie
 const { JupiterFundingService } = require('../services/jupiterFundingService');
 const { applicationAccountProperties } = require('../gravity/applicationAccountProperties');
 const { FundingNotConfirmedError } = require('../errors/metisError');
+const gravity = require("./gravity");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -60,14 +61,35 @@ class AccountRegistration {
       // const funds = parseInt(0.1 * 100000000, 10);
       // console.log(`funds: `, funds);
       // logger.verbose(`register().provideInitialStandardUserFunds(account= ${this.newUserAccountProperties.address}, funds= ${funds})`)
+        // TODO add a proper error handler
 
+        const alias = this.newUserAccountProperties.getCurrentAliasOrNull();
 
-      // Get Metis Data
-      logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`);
-      logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-      logger.debug('++                    fetch account data from Metis Account');
-      logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-      this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
+        if (!alias){
+            reject('No alias provided');
+        }
+
+    this.jupiterAPIService.getAlias(alias)
+        .then(aliasResponse => {
+            if (aliasResponse.available){
+                const params = {
+                    alias,
+                    passphrase: this.newUserAccountProperties.passphrase,
+                    account: this.newUserAccountProperties.address
+                }
+                return this.jupiterAPIService.setAlias(params);
+            }
+            //TODO if alias already belong to the account the continue
+            reject('Alias is already in use');
+        })
+        .then((setAliasResponse => {
+            // Get Metis Data
+            logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`);
+            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.debug('++                    fetch account data from Metis Account');
+            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            return this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
+        }))
         .then((applicationAccountData) => {
           logger.verbose('----------------------------------------');
           logger.verbose(`-- register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties}).then(applicationAccountData)`);
