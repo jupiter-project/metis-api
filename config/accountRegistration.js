@@ -64,33 +64,17 @@ class AccountRegistration {
         // TODO add a proper error handler
 
         const alias = this.newUserAccountProperties.getCurrentAliasOrNull();
-        const userPassphrase = this.applicationAccountProperties.passphrase;
+        const userPassphrase = this.newUserAccountProperties.passphrase;
         const userAccount = this.newUserAccountProperties.address;
         if (!alias){
             reject('No alias provided');
         }
-
-    this.jupiterAPIService.getAlias(alias)
-        .then(aliasResponse => {
-            if (aliasResponse.available){
-                const params = {
-                    alias,
-                    passphrase: userPassphrase,
-                    account: userAccount
-                }
-                return this.jupiterAPIService.setAlias(params);
-            }
-            //TODO if alias already belong to the account the continue
-            reject('Alias is already in use');
-        })
-        .then((setAliasResponse => {
-            // Get Metis Data
-            logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`);
-            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            logger.debug('++                    fetch account data from Metis Account');
-            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            return this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
-        }))
+        // Get Metis Data
+        logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`);
+        logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        logger.debug('++                    fetch account data from Metis Account');
+        logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
         .then((applicationAccountData) => {
           logger.verbose('----------------------------------------');
           logger.verbose(`-- register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties}).then(applicationAccountData)`);
@@ -174,8 +158,23 @@ class AccountRegistration {
                                   logger.verbose('----------------------------------------');
                                   logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
 
-                                  return resolve('done');
+                                  return this.jupiterAPIService.getAlias(alias)
                                 })
+                                .then(aliasResponse => {
+                                    if (aliasResponse.available){
+                                          const params = {
+                                              alias,
+                                              passphrase: userPassphrase,
+                                              account: userAccount
+                                          }
+                                          return this.jupiterAPIService.setAlias(params);
+                                      }
+                                      //TODO if alias already belong to the account the continue
+                                      reject('Alias is already in use');
+                                  })
+                                .then((setAliasResponse => {
+                                    return resolve('done')
+                                }))
                                 .catch((error) => {
                                   logger.error('********************');
                                   logger.error(`** register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);

@@ -2315,7 +2315,7 @@ class Gravity {
       throw { error: true, message: 'Incorrect recipient', fullError: aliasResponse };
     }
 
-    const feeInvitation = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
+    const feeInvitation = 200000;
     if (recipientPublicKey) {
       callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${feeInvitation}&deadline=${this.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true`;
     } else {
