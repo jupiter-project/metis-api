@@ -539,22 +539,17 @@ class JupiterAPIService {
         logger.verbose('###############################################################################################')
         logger.verbose(`## getAlias(aliasName= ${aliasName})`);
         logger.verbose('###############################################################################################')
-        const aliasCheckup = await this.jupiterRequest('get', {
-            aliasName,
-            requestType: 'getAlias',
-        });
 
-        logger.debug('Alias check up ' + JSON.stringify(aliasCheckup));
-        if (aliasCheckup.errorDescription && aliasCheckup.errorDescription === 'Unknown alias') {
+        try{
+            const aliasCheckup = await this.jupiterRequest('get', {
+                aliasName,
+                requestType: 'getAlias',
+            });
+            return aliasCheckup;
+        } catch (error){
+            logger.debug('Alias check up ' + JSON.stringify(error));
             return { available: true };
         }
-
-        if (aliasCheckup.errorDescription) {
-            aliasCheckup.error = true;
-            return { aliasCheckup };
-        }
-
-        return aliasCheckup;
     }
 
     async setAlias(params) {
@@ -567,7 +562,8 @@ class JupiterAPIService {
             aliasName: params.alias,
             secretPhrase: params.passphrase,
             aliasURI: `acct:${params.account}@nxt`,
-            feeNQT: 1000,
+            feeNQT: 20000,
+            deadline: 60
         });
     }
 

@@ -64,7 +64,8 @@ class AccountRegistration {
         // TODO add a proper error handler
 
         const alias = this.newUserAccountProperties.getCurrentAliasOrNull();
-
+        const userPassphrase = this.applicationAccountProperties.passphrase;
+        const userAccount = this.newUserAccountProperties.address;
         if (!alias){
             reject('No alias provided');
         }
@@ -74,8 +75,8 @@ class AccountRegistration {
             if (aliasResponse.available){
                 const params = {
                     alias,
-                    passphrase: this.newUserAccountProperties.passphrase,
-                    account: this.newUserAccountProperties.address
+                    passphrase: userPassphrase,
+                    account: userAccount
                 }
                 return this.jupiterAPIService.setAlias(params);
             }
@@ -203,7 +204,15 @@ class AccountRegistration {
                     });
                 });
             });
-        });
+        })
+        .catch(error => {
+            logger.error('********************');
+            logger.error('********************');
+            logger.error(`_ error Main promise= ${JSON.stringify(error)}`);
+            logger.error('********************');
+            logger.error('********************');
+            reject(error);
+        })
     });
   }
 
