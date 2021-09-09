@@ -39,8 +39,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
         // this.algorithm = algorithm;
         this.isApp = false;
         // this.crypto = new GravityCrypto( this.algorithm, this.password );
-
-
+        this.password = password;
         this.crypto = null;
         if(algorithm && password){
             this.crypto = new GravityCrypto( algorithm, password );

@@ -1025,7 +1025,13 @@ class Gravity {
                     let decryptedAndParsedMessage = JSON.parse(decryptedMessage);
 
                     if(decryptedAndParsedMessage.user_record){
-                      const parsedUserRecord = JSON.parse(decryptedAndParsedMessage.user_record);
+
+                      let parsedUserRecord = decryptedAndParsedMessage.user_record;
+
+                      if (typeof parsedUserRecord === 'string'){
+                        parsedUserRecord = JSON.parse(decryptedAndParsedMessage.user_record);
+                      }
+
                       decryptedAndParsedMessage.user_record = parsedUserRecord;
                     }
 
@@ -1035,7 +1041,7 @@ class Gravity {
                     decryptedMessages.push(decryptedAndParsedMessage);
                   } catch ( error ) {
                     notAbleToDecrypt++;
-                    // logger.error('Not Able to Decrypt');
+                    logger.error('Not Able to Decrypt: ' + JSON.stringify(error));
                   }
                 }
 
@@ -1188,7 +1194,7 @@ class Gravity {
           database = response.data.transactions;
           logger.info(`-- Total transactions: ${database.length}`);
 
-          gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
+          // gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
@@ -1553,8 +1559,12 @@ class Gravity {
                     logger.sensitive(`-- applicationUsersTableRecordsResponse= ${JSON.stringify(applicationAccountUsersTableRecordsResponse)}`);
                       const userRecord = this.getUserRecord(applicationAccountUsersTableRecordsResponse.records);
                       logger.sensitive(`-- userRecord=${JSON.stringify(userRecord)}`);
-                      logger.sensitive(`-- retreived user password = ${userRecord.encryption_password}, containedDatabasePassword = ${containedDatabase.encryptionPassword}`);
-                      logger.sensitive(`-- retreived user password = ${userRecord['encryption_password']}, containedDatabasePassword = ${containedDatabase.encryptionPassword}`);
+
+                      if (userRecord){
+                        logger.sensitive(`-- retreived user password = ${userRecord.encryption_password}, containedDatabasePassword = ${containedDatabase.encryptionPassword}`);
+                        logger.sensitive(`-- retreived user password = ${userRecord['encryption_password']}, containedDatabasePassword = ${containedDatabase.encryptionPassword}`);
+                      }
+
 
                       let  isUserRecordInCurrentAppAccoutUsersTable = true;
                       if(!userRecord){
