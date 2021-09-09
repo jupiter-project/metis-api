@@ -40,6 +40,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
         this.isApp = false;
         // this.crypto = new GravityCrypto( this.algorithm, this.password );
         this.password = password;
+        this.publicKey = publicKey;
         this.crypto = null;
         if(algorithm && password){
             this.crypto = new GravityCrypto( algorithm, password );
@@ -124,6 +125,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 twofa_enabled: false,
                 twofa_completed: false,
                 api_key: this.publicKey,
+                publicKey: this.publicKey,
                 encryption_password: this.password
             },
             date: Date.now(),

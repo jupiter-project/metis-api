@@ -143,12 +143,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const recipient = _.get(data, 'recipient', '');
       const channelName = _.get(data, 'channel.name', '');
       getPNTokenAndSendInviteNotification(sender, recipient, channelName);
+      res.send(response);
     } catch (e) {
       logger.error(e);
-      response = e;
+      res.status(500).send(e);
     }
-
-    res.send(response);
   });
 
   /**

@@ -2299,21 +2299,26 @@ class Gravity {
     let aliasResponse;
 
     if (!recipientRS.toLowerCase().includes('jup-')) {
-      aliasResponse = (await this.getAlias(recipientRS));
-      logger.info(aliasResponse);
-      recipient = aliasResponse.accountRS;
+      try{
+        aliasResponse = (await this.getAlias(recipientRS));
+        logger.info(aliasResponse);
+        recipient = aliasResponse.accountRS;
+      } catch (error){
+       throw new Error('Not valid alias');
+      }
     } else {
       recipient = recipientRS;
     }
 
     if (!recipient) {
-      return { error: true, message: 'Incorrect recipient', fullError: aliasResponse };
+      throw { error: true, message: 'Incorrect recipient', fullError: aliasResponse };
     }
 
+    const feeInvitation = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
     if (recipientPublicKey) {
-      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true`;
+      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${feeInvitation}&deadline=${this.jupiter_data.deadline}&recipientPublicKey=${recipientPublicKey}&compressMessageToEncrypt=true`;
     } else {
-      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${this.jupiter_data.feeNQT}&deadline=${this.jupiter_data.deadline}&messageIsPrunable=true&compressMessageToEncrypt=true`;
+      callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${feeInvitation}&deadline=${this.jupiter_data.deadline}&messageIsPrunable=true&compressMessageToEncrypt=true`;
     }
 
     logger.info(callUrl);

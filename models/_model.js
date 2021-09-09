@@ -5,7 +5,7 @@ import validate from './_validations';
 import {gravityCLIReporter} from "../gravity/gravityCLIReporter";
 import _ from "lodash";
 import User from "./user.js";
-import {FeeManager} from "../services/FeeManager";
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 
 const logger = require('../utils/logger')(module);
 
@@ -99,8 +99,9 @@ class Model {
           });
       });
 
+      const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record)
       if (tableCredentials.public_key) {
-        callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${100}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableCredentials.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
+        callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableCredentials.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
         eventEmitter.emit('data_prepared');
       } else {
         logger.debug(`No public_key. Getting Account Info`);
@@ -108,7 +109,8 @@ class Model {
           .then((response) => {
             logger.debug(`generateId().getAccountInformation().then()`);
             const { publicKey } = response;
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${100}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${publicKey}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
+            const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record)
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${publicKey}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
             logger.sensitive(`Calling sendMessage(): ${callUrl}`);
             eventEmitter.emit('data_prepared');
           })
@@ -148,10 +150,9 @@ class Model {
       throw new Error('accountProperties cannot be empty');
     }
 
-
+    const self = this;
     const thisTableName = self.table;
 
-    const self = this;
     return new Promise((resolve, reject) => {
       gravity.loadUserAndAppData(accountCredentials)
         .then((response) => {
@@ -160,7 +161,7 @@ class Model {
           logger.verbose('---------------------------------------------------------------------------------------')
           logger.sensitive(`accessLink = ${JSON.stringify(accountCredentials)}`);
           logger.sensitive(`response = ${JSON.stringify(response)}`);
-
+          const accountTables = response.tables || [];
           for (let x = 0; x < accountTables.length; x += 1) {
             if (accountTables[x].name === thisTableName) {
               const recordTable = accountTables[x];
@@ -433,20 +434,16 @@ class Model {
           }
 
           let callUrl;
-
+          const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+          const typeSubType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
           if (self.model === 'user') {
-
             if (self.prunableOnCreate) {
-
-              const fee = FeeManager.getFee(FeeManager.FeeTypes.account_record);
-              const typeSubType = FeeManager.getTypeSubType(FeeManager.FeeTypes.account_record); //{type:1, subtype:12}
-
-
               logger.info('Record is prunable');
+              // TODO use the jupiter api service
               callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&subtype=${typeSubType.subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&encryptedMessageIsPrunable=true&compressMessageToEncrypt=true`;
             } else {
-
-              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;
+              // TODO use the jupiter api service
+              callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.record.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&subtype=${typeSubType.subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.data.public_key}&compressMessageToEncrypt=true`;
             }
             gravityCLIReporter.addItemsInJson('New Record sent to Jupiter', {
               recipient: self.record.account,
@@ -457,11 +454,11 @@ class Model {
 
             logger.debug(`publicKey =  ${self.user.public_key}`)
             logger.debug(`user = ${JSON.stringify(self.user)}`);
-
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
+            // TODO use the jupiter api service
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
           } else {
-
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${appTableCredentials.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${appTableCredentials.public_key}&compressMessageToEncrypt=true`;
+            // TODO use the jupiter api service
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${appTableCredentials.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${appTableCredentials.public_key}&compressMessageToEncrypt=true`;
           }
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);

@@ -333,18 +333,6 @@ const metisLogin = (passport, jobs, io) => {
             const fundingResponse = await gravity.setAcountProperty(propertyInfo);
             logger.info(fundingResponse);
           }
-
-          // logger.sensitive(`setAlias(passphrase= ${req.body.jupkey})`);
-          //   user.setAlias(req.body.jupkey)
-          //   .then((aliasSetting) => {
-          //       logger.debug(`setAlias(passphrase=${req.body.jupkey}).then(aliasSetting= ${JSON.stringify(aliasSetting)})`);
-          //         if (!aliasSetting.success) {
-          //           logger.info(aliasSetting);
-          //         }
-          //   })
-          //   .catch(err => {
-          //       logger.error(`error= ${JSON.stringify(err)}`)
-          //   });
         }
 
 
@@ -359,9 +347,10 @@ const metisLogin = (passport, jobs, io) => {
           accessKey: gravity.encrypt(jupkey),
           encryptionKey: gravity.encrypt(encryptionPassword),
           account: gravity.encrypt(account),
-          database: response.database,
+          database: response.userAccountTables,
           accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
           id: user.data.id,
+          publicKey: public_key,
           profilePictureURL: profilePicture && profilePicture.value
             ? profilePicture.value
             : '',
