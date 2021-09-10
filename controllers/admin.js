@@ -51,7 +51,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   });
 
   app.get('/admin/api/app', controller.isAppAdmin, (req, res) => {
-    gravity.loadAppData()
+    gravity.loadUserAndAppData()
       .then((response) => {
         res.send({ success: true, application: response.app, tables: response.tables });
       })

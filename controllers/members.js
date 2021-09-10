@@ -43,10 +43,11 @@ module.exports = (app) => {
         account: userData.account,
         alias: userData.alias,
       });
+      res.send(response);
     } catch (error) {
       logger.error(error);
+      res.status(500).send(response);
     }
 
-    res.send(response);
   });
 };
