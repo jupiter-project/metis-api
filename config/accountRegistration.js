@@ -119,12 +119,19 @@ class AccountRegistration {
                 return resolve('already registered');
               }
 
-              logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-              logger.debug('++                    User is not in the Metis Records. ');
-              logger.debug('++                    Get New User Account Data. ');
-              logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-              // Get User Account Data
-              this.jupiterAccountService.fetchAccountData(this.newUserAccountProperties)
+                this.jupiterAPIService.getAlias(alias)
+                    .then(aliasResponse => {
+                        if (aliasResponse.available){
+                            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                            logger.debug('++                    User is not in the Metis Records. ');
+                            logger.debug('++                    Get New User Account Data. ');
+                            logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                            // Get User Account Data
+                            return this.jupiterAccountService.fetchAccountData(this.newUserAccountProperties)
+                        }
+                        //TODO if alias already belong to the account the continue
+                        reject('Alias is already in use');
+                    })
                 .then((newUserAccountData) => {
                   logger.verbose('----------------------------------------');
                   logger.verbose('-- fetchAccountData(newUserAccountData).then()');
@@ -157,21 +164,13 @@ class AccountRegistration {
                                   logger.verbose('attachAllDefaultTables().then()');
                                   logger.verbose('----------------------------------------');
                                   logger.sensitive(`attachedTablesResponse= ${JSON.stringify(attachedTablesResponse)}`); // attachedTablesResponse= [{"name":"users","address":"JUP-A","passphrase":"tickle awkward cage steal","confirmed":true}]
-
-                                  return this.jupiterAPIService.getAlias(alias)
+                                    const params = {
+                                        alias,
+                                        passphrase: userPassphrase,
+                                        account: userAccount
+                                    }
+                                  return this.jupiterAPIService.setAlias(params);
                                 })
-                                .then(aliasResponse => {
-                                    if (aliasResponse.available){
-                                          const params = {
-                                              alias,
-                                              passphrase: userPassphrase,
-                                              account: userAccount
-                                          }
-                                          return this.jupiterAPIService.setAlias(params);
-                                      }
-                                      //TODO if alias already belong to the account the continue
-                                      reject('Alias is already in use');
-                                  })
                                 .then((setAliasResponse => {
                                     return resolve('done')
                                 }))
