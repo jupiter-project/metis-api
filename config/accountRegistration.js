@@ -72,7 +72,7 @@ class AccountRegistration {
         // Get Metis Data
         logger.verbose(`register().fetchAccountData(applicationAccountProperties=${!!this.applicationAccountProperties})`);
         logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        logger.debug('++                    fetch account data from Metis Account');
+        logger.debug('++                    fetch application account data from Metis Account');
         logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         this.jupiterAccountService.fetchAccountData(this.applicationAccountProperties)
         .then((applicationAccountData) => {
@@ -136,7 +136,7 @@ class AccountRegistration {
                   logger.verbose('----------------------------------------');
                   logger.verbose('-- fetchAccountData(newUserAccountData).then()');
                   logger.verbose('----------------------------------------');
-                  // TODO Add to Metis users table at the very end
+                  // TODO Add to Metis users table at the very end. also we need to confirm all transactions.
                   this.jupiterAccountService.addRecordToMetisUsersTable(this.newUserAccountProperties, applicationUsersTableProperties)
                     .then((newUserRecordTransactionId) => {
                       logger.verbose('----------------------------------------');
@@ -178,17 +178,14 @@ class AccountRegistration {
                                   logger.error('********************');
                                   logger.error(`** register().sendMoney().then().attachAllDefaultTables().catch(${!!error})`);
                                   logger.error('********************');
-                                  logger.error(`error= ${JSON.stringify(error)}`);
-                                  reject(error);
+                                  return reject(error);
                                 });
                             })
                             .catch((error) => {
                               logger.error('********************');
                               logger.error('waitForTransactionConfirmation().catch()');
                               logger.error('********************');
-                              logger.error(`error= ${error}`);
-
-                              return reject(new FundingNotConfirmedError());
+                              return reject(error);
                             });
                         })
                         .catch((error) => {
@@ -197,7 +194,7 @@ class AccountRegistration {
                           logger.error(`_ error= ${JSON.stringify(error)}`);
                           logger.error('********************');
                           logger.error('********************');
-                          reject(error);
+                          return reject(error);
                         });
                     });
                 });
@@ -360,8 +357,9 @@ class AccountRegistration {
     logger.verbose('#####################################################################################');
     logger.verbose('## attachMissingDefaultTables(currentlyAttachedTables)');
     logger.verbose('#####################################################################################');
-    logger.debug(`currentlyAttachedTables.length= ${currentlyAttachedTables.length}`);
-
+    logger.verbose(` attaching tables to: ${this.newUserAccountProperties.address}`)
+    logger.verbose(`currentlyAttachedTables.length= ${currentlyAttachedTables.length}`);
+    logger.debug(`currentlyAttachedTables= ${JSON.stringify(currentlyAttachedTables)}`);
 
     return new Promise((resolve, reject) => {
       logger.verbose(` attachMissingDefaultTables().loadAccountData(accountProperties= ${!!this.newUserAccountProperties})`);
@@ -375,6 +373,9 @@ class AccountRegistration {
       const newTables = [];
       for (let i = 0; i < listOfMissingTableNames.length; i++) {
         logger.debug(`listOfMissingTableNames[i]= ${listOfMissingTableNames[i]}`);
+
+
+        logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${this.newUserAccountProperties.address}`)
         newTables.push(this.attachTable(listOfMissingTableNames[i])); // // {name, address, passphrase, publicKey}
       }
       // }
@@ -400,6 +401,12 @@ class AccountRegistration {
           return resolve(currentlyAttachedTables);
         })
         .catch((error) => {
+            logger.error(`_______________________________________________`)
+            logger.error(`There was a problem attaching a table!`)
+            logger.debug(`Attaching to the account: ${this.newUserAccountProperties.address}`)
+            console.log(error);
+            logger.error(`_______________________________________________`)
+
           reject(error);
         });
     });
@@ -442,10 +449,11 @@ class AccountRegistration {
         })
         .catch((error) => {
           logger.error('********************');
+          logger.error('ERROR ATTACHING TABLE!')
           logger.error(`__ attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName}).error(error)`);
           logger.error('********************');
-          logger.error(`error= ${JSON.stringify(error)}`);
-          reject(new Error('error!!!!!'));
+          console.log(error);
+          reject(error);
         });
     });
   }
