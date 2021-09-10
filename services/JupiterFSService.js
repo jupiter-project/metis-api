@@ -150,7 +150,23 @@ module.exports = {
         res.status(500).json({ msg: 'Something went wrong', error });
       });
   },
-
+  userJimLogin: (req, res) =>{
+    const { user } = req;
+    if (!user) {
+      return res.status(500).json({ msg: 'No user info' });
+    }
+    const userAccount = JSON.parse(gravity.decrypt(user.accountData));
+    const { passphrase, account, password } = userAccount;
+    const dataLogin = { account, passphrase, password };
+    axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
+      .then((response) => {
+        res.status(200).json(response.data);
+      })
+      .catch((error) => {
+        console.log('Something went wrong whit JIM login', error);
+        res.status(500).json({ msg: 'Something went wrong whit JIM login', error });
+      });
+  },
   userProfileDelete: (req, res) => {
     const { user } = req;
     if (!user) {
