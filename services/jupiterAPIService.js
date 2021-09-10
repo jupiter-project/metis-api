@@ -37,20 +37,26 @@ class JupiterAPIService {
      */
     async jupiterRequest(rtype, params, data = {}) {
         const url = this.jupiterUrl(params);
-        logger.sensitive(`jupiterRequest > url= ${url}`);
+        // logger.sensitive(`jupiterRequest > url= ${url}`);
         return new Promise((resolve, reject) => {
             axios({url: url, method: rtype, data: data})
                 .then(response => {
                     if(response.error) {
                         logger.error(`jupiterRequest().response.error`)
                         logger.error(`error= ${JSON.stringify(response.error)}`);
+                        logger.error(`url= ${url}`)
+                        logger.error(`request data= ${JSON.stringify(data)}`)
+
                         return reject(response.error)
                     }
 
                     if(response.data && response.data.errorDescription  && response.data.errorDescription !== null) {
                         logger.error(`jupiterRequest().response.data.error`);
-                        console.log(response.data)
+                        logger.error(`response.data= ${JSON.stringify(response.data)}`);
                         logger.error(`error= ${JSON.stringify(response.data.errorDescription)}`)
+                        logger.error(`url= ${url}`)
+                        logger.error(`request data= ${JSON.stringify(data)}`)
+
                         return reject(response.data.errorDescription);
                     }
 

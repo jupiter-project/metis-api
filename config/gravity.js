@@ -2566,7 +2566,7 @@ class Gravity {
           this.createNewJupiterAccount(newPassphrase)
             .then((newJupiterAccountResponse) => { //{address, publicKey, success}
               logger.debug('---------------------------------------------------------------------------------------')
-              logger.debug(`-- attachTable(accountCredentials, tableName).createNewJupiterAccount(newPassphrase).THEN(newJupiterAccountResponse)`)
+              logger.debug(`-- attachTable(accountCredentials, tableName=${tableName}).createNewJupiterAccount(newPassphrase).THEN(newJupiterAccountResponse)`)
               logger.debug('---------------------------------------------------------------------------------------')
               logger.sensitive(`newJupiterAccountResponse= ${JSON.stringify(newJupiterAccountResponse)}`);
 
