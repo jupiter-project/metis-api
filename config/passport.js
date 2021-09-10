@@ -83,7 +83,7 @@ const getSignUpUserInformation = (account, requestBody) => ({
  */
 const metisRegistration = async (account, requestBody) => {
   logger.verbose('#####################################################################################');
-  logger.verbose('metisRegistration()');
+  logger.verbose(`metisRegistration(account=${account})`);
   logger.verbose('#####################################################################################');
   logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
 
@@ -161,7 +161,7 @@ const metisRegistration = async (account, requestBody) => {
     accountRegistration.register()
       .then((response) => {
         logger.verbose('---------------------------------------------------------------------------------------');
-        logger.verbose(`--  metisRegistration().accountRegistration.register().then(response= ${!!response})`);
+        logger.verbose(`--  metisRegistration(newUserAddress=${newUserGravityAccountProperties.address}).accountRegistration.register().then(response= ${!!response})`);
         logger.verbose('---------------------------------------------------------------------------------------');
 
         return resolve(response);
@@ -171,12 +171,11 @@ const metisRegistration = async (account, requestBody) => {
         logger.error(`_  metisRegistration().accountRegistration.register().catch(error= ${!!error})`);
         logger.error('********************');
         logger.error(`error= ${JSON.stringify(error)}`);
-
         logger.error(`instance= ${Object.getPrototypeOf(error)}`);
-        if (error instanceof FundingNotConfirmedError) {
-          console.log('@ @ @');
-          return reject('FUnding Problem!!!');
-        }
+        // if (error instanceof FundingNotConfirmedError) {
+        //   console.log('@ @ @');
+        //   return reject('Funding Problem!!!');
+        // }
 
         return reject(error);
       });
@@ -209,7 +208,10 @@ const metisSignup = (passport) => {
           // }
 
           return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
-        });
+        })
+          .catch(error => {
+            return done(error, null, 'There was a problem creating your account.');
+          })
     });
   }));
 };
