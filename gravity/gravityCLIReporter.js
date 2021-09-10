@@ -88,6 +88,7 @@ class GravityCLIReporter {
     }
 
     sendReport(){
+        return
         let report = this.getHeader()
 
         for( const key in this.sections){

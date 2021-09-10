@@ -21,7 +21,6 @@ RUN /usr/local/bin/node-prune
 
 # remove unused dependencies
 RUN rm -rf node_modules/rxjs
-RUN rm -rf node_modules/swagger-ui-dist
 RUN rm -rf node_modules/couchbase
 
 

@@ -53,6 +53,8 @@ const flash = require('connect-flash');
 // Request logger
 const morgan = require('morgan');
 
+const swaggerUi = require('swagger-ui-express');
+
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
@@ -61,7 +63,7 @@ const RedisStore = require('connect-redis')(session);
 const find = require('find');
 
 const mongoose = require('mongoose');
-
+const swaggerDocument = require('./swagger.json');
 
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
@@ -80,8 +82,9 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(tokenVerify);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
 
+app.use(tokenVerify);
 
 
 // Sets public directory
