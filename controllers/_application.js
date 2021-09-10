@@ -306,6 +306,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   app.post('/v1/api/signup', (req, res, next) => {
     passport.authenticate('gravity-signup', (error, user, message) => {
       if (error) {
+        logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        logger.error(`500 ERROR!!!!`)
+        logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        console.log(error);
+
         return res.status(500).send({ success: false, message });
       }
       return res.status(200).send({ success: true, message });

@@ -2496,7 +2496,9 @@ class Gravity {
           logger.debug(`Sending a jupiter message`);
           response = await axios.post(callUrl);
         } catch (e) {
-          logger.error(`Error: ${JSON.stringify(e)}`);
+          logger.error('********************');
+          logger.error('ERROR ATTACHING TABLE!')
+          console.log(e)
           response = { error: true, fullError: e };
         }
 
@@ -2508,7 +2510,10 @@ class Gravity {
           try {
             response = await axios.post(tableListUpdateUrl);
           } catch (e) {
-            logger.error(e);
+            logger.error('********************');
+            logger.error('ERROR ATTACHING TABLE!')
+            console.log(e)
+            logger.error('********************');
             response = { error: true, fullError: e };
           }
 
