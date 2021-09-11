@@ -106,8 +106,8 @@ const metisRegistration = async (account, requestBody) => {
   const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
   const DEADLINE = process.env.JUPITER_DEADLINE;
 
-  console.log('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
-  console.log('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
+  logger.debug('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
+  logger.debug('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
 
 
   //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
@@ -154,13 +154,18 @@ const metisRegistration = async (account, requestBody) => {
     );
 
     return accountRegistration.register()
-        .then(response =>{
-            console.log('@@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ ')
-            return done(null, response)
-        } )
-        .catch(error => {
-            return done(error)
-        })
+
+    // return new Promise((resolve, reject) => {
+    //     return accountRegistration.register()
+    //         .then(response =>{
+    //             console.log('@@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ ')
+    //             return resolve(response);
+    //         } )
+    //         .catch(error => {
+    //             return  reject(error);
+    //         })
+    // })
+
 };
 
 /**
@@ -180,19 +185,18 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
   (request, account, accounthash, done) => {
     process.nextTick(() => {
 
-
-
+        const encryptedRequestBody = gravity.encrypt( JSON.stringify(request.body));
 
         const jobData = {
             account,
-            requestBody: request.body
+            data:  encryptedRequestBody
         }
 
         const job = jobsQueue.create('user-registration', jobData)
             .priority('high')
             .removeOnComplete(true)
             .save( (error, payload, message) =>{
-                console.log('%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$')
+                logger.debug('%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$')
                 if(error){
                     //send a socketio lettingthe phone know it's not successful
                     // this.socket.emit(`there's a problem registring!`);
@@ -200,21 +204,26 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             } )
 
         job.on('complete', function(result){
-            console.log('Job completed with data ', result);
+            logger.debug('^&^&')
+            logger.debug('Job completed with data ', result);
             // websocket
             // this.socket.emit(`fullyRegistered#${accessData.account}`);
         })
         job.on('failed attempt', function(errorMessage, doneAttempts){
-            console.log('Job failed');
+            logger.debug('^&^&')
+            logger.debug('Job failed');
         })
         job.on('failed', function(errorMessage){
-            console.log('Job failed');
+            logger.debug('^&^&')
+            logger.debug('Job failed');
         })
         job.on('progress', function(progress, data){
-            console.log('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
+            logger.debug('^&^&')
+            logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
         });
 
-        console.log('0x0x0x0x0x0x0x0x0x')
+        logger.debug('^&^&')
+        logger.debug('0x0x0x0x0x0x0x0x0x')
         return done(null, {}, 'hello');
 
     });

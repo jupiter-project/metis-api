@@ -210,7 +210,7 @@ gravity.getFundingMonitor()
 
 // const registrationWorker = new RegistrationWorker(jobs, io);
 // registrationWorker.reloadActiveWorkers('completeRegistration')
-//   .catch((error) => { if (error.error) console.log(error.message); });
+//   .catch((error) => { if (error.error) logger.debug(error.message); });
 // const transferWorker = new TransferWorker(jobs);
 
 // jobs.process('completeRegistration', (job, done) => {
@@ -222,13 +222,19 @@ jobs.process('user-registration', (job,done) => {
   logger.verbose(`## JobQueue: user-registration`)
   logger.verbose(`###########################################`)
 
-  console.log('00000000000000000000000000')
-  console.log(job.data);
-  const websocket = null;
-  const result = metisRegistration(job.data.account, job.data.requestBody, job, websocket)
-  return done(null, result, 'Your account is being saved into the blockchain.');
-})
+  logger.debug('00000000000000000000000000')
+  logger.debug(job.data.data);
 
+  const decryptedData = gravity.decrypt(job.data.data)
+  const parsedData = JSON.parse(decryptedData);
+
+  const websocket = null;
+  metisRegistration(job.data.account, parsedData, job, websocket)
+      .then(result => {
+        logger.debug('0000000000000000000000000111')
+        return done(null, result, 'Your account is being saved into the blockchain.');
+      })
+})
 
 
 /* jobs.process('fundAccount', (job, done) => {
