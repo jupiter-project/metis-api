@@ -1,8 +1,8 @@
 import events from 'events';
 import { gravity } from './gravity';
 import User from '../models/user';
-import RegistrationWorker from '../workers/registration';
-import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
+// import RegistrationWorker from '../workers/registration';
+// import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
@@ -77,16 +77,13 @@ const getSignUpUserInformation = (account, requestBody) => ({
 
 /**
  *
- * @param account
- * @param requestBody
- * @returns {Promise<unknown>}
  */
 const metisRegistration = async (account, requestBody) => {
+
   logger.verbose('#####################################################################################');
   logger.verbose(`metisRegistration(account=${account})`);
   logger.verbose('#####################################################################################');
   logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
-
 
   const applicationGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
@@ -146,47 +143,31 @@ const metisRegistration = async (account, requestBody) => {
   const tableService = new TableService(jupiterTransactionsService);
   const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
 
-  const accountRegistration = new AccountRegistration(
-    newUserGravityAccountProperties,
-    applicationGravityAccountProperties,
-    jupiterAPIService,
-    jupiterFundingService,
-    jupiterAccountService,
-    tableService,
-    gravity,
-  );
+    const accountRegistration = new AccountRegistration(
+        newUserGravityAccountProperties,
+        applicationGravityAccountProperties,
+        jupiterAPIService,
+        jupiterFundingService,
+        jupiterAccountService,
+        tableService,
+        gravity
+    );
 
-  logger.debug('metisRegistration().accountRegistration().register()');
-  return new Promise((resolve, reject) => {
-    accountRegistration.register()
-      .then((response) => {
-        logger.verbose('---------------------------------------------------------------------------------------');
-        logger.verbose(`--  metisRegistration(newUserAddress=${newUserGravityAccountProperties.address}).accountRegistration.register().then(response= ${!!response})`);
-        logger.verbose('---------------------------------------------------------------------------------------');
-
-        return resolve(response);
-      })
-      .catch((error) => {
-        logger.error('********************');
-        logger.error(`_  metisRegistration().accountRegistration.register().catch(error= ${!!error})`);
-        logger.error('********************');
-        logger.error(`error= ${JSON.stringify(error)}`);
-        logger.error(`instance= ${Object.getPrototypeOf(error)}`);
-        // if (error instanceof FundingNotConfirmedError) {
-        //   console.log('@ @ @');
-        //   return reject('Funding Problem!!!');
-        // }
-
-        return reject(error);
-      });
-  });
+    return accountRegistration.register()
+        .then(response =>{
+            console.log('@@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ ')
+            return done(null, response)
+        } )
+        .catch(error => {
+            return done(error)
+        })
 };
 
 /**
  * Signup to Metis
  * @param {*} passport
  */
-const metisSignup = (passport) => {
+const metisSignup = (passport, jobsQueue, websocket ) => {
   logger.verbose('#####################################################################################');
   logger.verbose('##  metisSignup(passport)');
   logger.verbose('#####################################################################################');
@@ -198,20 +179,44 @@ const metisSignup = (passport) => {
   },
   (request, account, accounthash, done) => {
     process.nextTick(() => {
-      metisRegistration(account, request.body)
-        .then((response) => {
-          const payload = {};
-          // const payload = {
-          //     accessKey: request.session.jup_key,
-          //     encryptionKey: gravity.encrypt(signUpUserInformation.encryption_password),
-          //     id: user.data.id,
-          // }
 
-          return done(null, payload, 'Your account has been created and is being saved into the blockchain. Please wait a couple of minutes before logging in.');
+
+
+
+        const jobData = {
+            account,
+            requestBody: request.body
+        }
+
+        const job = jobsQueue.create('user-registration', jobData)
+            .priority('high')
+            .removeOnComplete(true)
+            .save( (error, payload, message) =>{
+                console.log('%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$')
+                if(error){
+                    //send a socketio lettingthe phone know it's not successful
+                    // this.socket.emit(`there's a problem registring!`);
+                }
+            } )
+
+        job.on('complete', function(result){
+            console.log('Job completed with data ', result);
+            // websocket
+            // this.socket.emit(`fullyRegistered#${accessData.account}`);
         })
-          .catch(error => {
-            return done(error, null, 'There was a problem creating your account.');
-          })
+        job.on('failed attempt', function(errorMessage, doneAttempts){
+            console.log('Job failed');
+        })
+        job.on('failed', function(errorMessage){
+            console.log('Job failed');
+        })
+        job.on('progress', function(progress, data){
+            console.log('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
+        });
+
+        console.log('0x0x0x0x0x0x0x0x0x')
+        return done(null, {}, 'hello');
+
     });
   }));
 };
@@ -222,7 +227,7 @@ const metisSignup = (passport) => {
  * @param jobs
  * @param io
  */
-const metisLogin = (passport, jobs, io) => {
+const metisLogin = (passport) => {
   passport.use('gravity-login', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -362,7 +367,7 @@ const metisLogin = (passport, jobs, io) => {
           },
         };
         logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
-        gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
+        // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
 
 
         const doneResponse = {
@@ -393,4 +398,5 @@ module.exports = {
   deserializeUser,
   metisSignup,
   metisLogin,
+    metisRegistration
 };
