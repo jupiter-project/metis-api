@@ -7,6 +7,7 @@ const logger = require('../utils/logger')(module);
 module.exports = {
   addTokenNotification: (req, res) => {
     const { body } = req;
+    console.log('TOKEN:', body.token);
     if (body && body.alias && body.jupId && body.token) {
       const filter = { alias: body.alias };
       const update = { jupId: body.jupId || '' };

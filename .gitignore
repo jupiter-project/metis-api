@@ -21,6 +21,8 @@
 
 # Ignore enviroment variables
 .env
+.serviceAccountKey.json
+./serviceAccountKey.json
 
 # Ignore gravity development files
 dev

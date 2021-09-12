@@ -1,3 +1,4 @@
+import { sendPushNotificationMessage } from '../services/firebaseService';
 const apn = require('apn');
 const { APN_OPTIONS } = require('./apn');
 const logger = require('../utils/logger')(module);
@@ -27,7 +28,7 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
   notification.topic = 'tech.gojupiter.metis';
 
   notification.category = `metis.category.${category || 'default'}`;
-
+  console.log('-------------------------------------------------------------sending push.....', tokens, notification);
   setTimeout(async () => {
     // Send the actual notification
     const result = await apnProvider.send(notification, tokens);
@@ -35,6 +36,10 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
     apnProvider.shutdown();
     // Show the result of the send operation:
     logger.info(JSON.stringify(result));
+  }, delay);
+  setTimeout(async () => {
+    // Send the actual notification
+    sendPushNotificationMessage(tokens, notification);
   }, delay);
 }
 
