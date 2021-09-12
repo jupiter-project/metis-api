@@ -33,7 +33,7 @@ const invites = function (data) {
   }
 };
 
-const joinRoom = (socket, room, user, event) => {
+const joinRoom = (socket, room, user) => {
   socket.name = user;
   socket.join(room);
   socket.in(room).allSockets().then((result) => {
@@ -43,13 +43,13 @@ const joinRoom = (socket, room, user, event) => {
 
 
 const signUpConnection = function (socket) {
-  const { room, user, event } = socket.handshake.query;
-  if (!room || !user || !event) {
-    logger.error(`Missing parameter ${JSON.stringify({ room, user, event })}`);
+  const { room, user } = socket.handshake.query;
+  if (!room || !user) {
+    logger.error(`Missing parameter ${JSON.stringify({ room, user })}`);
     return socket.close();
   }
 
-  joinRoom(socket, room, user, event);
+  joinRoom(socket, room, user);
 
   socket.on('leaveRoom', leaveRoom);
   socket.on('connect_error', (error) => {
