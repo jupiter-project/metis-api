@@ -1,4 +1,5 @@
 const { tokenVerify } = require('./middlewares/authentication');
+
 const url = require('url');
 const kue = require('kue');
 const fs = require('fs');
@@ -11,7 +12,7 @@ require('babel-register')({
   presets: ['react'],
 });
 
-
+const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
 const express = require('express');
 
@@ -19,11 +20,12 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 const pingTimeout = 9000000;
-
 const pingInterval = 30000;
 
 // Loads job queue modules and variables
 
+
+//@TODO redis needs a password!!!!
 const jobs = kue.createQueue({
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
@@ -32,8 +34,6 @@ const jobs = kue.createQueue({
   },
 });
 
-// Loads path
-// const path = require('path');
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -83,9 +83,7 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
-
 app.use(tokenVerify);
-
 
 // Sets public directory
 app.use(express.static(`${__dirname}/public`));
@@ -129,11 +127,15 @@ const socketIO = require('socket.io');
 const socketService = require('./services/socketService');
 
 const socketOptions = {
+  serveClient: true,
   pingTimeout, // pingTimeout value to consider the connection closed
   pingInterval, // how many ms before sending a new ping packet
 };
 const io = socketIO(server, socketOptions);
 io.of('/chat').on('connection', socketService.connection.bind(this));
+
+io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+
 
 const jupiterSocketService = require('./services/jupiterSocketService');
 const WebSocket = require('ws');
@@ -166,8 +168,9 @@ const {
 
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
-metisSignup(passport); //  pass passport for configuration
-metisLogin(passport, jobs, io); //  pass passport for configuration
+
+metisSignup(passport,jobs,io); //  pass passport for configuration
+metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
@@ -182,6 +185,7 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
+const {AccountRegistration} = require("./config/accountRegistration");
 
 gravity.getFundingMonitor()
   .then(async (monitorResponse) => {
@@ -201,18 +205,35 @@ gravity.getFundingMonitor()
     });
 
 // Worker methods
-const RegistrationWorker = require('./workers/registration.js');
+// const RegistrationWorker = require('./workers/registration.js');
 // const TransferWorker = require('./workers/transfer.js');
 
 
-const registrationWorker = new RegistrationWorker(jobs, io);
+// const registrationWorker = new RegistrationWorker(jobs, io);
 // registrationWorker.reloadActiveWorkers('completeRegistration')
-//   .catch((error) => { if (error.error) console.log(error.message); });
+//   .catch((error) => { if (error.error) logger.debug(error.message); });
 // const transferWorker = new TransferWorker(jobs);
 
-jobs.process('completeRegistration', (job, done) => {
-  registrationWorker.checkRegistration(job.data, job.id, done);
-});
+// jobs.process('completeRegistration', (job, done) => {
+//   registrationWorker.checkRegistration(job.data, job.id, done);
+// });
+
+jobs.process('user-registration', (job,done) => {
+  logger.verbose(`###########################################`)
+  logger.verbose(`## JobQueue: user-registration`)
+  logger.verbose(`###########################################`)
+
+  logger.debug(job.data.data);
+
+  const decryptedData = gravity.decrypt(job.data.data)
+  const parsedData = JSON.parse(decryptedData);
+
+  metisRegistration(job.data.account, parsedData)
+      .then(result => {
+        return done(null, result, 'Your account is being saved into the blockchain.');
+      })
+})
+
 
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);

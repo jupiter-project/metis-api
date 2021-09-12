@@ -103,6 +103,17 @@ const s3Transport = getS3StreamTransport();
 // Transport list Array
 const transportList = [];
 
+if (process.env.LOCAL_FILE_DEBUG_LEVEL) {
+  const localFileDebugLevel = process.env.LOCAL_FILE_DEBUG_LEVEL;
+  transportList.push(
+      new winston.transports.File({
+        filename: 'metis-api.log',
+        level: localFileDebugLevel
+      })
+  )
+}
+
+
 
 if (process.env.CONSOLE_DEBUG_LEVEL) {
   const consoleDebugLevel = process.env.CONSOLE_DEBUG_LEVEL;
