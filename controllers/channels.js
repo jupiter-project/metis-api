@@ -143,12 +143,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const recipient = _.get(data, 'recipient', '');
       const channelName = _.get(data, 'channel.name', '');
       getPNTokenAndSendInviteNotification(sender, recipient, channelName);
+      res.send(response);
     } catch (e) {
       logger.error(e);
-      response = e;
+      res.status(500).send(e);
     }
-
-    res.send(response);
   });
 
   /**
@@ -282,14 +281,15 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           const pnmTitle = `${senderName} has tagged @ ${channelName}`;
           getPNTokensAndSendPushNotification(mentions, senderName, channel, hasMessage, pnmTitle);
         }
+        res.send(response);
       } catch (e) {
         logger.error('[/data/messages]', JSON.stringify(e));
-        response = { success: false, fullError: e };
+        res.status(500).send({ success: false, fullError: e });
       }
     } else {
-      response = { success: false, messages: [`Message is not valid or exceeds allowable limit of ${maxMessageLength} characters`] };
-      logger.error(JSON.stringify(response));
+      res.status(500).send({ success: false, messages: [`Message is not valid or exceeds allowable limit of ${maxMessageLength} characters`] });
+      logger.error(JSON.stringify({ success: false, messages: [`Message is not valid or exceeds allowable limit of ${maxMessageLength} characters`] }));
     }
-    res.send(response);
+
   });
 };

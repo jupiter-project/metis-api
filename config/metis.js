@@ -1,6 +1,7 @@
 require('dotenv').config();
 const _ = require('lodash');
 const { gravity } = require('./gravity');
+const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const logger = require('../utils/logger')(module);
 
 const propertyFee = 10;
@@ -40,7 +41,7 @@ function Metis() {
     const profilePictures = aliases.map(async (alias) => {
       const { accountRS } = await gravity.getAlias(alias);
       const { properties } = await gravity.getAccountProperties({ recipient: accountRS });
-      const profilePicture = properties.find(({ property }) => property.includes('profile_picture'));
+      const profilePicture = properties ? properties.find(({ property }) => property.includes('profile_picture')) : null;
 
       return { alias, urlProfile: profilePicture ? profilePicture.value : '' };
     });
@@ -152,25 +153,34 @@ function Metis() {
         message: 'Request is missing table encryption',
       };
     }
+
+    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.accept_channel_invitation);
     const propertyParams = {
       recipient: params.channel,
-      feeNQT: 100, // TODO check it 100 is a right fee
+      feeNQT: fee,
       property: gravity.encrypt(`${accountEnding(params.account)}-a-${aliases.length}`, params.password),
       value: gravity.encrypt(params.alias, params.password),
     };
+    return gravity.setAcountProperty(propertyParams)
+        .then((propertyCreation) => {
+          if (propertyCreation.errorDescription) {
+            logger.error(`Property creation failed: ${JSON.stringify(propertyCreation)}`);
+            return propertyCreation;
+          }
 
-    const propertyCreation = await gravity.setAcountProperty(propertyParams);
-
-    if (propertyCreation.errorDescription) {
-      logger.error(`Property creation failed: ${JSON.stringify(propertyCreation)}`);
-      return propertyCreation;
-    }
-
-    return {
-      success: true,
-      message: `${params.alias} has been added to member list of ${params.channel}`,
-      fullResponse: propertyCreation,
-    };
+          return {
+            success: true,
+            message: `${params.alias} has been added to member list of ${params.channel}`,
+            fullResponse: propertyCreation,
+          };
+        })
+        .catch(error => {
+          return {
+            success: false,
+            message: 'Error saving the member',
+            fullResponse: error,
+          };
+        });
   }
 
   return Object.freeze({

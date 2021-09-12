@@ -42,20 +42,13 @@ class Invite extends Model {
     return response;
   }
 
-  async send() {
+  send() {
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
-    let response;
 
-    try {
-      response = await gravity.sendMessage(
+    return gravity.sendMessage(
         JSON.stringify(messageData), this.user.passphrase, messageData.recipient,
-      );
-    } catch (e) {
-      response = e;
-    }
-
-    return response;
+    );
   }
 }
 
