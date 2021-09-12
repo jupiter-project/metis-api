@@ -1,6 +1,6 @@
 var admin = require("firebase-admin");
 
-var serviceAccount = require("../serviceAccountKey.json");
+var serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -18,10 +18,22 @@ const sendPushNotification = (registrationToken, message, options, res) => {
 }
 
 const sendPushNotificationMessage = (registrationTokens, notification) => {
+    const users = notification.payload.title.split('@');
+    var data;
+    if(notification.payload && notification.payload.channel){
+        data = {
+            channelId: notification.payload.channel.id,
+            channelDate: ''+notification.payload.channel.date,
+            channelToken: notification.payload.channel.token,
+            channelKey: ''+notification.payload.channel.key,
+            channelName: notification.payload.channel.name,
+        }
+    }
     var message = {
+        data:data,
         notification: {
-            title: notification.title,
-            body: notification.payload,
+            title: 'Metis',
+            body: users[0] + ' has sent a message to channel ' + users[1],
         }
       };
       var options = {

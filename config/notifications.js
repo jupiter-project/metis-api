@@ -28,7 +28,7 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
   notification.topic = 'tech.gojupiter.metis';
 
   notification.category = `metis.category.${category || 'default'}`;
-
+  console.log('-------------------------------------------------------------sending push.....', tokens, notification);
   setTimeout(async () => {
     // Send the actual notification
     const result = await apnProvider.send(notification, tokens);
