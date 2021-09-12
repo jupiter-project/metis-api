@@ -12,7 +12,6 @@ require('babel-register')({
   presets: ['react'],
 });
 
-
 const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
 const express = require('express');
@@ -21,11 +20,12 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 const pingTimeout = 9000000;
-
 const pingInterval = 30000;
 
 // Loads job queue modules and variables
 
+
+//@TODO redis needs a password!!!!
 const jobs = kue.createQueue({
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
@@ -34,8 +34,6 @@ const jobs = kue.createQueue({
   },
 });
 
-// Loads path
-// const path = require('path');
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -85,9 +83,7 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
-
 app.use(tokenVerify);
-
 
 // Sets public directory
 app.use(express.static(`${__dirname}/public`));
@@ -137,6 +133,9 @@ const socketOptions = {
 const io = socketIO(server, socketOptions);
 io.of('/chat').on('connection', socketService.connection.bind(this));
 
+io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+
+
 const jupiterSocketService = require('./services/jupiterSocketService');
 const WebSocket = require('ws');
 const jupiterWss = new WebSocket.Server({ noServer: true });
@@ -168,6 +167,7 @@ const {
 
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
+
 metisSignup(passport,jobs,io); //  pass passport for configuration
 metisLogin(passport); //  pass passport for configuration
 
@@ -222,16 +222,13 @@ jobs.process('user-registration', (job,done) => {
   logger.verbose(`## JobQueue: user-registration`)
   logger.verbose(`###########################################`)
 
-  logger.debug('00000000000000000000000000')
   logger.debug(job.data.data);
 
   const decryptedData = gravity.decrypt(job.data.data)
   const parsedData = JSON.parse(decryptedData);
 
-  const websocket = null;
-  metisRegistration(job.data.account, parsedData, job, websocket)
+  metisRegistration(job.data.account, parsedData)
       .then(result => {
-        logger.debug('0000000000000000000000000111')
         return done(null, result, 'Your account is being saved into the blockchain.');
       })
 })

@@ -204,28 +204,28 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             } )
 
         job.on('complete', function(result){
-            logger.debug('^&^&')
+            logger.debug(`Job On Complete `)
+            logger.debug(`account=${account}`)
             logger.debug('Job completed with data ', result);
-            // websocket
-            // this.socket.emit(`fullyRegistered#${accessData.account}`);
+            websocket.broadcast.to(`sign-up-${account}`).emit('signUpSuccessful');
         })
+
         job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.debug('^&^&')
-            logger.debug('Job failed');
+            logger.debug('Job failed Attempt');
+            logger.debug(`account=${account}`)
+            websocket.broadcast.to(`sign-up-${account}`).emit('signUpFailedAttempt');
         })
         job.on('failed', function(errorMessage){
-            logger.debug('^&^&')
             logger.debug('Job failed');
+            logger.debug(`account=${account}`)
+            websocket.broadcast.to(`sign-up-${account}`).emit('signUpFailed');
         })
-        job.on('progress', function(progress, data){
-            logger.debug('^&^&')
-            logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
-        });
+        // job.on('progress', function(progress, data){
+        //     logger.debug('^&^&')
+        //     logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
+        // });
 
-        logger.debug('^&^&')
-        logger.debug('0x0x0x0x0x0x0x0x0x')
         return done(null, {}, 'hello');
-
     });
   }));
 };
@@ -233,8 +233,6 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
 /**
  *
  * @param passport
- * @param jobs
- * @param io
  */
 const metisLogin = (passport) => {
   passport.use('gravity-login', new LocalStrategy({
@@ -251,7 +249,7 @@ const metisLogin = (passport) => {
    * account. This was we can register their current jup account with metis.
    */
     logger.verbose('#####################################################################################');
-    logger.verbose('                                  metisLogin(passport, jobs, io)');
+    logger.verbose('                                  metisLogin(passport)');
     logger.verbose('#####################################################################################');
     const {
       jupkey,
