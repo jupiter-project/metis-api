@@ -127,6 +127,7 @@ const socketIO = require('socket.io');
 const socketService = require('./services/socketService');
 
 const socketOptions = {
+  serveClient: true,
   pingTimeout, // pingTimeout value to consider the connection closed
   pingInterval, // how many ms before sending a new ping packet
 };

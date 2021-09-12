@@ -41,7 +41,16 @@ const joinRoom = (socket, room, user) => {
   });
 };
 
-
+const signUpSuccessful = function (account) {
+  console.log('signUpSuccessful....................................OK');
+  this.broadcast.to(`sign-up-${account}`).emit('signUpSuccessful');
+};
+const signupFailedAttempt = function (account) {
+  this.broadcast.to(`sign-up-${account}`).emit('signUpFailedAttempt');
+};
+const signUpFailed = function (account) {
+  this.broadcast.to(`sign-up-${account}`).emit('signUpFailed');
+};
 const signUpConnection = function (socket) {
   const { room, user } = socket.handshake.query;
   if (!room || !user) {
@@ -55,7 +64,9 @@ const signUpConnection = function (socket) {
   socket.on('connect_error', (error) => {
     logger.error(JSON.stringify(error));
   });
-
+  socket.on('signUpSuccessful', signUpSuccessful);
+  socket.on('signupFailedAttempt', signupFailedAttempt);
+  socket.on('signUpFailed', signUpFailed);
   /**
    * io server disconnect The server has forcefully disconnected the socket with socket.disconnect()
    * io client disconnect The socket was manually disconnected using socket.disconnect()

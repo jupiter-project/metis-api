@@ -176,7 +176,6 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
   logger.verbose('#####################################################################################');
   logger.verbose('##  metisSignup(passport)');
   logger.verbose('#####################################################################################');
-
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -207,18 +206,18 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             logger.debug(`Job On Complete `)
             logger.debug(`account=${account}`)
             logger.debug('Job completed with data ', result);
-            websocket.broadcast.to(`sign-up-${account}`).emit('signUpSuccessful');
+            websocket.of('/sign-up').emit('signUpSuccessful', account);
         })
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
             logger.debug('Job failed Attempt');
             logger.debug(`account=${account}`)
-            websocket.broadcast.to(`sign-up-${account}`).emit('signUpFailedAttempt');
+            websocket.of('/sign-up').emit('signUpFailedAttempt',account);
         })
         job.on('failed', function(errorMessage){
             logger.debug('Job failed');
             logger.debug(`account=${account}`)
-            websocket.broadcast.to(`sign-up-${account}`).emit('signUpFailed');
+            websocket.of('/sign-up').emit('signUpFailed',account);
         })
         // job.on('progress', function(progress, data){
         //     logger.debug('^&^&')
