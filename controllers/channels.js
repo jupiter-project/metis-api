@@ -237,11 +237,9 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Send a message
    */
   app.post('/v1/api/data/messages', async (req, res) => {
-    const { maxMessageLength } = messagesConfig;
-    let hasMessage = _.get(req, 'body.data.message', null);
+
     let response;
 
-    if (hasMessage && hasMessage.length <= maxMessageLength) {
       let { tableData, data } = req.body;
       const { user } = req;
       data = {
@@ -268,28 +266,20 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           const senderName = user.userData.alias;
           members = members.filter(member => member !== senderName && !mentions.includes(member));
 
-          if (hasJsonStructure(hasMessage)) {
-            hasMessage = JSON.parse(hasMessage);
-            hasMessage = hasMessage.fromMsj || '';
-          }
-
-          // push notification for members
+          const pnBody = `${senderName} has sent a message on channel ${channelName}`;
           const pnTitle = `${senderName} @ ${channelName}`;
-          getPNTokensAndSendPushNotification(members, senderName, channel, hasMessage, pnTitle);
+          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle);
 
           // Push notification for mentioned members
+          const pnmBody = `${senderName} was tagged on ${channelName}`;
           const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, hasMessage, pnmTitle);
+          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle);
         }
         res.send(response);
       } catch (e) {
         logger.error('[/data/messages]', JSON.stringify(e));
         res.status(500).send({ success: false, fullError: e });
       }
-    } else {
-      res.status(500).send({ success: false, messages: [`Message is not valid or exceeds allowable limit of ${maxMessageLength} characters`] });
-      logger.error(JSON.stringify({ success: false, messages: [`Message is not valid or exceeds allowable limit of ${maxMessageLength} characters`] }));
-    }
 
   });
 };

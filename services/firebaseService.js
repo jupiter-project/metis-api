@@ -1,55 +1,75 @@
-var admin = require("firebase-admin");
+import {firebaseAdmin} from '../server';
 
-var serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
+/**
+ *
+ */
+class FirebaseService {
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+    /**
+     *
+     * @param {} firebaseAdmin
+     */
+    constructor(firebaseAdmin) {
+        this.firebaseAdmin = firebaseAdmin;
+    }
 
-const sendPushNotification = (registrationToken, message, options, res) => {
-    admin.messaging().sendToDevice(registrationToken, message, options)
-        .then(response => {
-            res.status(200).send("Notification sent successfully");
-        })
-        .catch(error => {
-            console.log(error);
-            res.status(500).send(error);
-        });
-}
 
-const sendPushNotificationMessage = (registrationTokens, notification) => {
-    const users = notification.payload.title.split('@');
-    var data;
-    if(notification.payload && notification.payload.channel){
-        data = {
-            channelId: notification.payload.channel.id,
-            channelDate: ''+notification.payload.channel.date,
-            channelToken: notification.payload.channel.token,
-            channelKey: ''+notification.payload.channel.key,
-            channelName: notification.payload.channel.name,
+    /**
+     *
+     * @param registrationToken
+     * @param message
+     * @param options
+     * @returns {Object}
+     */
+    async sendPushNotification(registrationToken, message, options = null){
+        if(!registrationToken){
+            throw new Error('registration token is invalid')
+        }
+
+        // @TODO the message should check for a string or json object
+        if(!message){
+            throw new Error('Invalid message')
+        }
+
+        return this.firebaseAdmin.messaging().sendToDevice(registrationToken, message, options)
+    }
+
+    /**
+     *
+     * @param title
+     * @param body
+     * @param data
+     * @returns {{notification: {title, body}, data: null}}
+     */
+    generateMessage(title, body, data = null) {
+        if (!title) {
+            throw new Error('invalid title');
+        }
+
+        if (!body) {
+            throw new Error('invalid body');
+        }
+
+        return {
+            data: data,
+            notification: {
+                title: title,
+                body: body
+            }
         }
     }
-    var message = {
-        data:data,
-        notification: {
-            title: 'Metis',
-            body: users[0] + ' has sent a message to channel ' + users[1],
-        }
-      };
-      var options = {
-        priority: "normal",
-        timeToLive: 60 * 60
-      };
 
-    admin.messaging().sendToDevice(registrationTokens, message, options)
-        .then(response => {
-            console.log(response);
-        })
-        .catch(error => {
-            console.log('Error:', error);
-        });
+    /**
+     *
+     * @returns {{timeToLive: number, priority: string}}
+     */
+    generateOptions(){
+        return {
+            priority: "normal",
+            timeToLive: 1200 //60 * 60 -- 1 min
+        }
+    }
+
 }
 
-module.exports.admin = admin;
-module.exports.sendPushNotification = sendPushNotification;
-module.exports.sendPushNotificationMessage = sendPushNotificationMessage;
+module.exports.firebaseService = new FirebaseService(firebaseAdmin)

@@ -1,4 +1,4 @@
-import { sendPushNotificationMessage } from '../services/firebaseService';
+import { firebaseService } from '../services/firebaseService';
 const apn = require('apn');
 const { APN_OPTIONS } = require('./apn');
 const logger = require('../utils/logger')(module);
@@ -27,6 +27,7 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
   notification.payload = payload;
   notification.topic = 'tech.gojupiter.metis';
 
+
   notification.category = `metis.category.${category || 'default'}`;
   console.log('-------------------------------------------------------------sending push.....', tokens, notification);
   setTimeout(async () => {
@@ -39,7 +40,30 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
   }, delay);
   setTimeout(async () => {
     // Send the actual notification
-    sendPushNotificationMessage(tokens, notification);
+
+    //@TODO payload.title needs to be refactored! why do we have userName@channelName?????
+    const title = notification.payload.title;
+
+    if(!title){
+      throw new Error('title is not valid');
+    }
+
+    const body = notification.payload.message;
+
+    if(!body){
+      throw new Error('body is not valid');
+    }
+
+    if(!(notification.payload && notification.payload.metadata)){
+      throw new Error(' notification object is not properly formed')
+    }
+
+    const data = notification.payload.metadata
+
+    const message = firebaseService.generateMessage(title, body, data);
+    const options = firebaseService.generateOptions();
+    await firebaseService.sendPushNotification(tokens, message, options) //async sendPushNotification(registrationToken, message, options = null){
+
   }, delay);
 }
 
