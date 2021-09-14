@@ -7,16 +7,21 @@ const axios = require('axios');
 const { getPNTokensAndSendPushNotification } = require('./messageService');
 
 const jupiterUpload = (
-  channelAccount,
-  channelPassphrase,
-  channelPassword,
+  jupAccount,
+  passphraseAccount,
+  passwordAccount,
   fileBase64Encoded,
   fileName,
 ) => {
+
+  if ( !jupAccount || !passphraseAccount || !passwordAccount ) {
+    throw new Error('Missing params, Account, passphrase ans password are required');
+  }
+
   const dataLogin = {
-    account: channelAccount,
-    passphrase: channelPassphrase,
-    password: channelPassword,
+    account: jupAccount,
+    passphrase: passphraseAccount,
+    password: passwordAccount,
   };
 
   const defaultHeader = {
@@ -150,17 +155,63 @@ module.exports = {
         res.status(500).json({ msg: 'Something went wrong', error });
       });
   },
+  userProfileUpload: (req, res) => {
+    console.log('[userProfileUpload]: Start');
+    const { user } = req;
+    if (!user) {
+      return res.status(500).json({ msg: 'No user info' });
+    }
+    const userAccount = JSON.parse(gravity.decrypt(user.accountData));
+    const { passphrase, account, encryptionPassword } = userAccount;
+    const fileBase64Encoded = req.body.base64Image;
+    const fileName = userAccount.account;
+    const addressBreakdown = account.split('-');
+
+    if (!(fileBase64Encoded) || !user || !fileName) {
+      return res.status(400).json({ msg: 'Missing parameters required.' });
+    }
+
+    jupiterUpload(account, passphrase, encryptionPassword, fileBase64Encoded, fileName)
+        .then((response) => {
+          const { url } = response.data;
+          const accountPropertyParams = {
+            passphrase,
+            recipient: account,
+            value: url,
+            feeNQT: 2000,
+            property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
+          };
+          return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
+        })
+        .then((response) => {
+          const [url, accountPropertyResponse] = response;
+          if (accountPropertyResponse && accountPropertyResponse.errorDescription) {
+            throw new Error(accountPropertyResponse.errorDescription);
+          }
+          console.log('[jupiterUpload]:', url);
+          res.status(200).json({ url });
+        })
+        .catch((error) => {
+          console.log('Something went wrong', error);
+          res.status(500).json({ msg: 'Something went wrong', error });
+        });
+  },
   userJimLogin: (req, res) =>{
     const { user } = req;
     if (!user) {
       return res.status(500).json({ msg: 'No user info' });
     }
     const userAccount = JSON.parse(gravity.decrypt(user.accountData));
-    const { passphrase, account, password } = userAccount;
-    const dataLogin = { account, passphrase, password };
+    const { passphrase, account, encryptionPassword } = userAccount;
+    const dataLogin = { account, passphrase, password: encryptionPassword };
+
     axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
       .then((response) => {
-        res.status(200).json(response.data);
+        if (response && response.data && response.data.token){
+          return res.status(200).json(response.data.token);
+        }
+
+        return res.status(500).json({msg: 'Error generating token'});
       })
       .catch((error) => {
         console.log('Something went wrong whit JIM login', error);
@@ -230,48 +281,6 @@ module.exports = {
         res.status(500).json({ msg: 'Something went wrong', error });
       });
   },
-  userProfileUpload: (req, res) => {
-    console.log('[userProfileUpload]: Start');
-    const { user } = req;
-    if (!user) {
-      return res.status(500).json({ msg: 'No user info' });
-    }
-    const userAccount = JSON.parse(gravity.decrypt(user.accountData));
-    const { passphrase, account, password } = userAccount;
-    const fileBase64Encoded = req.body.base64Image;
-    const fileName = userAccount.account;
-    const addressBreakdown = account.split('-');
-
-    if (!(fileBase64Encoded) || !user || !fileName) {
-      return res.status(400).json({ msg: 'Missing parameters required.' });
-    }
-
-    jupiterUpload(account, passphrase, password, fileBase64Encoded, fileName)
-      .then((response) => {
-        const { url } = response.data;
-        const accountPropertyParams = {
-          passphrase,
-          recipient: account,
-          value: url,
-          feeNQT: 2000,
-          property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
-        };
-        return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
-      })
-      .then((response) => {
-        const [url, accountPropertyResponse] = response;
-        if (accountPropertyResponse && accountPropertyResponse.errorDescription) {
-          throw new Error(accountPropertyResponse.errorDescription);
-        }
-
-        res.status(200).json({ url });
-      })
-      .catch((error) => {
-        console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
-      });
-  },
-
   fileUpload: (req, res) => {
     console.log('[fileUpload]: Start');
     const { user, channel } = req;
