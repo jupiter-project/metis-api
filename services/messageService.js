@@ -71,4 +71,10 @@ module.exports = {
         logger.error(error);
       });
   },
+  errorMessageHandler: (error) => {
+    //TODO configure a better error handler for all kind og responses
+    const message =  _.get(error, 'response.data.data.errorDescription', 'Something went wrong, please try again later');
+    console.log('Error message:', message);
+    return { message, error: { message } };
+  }
 };
