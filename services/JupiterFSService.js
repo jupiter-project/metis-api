@@ -4,7 +4,7 @@ import metis from '../config/metis';
 
 const FormData = require('form-data');
 const axios = require('axios');
-const { getPNTokensAndSendPushNotification } = require('./messageService');
+const { getPNTokensAndSendPushNotification, errorMessageHandler } = require('./messageService');
 
 const jupiterUpload = (
   jupAccount,
@@ -96,7 +96,7 @@ module.exports = {
       .then(() => res.status(200).json({ url: '' }))
       .catch((error) => {
         console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
+        res.status(500).json(errorMessageHandler(error));
       });
   },
   channelProfileDisplay: (req, res) => {
@@ -115,7 +115,7 @@ module.exports = {
       })
       .catch((error) => {
         console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
+        res.status(500).json(errorMessageHandler(error));
       });
   },
   channelProfileUpload: (req, res) => {
@@ -151,8 +151,9 @@ module.exports = {
         res.status(200).json({ url });
       })
       .catch((error) => {
-        console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
+        console.log('Something went wrong', error.response);
+        const response = errorMessageHandler(error);
+        res.status(400).send(response);
       });
   },
   userProfileUpload: (req, res) => {
@@ -193,7 +194,7 @@ module.exports = {
         })
         .catch((error) => {
           console.log('Something went wrong', error);
-          res.status(500).json({ msg: 'Something went wrong', error });
+          res.status(500).json(errorMessageHandler(error));
         });
   },
   userJimLogin: (req, res) =>{
@@ -259,7 +260,7 @@ module.exports = {
       .then(() => res.status(200).json({ url: '' }))
       .catch((error) => {
         console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
+        res.status(500).json(errorMessageHandler(error));
       });
   },
   userProfileDisplay: (req, res) => {
@@ -278,7 +279,7 @@ module.exports = {
       })
       .catch((error) => {
         console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
+        res.status(500).json(errorMessageHandler(error));
       });
   },
   fileUpload: (req, res) => {
@@ -332,7 +333,7 @@ module.exports = {
       .then(() => res.status(200).json({}))
       .catch((error) => {
         console.log('Something went wrong', error);
-        res.status(500).json({ msg: 'Something went wrong', error });
+        res.status(500).json(errorMessageHandler(error));
       });
-  },
+  }
 };
