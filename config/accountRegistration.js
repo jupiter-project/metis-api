@@ -7,7 +7,6 @@ const { applicationAccountProperties } = require('../gravity/applicationAccountP
 const { FundingNotConfirmedError } = require('../errors/metisError');
 const gravity = require("./gravity");
 const logger = require('../utils/logger')(module);
-
 /**
  *
  */
@@ -28,7 +27,8 @@ class AccountRegistration {
     jupiterFundingService,
     jupiterAccountService,
     tableService,
-    gravity) {
+    gravity,
+    JupiterFSService) {
     this.newUserAccountProperties = newUserAccountProperties;
     this.applicationAccountProperties = applicationGravityAccountProperties;
     this.jupiterAPIService = jupiterAPIService;
@@ -36,6 +36,7 @@ class AccountRegistration {
     this.jupiterAccountService = jupiterAccountService;
     this.tableService = tableService;
     this.gravity = gravity;
+    this.JupiterFSService=JupiterFSService
   }
 
   defaultTableNames() {
@@ -172,6 +173,7 @@ class AccountRegistration {
                                   return this.jupiterAPIService.setAlias(params);
                                 })
                                 .then((setAliasResponse => {
+                                    this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
                                     return resolve('done')
                                 }))
                                 .catch((error) => {

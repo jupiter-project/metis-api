@@ -1,10 +1,36 @@
 import Message from '../models/message';
 import { gravity } from '../config/gravity';
 import metis from '../config/metis';
+import { loadInitialJFSImage } from '../utils/utils';
 
 const FormData = require('form-data');
 const axios = require('axios');
 const { getPNTokensAndSendPushNotification } = require('./messageService');
+const defaultFileBase64Encoded = loadInitialJFSImage();
+const defaultFileName = 'pixi.jpg';
+const delayUntilAccountIsCreated = 60000;
+
+const createStorageAndLoadImage = async (account, passphrase, encryptionPassword) => {
+  setTimeout(async () => { 
+      console.log('[createStorageAndLoadImage]: Async Start');
+      console.log('Pixi.jpg ', defaultFileBase64Encoded);
+      if (!account || !passphrase || !encryptionPassword) {
+        console.log('Missing parameters required.', account, passphrase, encryptionPassword);
+        throw new Error('Missing parameters required.');
+      }
+      jupiterUpload(account, passphrase, encryptionPassword, defaultFileBase64Encoded, defaultFileName)
+          .then((response) => {
+            const { url } = response.data;
+            console.log('your storage has been created: ', account, url);
+            console.log('[createStorageAndLoadImage]: Async End');
+          })
+          .catch((error) => {
+            console.log('Something went wrong creatng your storage: ', account, error);
+            console.log('[createStorageAndLoadImage]: Async Error');
+            throw new Error('Something went wrong creatng your storage: ', account, error);
+          });
+    }, delayUntilAccountIsCreated);
+}
 
 const jupiterUpload = (
   jupAccount,
@@ -334,5 +360,16 @@ module.exports = {
         console.log('Something went wrong', error);
         res.status(500).json({ msg: 'Something went wrong', error });
       });
+  },
+
+  userStorageCreate: (account, passphrase, encryptionPassword) => {
+    console.log('[userStorageCreate]: Start');
+    createStorageAndLoadImage(account, passphrase, encryptionPassword);
+    console.log('[userStorageCreate]: Creating...');
+  },
+  channelStorageCreate: async (account, passphrase, encryptionPassword) => {
+    console.log('[channelStorageCreate]: Start');
+    createStorageAndLoadImage(account, passphrase, encryptionPassword);
+    console.log('[channelStorageCreate]: Creating...');
   },
 };

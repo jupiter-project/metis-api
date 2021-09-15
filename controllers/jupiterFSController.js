@@ -2,6 +2,8 @@ const JupiterFSService = require('../services/JupiterFSService');
 
 module.exports = (app) => {
   app.post('/v1/api/user/jim/login', JupiterFSService.userJimLogin);
+  app.post('/v1/api/user/storage', JupiterFSService.userStorageCreate);
+  app.post('/v1/api/channel/storage', JupiterFSService.channelProfileUpload);
   app.post('/v1/api/file', JupiterFSService.fileUpload);
 
   app.post('/v1/api/channel/profile', JupiterFSService.channelProfileUpload);

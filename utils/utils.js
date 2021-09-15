@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 const hasJsonStructure = (str) => {
   if (typeof str !== 'string') return false;
   try {
@@ -9,6 +11,12 @@ const hasJsonStructure = (str) => {
   }
 };
 
+const loadInitialJFSImage = () => {
+  const initialJFSImage = fs.readFileSync('./pixi.jpg', {encoding: 'base64'});
+  return initialJFSImage;
+}
+
 module.exports = {
   hasJsonStructure,
+  loadInitialJFSImage,
 };

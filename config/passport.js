@@ -3,7 +3,7 @@ import { gravity } from './gravity';
 import User from '../models/user';
 // import RegistrationWorker from '../workers/registration';
 // import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-
+const JupiterFSService = require('../services/JupiterFSService');
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {JupiterFundingService} from "../services/jupiterFundingService";
@@ -150,7 +150,8 @@ const metisRegistration = async (account, requestBody) => {
         jupiterFundingService,
         jupiterAccountService,
         tableService,
-        gravity
+        gravity,
+        JupiterFSService
     );
 
     return accountRegistration.register()
