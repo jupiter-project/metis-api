@@ -53,8 +53,8 @@ function sendPushNotification(tokens, alert, badgeCount, payload, category, dela
     if(!body){
       throw new Error('body is not valid');
     }
-
-    if(!(notification.payload && notification.payload.metadata)){
+    console.log('*******', notification.payload);
+    if(!(notification.payload)){
       throw new Error(' notification object is not properly formed')
     }
 

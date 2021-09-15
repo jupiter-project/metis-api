@@ -30,7 +30,7 @@ module.exports = {
           return null;
         })
         .then((data) => {
-          const payload = { title, channel, message };
+          const payload = { title, channel, message, metadata: {channelAccount: channel.channel_record.account} };
           if (data && Array.isArray(data) && !_.isEmpty(data)) {
             // eslint-disable-next-line max-len
             const tokensAndBadge = data.map(item => ({ token: item.tokenList, badge: item.badgeCounter }));
