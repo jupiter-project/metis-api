@@ -1,5 +1,6 @@
 import gu from "../utils/gravityUtils";
 import {request} from "express";
+import {FeeManager} from "./FeeManager";
 const logger = require('../utils/logger')(module);
 const axios = require('axios');
 const queryString = require('query-string');
@@ -139,12 +140,13 @@ class JupiterAPIService {
     /**
      *
      * @param {string} address - JUP-123
+     * @param transactionType
      * @returns {Promise<*>} - { requestProcessingTime, transactions: [{signature, transactionIndex,type,phased,ecBlockId,
      * signatureHash,attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, version.MetisMetaData,
      * version.EncryptedMessage},senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
-    async getBlockChainTransactions(address) {
+    async getBlockChainTransactions(address, transactionType = FeeManager.TransactionTypes.messaging_voting_aliases) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getBlockChainTransactions(account: ${address})`);
         logger.verbose('#####################################################################################');
@@ -155,8 +157,9 @@ class JupiterAPIService {
         return this.get( {
             requestType: 'getBlockchainTransactions',
             account: address,
-            withMessage: true,
-            type: 1
+            withMessage: true, //@TODO. we should rename the method to say that the transactions are with Message
+            type: transactionType,
+            numberOfConfirmations:0
         });
     }
 
