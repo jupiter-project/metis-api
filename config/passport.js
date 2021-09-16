@@ -202,7 +202,8 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 }
             })
 
-        logger.debug(`job id= ${job.id} for account=${account}`);
+        console.log(job);
+        // logger.debug(`job id= ${job.id} for account=${account}`);
 
         job.on('complete', function(result){
             logger.debug(`Job On Complete `)
