@@ -2,8 +2,7 @@ import _ from 'lodash';
 import { findNotificationInfoByAliasOrJupId, findNotificationAndUpdate } from './notificationService';
 
 const logger = require('../utils/logger')(module);
-const { sendPushNotification } = require('../config/notifications');
-
+const { sendFirebasePN, generateApplePayload, sendApplePN } = require('../config/notifications');
 
 module.exports = {
   getMessageMentions: (text) => {
@@ -19,9 +18,13 @@ module.exports = {
   getPNTokensAndSendPushNotification: (members, senderAlias, channel, message, title) => {
     if (members && Array.isArray(members) && !_.isEmpty(members)) {
       findNotificationInfoByAliasOrJupId(members, channel.id)
-        .then((data) => {
-          if (data && Array.isArray(data) && !_.isEmpty(data)) {
-            const notificationIds = _.map(data, '_id');
+        .then((listOfPNAccounts) => {
+          if (listOfPNAccounts && Array.isArray(listOfPNAccounts) && !_.isEmpty(listOfPNAccounts)) {
+
+
+            const notifications = listOfPNAccounts.map( pnAccount => {   }  )
+
+            const notificationIds = _.map(listOfPNAccounts, '_id');
             const updateData = { $inc: { badgeCounter: 1 } };
             // eslint-disable-next-line max-len
             const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
@@ -39,6 +42,7 @@ module.exports = {
           return { tokensAndBadge: [], payload };
         })
         .then(({ tokensAndBadge, payload }) => {
+          // tokensAndBadge.map(tb => sendPushNotification(tb.token, message, tb.badge, payload, 'channels'));
           tokensAndBadge.map(tb => sendPushNotification(tb.token, message, tb.badge, payload, 'channels'));
         })
         .catch((error) => {
