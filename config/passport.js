@@ -195,12 +195,12 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             .priority('high')
             .removeOnComplete(true)
             .save( (error, payload, message) =>{
-                logger.debug('%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$%$ %$')
+                logger.verbose(`jobQueue.save()`);
                 if(error){
-                    //send a socketio lettingthe phone know it's not successful
-                    // this.socket.emit(`there's a problem registring!`);
+                    logger.error(`there is a problem saving to redis`);
+                    logger.error(JSON.stringify(error));
                 }
-            } )
+            })
 
         job.on('complete', function(result){
             logger.debug(`Job On Complete `)
