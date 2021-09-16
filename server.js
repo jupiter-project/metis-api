@@ -1,7 +1,13 @@
 const { tokenVerify } = require('./middlewares/authentication');
 
 const url = require('url');
+
+
 const kue = require('kue');
+const Queue = require('bull');
+
+
+
 const fs = require('fs');
 
 if (process.env.NODE_ENV !== 'production') {
@@ -33,6 +39,18 @@ const jobs = kue.createQueue({
     auth: process.env.REDIS_PASSWORD || undefined,
   },
 });
+
+const registrationQueue = new Queue('account registration',
+    { redis:
+          { port: process.env.REDIS_PORT || '6379',
+            host:  process.env.REDIS_HOST || 'localhost',
+            password: process.env.REDIS_PASSWORD || undefined
+          }
+    });
+
+
+
+
 
 
 // Loads Body parser
@@ -232,6 +250,37 @@ jobs.process('user-registration', WORKERS, (job,done) => {
         return done(null, result, 'Your account is being saved into the blockchain.');
       })
 })
+
+
+// registrationQueue((job, done) => {
+//
+//   // job.data contains the custom data passed when the job was created
+//   // job.id contains id of this job.
+//
+//   // transcode video asynchronously and report progress
+//   job.progress(42);
+//
+//   // call done when finished
+//   done();
+//
+//   // or give a error if error
+//   done(new Error('error transcoding'));
+//
+//   // or pass it a result
+//   done(null, { framerate: 29.5 /* etc... */ });
+//
+//   // If the job throws an unhandled exception it is also handled correctly
+//   throw new Error('some unexpected error');
+// });
+
+
+
+
+
+
+
+
+
 
 
 /* jobs.process('fundAccount', (job, done) => {
