@@ -218,7 +218,7 @@ gravity.getFundingMonitor()
 //   registrationWorker.checkRegistration(job.data, job.id, done);
 // });
 
-const WORKERS = 100
+const WORKERS = 100;
 jobs.process('user-registration', WORKERS, (job,done) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: user-registration`)
