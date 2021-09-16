@@ -218,13 +218,12 @@ gravity.getFundingMonitor()
 //   registrationWorker.checkRegistration(job.data, job.id, done);
 // });
 
-jobs.process('user-registration', 10, (job,done) => {
+const WORKERS = 100
+jobs.process('user-registration', WORKERS, (job,done) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: user-registration`)
   logger.verbose(`###########################################`)
-
-  logger.debug(job.data.data);
-
+  // logger.debug(job.data.data);
   const decryptedData = gravity.decrypt(job.data.data)
   const parsedData = JSON.parse(decryptedData);
 
