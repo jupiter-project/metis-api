@@ -82,9 +82,6 @@ async function sendApplePN(tokens, alertMessage, badgeCount, payload, category, 
 
 
 
-
-
-
 module.exports = {
   sendFirebasePN,
   generateApplePayload,
