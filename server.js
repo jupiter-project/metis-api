@@ -238,20 +238,26 @@ gravity.getFundingMonitor()
 // });
 
 const WORKERS = 100;
+
 jobs.process('user-registration', WORKERS, (job,done) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: user-registration`)
-  logger.verbose(`###########################################`)
+  logger.verbose(`##`)
   // logger.debug(job.data.data);
   const decryptedData = gravity.decrypt(job.data.data)
   const parsedData = JSON.parse(decryptedData);
 
+
   metisRegistration(job.data.account, parsedData)
-      .then(result => {
-        return done(null, result, 'Your account is being saved into the blockchain.');
+      .then(() => {
+        return done();
+      })
+      .catch( error =>{
+        logger.error(`*********************`)
+        logger.error(`error=${error}`);
+        return done(error)
       })
 })
-
 
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);

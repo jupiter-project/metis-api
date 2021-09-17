@@ -34,6 +34,11 @@ const invites = function (data) {
 };
 
 const joinRoom = (socket, room, user) => {
+  logger.verbose(`###############################`)
+  logger.verbose(`## joinRoom()`)
+  logger.verbose(`##`)
+  logger.debug(`  room= ${room}`)
+
   socket.name = user;
   socket.join(room);
   socket.in(room).allSockets().then((result) => {
@@ -45,12 +50,21 @@ const signUpSuccessful = function (account) {
   console.log('signUpSuccessful....................................OK');
   this.broadcast.to(`sign-up-${account}`).emit('signUpSuccessful');
 };
+
 const signupFailedAttempt = function (account) {
   this.broadcast.to(`sign-up-${account}`).emit('signUpFailedAttempt');
 };
+
+/**
+ *
+ * @param account
+ */
 const signUpFailed = function (account) {
+  logger.verbose(`#########################`)
+  logger.verbose(`## signUpFailed(account=${account})`)
   this.broadcast.to(`sign-up-${account}`).emit('signUpFailed');
 };
+
 const signUpConnection = function (socket) {
   const { room, user } = socket.handshake.query;
   if (!room || !user) {
