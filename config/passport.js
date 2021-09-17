@@ -86,11 +86,6 @@ const metisRegistration = async (account, requestBody) => {
   logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
 
 
- return new Promise((resolve, reject) => {
-     return resolve();
- });
-
-
   const applicationGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
     process.env.APP_ACCOUNT_ID,
@@ -192,7 +187,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 if(error){
                     logger.error(`there is a problem saving to redis`);
                     logger.error(JSON.stringify(error));
-                    websocket.of('/sign-up').emit('signUpFailed',account);
+                    websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
                 }
             })
 
@@ -203,27 +198,27 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             logger.verbose(`## job.on(complete)`)
             logger.debug(`account=${account}`)
             logger.debug('Job completed with data ', result);
-            websocket.of('/sign-up').emit('signUpSuccessful', account);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpSuccessful', account);
         })
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
             logger.debug('Job failed Attempt');
             logger.debug(`account=${account}`)
-            websocket.of('/sign-up').emit('signUpFailedAttempt',account);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
         })
 
         job.on('failed', function(errorMessage){
             logger.error(`*********************`)
             logger.error(`job.on(failed)`)
             logger.debug(`account=${account}`)
-            websocket.of('/sign-up').emit('signUpFailed', account);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
         })
         // job.on('progress', function(progress, data){
         //     logger.debug('^&^&')
         //     logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
         // });
 
-        return done(null, {}, 'hello');
+        return done();
     });
   }));
 };
