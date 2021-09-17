@@ -271,10 +271,10 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           const pnTitle = `${senderName} @ ${channelName}`;
           getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle);
 
-          // // Push notification for mentioned members
-          // const pnmBody = `${senderName} was tagged on ${channelName}`;
-          // const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          // getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle);
+          // Push notification for mentioned members
+          const pnmBody = `${senderName} was tagged on ${channelName}`;
+          const pnmTitle = `${senderName} has tagged @ ${channelName}`;
+          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle);
         }
         res.send(response);
       } catch (e) {
