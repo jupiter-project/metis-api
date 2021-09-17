@@ -85,6 +85,12 @@ const metisRegistration = async (account, requestBody) => {
   logger.verbose('#####################################################################################');
   logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
 
+
+ return new Promise((resolve, reject) => {
+     return resolve();
+ });
+
+
   const applicationGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
     process.env.APP_ACCOUNT_ID,
@@ -134,7 +140,6 @@ const metisRegistration = async (account, requestBody) => {
   );
 
   logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
-
   newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
 
   const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
@@ -151,21 +156,9 @@ const metisRegistration = async (account, requestBody) => {
         jupiterAccountService,
         tableService,
         gravity
-    );
+    )
 
     return accountRegistration.register()
-
-    // return new Promise((resolve, reject) => {
-    //     return accountRegistration.register()
-    //         .then(response =>{
-    //             console.log('@@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ @@@ ')
-    //             return resolve(response);
-    //         } )
-    //         .catch(error => {
-    //             return  reject(error);
-    //         })
-    // })
-
 };
 
 /**
@@ -199,13 +192,15 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 if(error){
                     logger.error(`there is a problem saving to redis`);
                     logger.error(JSON.stringify(error));
+                    websocket.of('/sign-up').emit('signUpFailed',account);
                 }
             })
 
         logger.debug(`job id= ${job.id} for account=${account}`);
 
         job.on('complete', function(result){
-            logger.debug(`Job On Complete `)
+            logger.verbose(`##########################`)
+            logger.verbose(`## job.on(complete)`)
             logger.debug(`account=${account}`)
             logger.debug('Job completed with data ', result);
             websocket.of('/sign-up').emit('signUpSuccessful', account);
@@ -216,10 +211,12 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             logger.debug(`account=${account}`)
             websocket.of('/sign-up').emit('signUpFailedAttempt',account);
         })
+
         job.on('failed', function(errorMessage){
-            logger.debug('Job failed');
+            logger.error(`*********************`)
+            logger.error(`job.on(failed)`)
             logger.debug(`account=${account}`)
-            websocket.of('/sign-up').emit('signUpFailed',account);
+            websocket.of('/sign-up').emit('signUpFailed', account);
         })
         // job.on('progress', function(progress, data){
         //     logger.debug('^&^&')
