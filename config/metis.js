@@ -43,7 +43,7 @@ function Metis() {
       const { properties } = await gravity.getAccountProperties({ recipient: accountRS });
       const profilePicture = properties ? properties.find(({ property }) => property.includes('profile_picture')) : null;
 
-      return { alias, urlProfile: profilePicture ? profilePicture.value : '' };
+      return { alias, accountRS , urlProfile: profilePicture ? profilePicture.value : '' };
     });
 
     return Promise.all(profilePictures);

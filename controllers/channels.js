@@ -250,7 +250,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       };
 
       const message = new Message(data);
-      let { members } = await metis.getMember({
+      let { memberProfilePicture } = await metis.getMember({
         channel: tableData.account,
         account: tableData.publicKey,
         password: tableData.password,
@@ -262,6 +262,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
         response = await message.sendMessage(userData, tableData, message.record);
+        let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
           const senderName = user.userData.alias;
           members = members.filter(member => member !== senderName && !mentions.includes(member));
@@ -270,10 +271,10 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           const pnTitle = `${senderName} @ ${channelName}`;
           getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle);
 
-          // Push notification for mentioned members
-          const pnmBody = `${senderName} was tagged on ${channelName}`;
-          const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle);
+          // // Push notification for mentioned members
+          // const pnmBody = `${senderName} was tagged on ${channelName}`;
+          // const pnmTitle = `${senderName} has tagged @ ${channelName}`;
+          // getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle);
         }
         res.send(response);
       } catch (e) {

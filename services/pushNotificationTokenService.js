@@ -1,43 +1,44 @@
 import {
-  findNotificationAndUpdate, findMutedChannels, findItemsByToken, updateBadgeCounter,
+  findNotificationAndUpdate, findMutedChannels, updateBadgeCounter,
 } from './notificationService';
 
 const logger = require('../utils/logger')(module);
 
 module.exports = {
   addTokenNotification: (req, res) => {
-    const { body } = req;
-    console.log('TOKEN:', body.token);
-    if (body && body.alias && body.jupId && body.token) {
-      const filter = { alias: body.alias };
-      const update = { jupId: body.jupId || '' };
-      const updateToken = body.deleteToken
-        ? { $pull: { tokenList: body.token } }
-        : { $push: { tokenList: body.token } };
+    const { token, jupId, provider } = req.body;
+    logger.debug(`[addTokenNotification]->Token: ${token}`);
 
-      findItemsByToken(body.token)
-        .then((tokenList) => {
-          if (
-            (tokenList && Array.isArray(tokenList))
-            && (tokenList.length === 0 || body.deleteToken)
-          ) {
-            return findNotificationAndUpdate(filter, { ...updateToken, ...update });
-          }
-          return null;
-        })
-        .then(tokenList => res.json({ success: true, tokenList }))
+    if ( !( jupId && token && provider) ){
+      const error = {
+        success: false,
+        message: 'Token, Provider and JupId are required',
+      };
+      logger.error(error);
+      return res.status(400).json(error);
+    }
+
+    const filter = { userAddress: jupId};
+
+    const update = {
+      userAddress: jupId,
+      mutedChannelIds: [],
+      pnAccounts: [
+        {
+          provider: provider,
+          token: token,
+          createdAt: new Date(),
+          badgeCounter: 0,
+        }
+      ]
+    };
+
+    findNotificationAndUpdate(filter, update, token, provider)
+        .then(notificationInfo => res.json({success: true, notificationInfo}))
         .catch((error) => {
           logger.error(error);
           res.status(400).json({ ok: false, error });
         });
-    } else {
-      const error = {
-        success: false,
-        message: 'Alias, Token and JupId are required',
-      };
-      logger.error(error);
-      res.status(400).json(error);
-    }
   },
   editMutedChannels: (req, res) => {
     const { body } = req;

@@ -1,8 +1,9 @@
 import _ from 'lodash';
-import { findNotificationInfoByAliasOrJupId, findNotificationAndUpdate } from './notificationService';
+import { findNotificationsByAddressList, findNotificationAndUpdate, incrementBadgeCounter } from './notificationService';
 
 const logger = require('../utils/logger')(module);
-const { sendFirebasePN, generateApplePayload, sendApplePN } = require('../config/notifications');
+const { sendFirebasePN, sendApplePN } = require('../config/notifications');
+
 
 module.exports = {
   getMessageMentions: (text) => {
@@ -17,33 +18,50 @@ module.exports = {
   },
   getPNTokensAndSendPushNotification: (members, senderAlias, channel, message, title) => {
     if (members && Array.isArray(members) && !_.isEmpty(members)) {
-      findNotificationInfoByAliasOrJupId(members, channel.id)
-        .then((listOfPNAccounts) => {
-          if (listOfPNAccounts && Array.isArray(listOfPNAccounts) && !_.isEmpty(listOfPNAccounts)) {
+      findNotificationsByAddressList(members, channel.id)
+        .then((notifications) => {
 
+          if (!_.isEmpty(notifications)) {
 
-            const notifications = listOfPNAccounts.map( pnAccount => {   }  )
+            const promises = [];
 
-            const notificationIds = _.map(listOfPNAccounts, '_id');
-            const updateData = { $inc: { badgeCounter: 1 } };
-            // eslint-disable-next-line max-len
-            const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
-            return Promise.all(badgeCounters);
+            notifications.forEach(notification => {
+              promises.push(incrementBadgeCounter({ _id: notification._id }))
+            });
+
+            return Promise.all(promises);
           }
           return null;
         })
-        .then((data) => {
+        .then((notifications) => {
           const payload = { title, channel, message, metadata: {channelAccount: channel.channel_record.account} };
-          if (data && Array.isArray(data) && !_.isEmpty(data)) {
-            // eslint-disable-next-line max-len
-            const tokensAndBadge = data.map(item => ({ token: item.tokenList, badge: item.badgeCounter }));
+          if (notifications && Array.isArray(notifications) && !_.isEmpty(notifications)) {
+
+            const tokensAndBadge = [];
+            notifications.map(notification => {
+              _.map(notification.pnAccounts, account => {
+
+                tokensAndBadge.push(({ token: account.token, badge: account.badgeCounter, provider: account.provider }));
+
+              });
+            });
+
             return { tokensAndBadge, payload };
           }
           return { tokensAndBadge: [], payload };
         })
         .then(({ tokensAndBadge, payload }) => {
-          // tokensAndBadge.map(tb => sendPushNotification(tb.token, message, tb.badge, payload, 'channels'));
-          tokensAndBadge.map(tb => sendPushNotification(tb.token, message, tb.badge, payload, 'channels'));
+          tokensAndBadge.map(tb => {
+
+            if (tb.provider === 'ios'){
+              sendApplePN(tb.token, message, tb.badge, payload, 'channels');
+            }
+
+            if (tb.provider === 'android'){
+              sendFirebasePN(tb.token, title, message);
+            }
+
+          });
         })
         .catch((error) => {
           logger.error(JSON.stringify(error));
@@ -51,7 +69,7 @@ module.exports = {
     }
   },
   getPNTokenAndSendInviteNotification: (senderAlias, recipientAliasOrJupId, channelName) => {
-    findNotificationInfoByAliasOrJupId([recipientAliasOrJupId])
+    findNotificationsByAddressList([recipientAliasOrJupId])
       .then((data) => {
         if (data && Array.isArray(data) && !_.isEmpty(data)) {
           const notificationIds = _.map(data, '_id');
