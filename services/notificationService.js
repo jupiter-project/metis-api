@@ -3,7 +3,7 @@ const Notifications = require('../models/notifications');
 module.exports = {
   findOneNotificationAndUpdate: (filter, updateData) => {
     if (!filter || !updateData) {
-      throw new Error('Filter and dat to update are required.');
+      throw new Error('Filter and data to update are required.');
     }
 
     const upsertOptions = { upsert: true, new: true, runValidators: true };
@@ -11,7 +11,7 @@ module.exports = {
   },
   incrementBadgeCounter: (filter) => {
     if (!filter) {
-      throw new Error('Filter and dat to update are required.');
+      throw new Error('Filter and data to update are required.');
     }
 
     return Notifications.findOneAndUpdate(
@@ -25,13 +25,13 @@ module.exports = {
         .lean()
         .then(async (notification) => {
           if (!(notification && notification.pnAccounts)){
-            return null;
+            return notification;
           }
 
           const providerToken = notification.pnAccounts.find(account => account.provider === provider && account.token === token);
 
           if (!providerToken){
-            return null;
+              return notification;
           }
 
           return Notifications.updateOne(filter, { $pull: { pnAccounts: { provider, token } } });
