@@ -16,9 +16,10 @@ module.exports = {
     }
     return [];
   },
-  getPNTokensAndSendPushNotification: (members, senderAlias, channel, message, title) => {
-    if (members && Array.isArray(members) && !_.isEmpty(members)) {
-      findNotificationsByAddressList(members, channel.id)
+  getPNTokensAndSendPushNotification: (recipientAddressArray, senderAlias, channel, message, title) => {
+    if (recipientAddressArray && Array.isArray(recipientAddressArray) && !_.isEmpty(recipientAddressArray)) {
+      const channelId = channel && channel.id ? channel.id : null;
+      findNotificationsByAddressList(recipientAddressArray, channelId)
         .then((notifications) => {
 
           if (!_.isEmpty(notifications)) {
@@ -52,15 +53,11 @@ module.exports = {
         })
         .then(({ tokensAndBadge, payload }) => {
           tokensAndBadge.map(tb => {
-
             if (tb.provider === 'ios'){
               sendApplePN(tb.token, message, tb.badge, payload, 'channels');
-            }
-
-            if (tb.provider === 'android'){
+            } else {
               sendFirebasePN(tb.token, title, message);
             }
-
           });
         })
         .catch((error) => {
@@ -68,8 +65,8 @@ module.exports = {
         });
     }
   },
-  getPNTokenAndSendInviteNotification: (senderAlias, recipientAliasOrJupId, channelName) => {
-    findNotificationsByAddressList([recipientAliasOrJupId])
+  getPNTokenAndSendInviteNotification: (senderAlias, userAddress, channelName) => {
+    findNotificationsByAddressList([userAddress])
       .then((data) => {
         if (data && Array.isArray(data) && !_.isEmpty(data)) {
           const notificationIds = _.map(data, '_id');

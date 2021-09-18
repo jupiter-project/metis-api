@@ -140,9 +140,17 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     try {
       response = await invite.send();
       const sender = user.userData.alias;
-      const recipient = _.get(data, 'recipient', '');
+      let recipient = _.get(data, 'recipient', '');
       const channelName = _.get(data, 'channel.name', '');
-      getPNTokenAndSendInviteNotification(sender, recipient, channelName);
+
+
+      if (!recipient.toLowerCase().includes('jup-')) {
+        const aliasResponse = await this.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      }
+
+      const message = `${sender} invited you to the channel "${channelName}"`;
+      getPNTokensAndSendPushNotification([recipient], sender, null, message, 'Invitation');
       res.send(response);
     } catch (e) {
       logger.error(e);
