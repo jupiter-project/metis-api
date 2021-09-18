@@ -52,15 +52,11 @@ module.exports = {
         })
         .then(({ tokensAndBadge, payload }) => {
           tokensAndBadge.map(tb => {
-
             if (tb.provider === 'ios'){
               sendApplePN(tb.token, message, tb.badge, payload, 'channels');
-            }
-
-            if (tb.provider === 'android'){
+            } else {
               sendFirebasePN(tb.token, title, message);
             }
-
           });
         })
         .catch((error) => {

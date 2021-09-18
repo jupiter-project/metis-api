@@ -1,6 +1,14 @@
 const Notifications = require('../models/notifications');
 
 module.exports = {
+  findOneNotificationAndUpdate: (filter, updateData) => {
+    if (!filter || !updateData) {
+      throw new Error('Filter and dat to update are required.');
+    }
+
+    const upsertOptions = { upsert: true, new: true, runValidators: true };
+    return Notifications.findOneAndUpdate(filter, updateData, upsertOptions);
+  },
   incrementBadgeCounter: (filter) => {
     if (!filter) {
       throw new Error('Filter and dat to update are required.');
@@ -12,8 +20,25 @@ module.exports = {
         { new: true }
     ).lean();
   },
+  findOneNotificationAndRemovePNToken: (filter, provider, token) => {
+    return Notifications.findOne(filter)
+        .lean()
+        .then(async (notification) => {
+          if (!(notification && notification.pnAccounts)){
+            return null;
+          }
+
+          const providerToken = notification.pnAccounts.find(account => account.provider === provider && account.token === token);
+
+          if (!providerToken){
+            return null;
+          }
+
+          return Notifications.updateOne(filter, { $pull: { pnAccounts: { provider, token } } });
+        });
+  },
   findNotificationAndUpdate: (filter, updateData, token, provider) => {
-    if (!filter || !updateData || !token || !provider) {
+    if (!filter || !updateData || !provider) {
       throw new Error('Filter and data to update are required.');
     }
 
@@ -44,7 +69,7 @@ module.exports = {
           }
 
           return notification;
-        })
+        });
   },
   findNotificationsByAddressList: (addressList, excludeChannelId = null) => {
     const filter = {
@@ -74,9 +99,9 @@ module.exports = {
     }
     return Notifications.updateOne({ alias }, { badgeCounter: badge || 0 });
   },
-  findMutedChannels: (alias) => {
-    const filter = { alias };
+  findMutedChannels: (userAddress) => {
+    const filter = { userAddress };
     return Notifications.find(filter)
-      .select('mutedChannels');
+      .select('mutedChannelIds');
   },
 };
