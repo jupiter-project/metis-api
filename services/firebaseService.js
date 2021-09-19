@@ -10,6 +10,9 @@ class FirebaseService {
      * @param {} firebaseAdmin
      */
     constructor(firebaseAdmin) {
+        if(!firebaseAdmin){
+            throw new Error('Invalid argument firebaseAdmin')
+        }
         this.firebaseAdmin = firebaseAdmin;
     }
 
@@ -39,9 +42,9 @@ class FirebaseService {
      * @param title
      * @param body
      * @param data
-     * @returns {{notification: {title, body}, data: null}}
+     * @returns {{notification: {title, body}, data: {}}}}
      */
-    generateMessage(title, body, data = null) {
+    generateMessage(title, body, data = {}) {
         if (!title) {
             throw new Error('invalid title');
         }
@@ -51,7 +54,7 @@ class FirebaseService {
         }
 
         return {
-            data: data,
+            data: data ? data : {},
             notification: {
                 title: title,
                 body: body
