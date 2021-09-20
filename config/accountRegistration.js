@@ -173,7 +173,7 @@ class AccountRegistration {
                                   return this.jupiterAPIService.setAlias(params);
                                 })
                                 .then((setAliasResponse => {
-                                    this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
+                                    // this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
                                     return resolve('done')
                                 }))
                                 .catch((error) => {
