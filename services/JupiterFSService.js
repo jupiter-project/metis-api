@@ -354,7 +354,7 @@ module.exports = {
           const pnTitle = `${channel.channel_record.name}`;
           const senderName = user.userData.alias;
           const message = `${senderName} sent an image`;
-          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle, null);
+          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle, {});
         }
       })
       .then(() => res.status(200).json({}))
