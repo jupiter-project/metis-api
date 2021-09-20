@@ -11,7 +11,7 @@ const defaultFileName = 'pixi.jpg';
 const delayUntilAccountIsCreated = 30000;
 
 const createStorageAndLoadImage = async (account, passphrase, encryptionPassword) => {
-  setTimeout(async () => { 
+  setTimeout(async () => {
       console.log('[createStorageAndLoadImage]: Async Start');
       console.log('Pixi.jpg ', defaultFileBase64Encoded);
       if (!account || !passphrase || !encryptionPassword) {
@@ -354,7 +354,7 @@ module.exports = {
           const pnTitle = `${channel.channel_record.name}`;
           const senderName = user.userData.alias;
           const message = `${senderName} sent an image`;
-          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle);
+          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle, {});
         }
       })
       .then(() => res.status(200).json({}))

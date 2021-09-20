@@ -140,9 +140,18 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     try {
       response = await invite.send();
       const sender = user.userData.alias;
-      const recipient = _.get(data, 'recipient', '');
+      let recipient = _.get(data, 'recipient', '');
       const channelName = _.get(data, 'channel.name', '');
-      getPNTokenAndSendInviteNotification(sender, recipient, channelName);
+
+
+      if (!recipient.toLowerCase().includes('jup-')) {
+        const aliasResponse = await gravity.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      }
+
+      const message = `${sender} invited you to the channel: ${channelName}`;
+      const metadata = { isInvitation: true };
+      getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
       res.send(response);
     } catch (e) {
       logger.error(e);
@@ -269,12 +278,14 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
           const pnBody = `${senderName} has sent a message on channel ${channelName}`;
           const pnTitle = `${senderName} @ ${channelName}`;
-          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle);
+          const channelAccount = channel && channel.channel_record
+              ? channel.channel_record.account : null;
+          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
 
           // Push notification for mentioned members
           const pnmBody = `${senderName} was tagged on ${channelName}`;
           const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle);
+          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAccount });
         }
         res.send(response);
       } catch (e) {

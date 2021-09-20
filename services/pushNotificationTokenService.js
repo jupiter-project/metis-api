@@ -1,5 +1,9 @@
 import {
-  findNotificationAndUpdate, findMutedChannels, updateBadgeCounter,
+  findNotificationAndUpdate,
+  findMutedChannels,
+  updateBadgeCounter,
+  findOneNotificationAndUpdate,
+  findOneNotificationAndRemovePNToken
 } from './notificationService';
 
 const logger = require('../utils/logger')(module);
@@ -9,7 +13,7 @@ module.exports = {
     const { token, jupId, provider } = req.body;
     logger.debug(`[addTokenNotification]->Token: ${token}`);
 
-    if ( !( jupId && token && provider) ){
+    if ( !(jupId && provider && token) ){
       const error = {
         success: false,
         message: 'Token, Provider and JupId are required',
@@ -40,68 +44,95 @@ module.exports = {
           res.status(400).json({ ok: false, error });
         });
   },
-  editMutedChannels: (req, res) => {
-    const { body } = req;
-    if (body && body.alias && body.channelId) {
-      const filter = { alias: body.alias };
-      const update = body.isMuted
-        ? { $pull: { mutedChannels: body.channelId } }
-        : { $push: { mutedChannels: body.channelId } };
+  deleteTokenPushNotification: (req, res) => {
+    const { jupId, provider, token } = req.params;
 
-      findNotificationAndUpdate(filter, update)
-        .then(notification => res.json({ success: true, notification }))
-        .catch((error) => {
+    if ( !(jupId && provider && token) ){
+      const error = {
+        success: false,
+        message: 'Token, Provider and JupId are required',
+      };
+      logger.error(error);
+      return res.status(400).json(error);
+    }
+
+    const filter = { userAddress: jupId };
+
+    findOneNotificationAndRemovePNToken(filter, provider, token)
+        .then(() => res.json({success: true}))
+        .catch(error => {
           logger.error(error);
-          res.status(400).json({ ok: false, error });
-        });
-    } else {
+          res.status(500).json({ ok: false, error });
+        })
+  },
+  editMutedChannels: (req, res) => {
+    const { userAddress, channelId, isMuted } = req.body;
+
+    if (!(userAddress && channelId)) {
       const error = {
         ok: false,
         error: 'bad request',
         message: 'Alias and Channel id are required.',
       };
       logger.error(error);
-      res.status(400).json(error);
+      return res.status(400).json(error);
     }
+
+    const filter = { userAddress };
+    const update = isMuted
+      ? { $pull: { mutedChannelIds: channelId } }
+      : { $push: { mutedChannelIds: channelId } };
+
+    findOneNotificationAndUpdate(filter, update)
+      .then(notification => res.json({ success: true, notification }))
+      .catch((error) => {
+        logger.error(error);
+        res.status(400).json({ ok: false, error });
+      });
   },
   findMutedChannels: (req, res) => {
-    const { alias } = req.params;
-    if (alias) {
-      findMutedChannels(alias)
-        .then(([response]) => {
-          const { mutedChannels } = response || { mutedChannels: [] };
-          res.json({
-            success: true,
-            mutedChannels,
-          });
-        })
-        .catch((error) => {
-          logger.error(error);
-          res.status(400).json({ ok: false, error });
-        });
-    } else {
+    const { userAddress } = req.params;
+
+    if (!userAddress){
       const error = {
         ok: false,
         error: 'bad request',
         message: 'Alias is required.',
       };
       logger.error(error);
-      res.status(400).json(error);
+      return res.status(400).json(error);
     }
+
+    findMutedChannels(userAddress)
+      .then(([response]) => {
+        const { mutedChannelIds } = response || { mutedChannelIds: [] };
+        res.json({
+          success: true,
+          mutedChannelIds,
+        });
+      })
+      .catch((error) => {
+        logger.error(error);
+        res.status(500).json({ ok: false, error });
+      });
   },
   setBadgePnCounter: (req, res) => {
-    const { alias, badge } = req.body;
-    if (alias) {
-      updateBadgeCounter(alias, badge || 0)
-        .then(response => res.json({ success: true, response }));
-    } else {
+    const { userAddress, badge } = req.body;
+
+    if (!userAddress){
       const error = {
         ok: false,
         error: 'bad request',
-        message: 'Alias id are required.',
+        message: 'userAddress id are required.',
       };
       logger.error(error);
-      res.status(400).json(error);
+      return res.status(400).json(error);
     }
+
+    updateBadgeCounter(userAddress, badge || 0)
+        .then(response => res.json({ success: true, response }))
+        .catch(error => {
+          res.status(500).json(error)
+        });
   },
 };
