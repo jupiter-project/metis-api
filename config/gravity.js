@@ -2429,7 +2429,9 @@ class Gravity {
         // This code will send Jupiter to the recently created table newTableAddress so that it is
         // able to record information
         logger.debug(`attachTable().sendMoneyAndWait(newTableAddress= ${newTableAddress})`)
-        this.sendMoney(newTableAddress )
+        // sendMoney(recipient, transferAmount, sender) {
+
+        this.sendMoney(newTableAddress, process.env.JUPITER_MININUM_TABLE_BALANCE )
           .then((response) => {
             logger.verbose('---------------------------------------------------------------------------------------');
             logger.debug(`attachTable().sendMoney(newTableAddress).then(response)`)

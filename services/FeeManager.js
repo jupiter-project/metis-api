@@ -202,7 +202,6 @@ class FeeManager {
      * @returns {*}
      */
     getFee(feeType) {
-
         const fees = this.fees.filter(fee => {
             return feeType === fee.feeType
         })

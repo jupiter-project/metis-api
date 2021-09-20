@@ -20,6 +20,15 @@ class JupiterAccountService {
     //     })
     // }
 
+
+
+
+
+
+
+
+
+
     async addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties){
         logger.verbose('###########################################');
         logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');

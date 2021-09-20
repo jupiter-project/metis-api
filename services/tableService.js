@@ -1,13 +1,20 @@
 const {JupiterAccountProperties} = require("../gravity/jupiterAccountProperties");
 const {TableAccountProperties} = require("../gravity/tableAccountProperties");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const logger = require('../utils/logger')(module);
 
 
 class TableService {
 
-    constructor( jupiterTransactionsService ) {
+    /**
+     *
+     * @param jupiterTransactionsService
+     * @param jupiterApiService
+     */
+    constructor( jupiterTransactionsService, jupiterApiService ) {
         this.jupiterTransactionsService = jupiterTransactionsService;
+        this.jupiterApiService = jupiterApiService;
     }
 
     /**
@@ -75,6 +82,44 @@ class TableService {
 // metis_1  | [0]   user_record:
 //     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
 // metis_1  | [0]   date: 1625269463920 }
+
+
+    /**
+     *
+     * @param accountProperties
+     * @param arrayOfTableNames
+     * @returns {Promise<*>}
+     */
+    async createTableListRecord( accountProperties, arrayOfTableNames){
+        logger.verbose('###################################')
+        logger.verbose(`tableService.createTableListRecord(accountProperties= ${accountProperties.address}, arrayOfTableNames=${arrayOfTableNames})`)
+
+        const tablesList = {
+            tables: arrayOfTableNames,
+            date: Date.now()
+        }
+
+
+        // {"tables":["users","channels","invites","storage"],"date":1632086636692}
+        // {"tables":{"arrayOfTableNames":["channels","invites","storage"]},"date":1632086637174}
+
+        const encrypted = accountProperties.crypto.encryptJson(tablesList);
+
+
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+
+
+        console.log('fee to create record: ', fee);
+
+
+        return this.jupiterApiService.sendSimpleEncipheredMetisMessage(
+            accountProperties,
+            accountProperties,
+            encrypted,
+            fee,
+            FeeManager.JupiterTypeOneSubtypes.accountInfo,
+            false )
+    }
 
 
     extractLatestTableNamesFromMessages(messages){

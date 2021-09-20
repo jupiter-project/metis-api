@@ -6,6 +6,7 @@ const { JupiterFundingService } = require('../services/jupiterFundingService');
 const { applicationAccountProperties } = require('../gravity/applicationAccountProperties');
 const { FundingNotConfirmedError } = require('../errors/metisError');
 const gravity = require("./gravity");
+const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const logger = require('../utils/logger')(module);
 /**
  *
@@ -173,7 +174,7 @@ class AccountRegistration {
                                   return this.jupiterAPIService.setAlias(params);
                                 })
                                 .then((setAliasResponse => {
-                                    this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
+                                    // this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
                                     return resolve('done')
                                 }))
                                 .catch((error) => {
@@ -375,17 +376,19 @@ class AccountRegistration {
       const newTables = [];
       for (let i = 0; i < listOfMissingTableNames.length; i++) {
         logger.debug(`listOfMissingTableNames[i]= ${listOfMissingTableNames[i]}`);
-
-
         logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${this.newUserAccountProperties.address}`)
         newTables.push(this.attachTable(listOfMissingTableNames[i])); // // {name, address, passphrase, publicKey}
+
+
       }
-      // }
+
 
       // accountData.tables = [{name, address, passphrase, confirmed}]
       logger.verbose('-- attachMissingDefaultTables().PromiseAll(newTables))');
       Promise.all(newTables)
-        .then((results) => { // [{success,message, data, jupiter_response, tables, others}]
+        .then(async (results) => { // [{success,message, data, jupiter_response, tables, others}]
+
+            await this.tableService.createTableListRecord(this.newUserAccountProperties, this.defaultTableNames());
           logger.verbose('---------------------------------------------------------------------------------------');
           logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables).then(results= ${!!results})`);
           logger.verbose('---------------------------------------------------------------------------------------');
@@ -419,6 +422,22 @@ class AccountRegistration {
 
   }
 
+
+  // async createTableListRecord(arrayOfTableNames){
+  //     const tablesList = {
+  //         tables: {arrayOfTableNames}
+  //     }
+  //
+  //     const encrypted = this.newUserAccountProperties.crypto.encryptJson(tablesList);
+  //     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+  //     this.jupiterAPIService.sendSimpleEncipheredMetisMessage(
+  //         this.newUserAccountProperties,
+  //         this.newUserAccountProperties,
+  //         encrypted,
+  //         fee,
+  //         FeeManager.feeTypes.account_info,
+  //         false )
+  // }
 
   async attachTable(tableName) {
     logger.verbose('########################################################################################');
