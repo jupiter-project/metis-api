@@ -93,11 +93,16 @@ module.exports = {
     const filter = { pnAccounts: { token: token } };
     return Notifications.find(filter).select('pnAccounts');
   },
-  updateBadgeCounter: (alias, badge) => {
-    if (!alias) {
-      throw new Error('Alias are required');
+  updateBadgeCounter: (userAddress, badge) => {
+    if (!userAddress) {
+      throw new Error('User Address are required');
     }
-    return Notifications.updateOne({ alias }, { badgeCounter: badge || 0 });
+
+      return Notifications.findOneAndUpdate(
+          { userAddress },
+          { $set: { "pnAccounts.$[].badgeCounter": badge } },
+          { new: true }
+      ).lean();
   },
   findMutedChannels: (userAddress) => {
     const filter = { userAddress };
