@@ -16,7 +16,7 @@ module.exports = {
     }
     return [];
   },
-  getPNTokensAndSendPushNotification: (recipientAddressArray, senderAlias, channel, message, title) => {
+  getPNTokensAndSendPushNotification: (recipientAddressArray, senderAlias, channel, message, title, metadata) => {
     if (recipientAddressArray && Array.isArray(recipientAddressArray) && !_.isEmpty(recipientAddressArray)) {
       const channelId = channel && channel.id ? channel.id : null;
       findNotificationsByAddressList(recipientAddressArray, channelId)
@@ -35,7 +35,7 @@ module.exports = {
           return null;
         })
         .then((notifications) => {
-          const payload = { title, channel, message, metadata: {channelAccount: channel.channel_record.account} };
+          const payload = { title, channel, message, metadata };
           if (notifications && Array.isArray(notifications) && !_.isEmpty(notifications)) {
 
             const tokensAndBadge = [];

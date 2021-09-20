@@ -117,18 +117,22 @@ module.exports = {
       });
   },
   setBadgePnCounter: (req, res) => {
-    const { alias, badge } = req.body;
-    if (alias) {
-      updateBadgeCounter(alias, badge || 0)
-        .then(response => res.json({ success: true, response }));
-    } else {
+    const { userAddress, badge } = req.body;
+
+    if (!userAddress){
       const error = {
         ok: false,
         error: 'bad request',
-        message: 'Alias id are required.',
+        message: 'userAddress id are required.',
       };
       logger.error(error);
-      res.status(400).json(error);
+      return res.status(400).json(error);
     }
+
+    updateBadgeCounter(userAddress, badge || 0)
+        .then(response => res.json({ success: true, response }))
+        .catch(error => {
+          res.status(500).json(error)
+        });
   },
 };
