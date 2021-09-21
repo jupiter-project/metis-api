@@ -259,7 +259,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       };
 
       const message = new Message(data);
-      let { memberProfilePicture } = await metis.getMember({
+      const { memberProfilePicture } = await metis.getMember({
         channel: tableData.account,
         account: tableData.publicKey,
         password: tableData.password,
