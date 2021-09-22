@@ -1,6 +1,5 @@
 const { tokenVerify } = require('./middlewares/authentication');
 const firebaseAdmin = require("firebase-admin");
-
 // Firebase Service initializer
 const firebaseServiceAccount = {
   type: process.env.FIREBASE_TYPE,
@@ -49,7 +48,6 @@ const jobs = kue.createQueue({
     auth: process.env.REDIS_PASSWORD || undefined,
   },
 });
-
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -202,6 +200,9 @@ app.get('/*', (req, res) => {
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
 const {AccountRegistration} = require("./config/accountRegistration");
+const { jobScheduleService } = require('./services/jobScheduleService');
+
+jobScheduleService.init(kue);
 
 gravity.getFundingMonitor()
   .then(async (monitorResponse) => {
