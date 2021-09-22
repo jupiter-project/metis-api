@@ -115,7 +115,7 @@ module.exports = {
           passphrase,
           recipient: account,
           value: '',
-          feeNQT: 100,
+          feeNQT: process.env.PROPERTY_FEE,
           property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
         };
         return gravity.setAcountProperty(accountPropertyParams);
@@ -164,7 +164,7 @@ module.exports = {
           passphrase,
           recipient: account,
           value: url,
-          feeNQT: 2000,
+          feeNQT: process.env.PROPERTY_FEE,
           property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
         };
         return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
@@ -206,7 +206,7 @@ module.exports = {
             passphrase,
             recipient: account,
             value: url,
-            feeNQT: 2000,
+            feeNQT: process.env.PROPERTY_FEE,
             property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
           };
           return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
@@ -279,7 +279,7 @@ module.exports = {
           passphrase,
           recipient: account,
           value: '',
-          feeNQT: 100,
+          feeNQT: process.env.PROPERTY_FEE,
           property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
         };
         return gravity.setAcountProperty(accountPropertyParams);
