@@ -176,6 +176,7 @@ class AccountRegistration {
                                 .then((setAliasResponse => {
                                     // this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
                                     // jimServer.sendFirstImage(fromAddress, password, passphrase )
+
                                     return resolve('done')
                                 }))
                                 .catch((error) => {
