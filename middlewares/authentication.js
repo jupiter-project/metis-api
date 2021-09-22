@@ -48,7 +48,8 @@ const tokenVerify = (req, res, next) => {
     }
     req.user = decodedUser;
     req.channel = decodedChannel;
-
+    logger.debug(`decoded user = ${req.user}`);
+    logger.debug(`decoded channel = ${req.channel}`)
     next();
   });
 };
