@@ -140,7 +140,7 @@ const metisRegistration = async (account, requestBody) => {
   const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
   const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
   const jupiterTransactionsService = new JupiterTransactionsService(jupiterAPIService);
-  const tableService = new TableService(jupiterTransactionsService);
+  const tableService = new TableService(jupiterTransactionsService, jupiterAPIService);
   const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
 
     const accountRegistration = new AccountRegistration(

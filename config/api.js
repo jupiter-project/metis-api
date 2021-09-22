@@ -208,9 +208,10 @@ module.exports = (app) => {
       recordObject.create()
         .then((response) => {
           console.log('[MODEL]: ', recordObject.model);
+
           if(recordObject.model === 'channel') {
             JupiterFSService.channelStorageCreate(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password);
-          }          
+          }
           res.status(200).send(response);
         })
         .catch((err) => {
