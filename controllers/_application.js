@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
-
+import {jobScheduleService} from '../services/jobScheduleService';
 const logger = require('../utils/logger')(module);
 
 // This files handles the app's different pages and how they are routed by the system
@@ -305,6 +305,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    */
   app.post('/v1/api/signup', (req, res, next) => {
     passport.authenticate('gravity-signup', (error, user, message) => {
+      console.log(error, user, message);
       if (error) {
         logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         logger.error(`500 ERROR!!!!`)
@@ -316,6 +317,27 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       return res.status(200).send({ success: true, message });
     })(req, res, next);
   });
+
+   /**
+   *
+   */
+    app.get('/v1/api/job/status', (req, res, next) => {
+      const {jobId} = req.query;
+      const callback = function(err, job) {
+        if(!err){
+            if(job){
+              logger.info(`Job ${jobId} status ${job.state()}`);
+              return res.status(200).send({ success: true, status: job.state() });
+            } else {
+              return res.status(200).send({ success: true, status: 'completed' });
+            }         
+        } else {
+            console.log(err);
+            return res.status(200).send({ success: true, status: 'completed' });
+        }
+      }
+      jobScheduleService.checkJobStatus(jobId, callback);
+    });
 
   /**
    *

@@ -183,14 +183,18 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
         const job = jobsQueue.create('user-registration', jobData)
             .priority('high')
             .removeOnComplete(true)
-            .save( (error, payload, message) =>{
-                logger.verbose(`jobQueue.save()`);
-                if(error){
+            .save( (err) =>{
+                if(err){
                     logger.error(`there is a problem saving to redis`);
-                    logger.error(JSON.stringify(error));
+                    logger.error(JSON.stringify(err));
                     websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
                 }
-            })
+                logger.verbose(`jobQueue.save() id= ${job.id}`);
+                logger.verbose(`account= ${account}`);
+                setTimeout(()=>{
+                  websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
+                }, 1000);                
+            });
 
         logger.debug(`job id= ${job.id} for account=${account}`);
 
@@ -200,26 +204,26 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             logger.debug(`account=${account}`)
             logger.debug('Job completed with data ', result);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpSuccessful', account);
-        })
+        });
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
             logger.debug('Job failed Attempt');
             logger.debug(`account=${account}`)
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
-        })
+        });
 
         job.on('failed', function(errorMessage){
             logger.error(`*********************`)
             logger.error(`job.on(failed)`)
             logger.debug(`account=${account}`)
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
-        })
+        });
         // job.on('progress', function(progress, data){
         //     logger.debug('^&^&')
         //     logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
         // });
 
-        return done();
+        return done(null, null, job.id);
     });
   }));
 };
