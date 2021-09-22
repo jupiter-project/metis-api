@@ -156,7 +156,6 @@ class Channel extends Model {
       logger.sensitive(`response = ${JSON.stringify(response) }`);
     }
 
-
     logger.sensitive(`record = ${JSON.stringify(this.record)}`);
     logger.sensitive(`data = ${JSON.stringify(this.data)}`);
     // logger.sensitive(`publicKey = ${JSON.stringify(response.publicKey)}`);
@@ -164,6 +163,12 @@ class Channel extends Model {
 
     if (this.accessLink) {
       return super.create(JSON.parse(gravity.decrypt(this.accessLink)));
+          // .then( channel  => {
+          //   gravity.attachTable('storage')
+          //       .then(
+          //           jimServer.sendFirstImage(fromAddress, password, passphrase, file='metisLogo' );
+          //       )
+          // }  )
     }
 
     return Promise.reject({ error: true, message: 'Missing user information' });

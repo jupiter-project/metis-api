@@ -175,6 +175,7 @@ class AccountRegistration {
                                 })
                                 .then((setAliasResponse => {
                                     // this.JupiterFSService.userStorageCreate(this.newUserAccountProperties.address, this.newUserAccountProperties.passphrase, this.newUserAccountProperties.password);
+                                    // jimServer.sendFirstImage(fromAddress, password, passphrase )
                                     return resolve('done')
                                 }))
                                 .catch((error) => {
@@ -378,8 +379,6 @@ class AccountRegistration {
         logger.debug(`listOfMissingTableNames[i]= ${listOfMissingTableNames[i]}`);
         logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${this.newUserAccountProperties.address}`)
         newTables.push(this.attachTable(listOfMissingTableNames[i])); // // {name, address, passphrase, publicKey}
-
-
       }
 
 
@@ -388,22 +387,24 @@ class AccountRegistration {
       Promise.all(newTables)
         .then(async (results) => { // [{success,message, data, jupiter_response, tables, others}]
 
-            await this.tableService.createTableListRecord(this.newUserAccountProperties, this.defaultTableNames());
-          logger.verbose('---------------------------------------------------------------------------------------');
-          logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables).then(results= ${!!results})`);
-          logger.verbose('---------------------------------------------------------------------------------------');
-          logger.verbose(`results= ${JSON.stringify(results)}`);
-          logger.verbose(`currentlyAttachedTables= ${currentlyAttachedTables}`);
+            this.tableService.createTableListRecord(this.newUserAccountProperties, this.defaultTableNames())
+                .then( response => {
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables).then(results= ${!!results})`);
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`results= ${JSON.stringify(results)}`);
+                    logger.verbose(`currentlyAttachedTables= ${currentlyAttachedTables}`);
 
-          if (Array.isArray(results) && results.length > 0) {
-            const allTables = [...currentlyAttachedTables, ...results];
-            logger.verbose(`allTables= ${JSON.stringify(allTables)}`);
-            return resolve(allTables);
-          }
+                    if (Array.isArray(results) && results.length > 0) {
+                        const allTables = [...currentlyAttachedTables, ...results];
+                        logger.verbose(`allTables= ${JSON.stringify(allTables)}`);
+                        return resolve(allTables);
+                    }
 
-          logger.verbose(`currentlyAttachedTables= ${JSON.stringify(currentlyAttachedTables)}`); // accountData.tables= [{"name":"users","address":"JUP-","passphrase":"tickle awl","confirmed":true}]
+                    logger.verbose(`currentlyAttachedTables= ${JSON.stringify(currentlyAttachedTables)}`); // accountData.tables= [{"name":"users","address":"JUP-","passphrase":"tickle awl","confirmed":true}]
 
-          return resolve(currentlyAttachedTables);
+                    return resolve(currentlyAttachedTables);
+                })
         })
         .catch((error) => {
             logger.error(`_______________________________________________`)
@@ -481,68 +482,3 @@ class AccountRegistration {
 }
 
 module.exports.AccountRegistration = AccountRegistration;
-
-// results= [
-//     {   "success":true,
-//         "message":"Table users pushed to the blockchain and funded.",
-//         "data": {
-//             "signatureHash":"123",
-//             "transactionJSON": {
-//                 "senderPublicKey":"123",
-//                 "signature":"123",
-//                 "feeNQT":"100",
-//                 "type":0,
-//                 "fullHash":"122",
-//                 "version":1,
-//                 "phased":false,
-//                 "ecBlockId":"14299521375805376641",
-//                 "signatureHash":"123",
-//                 "attachment":{
-//                     "version.OrdinaryPayment":0},
-//                 "senderRS":"JUP-KMRG-9PMP-87UD-3EXSF",
-//                 "subtype":0,
-//                 "amountNQT":"99150",
-//                 "sender":"1649351268274589422",
-//                 "recipientRS":"JUP-X53Y-G95B-VLG5-D2G3W",
-//                 "recipient":"13692561836985977918",
-//                 "ecBlockHeight":202691,
-//                 "deadline":60,
-//                 "transaction":"5819163356141812942",
-//                 "timestamp":120963232,
-//                 "height":2147483647},
-//             "unsignedTransactionBytes":"123",
-//             "broadcasted":true,
-//             "requestProcessingTime":4,
-//             "transactionBytes":"123",
-//             "fullHash":"123",
-//             "transaction":"5819163356141812942"},
-//         "jupiter_response":{"signatureHash":"123",
-//             "transactionJSON":{"senderPublicKey":"123",
-//                 "signature":"123",
-//                 "feeNQT":"100",
-//                 "type":0,
-//                 "fullHash":"123",
-//                 "version":1,
-//                 "phased":false,
-//                 "ecBlockId":"14299521375805376641",
-//                 "signatureHash":"123",
-//                 "attachment":{"version.OrdinaryPayment":0},
-//                 "senderRS":"JUP-KMRG-9PMP-87UD-3EXSF",
-//                 "subtype":0,
-//                 "amountNQT":"99150",
-//                 "sender":"1649351268274589422",
-//                 "recipientRS":"JUP-X53Y-G95B-VLG5-D2G3W",
-//                 "recipient":"13692561836985977918",
-//                 "ecBlockHeight":202691,
-//                 "deadline":60,
-//                 "transaction":"5819163356141812942",
-//                 "timestamp":120963232,
-//                 "height":2147483647},
-//             "unsignedTransactionBytes":"123",
-//             "broadcasted":true,
-//             "requestProcessingTime":4,
-//             "transactionBytes":"123",
-//             "fullHash":"123",
-//             "transaction":"5819163356141812942"},
-//         "tables":["users"],
-//         "others":[]}]
