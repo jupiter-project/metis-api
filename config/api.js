@@ -164,7 +164,6 @@ module.exports = (app) => {
     logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
 
     const exceptions = ['users'];
-    let model = '';
     data = {
       ...data,
       address: decryptedAccountData.account,
@@ -182,44 +181,41 @@ module.exports = (app) => {
     if (exceptions.includes(tableName)) {
       next();
     } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
-
-      const file = `../models/${model}.js`;
-      const Record = require(file);
-
+      const fileMatchRegex = new RegExp(`.*[\/ | \\\\]${tableName}\\.js`, 'g');
+      console.log('fileMatchRegex =', fileMatchRegex);
+      console.log('testing fileSync =', find.fileSync(fileMatchRegex, './models'));
+      const filePathArray = find.fileSync(fileMatchRegex, './models');
+      if(!(filePathArray && filePathArray.length)) {
+        logger.error(`couldn't find the table ${ tableName }`);
+        res.status(500).send({
+          success: false,
+          errors: err.errors
+        });
+      }
+      const filePath = filePathArray[0];
+      console.log('filePath:', filePath);
+      const fileFullPath = `../${filePath}`;
+      const Record = require(fileFullPath);
 
       const recordObject = new Record(data);
-      if (recordObject.belongsTo === 'user') {
-        if (accountData) {
-          recordObject.accessLink = accountData;
-        }
+      if (recordObject.belongsTo === 'user' && accountData) {
+        recordObject.accessLink = accountData;
       }
       recordObject.create()
-        .then((response) => {
-          console.log('[MODEL]: ', recordObject.model);
+        .then(response => {
+          /**console.log('[MODEL]: ', recordObject.model);
           if(recordObject.model === 'channel') {
             JupiterFSService.channelStorageCreate(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password);
-          }          
+          }  */        
           res.status(200).send(response);
         })
-        .catch((err) => {
+        .catch(err => {
           logger.error(`app.post() recordObject.create().catch() ${ JSON.stringify(err)}`);
           res.status(500).send({
             success: false,
             errors: err.errors
           });
-        });
+        });      
     }
   });
 

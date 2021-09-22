@@ -163,7 +163,9 @@ class Channel extends Model {
 
 
     if (this.accessLink) {
-      return super.create(JSON.parse(gravity.decrypt(this.accessLink)));
+      return super.create(JSON.parse(gravity.decrypt(this.accessLink))).then(() => {
+        JupiterFSService.channelStorageCreate(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password);
+      });
     }
 
     return Promise.reject({ error: true, message: 'Missing user information' });
