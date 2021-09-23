@@ -2490,8 +2490,8 @@ class Gravity {
         logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
 
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-
-        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+        const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
         logger.debug(`callurl= ${callUrl}`);
         let response;
         try {
@@ -2507,7 +2507,7 @@ class Gravity {
         if (response.data.broadcasted && !response.error) {
           logger.info(`Table ${tableName} pushed to the blockchain and linked to your account...`);
           // const recipientPublicKey = (database.publicKey | database.publicKey == 'undefined')? `&recipientPublicKey=${database.publicKey}`:''
-          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${(fee / 2)}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
           logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
           try {
             response = await axios.post(tableListUpdateUrl);

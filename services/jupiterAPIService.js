@@ -1,5 +1,5 @@
 import gu from "../utils/gravityUtils";
-import {request} from "express";
+import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
 const logger = require('../utils/logger')(module);
 const axios = require('axios');
 const queryString = require('query-string');
@@ -221,6 +221,16 @@ class JupiterAPIService {
     }
 
 
+    /**
+     *
+     * @param {GravityAccountProperties} from
+     * @param {GravityAccountProperties} to
+     * @param message
+     * @param fee
+     * @param subtype
+     * @param prunable
+     * @returns {Promise<*>}
+     */
     async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
         console.log('- - - - - ')
         console.log(subtype);
@@ -575,4 +585,7 @@ class JupiterAPIService {
 
 }
 
+// import {applicationProperties} from "express";
+
 module.exports.JupiterAPIService = JupiterAPIService;
+module.exports.jupiterApiService = new JupiterAPIService(process.env.JUPITERSERVER, applicationAccountProperties)

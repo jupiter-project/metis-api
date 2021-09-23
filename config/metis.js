@@ -154,6 +154,7 @@ function Metis() {
       };
     }
 
+
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.accept_channel_invitation);
     const propertyParams = {
       recipient: params.channel,

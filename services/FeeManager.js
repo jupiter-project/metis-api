@@ -13,7 +13,6 @@ const logger = require('../utils/logger')(module);
 class FeeManager {
 
     constructor(
-        accountInfoFee,
         nftCreationFee,
         assetCreationFee,
         shufflingFee,
@@ -66,22 +65,22 @@ class FeeManager {
             feeType: FeeManager.feeTypes.account_record,
             fee: accountRecordFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
-            subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountInfo
+            subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountRecord
         })
 
-        this.fees.push({
-            feeType: FeeManager.feeTypes.table_account_record,
-            fee: accountRecordFee,
-            type: FeeManager.TransactionTypes.messaging_voting_aliases,
-            subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
-        })
+        // this.fees.push({
+        //     feeType: FeeManager.feeTypes.table_account_record,
+        //     fee: accountRecordFee,
+        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
+        //     subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
+        // })
 
-        this.fees.push({
-            feeType: FeeManager.feeTypes.account_info,
-            fee: accountInfoFee,
-            type: FeeManager.TransactionTypes.messaging_voting_aliases,
-            subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
-        })
+        // this.fees.push({
+        //     feeType: FeeManager.feeTypes.account_info,
+        //     fee: accountInfoFee,
+        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
+        //     subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountInfo
+        // })
 
         this.fees.push({
             feeType: FeeManager.feeTypes.invitation_to_channel,
@@ -142,8 +141,8 @@ class FeeManager {
         'chat': 'chat',
         'storage': 'storage',
         'regular_transaction': 'regular_transaction',
-        'account_info': 'account_info',
         'account_record': 'account_record',
+        'table_account_record':'table_account_record',
         'invitation_to_channel': 'invitation_to_channel',
         'accept_channel_invitation': 'accept_channel_invitation',
         'arbitrary_message': 'arbitrary_message', //subtype 0
@@ -152,7 +151,6 @@ class FeeManager {
         'account_property_deletion': 'account_property_deletion',
         'new_user_funding':'new_user_funding',
         'new_table_funding':'new_table_funding',
-        'table_account_record':'table_account_record',
     }
 
     static TransactionTypes = {
@@ -178,23 +176,23 @@ class FeeManager {
         transactionApproval: 9,
         accountProperty: 10,
         accountPropertyDeletion: 11,
-        metisAccountInfo: 12, // account_record
+        metisAccountRecord: 12,
         metisChannelInvitation: 13,
         metisChannelMember: 14,
         metisMessage: 15
     }
 
 
-    //// Data, JIM, IO = 0.00007 JUP (~2400 JUP per GB of data)
-    //fyi, the cost to storage data with the current fees is around 2,28 jup/mb, 2400 jup/gb
-    getStorageFee(feeType, fileSize) {
-        return 100;
-    }
-
-
-    getFeeByTypeSubType(type, subtype) {
-
-    }
+    // //// Data, JIM, IO = 0.00007 JUP (~2400 JUP per GB of data)
+    // //fyi, the cost to storage data with the current fees is around 2,28 jup/mb, 2400 jup/gb
+    // getStorageFee(feeType, fileSize) {
+    //     return 100;
+    // }
+    //
+    //
+    // getFeeByTypeSubType(type, subtype) {
+    //
+    // }
 
     /**
      *
@@ -235,23 +233,7 @@ class FeeManager {
 
 module.exports.FeeManager = FeeManager;
 
-// accountInfoFee,
-//     nftCreationFee,
-//     assetCreationFee,
-//     shufflingFee,
-//     chatFee,
-//     regularTransactionFee,
-//     invitationToChannelFee,
-//     metisChannelMemberFee,
-//     arbitraryMessageFee,
-//     aliasAssigmentFee,
-//     accountPropertyFee,
-//     accountPropertyDeletionFee,
-//     newUserFundingFee,
-//     newTableFundingFee,
-//     accountRecordFee
 module.exports.feeManagerSingleton = new FeeManager(
-    process.env.ACCOUNT_INFO_FEE,
     process.env.NFT_CREATION_FEE,
     process.env.ASSET_CREATION_FEE,
     process.env.SHUFFLING_FEE,

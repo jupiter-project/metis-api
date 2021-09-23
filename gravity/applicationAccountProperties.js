@@ -1,3 +1,4 @@
+const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -27,11 +28,12 @@ class ApplicationAccountProperties {
 }
 
 module.exports.ApplicationAccountProperties = ApplicationAccountProperties;
+const transferFee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
 module.exports.applicationAccountProperties = new ApplicationAccountProperties(
     process.env.JUPITER_DEADLINE,
     process.env.JUPITER_FEE_NQT,
     process.env.USER_ACCOUNT_CREATION_FEE,
-    process.env.TRANSFER_FEE,
+    transferFee,
     process.env.JUPITER_MININUM_TABLE_BALANCE,
     process.env.JUPITER_MINIMUM_APP_BALANCE,
     process.env.JUPITER_MONEY_DECIMALS

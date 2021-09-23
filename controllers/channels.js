@@ -270,7 +270,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const channelName = _.get(tableData, 'name', 'a channel');
       const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
-        response = await message.sendMessage(userData, tableData, message.record);
+        response = await message.sendRecord(userData, tableData);
         let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
           const senderName = user.userData.alias;

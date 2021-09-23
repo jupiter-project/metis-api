@@ -52,21 +52,13 @@ class JupiterAccountService {
                     const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
                     // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
-
-                    // this.jupiterAPIService.postMetisMessage();
-
                     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-                    const transactionType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record);
-                    const subtype = transactionType.subtype;
-
-
-                    // Transaction fee 0.000001 JUP less than minimum fee 0.000150 JUP at height 247689'
+                    const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
                     this.jupiterAPIService.sendSimpleEncipheredMetisMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord,fee, subtype)
                         .then(response => {
                             logger.verbose('----------------------------------------');
                             logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).sendSimpleEncipheredMetisMessage().then(response)`);
                             logger.verbose('----------------------------------------');
-                            // logger.sensitive(`response.data= ${response.data}`);
 
                             return resolve(response.data.transaction);
                         })
@@ -100,13 +92,11 @@ class JupiterAccountService {
         logger.verbose('## generateId()');
         logger.verbose('###########################################');
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-        const transactionType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record);
-        const subtype = transactionType.subtype;
-        console.log('--------------------------', fee);
-        console.log(subtype)
+        const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+
+
+
         return new Promise((resolve, reject) => {
-
-
             this.jupiterAPIService.sendSimpleNonEncipheredMetisMessage(
                 metisUsersTableProperties,
                 accountProperties,

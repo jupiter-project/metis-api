@@ -1,5 +1,7 @@
 import Model from './_model';
 import { gravity } from '../config/gravity';
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import jupiterApiService from "../services/jupiterAPIService";
 
 class Invite extends Model {
   constructor(data = { id: null }) {
@@ -42,13 +44,40 @@ class Invite extends Model {
     return response;
   }
 
+  //@TODO rename to sendInvitation
   send() {
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
+    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
+    const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.invitation_to_channel); //{type:1, subtype:12}
 
-    return gravity.sendMessage(
-        JSON.stringify(messageData), this.user.passphrase, messageData.recipient,
-    );
+    return jupiterApiService.sendMetisMessageOrMessage(
+        'sendMetisMessage',
+        messageData.recipient,
+        null,
+        this.user.passphrase,
+        null,
+        fee,
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        JSON.stringify(messageData),
+        null,
+        null,
+        null,
+        false,
+        true,
+        null,
+        null,
+        null,
+        null,
+        null,
+        subtype
+    )
+
   }
 }
 
