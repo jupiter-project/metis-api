@@ -159,6 +159,8 @@ module.exports = {
 
     jupiterUpload(account, passphrase, password, fileBase64Encoded, fileName)
       .then((response) => {
+        console.log(`jupiterUpload().then()`)
+        console.log(response)
         const { url } = response.data;
         const accountPropertyParams = {
           passphrase,
@@ -167,9 +169,16 @@ module.exports = {
           feeNQT: process.env.PROPERTY_FEE,
           property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
         };
+
+        console.log(accountPropertyParams);
+
         return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
       })
       .then((response) => {
+        console.log(`jupiterUpload().then().then()`)
+        console.log(response)
+
+
         const [url, accountPropertyResponse] = response;
         if (accountPropertyResponse && accountPropertyResponse.errorDescription) {
           throw new Error(accountPropertyResponse.errorDescription);
