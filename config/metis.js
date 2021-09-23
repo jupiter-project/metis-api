@@ -116,6 +116,7 @@ function Metis() {
       return { error: true, message: 'No alias provided' };
     }
     // We verify here is user has any existing aliases
+    //@TODO Cannot use Alias!! has to be the jup account!!!
     const memberSearch = await getMember(params);
     // We first retrieve the properties from recipient
     if (memberSearch.error) {
@@ -155,7 +156,7 @@ function Metis() {
     }
 
 
-    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.accept_channel_invitation);
+    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.metis_channel_member);
     const propertyParams = {
       recipient: params.channel,
       feeNQT: fee,

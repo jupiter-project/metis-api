@@ -87,7 +87,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
         this.moneyDecimals = applicationAccountProperties.moneyDecimals;
         this.transferFeeNQT = applicationAccountProperties.transferFeeNQT;
         this.feeNQT = applicationAccountProperties.feeNQT;
-        this.standardFeeNQT = applicationAccountProperties.standardFeeNQT;
         this.accountCreationFeeNQT = applicationAccountProperties.accountCreationFeeNQT;
     }
 

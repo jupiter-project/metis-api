@@ -101,7 +101,7 @@ class Model {
 
       //@TODO the message is fixed size non-encrypted. its 20 chars long. The fee needs to reflect this.
       const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record)
-      const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+      const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
 
       if (tableCredentials.public_key) {
         callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&subtype=${subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableCredentials.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
@@ -438,7 +438,7 @@ class Model {
 
           let callUrl;
           const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-          const typeSubType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+          const typeSubType = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
           if (self.model === 'user') {
             if (self.prunableOnCreate) {
               logger.info('Record is prunable');

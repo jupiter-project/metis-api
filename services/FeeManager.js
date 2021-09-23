@@ -13,10 +13,6 @@ const logger = require('../utils/logger')(module);
 class FeeManager {
 
     constructor(
-        nftCreationFee,
-        assetCreationFee,
-        shufflingFee,
-        chatFee,
         regularTransactionFee,
         invitationToChannelFee,
         metisChannelMemberFee,
@@ -26,33 +22,17 @@ class FeeManager {
         accountPropertyDeletionFee,
         newUserFundingFee,
         newTableFundingFee,
-        accountRecordFee
+        accountRecordFee,
+        ordinaryPaymentFee
     ) {
         this.fees = [];
         // this.fees.push({
-        //     feeType: FeeManager.feeTypes.nft_creation,
-        //     fee: nftCreationFee,
-        //     type: 91,
-        //     subtype: 99
+        //     feeType: FeeManager.feeTypes.chat,
+        //     fee: chatFee,
+        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
+        //     subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
         // })
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.asset_creation,
-        //     fee: assetCreationFee,
-        //     type: 99,
-        //     subtype: 99
-        // })
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.shuffling,
-        //     fee: shufflingFee,
-        //     type: 99,
-        //     subtype: 99
-        // })
-        this.fees.push({
-            feeType: FeeManager.feeTypes.chat,
-            fee: chatFee,
-            type: FeeManager.TransactionTypes.messaging_voting_aliases,
-            subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
-        })
+
         this.fees.push({
             feeType: FeeManager.feeTypes.regular_transaction,
             fee: regularTransactionFee,
@@ -89,17 +69,17 @@ class FeeManager {
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelInvitation
         })
         this.fees.push({
-            feeType: FeeManager.feeTypes.accept_channel_invitation,
+            feeType: FeeManager.feeTypes.metis_channel_member,
             fee: metisChannelMemberFee,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelMember
         });
-        this.fees.push({
-            feeType: FeeManager.feeTypes.arbitrary_message,
-            fee: arbitraryMessageFee,
-            type: FeeManager.TransactionTypes.messaging_voting_aliases,
-            subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
-        });
+        // this.fees.push({
+        //     feeType: FeeManager.feeTypes.arbitrary_message,
+        //     fee: arbitraryMessageFee,
+        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
+        //     subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
+        // });
         this.fees.push({
             feeType: FeeManager.feeTypes.alias_assignment,
             fee: aliasAssigmentFee,
@@ -123,34 +103,40 @@ class FeeManager {
             feeType: FeeManager.feeTypes.new_user_funding,
             fee: newUserFundingFee,
             type: FeeManager.TransactionTypes.payment,
-            subtype: 0 // Ordinary Payment
+            subtype: FeeManager.JupiterTypZeroSubtypes.ordinaryPayment
         });
 
         this.fees.push({
             feeType: FeeManager.feeTypes.new_table_funding,
             fee: newTableFundingFee,
             type: FeeManager.TransactionTypes.payment,
-            subtype: 0 // Ordinary Payment
+            subtype: FeeManager.JupiterTypZeroSubtypes.ordinaryPayment
+        });
+
+        this.fees.push({
+            feeType: FeeManager.feeTypes.ordinary_payment,
+            fee: ordinaryPaymentFee ,
+            type: FeeManager.TransactionTypes.payment,
+            subtype: FeeManager.JupiterTypZeroSubtypes.ordinaryPayment
         });
     }
 
     static feeTypes = {
         'nft_creation': 'nft_creation',
         'asset_creation': 'asset_creation',
-        'shuffling': 'shuffling',
-        'chat': 'chat',
         'storage': 'storage',
         'regular_transaction': 'regular_transaction',
         'account_record': 'account_record',
         'table_account_record':'table_account_record',
         'invitation_to_channel': 'invitation_to_channel',
-        'accept_channel_invitation': 'accept_channel_invitation',
+        'metis_channel_member': 'accept_channel_invitation',
         'arbitrary_message': 'arbitrary_message', //subtype 0
         'alias_assignment': 'alias_assignment',
         'account_property': 'account_property',
         'account_property_deletion': 'account_property_deletion',
         'new_user_funding':'new_user_funding',
         'new_table_funding':'new_table_funding',
+        'ordinary_payment': 'ordinary_payment',
     }
 
     static TransactionTypes = {
@@ -161,6 +147,10 @@ class FeeManager {
         'account_control': 4,
         'monetary_system': 5,
         'data_cloud': 6
+    }
+
+    static JupiterTypZeroSubtypes = {
+        ordinaryPayment: 0,
     }
 
     static JupiterTypeOneSubtypes = {
@@ -183,34 +173,29 @@ class FeeManager {
     }
 
 
-    // //// Data, JIM, IO = 0.00007 JUP (~2400 JUP per GB of data)
-    // //fyi, the cost to storage data with the current fees is around 2,28 jup/mb, 2400 jup/gb
-    // getStorageFee(feeType, fileSize) {
-    //     return 100;
-    // }
-    //
-    //
-    // getFeeByTypeSubType(type, subtype) {
-    //
-    // }
-
     /**
      *
-     * @param feeType
-     * @returns {*}
+     * @param {FeeManager.feeTypes} feeType
+     * @returns {number}
      */
     getFee(feeType) {
         const fees = this.fees.filter(fee => {
             return feeType === fee.feeType
         })
-        if (fees.length > 0) {
-            return fees[0].fee // TODO this has to return the fee not the full object
+
+        if (fees.length) {
+            return fees[0].fee
         }
 
         throw new Error('Fee doesnt exist');
     }
 
-    getTransactionType(feeType) {
+    /**
+     *
+     * @param {FeeManager.feeTypes} feeType
+     * @returns {type,subtype}
+     */
+    getTransactionTypeAndSubType(feeType) {
         const typeSubType = this.fees.reduce((reducer, fee) => {
             if (feeType === fee.feeType) {
                 reducer.push({type: fee.type, subtype: fee.subtype});
@@ -222,22 +207,14 @@ class FeeManager {
             throw new Error('Type doesnt exist');
         }
 
-        console.log(' $$$$$$$ ')
-        console.log(typeSubType);
-
-
         return typeSubType[0]
     }
-
 }
 
 module.exports.FeeManager = FeeManager;
 
+
 module.exports.feeManagerSingleton = new FeeManager(
-    process.env.NFT_CREATION_FEE,
-    process.env.ASSET_CREATION_FEE,
-    process.env.SHUFFLING_FEE,
-    process.env.CHAT_FEE,
     process.env.REGULAR_TRANSACTION_FEE,
     process.env.INVITATION_TO_CHANNEL_FEE,
     process.env.METIS_CHANNEL_MEMBER_FEE,
@@ -247,5 +224,6 @@ module.exports.feeManagerSingleton = new FeeManager(
     process.env.ACCOUNT_PROPERTY_DELETION_FEE,
     process.env.NEW_USER_FUNDING_FEE,
     process.env.NEW_TABLE_FUNDING_FEE,
-    process.env.ACCOUNT_RECORD_FEE
+    process.env.ACCOUNT_RECORD_FEE,
+    process.env.ORDINARY_PAYMENT_FEE
 );

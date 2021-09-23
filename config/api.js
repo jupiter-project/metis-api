@@ -1,7 +1,7 @@
 import find from 'find';
 import jwt from 'jsonwebtoken';
 import { gravity } from './gravity';
-const JupiterFSService = require('../services/JupiterFSService');
+const JupiterFSService = require('../services/JimService');
 
 const logger = require('../utils/logger')(module);
 
@@ -209,8 +209,9 @@ module.exports = (app) => {
         .then((response) => {
           console.log('[MODEL]: ', recordObject.model);
           if(recordObject.model === 'channel') {
-            JupiterFSService.channelStorageCreate(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password);
-          }          
+            // JupiterFSService.channelStorageCreate(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password);
+            JupiterFSService.uploadPixiImageAndWait(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password)
+          }
           res.status(200).send(response);
         })
         .catch((err) => {

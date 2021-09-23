@@ -100,7 +100,7 @@ class TableService {
         }
         const encrypted = accountProperties.crypto.encryptJson(tablesList);
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-        const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+        const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
         logger.debug('fee to create record: ', fee);
         return this.jupiterApiService.sendSimpleEncipheredMetisMessage(
             accountProperties,

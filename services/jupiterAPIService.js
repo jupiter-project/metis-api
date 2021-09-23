@@ -1,5 +1,6 @@
 import gu from "../utils/gravityUtils";
 import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {FeeManager, feeManagerSingleton} from "./FeeManager";
 const logger = require('../utils/logger')(module);
 const axios = require('axios');
 const queryString = require('query-string');
@@ -573,13 +574,15 @@ class JupiterAPIService {
         logger.info(`## params= ${JSON.stringify(params)}`);
         logger.verbose('###############################################################################################')
 
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
+
         return this.jupiterRequest('post', {
             requestType: 'setAlias',
             aliasName: params.alias,
             secretPhrase: params.passphrase,
             aliasURI: `acct:${params.account}@nxt`,
-            feeNQT: 20000,
-            deadline: 60
+            feeNQT: fee,
+            deadline: this.appProps.deadline
         });
     }
 

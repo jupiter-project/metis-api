@@ -54,7 +54,7 @@ class Message extends Model {
       );
 
       const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-      const subtype = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record).subtype;
+      const subtype = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record).subtype;
 
 
       const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&subtype=${subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;

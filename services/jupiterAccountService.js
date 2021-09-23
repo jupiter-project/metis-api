@@ -53,7 +53,7 @@ class JupiterAccountService {
                     // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
                     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-                    const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+                    const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
                     this.jupiterAPIService.sendSimpleEncipheredMetisMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord,fee, subtype)
                         .then(response => {
                             logger.verbose('----------------------------------------');
@@ -92,7 +92,7 @@ class JupiterAccountService {
         logger.verbose('## generateId()');
         logger.verbose('###########################################');
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-        const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+        const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
 
 
 

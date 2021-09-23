@@ -49,7 +49,7 @@ class Invite extends Model {
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
-    const {subtype} = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.invitation_to_channel); //{type:1, subtype:12}
+    const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.invitation_to_channel);
 
     return jupiterApiService.sendMetisMessageOrMessage(
         'sendMetisMessage',
