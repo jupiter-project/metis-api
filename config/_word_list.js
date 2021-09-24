@@ -1,5 +1,4 @@
-module.exports = {
-  words: ['like', 'just', 'love', 'know', 'never', 'want', 'time', 'out', 'there',
+const wordsList = ['like', 'just', 'love', 'know', 'never', 'want', 'time', 'out', 'there',
     'make', 'look', 'eye', 'down', 'only', 'think', 'heart', 'back', 'then', 'into', 'about',
     'more', 'away', 'still', 'them', 'take', 'thing', 'even', 'through', 'long', 'always',
     'world', 'too', 'friend', 'tell', 'try', 'hand', 'thought', 'over', 'here', 'other', 'need',
@@ -126,6 +125,15 @@ module.exports = {
     'utter', 'valley', 'wolf', 'aim', 'alas', 'alter', 'arrow', 'awaken', 'beaten', 'belief', 'brand', 'ceiling', 'cheese', 'clue', 'confidence',
     'connection', 'daily', 'disguise', 'eager', 'erase', 'essence', 'everytime', 'expression', 'fan', 'flag', 'flirt', 'foul', 'fur', 'giggle',
     'glorious', 'ignorance', 'law', 'lifeless', 'measure', 'mighty', 'muse', 'north', 'opposite', 'paradise', 'patience', 'patient', 'pencil',
-    'petal', 'plate', 'ponder', 'possibly', 'practice', 'slice', 'spell', 'stock', 'strife', 'strip', 'suffocate', 'suit', 'tender', 'tool', 'trade', 'velvet', 'verse', 'waist', 'witch', 'aunt', 'bench', 'bold', 'cap', 'certainly', 'click', 'companion', 'creator', 'dart', 'delicate', 'determine', 'dish', 'dragon', 'drama', 'drum', 'dude', 'everybody', 'feast', 'forehead', 'former', 'fright', 'fully', 'gas', 'hook', 'hurl', 'invite', 'juice', 'manage', 'moral', 'possess', 'raw', 'rebel', 'royal', 'scale', 'scary', 'several', 'slight', 'stubborn', 'swell', 'talent', 'tea', 'terrible', 'thread', 'torment', 'trickle', 'usually', 'vast', 'violence', 'weave', 'acid', 'agony', 'ashamed', 'awe', 'belly', 'blend', 'blush', 'character', 'cheat', 'common', 'company', 'coward', 'creak', 'danger', 'deadly', 'defense', 'define', 'depend', 'desperate', 'destination', 'dew', 'duck', 'dusty', 'embarrass', 'engine', 'example', 'explore', 'foe', 'freely', 'frustrate', 'generation', 'glove', 'guilty', 'health', 'hurry', 'idiot', 'impossible', 'inhale', 'jaw', 'kingdom', 'mention', 'mist', 'moan', 'mumble', 'mutter', 'observe', 'ode', 'pathetic', 'pattern', 'pie', 'prefer', 'puff', 'rare', 'revenge', 'rude', 'scrape', 'spiral', 'squeeze', 'strain', 'sunset', 'suspend', 'sympathy', 'thigh', 'throne', 'total', 'unseen', 'weapon', 'weary',
-  ],
-};
+    'petal', 'plate', 'ponder', 'possibly', 'practice', 'slice', 'spell', 'stock', 'strife', 'strip', 'suffocate', 'suit', 'tender', 'tool', 
+    'trade', 'velvet', 'verse', 'waist', 'witch', 'aunt', 'bench', 'bold', 'cap', 'certainly', 'click', 'companion', 'creator', 'dart', 'delicate', 
+    'determine', 'dish', 'dragon', 'drama', 'drum', 'dude', 'everybody', 'feast', 'forehead', 'former', 'fright', 'fully', 'gas', 'hook', 'hurl', 
+    'invite', 'juice', 'manage', 'moral', 'possess', 'raw', 'rebel', 'royal', 'scale', 'scary', 'several', 'slight', 'stubborn', 'swell', 'talent', 
+    'tea', 'terrible', 'thread', 'torment', 'trickle', 'usually', 'vast', 'violence', 'weave', 'acid', 'agony', 'ashamed', 'awe', 'belly', 'blend', 
+    'blush', 'character', 'cheat', 'common', 'company', 'coward', 'creak', 'danger', 'deadly', 'defense', 'define', 'depend', 'desperate', 'destination', 
+    'dew', 'duck', 'dusty', 'embarrass', 'engine', 'example', 'explore', 'foe', 'freely', 'frustrate', 'generation', 'glove', 'guilty', 'health', 'hurry', 
+    'idiot', 'impossible', 'inhale', 'jaw', 'kingdom', 'mention', 'mist', 'moan', 'mumble', 'mutter', 'observe', 'ode', 'pathetic', 'pattern', 'pie', 'prefer', 
+    'puff', 'rare', 'revenge', 'rude', 'scrape', 'spiral', 'squeeze', 'strain', 'sunset', 'suspend', 'sympathy', 'thigh', 'throne', 'total', 'unseen', 'weapon', 'weary',
+  ];
+
+  export default wordsList;

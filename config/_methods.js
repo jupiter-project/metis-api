@@ -1,45 +1,16 @@
-const WordList = require('./_word_list');
+import wordsList from './_word_list';
 
-module.exports = {
-  generate_passphrase: () => {
-    // The following is the code which will generate a list of 12 random words that will be
-    // used to generate an nxt account
-    const { words } = WordList;
-    const seedArray = [];
-    const seedphraseList = [];
-
-    for (let x = 0; x < 12; x += 1) {
-      seedArray.push(words);
-    }
-
-    seedArray.forEach((seedList) => {
-      const word = seedList[Math.floor(Math.random() * seedList.length)];
-
-      seedphraseList.push(word);
-    });
-
-    const seedphrase = seedphraseList.join(' ');
-
-    return seedphrase;
-  },
-  generate_keywords: () => {
-    // The following is the code which will generate a list of 4 random words
-    // that will be used to generate an api key
-    const { words } = WordList;
-    const seedArray = [];
-    const seedphraseList = [];
-
-    for (let x = 0; x < 4; x += 1) {
-      seedArray.push(words);
-    }
-
-    seedArray.forEach((seedList) => {
-      const word = seedList[Math.floor(Math.random() * seedList.length)];
-      seedphraseList.push(word);
-    });
-
-    const seedphrase = seedphraseList.join(' ');
-
-    return seedphrase;
-  },
+const generateWordsList = count => {
+  const pickedWords = [];
+  for (let x = 0; x < count; x++) {
+    pickedWords.push(wordsList[Math.floor(Math.random() * wordsList.length)]);
+  }
+  return pickedWords.join(' ');
 };
+
+// The following is the code which will generate a list of 12 random words that will be
+// used to generate an nxt account
+export const generate_passphrase = () => generateWordsList(12);
+// The following is the code which will generate a list of 4 random words
+// that will be used to generate an api key
+export const generate_keywords = () => generateWordsList(4);

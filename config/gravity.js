@@ -1,11 +1,11 @@
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
+import * as methods from './_methods';
 require('dotenv').config();
 const axios = require('axios');
 const crypto = require('crypto');
 const events = require('events');
 const _ = require('lodash');
-const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
 const AccountRegistration  = require('../config/accountRegistration');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
@@ -15,18 +15,20 @@ const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOU
 
 class Gravity {
   constructor() {
-    this.algorithm = process.env.ENCRYPT_ALGORITHM;
-    this.password = process.env.ENCRYPT_PASSWORD;
-    this.sender = process.env.APP_ACCOUNT;
-    this.version = process.env.VERSION;
+    const {ENCRYPT_ALGORITHM, ENCRYPT_PASSWORD, APP_ACCOUNT, VERSION, JUPITERSERVER,
+      JUPITER_DEADLINE, JUPITER_MONEY_DECIMALS} = process.env;
+    this.algorithm = ENCRYPT_ALGORITHM;
+    this.password = ENCRYPT_PASSWORD;
+    this.sender = APP_ACCOUNT;
+    this.version = VERSION;
     this.jupiter_data = {
-      server: process.env.JUPITERSERVER,
+      server: JUPITERSERVER,
       feeNQT: feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction), // was hardcoded 500
-      deadline: process.env.JUPITER_DEADLINE, //60
+      deadline: JUPITER_DEADLINE, //60
       minimumTableBalance: fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table),  //was hardcoded 50000,
       minimumAppBalance: fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user),   // was hard coded 100000,
-      moneyDecimals:  process.env.JUPITER_MONEY_DECIMALS,  // was hardcoded 8,
-      version: process.env.VERSION,
+      moneyDecimals:  JUPITER_MONEY_DECIMALS,  // was hardcoded 8,
+      version: VERSION,
     };
     this.generate_passphrase = methods.generate_passphrase;
     this.appSchema = {
@@ -43,45 +45,25 @@ class Gravity {
   }
 
   hasTable(database, tableName) {
-    let hasKey = false;
-    for (let x = 0; x < database.length; x += 1) {
-      const tableKeys = Object.keys(database[x]);
-      if (tableKeys.includes(tableName)) {
-        hasKey = true;
-        break;
-      }
-    }
-
-    return hasKey;
-  }
+    return database.some(db => {
+      return Object.keys(db).some(table => table === tableName)
+    });
+  };
 
   tableBreakdown(database) {
-    const tableList = [];
-
-    for (let x = 0; x < database.length; x += 1) {
-      const tableKeys = Object.keys(database[x]);
-      if (tableKeys.length > 0) {
-        tableList.push(tableKeys[0]);
+    return database.map(db => {
+      const tableNames = Object.keys(db);
+      if(tableNames && tableNames.length) {
+        return tableNames[0];
       }
-    }
-
-    return tableList;
+    });
   }
 
   getTableData(table, database) {
-    let tableData;
-
-    for (let x = 0; x < database.length; x += 1) {
-      const tableKeys = Object.keys(database[x]);
-      if (tableKeys.length > 0) {
-        if (tableKeys[0] === table && !tableData) {
-          tableData = database[x];
-          break;
-        }
-      }
-    }
-
-    return tableData[table];
+    const tableData = database.find(db => {
+      return Object.keys(db).find(tableKey => tableKey === table)
+    });
+    return tableData && tableData[table];
   }
 
   showTables(returnType = 'app') {
@@ -89,7 +71,7 @@ class Gravity {
     return new Promise((resolve, reject) => {
       logger.debug('-- ---- -- --- -- --- $$$$$ -- ---- -- --- -- --- 2')
       self.loadUserAndAppData()
-        .then((response) => {
+        .then(response => {
           if (returnType === 'console') {
             logger.info(
               `Database tables associated with your app ${
@@ -102,7 +84,7 @@ class Gravity {
           }
           resolve(response.tables);
         })
-        .catch((error) => {
+        .catch(error => {
           logger.error(error);
           reject(error);
         });
@@ -116,7 +98,7 @@ class Gravity {
     return new Promise((resolve, reject) => {
       logger.debug('-- ---- -- --- -- --- $$$$$ -- ---- -- --- -- --- 3')
       self.loadUserAndAppData(accessData)
-        .then((response) => {
+        .then(response => {
           const { tables } = response.app;
 
           if (returnType === 'console') {
@@ -193,16 +175,8 @@ class Gravity {
     });
   }
 
-  isSubtable(MainTable, SubTable) {
-    const mainTable = MainTable.sort().join(',');
-    const subtable = SubTable.sort().join(',');
-    let returnValue;
-    if (mainTable.includes(subtable)) {
-      returnValue = true;
-    } else {
-      returnValue = false;
-    }
-    return returnValue;
+  isSubtable(mainTable, subTable) {
+    return subTable.every(tableName => mainTable.includes(tableName));
   }
 
   sortBySubkey(array, key, subkey) {
