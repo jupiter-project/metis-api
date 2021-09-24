@@ -27,7 +27,7 @@ class JupiterAPIService {
     const query = queryString.stringify(params);
 
     return url + query;
-}
+    }
 
     /**
      *
@@ -406,26 +406,26 @@ class JupiterAPIService {
         subtype
     ) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## sendMessage( recipient: ${recipient}, feeNQT: ${feeNQT} )`);
+        logger.verbose(`## sendMetisMessageOrMessage( recipient: ${recipient}, feeNQT: ${feeNQT} )`);
         logger.verbose('#####################################################################################');
 
         let params = {}
 
-        if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){
+        if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )){
             throw new Error('invalid request type')
         } else {
             params.requestType = requestType;
         }
-        if(requestType == 'sendMetisMessage' && !subtype) {
+        if(requestType === 'sendMetisMessage' && !subtype) {
             throw new Error('subtype is invalid');
         } else {
             params.subtype = subtype
         }
 
         if(recipient){ params.recipient = recipient } else { throw new Error('recipient is required') }
-        if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey } else { throw new Error('recipientPublicKey is required')}
+        // if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey } else { throw new Error('recipientPublicKey is required')}
         if(secretPhrase){ params.secretPhrase = secretPhrase } else { throw new Error('secretPhrase is required')}
-        if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
+        // if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
         if(feeNQT){ params.feeNQT = feeNQT } else { throw new Error('feeNQT is required')}
         if(deadline){ params.deadline = deadline } else { throw new Error('deadline is required')}
         if(referencedTransactionFullHash){ params.referencedTransactionFullHash = referencedTransactionFullHash }

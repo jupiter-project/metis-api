@@ -23,15 +23,30 @@ class FeeManager {
         newUserFundingFee,
         newTableFundingFee,
         accountRecordFee,
-        ordinaryPaymentFee
+        ordinaryPaymentFee,
+        metisMessageFee
     ) {
+
+        if(!regularTransactionFee){throw new Error('missing regularTransactionFee')}
+        if(!invitationToChannelFee){throw new Error('missing invitationToChannelFee')}
+        if(!metisChannelMemberFee){throw new Error('missing metisChannelMemberFee')}
+        if(!arbitraryMessageFee){throw new Error('missing arbitraryMessageFee')}
+        if(!aliasAssigmentFee){throw new Error('missing aliasAssigmentFee')}
+        if(!accountPropertyFee){throw new Error('missing accountPropertyFee')}
+        if(!accountPropertyDeletionFee){throw new Error('missing accountPropertyDeletionFee')}
+        if(!newUserFundingFee){throw new Error('missing newUserFundingFee')}
+        if(!newTableFundingFee){throw new Error('missing newTableFundingFee')}
+        if(!accountRecordFee){throw new Error('missing accountRecordFee')}
+        if(!ordinaryPaymentFee){throw new Error('missing ordinaryPaymentFee')}
+        if(!metisMessageFee){throw new Error('missing metisMessageFee')}
+
         this.fees = [];
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.chat,
-        //     fee: chatFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
-        // })
+        this.fees.push({
+            feeType: FeeManager.feeTypes.metisMessage,
+            fee: metisMessageFee,
+            type: FeeManager.TransactionTypes.messaging_voting_aliases,
+            subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
+        })
 
         this.fees.push({
             feeType: FeeManager.feeTypes.regular_transaction,
@@ -137,6 +152,7 @@ class FeeManager {
         'new_user_funding':'new_user_funding',
         'new_table_funding':'new_table_funding',
         'ordinary_payment': 'ordinary_payment',
+        'metisMessage': 'metisMessage',
     }
 
     static TransactionTypes = {
@@ -225,5 +241,6 @@ module.exports.feeManagerSingleton = new FeeManager(
     process.env.NEW_USER_FUNDING_FEE,
     process.env.NEW_TABLE_FUNDING_FEE,
     process.env.ACCOUNT_RECORD_FEE,
-    process.env.ORDINARY_PAYMENT_FEE
+    process.env.ORDINARY_PAYMENT_FEE,
+    process.env.METIS_MESSAGE_FEE,
 );

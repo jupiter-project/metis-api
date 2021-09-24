@@ -1,7 +1,8 @@
 import Model from './_model';
 import { gravity } from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import jupiterApiService from "../services/jupiterAPIService";
+import {jupiterApiService} from "../services/jupiterAPIService";
+import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
 
 class Invite extends Model {
   constructor(data = { id: null }) {
@@ -45,20 +46,32 @@ class Invite extends Model {
   }
 
   //@TODO rename to sendInvitation
-  send() {
+  async send() {
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
     const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.invitation_to_channel);
 
+    let inviteRecord = { ...messageData };
+    let recipient = inviteRecord.recipient;
+    if (!recipient.toLowerCase().includes('jup-')) {
+      try{
+        const aliasResponse = await gravity.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      } catch (error){
+        throw new Error('Not valid alias');
+      }
+    }
+
+
     return jupiterApiService.sendMetisMessageOrMessage(
         'sendMetisMessage',
-        messageData.recipient,
+        recipient,
         null,
         this.user.passphrase,
         null,
         fee,
-        null,
+        applicationAccountProperties.deadline,
         null,
         null,
         null,
