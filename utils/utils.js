@@ -11,12 +11,7 @@ const hasJsonStructure = (str) => {
   }
 };
 
-const loadInitialJFSImage = () => {
-  const initialJFSImage = fs.readFileSync('./pixi.jpg', {encoding: 'base64'});
-  return initialJFSImage;
-}
 
 module.exports = {
-  hasJsonStructure,
-  loadInitialJFSImage,
+  hasJsonStructure
 };

@@ -1,3 +1,4 @@
+const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -7,31 +8,39 @@ class ApplicationAccountProperties {
     /**
      *
      * @param deadline
-     * @param standardFeeNQT
+     * @param feeNQT
      * @param accountCreationFeeNQT
      * @param transferFeeNQT
      * @param minimumTableBalance
      * @param minimumAppBalance
      * @param moneyDecimals
      */
-    constructor(deadline, standardFeeNQT, accountCreationFeeNQT, transferFeeNQT, minimumTableBalance, minimumAppBalance, moneyDecimals) {
+    constructor( deadline,
+                feeNQT,
+                accountCreationFeeNQT,
+                transferFeeNQT,
+                minimumTableBalance,
+                minimumAppBalance,
+                moneyDecimals) {
+
         this.deadline = deadline;
         this.minimumTableBalance = minimumTableBalance;
         this.minimumAppBalance = minimumAppBalance;
         this.moneyDecimals = moneyDecimals;
         this.transferFeeNQT = transferFeeNQT;
-        this.feeNQT = standardFeeNQT;
-        this.standardFeeNQT = standardFeeNQT;
+        this.feeNQT = feeNQT;
         this.accountCreationFeeNQT = accountCreationFeeNQT;
     }
 }
 
 module.exports.ApplicationAccountProperties = ApplicationAccountProperties;
+const jupTransferFee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+const newUserFunding = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
 module.exports.applicationAccountProperties = new ApplicationAccountProperties(
     process.env.JUPITER_DEADLINE,
-    process.env.JUPITER_FEE_NQT,
-    process.env.USER_ACCOUNT_CREATION_FEE,
-    process.env.TRANSFER_FEE,
+    process.env.FEE_NQT,
+    newUserFunding,
+    jupTransferFee,
     process.env.JUPITER_MININUM_TABLE_BALANCE,
     process.env.JUPITER_MINIMUM_APP_BALANCE,
     process.env.JUPITER_MONEY_DECIMALS

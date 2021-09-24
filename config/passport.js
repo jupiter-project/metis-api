@@ -3,7 +3,7 @@ import { gravity } from './gravity';
 import User from '../models/user';
 // import RegistrationWorker from '../workers/registration';
 // import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-const JupiterFSService = require('../services/JupiterFSService');
+const JupiterFSService = require('../services/JimService');
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {JupiterFundingService} from "../services/jupiterFundingService";

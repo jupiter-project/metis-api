@@ -1,5 +1,6 @@
 import gu from "../utils/gravityUtils";
-import {request} from "express";
+import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {FeeManager, feeManagerSingleton} from "./FeeManager";
 const logger = require('../utils/logger')(module);
 const axios = require('axios');
 const queryString = require('query-string');
@@ -26,7 +27,7 @@ class JupiterAPIService {
     const query = queryString.stringify(params);
 
     return url + query;
-}
+    }
 
     /**
      *
@@ -221,6 +222,16 @@ class JupiterAPIService {
     }
 
 
+    /**
+     *
+     * @param {GravityAccountProperties} from
+     * @param {GravityAccountProperties} to
+     * @param message
+     * @param fee
+     * @param subtype
+     * @param prunable
+     * @returns {Promise<*>}
+     */
     async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
         console.log('- - - - - ')
         console.log(subtype);
@@ -395,26 +406,26 @@ class JupiterAPIService {
         subtype
     ) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## sendMessage( recipient: ${recipient}, feeNQT: ${feeNQT} )`);
+        logger.verbose(`## sendMetisMessageOrMessage( recipient: ${recipient}, feeNQT: ${feeNQT} )`);
         logger.verbose('#####################################################################################');
 
         let params = {}
 
-        if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){
+        if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )){
             throw new Error('invalid request type')
         } else {
             params.requestType = requestType;
         }
-        if(requestType == 'sendMetisMessage' && !subtype) {
+        if(requestType === 'sendMetisMessage' && !subtype) {
             throw new Error('subtype is invalid');
         } else {
             params.subtype = subtype
         }
 
         if(recipient){ params.recipient = recipient } else { throw new Error('recipient is required') }
-        if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey } else { throw new Error('recipientPublicKey is required')}
+        // if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey } else { throw new Error('recipientPublicKey is required')}
         if(secretPhrase){ params.secretPhrase = secretPhrase } else { throw new Error('secretPhrase is required')}
-        if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
+        // if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
         if(feeNQT){ params.feeNQT = feeNQT } else { throw new Error('feeNQT is required')}
         if(deadline){ params.deadline = deadline } else { throw new Error('deadline is required')}
         if(referencedTransactionFullHash){ params.referencedTransactionFullHash = referencedTransactionFullHash }
@@ -563,16 +574,21 @@ class JupiterAPIService {
         logger.info(`## params= ${JSON.stringify(params)}`);
         logger.verbose('###############################################################################################')
 
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
+
         return this.jupiterRequest('post', {
             requestType: 'setAlias',
             aliasName: params.alias,
             secretPhrase: params.passphrase,
             aliasURI: `acct:${params.account}@nxt`,
-            feeNQT: 20000,
-            deadline: 60
+            feeNQT: fee,
+            deadline: this.appProps.deadline
         });
     }
 
 }
 
+// import {applicationProperties} from "express";
+
 module.exports.JupiterAPIService = JupiterAPIService;
+module.exports.jupiterApiService = new JupiterAPIService(process.env.JUPITERSERVER, applicationAccountProperties)

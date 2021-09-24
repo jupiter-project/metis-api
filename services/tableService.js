@@ -98,26 +98,16 @@ class TableService {
             tables: arrayOfTableNames,
             date: Date.now()
         }
-
-
-        // {"tables":["users","channels","invites","storage"],"date":1632086636692}
-        // {"tables":{"arrayOfTableNames":["channels","invites","storage"]},"date":1632086637174}
-
         const encrypted = accountProperties.crypto.encryptJson(tablesList);
-
-
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-
-
-        console.log('fee to create record: ', fee);
-
-
+        const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+        logger.debug('fee to create record: ', fee);
         return this.jupiterApiService.sendSimpleEncipheredMetisMessage(
             accountProperties,
             accountProperties,
             encrypted,
             fee,
-            FeeManager.JupiterTypeOneSubtypes.accountInfo,
+            subtype,
             false )
     }
 

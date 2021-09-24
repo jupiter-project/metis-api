@@ -1,4 +1,4 @@
-const {feeManagerSingleton} = require("./FeeManager");
+const {feeManagerSingleton, FeeManager} = require("./FeeManager");
 const {resolve} = require("path");
 const {reject} = require("lodash");
 const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
@@ -32,8 +32,8 @@ class JupiterFundingService {
         console.log('fee', applicationProperties.feeNQT)
         console.log('acccreate', applicationProperties.accountCreationFeeNQT)
 
-        this.defaultNewUserTransferAmount = parseInt(applicationProperties.minimumAppBalance) - parseInt(applicationProperties.feeNQT) - parseInt(applicationProperties.accountCreationFeeNQT)
-        this.defaultNewTableTransferAmount = parseInt(applicationProperties.minimumTableBalance) - parseInt(applicationProperties.feeNQT) - parseInt(applicationProperties.accountCreationFeeNQT)
+        this.defaultNewUserTransferAmount = parseInt(applicationProperties.minimumAppBalance)
+        this.defaultNewTableTransferAmount = parseInt(applicationProperties.minimumTableBalance)
 
         console.log(applicationProperties.minimumAppBalance)
         console.log(applicationProperties.feeNQT)
@@ -89,8 +89,9 @@ class JupiterFundingService {
         // const standardFeeNQT = 100;
         // const accountCreationFee = 750; // 500 + 250
         const initialAmount = this.defaultNewUserTransferAmount;
-        console.log(initialAmount);
-        return this.transfer(this.applicationProperties, recipientProperties, initialAmount, this.applicationProperties.minimumTableBalance);
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+        // const subtype = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.new_user_funding).subtype;
+        return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 
 
@@ -101,7 +102,8 @@ class JupiterFundingService {
         // const standardFeeNQT = 100;
         // const accountCreationFee = 750; // 500 + 250
         const initialAmount = this.defaultNewTableTransferAmount;
-        return this.transfer(this.applicationProperties, recipientProperties, initialAmount);
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+        return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 
     /**
@@ -112,7 +114,7 @@ class JupiterFundingService {
      * @param {number} fee
      * @returns {Promise<unknown>}
      */
-     transfer(senderProperties, recipientProperties, transferAmount, fee = this.feeNQT ) {
+     transfer(senderProperties, recipientProperties, transferAmount, fee ) {
         logger.verbose('#####################################################################################');
         logger.verbose(`transfer(senderProperties= ${!!senderProperties}, recipientProperties= ${!!recipientProperties}, transferAmount= ${transferAmount})`)
         logger.verbose('#####################################################################################');
@@ -134,25 +136,24 @@ class JupiterFundingService {
         return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, transferAmount, fee )
     }
 
-
-    transferAndWait(senderProperties, recipientProperties, transferAmount, secondsToWait= 50) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(` transferAndWait(senderProperties=${senderProperties}, recipientProperties=${recipientProperties}, transferAmount=${transferAmount}, secondsToWait= ${secondsToWait})`);
-        logger.verbose('#####################################################################################');
-
-        const milliseconds = secondsToWait * 1000;
-        return new Promise( (resolve, reject) => {
-            this.transfer(senderProperties, recipientProperties, transferAmount)
-                .then(response => {
-                    setTimeout(async () => {
-                        return resolve(response)
-                    }, milliseconds );
-                })
-                .catch(error => {
-                    return reject(error);
-                })
-        })
-    }
+    // transferAndWait(senderProperties, recipientProperties, transferAmount, secondsToWait= 50) {
+    //     logger.verbose('#####################################################################################');
+    //     logger.verbose(` transferAndWait(senderProperties=${senderProperties}, recipientProperties=${recipientProperties}, transferAmount=${transferAmount}, secondsToWait= ${secondsToWait})`);
+    //     logger.verbose('#####################################################################################');
+    //
+    //     const milliseconds = secondsToWait * 1000;
+    //     return new Promise( (resolve, reject) => {
+    //         this.transfer(senderProperties, recipientProperties, transferAmount)
+    //             .then(response => {
+    //                 setTimeout(async () => {
+    //                     return resolve(response)
+    //                 }, milliseconds );
+    //             })
+    //             .catch(error => {
+    //                 return reject(error);
+    //             })
+    //     })
+    // }
 
 
 }

@@ -135,10 +135,9 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     data.sender = user.userData.account;
     const invite = new Invite(data);
     invite.user = JSON.parse(gravity.decrypt(user.accountData));
-    let response;
 
     try {
-      response = await invite.send();
+      await invite.send();
       const sender = user.userData.alias;
       let recipient = _.get(data, 'recipient', '');
       const channelName = _.get(data, 'channel.name', '');
@@ -152,7 +151,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const message = `${sender} invited you to the channel: ${channelName}`;
       const metadata = { isInvitation: true };
       getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
-      res.send(response);
+      res.send({success: true});
     } catch (e) {
       logger.error(e);
       res.status(500).send(e);
@@ -270,7 +269,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const channelName = _.get(tableData, 'name', 'a channel');
       const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
-        response = await message.sendMessage(userData, tableData, message.record);
+        response = await message.sendRecord(userData, tableData);
         let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
           const senderName = user.userData.alias;

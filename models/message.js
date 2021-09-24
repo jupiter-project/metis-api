@@ -37,8 +37,8 @@ class Message extends Model {
     return record;
   }
 
-
-  sendMessage(userData, tableData) {
+  //@TODO change the name to sendRecordMessage()
+  sendRecord(userData, tableData) {
     const self = this;
     return new Promise((resolve, reject) => {
       const stringifiedRecord = JSON.stringify(self.record);
@@ -53,8 +53,11 @@ class Message extends Model {
         tableData.password,
       );
 
-      const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
+      const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.metisMessage);
+      const subtype = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.metisMessage).subtype;
+
+
+      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&subtype=${subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
       axios.post(callUrl)
         .then((response) => {
           if (response.data.broadcasted && response.data.broadcasted === true) {
