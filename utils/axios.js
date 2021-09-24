@@ -28,28 +28,46 @@ const addJupiterServer = config => {
 
 const logApiCallStart = config => {
     const {url, headers, method, data} = config;
-    logger.info(`Request started for ${method} ${url}`);
+    let message = [];
+    message.push(`Request started for ${method} ${url}`);
     if(data) { // TODO add non production check
-        logger.info(`with data ${JSON.stringify(data)}`);
+        message.push(`with data ${JSON.stringify(data)}`);
     }
+    logger.info(message.join(' '));
     return config;
 };
 
 const logSuccessResponse = response => {
     const {status, headers, data, config: {url, method}} = response;
-    logger.info(`Request completed for ${method} ${url}`);
+    let message = [];
+    message.push(`Request completed succesfully for ${method} ${url}`);
     if(status) {
-        logger.info(`with status ${status}`);
+        message.push(`with status ${status}`);
     }
     if(data) { // TODO add non production check
-        logger.info(`response data is ${data}`)
+        message.push(`response data is ${data}`)
     }
+    logger.info(message.join(' '));
     return response;
 };
+
+const logErrorResponse = error => {
+    const {response:{status, data}, config:{url, method}} = error;
+    let message = [];
+    message.push(`Request completed with error for ${method} ${url}`);
+    if(status) {
+        message.push(`with status ${status}`);
+    }
+    if(data) {
+        message.push(`response data is ${data}`)
+    }
+    logger.error(message.join(' '));
+    return response;
+}
 
 const requestInterceptors = compose(logApiCallStart, addJupiterServer);
 
 axiosInstance.interceptors.request.use(requestInterceptors);
-axiosInstance.interceptors.request.use(logSuccessResponse);
+axiosInstance.interceptors.response.use(logSuccessResponse, logErrorResponse);
 
 export default axiosInstance;
