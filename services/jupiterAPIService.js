@@ -406,7 +406,7 @@ class JupiterAPIService {
         subtype
     ) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## sendMetisMessageOrMessage( recipient: ${recipient}, feeNQT: ${feeNQT} )`);
+        logger.verbose(`## sendMetisMessageOrMessage(*)`);
         logger.verbose('#####################################################################################');
 
         let params = {}
@@ -421,9 +421,8 @@ class JupiterAPIService {
         } else {
             params.subtype = subtype
         }
-
         if(recipient){ params.recipient = recipient } else { throw new Error('recipient is required') }
-        // if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey } else { throw new Error('recipientPublicKey is required')}
+        if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey }
         if(secretPhrase){ params.secretPhrase = secretPhrase } else { throw new Error('secretPhrase is required')}
         // if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
         if(feeNQT){ params.feeNQT = feeNQT } else { throw new Error('feeNQT is required')}
