@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const hasJsonStructure = (str) => {
+export const hasJsonStructure = (str) => {
   if (typeof str !== 'string') return false;
   try {
     const result = JSON.parse(str);
@@ -11,12 +11,9 @@ const hasJsonStructure = (str) => {
   }
 };
 
-const loadInitialJFSImage = () => {
+export const loadInitialJFSImage = () => {
   const initialJFSImage = fs.readFileSync('./pixi.jpg', {encoding: 'base64'});
   return initialJFSImage;
 }
 
-module.exports = {
-  hasJsonStructure,
-  loadInitialJFSImage,
-};
+export const isValidArray = array => Array.isArray(array) && array.length;

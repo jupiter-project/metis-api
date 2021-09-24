@@ -3,10 +3,12 @@ import {FundingManager, fundingManagerSingleton} from "../services/fundingManage
 import * as methods from './_methods';
 require('dotenv').config();
 const axios = require('axios');
+import axiosInstance, {axiosConstants} from "../utils/axios";
 const crypto = require('crypto');
 const events = require('events');
 const _ = require('lodash');
 const logger = require('../utils/logger')(module);
+import { isValidArray } from "../utils/utils"; 
 const AccountRegistration  = require('../config/accountRegistration');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 
@@ -45,25 +47,31 @@ class Gravity {
   }
 
   hasTable(database, tableName) {
-    return database.some(db => {
-      return Object.keys(db).some(table => table === tableName)
-    });
+    if(isValidArray(database)) {
+      return database.some(db => {
+        return Object.keys(db).some(table => table === tableName)
+      });
+    }    
   };
 
   tableBreakdown(database) {
-    return database.map(db => {
-      const tableNames = Object.keys(db);
-      if(tableNames && tableNames.length) {
-        return tableNames[0];
-      }
-    });
+    if(isValidArray(database)) {
+      return database.map(db => {
+        const tableNames = Object.keys(db);
+        if(tableNames && tableNames.length) {
+          return tableNames[0];
+        }
+      });
+    }    
   }
 
-  getTableData(table, database) {
-    const tableData = database.find(db => {
-      return Object.keys(db).find(tableKey => tableKey === table)
-    });
-    return tableData && tableData[table];
+  getTableData(tableName, database) {
+    if(isValidArray(database)) {
+      const table = database.find(db => {
+        return Object.keys(db).find(tableKey => tableKey === tableName)
+      });
+      return table && table[tableName];
+    }    
   }
 
   showTables(returnType = 'app') {
@@ -175,8 +183,13 @@ class Gravity {
     });
   }
 
-  isSubtable(mainTable, subTable) {
-    return subTable.every(tableName => mainTable.includes(tableName));
+  isSubtable(mainTables, subTables) {
+    if(isValidArray(mainTables)) {
+      return subTables.every(tableName => mainTables.includes(tableName));
+    } else {
+      return false;
+    }
+    
   }
 
   sortBySubkey(array, key, subkey) {
@@ -275,9 +288,16 @@ class Gravity {
   async decryptMessage(transactionId, passphrase) {
     let response;
     try {
-      const apiCall = `${this.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${passphrase}`;
+      /**const apiCall = `${this.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${passphrase}`;
       const call = await axios.get(apiCall);
-      response = call.data;
+      response = call.data;*/
+      const config = {
+        url: `/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${passphrase}`,
+        method: axiosConstants.METHODS.GET,
+        server: axiosConstants.SERVERS.JUPITER_SERVER,
+      };
+      const apiResponse = await axiosInstance(config);
+      response = apiResponse.data;
     } catch (e) {
       response = { error: true, fullError: e };
     }
@@ -298,27 +318,26 @@ class Gravity {
     logger.sensitive(`accountCredentials = ${JSON.stringify(accountCredentials)}`);
 
     return new Promise((resolve, reject) => {
-
-      logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
-      this.getRecords(
-          accountCredentials.address,
-          accountCredentials.address,
-          accountCredentials.passphrase,
+      const {address, passphrase, password} = accountCredentials || {};
+      if(address && passphrase && password) {
+        const {address, passphrase} = accountCredentials;
+        logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
+        this.getRecords(address, address, passphrase,
           { size: 'all', show_pending: null, show_unconfirmed: false },
-          accountCredentials.password )
-          .then((recordsContainer) => { //{records,last_record,pending}
+          password)
+          .then(recordsContainer => { //{records,last_record,pending}
             logger.debug('---------------------------------------------------------------------------------------')
             logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
             logger.debug('---------------------------------------------------------------------------------------')
             logger.debug(`-- response = ${JSON.stringify(recordsContainer)}`);
 
             const allRecords = recordsContainer.records;
-            if (Array.isArray(allRecords) && !allRecords.length ){
+            if (!isValidArray(allRecords)){
               logger.warn(`-- the records array is empty`)
               return resolve({tables: [], userRecord: null})
             }
 
-            const currentUsersTable = this.getCurrentTable(allRecords, 'users');
+            /**const currentUsersTable = this.getCurrentTable(allRecords, 'users');
             const currentChannelsTable = this.getCurrentTable(allRecords, 'channels')
             const currentInvitesTable = this.getCurrentTable(allRecords, 'invites')
             const currentStorageTable = this.getCurrentTable(allRecords, 'storage')
@@ -328,16 +347,18 @@ class Gravity {
               currentChannelsTable,
               currentInvitesTable,
               currentStorageTable
-            ]
+            ]*/
+            const currentTables = this.getCurrentTables(allRecords, ['users', 'channels', 'invites', 'storage']);
 
             const currentUserRecord = this.getUserRecord(allRecords);
             logger.sensitive(`-- currentTables= ${JSON.stringify(currentTables)}`);
             logger.sensitive(`-- Count of allRecords = ${allRecords.length}`);
             logger.sensitive(`-- currentUserRecord= ${ JSON.stringify(currentUserRecord)}`)
-            logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentUsersTable)}`)
+            logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentTables)}`)
+            /**logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentUsersTable)}`)
             logger.sensitive(`-- currentChannelsTable= ${ JSON.stringify(currentChannelsTable)}`)
             logger.sensitive(`-- currentInvitesTable= ${ JSON.stringify(currentInvitesTable)}`)
-            logger.sensitive(`-- currentStorageTable= ${ JSON.stringify(currentStorageTable)}`)
+            logger.sensitive(`-- currentStorageTable= ${ JSON.stringify(currentStorageTable)}`)*/
 
             const payload = {
               tables: currentTables,
@@ -353,25 +374,11 @@ class Gravity {
             logger.error(error);
             reject('There was an error loading records');
           });
+      } else {
+        reject('Invalid account credentials are given');
+      }
     });
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   /**
    *
@@ -389,23 +396,26 @@ class Gravity {
 
     const eventEmitter = new events.EventEmitter();
     const self = this;
-    const appname = process.env.APPNAME;
+    /**const appname = process.env.APPNAME;
     let server = process.env.JUPITERSERVER;
     let passphrase = process.env.APP_ACCOUNT;
-    let account = process.env.APP_ACCOUNT_ADDRESS;
+    let account = process.env.APP_ACCOUNT_ADDRESS;*/
+    let {JUPITERSERVER: server, APP_ACCOUNT: passphrase, APP_ACCOUNT_ADDRESS: account} = process.env;
 
     let allRecords = [];
-    let numberOfRecords;
+    //let numberOfRecords;
     let { password: ownerPassword } = self;
-    let userRecord;
-    let hasUserTable = false;
+    //let userRecord;
+    //let hasUserTable = false;
 
     if (containedDatabase) {
       // logger.sensitive(`containedDatabase = ${JSON.stringify(containedDatabase)}`);
-      server = process.env.JUPITERSERVER;
-      ({ account } = containedDatabase);
+      //server = process.env.JUPITERSERVER;
+      const {account: dbAccount, passphrase: dbPassPhrase, encryptionPassword} = cointainedDatabase;
+      [account, passphrase, ownerPassword] = [dbAccount, dbPassPhrase, encryptionPassword];
+      /**({ account } = containedDatabase);
       ({ passphrase } = containedDatabase);
-      ownerPassword = containedDatabase.encryptionPassword;
+      ownerPassword = containedDatabase.encryptionPassword;*/
     }
 
     return new Promise((resolve, reject) => {
@@ -421,19 +431,19 @@ class Gravity {
           accountPropertiesHolderPassphrase,
           { size: 'all', show_pending: null, show_unconfirmed: false },
           ownerPassword )
-        .then((response) => {
+        .then(response => {
           logger.debug('---------------------------------------------------------------------------------------')
           logger.debug(`-- loadUserAndAppData(containedDatabase=${!!containedDatabase}).getRecords(address=${ownerAddress}, transactionSender=${accountPropertiesHolder}).THEN()`);
           logger.debug('---------------------------------------------------------------------------------------')
           logger.debug(`-- response = ${JSON.stringify(response)}`);
 
           allRecords = response.records;
-          if (Array.isArray(allRecords) && !allRecords.length ){
+          if (!isValidArray(allRecords)){
               logger.warn(`-- the records array is empty`)
           }
 
 
-          const currentUsersTable = this.getCurrentTable(allRecords, 'users');
+          /**const currentUsersTable = this.getCurrentTable(allRecords, 'users');
           const currentChannelsTable = this.getCurrentTable(allRecords, 'channels')
           const currentInvitesTable = this.getCurrentTable(allRecords, 'invites')
           const currentStorageTable = this.getCurrentTable(allRecords, 'storage')
@@ -443,7 +453,9 @@ class Gravity {
             currentChannelsTable,
             currentInvitesTable,
             currentStorageTable
-          ]
+          ]*/
+
+          const currentTables = this.getCurrentTables(allRecords, ['users', 'channels', 'invites', 'storage']);
 
           // const currentUserRecord = this.getCurrentTable(allRecords, 'user_record');
           const currentUserRecord = this.getUserRecord(allRecords);
@@ -451,10 +463,11 @@ class Gravity {
           logger.debug(`currentTables= ${JSON.stringify(currentTables)}`);
           logger.sensitive(`-- Count of allRecords = ${allRecords.length}`);
           logger.sensitive(`-- currentUserRecord= ${ JSON.stringify(currentUserRecord)}`)
-          logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentUsersTable)}`)
+          logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentTables)}`)
+          /**logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentUsersTable)}`)
           logger.sensitive(`-- currentChannelsTable= ${ JSON.stringify(currentChannelsTable)}`)
           logger.sensitive(`-- currentInvitesTable= ${ JSON.stringify(currentInvitesTable)}`)
-          logger.sensitive(`-- currentStorageTable= ${ JSON.stringify(currentStorageTable)}`)
+          logger.sensitive(`-- currentStorageTable= ${ JSON.stringify(currentStorageTable)}`)*/
 
           const payload = {
             app: {tables: []},
@@ -466,6 +479,7 @@ class Gravity {
 
           return resolve(payload);
 
+          /** TODO unreachable code
           self.appSchema.tables = tableData;
           self.appSchema.appData.name = appname;
           self.appSchema.address = account;
@@ -591,7 +605,7 @@ class Gravity {
             logger.sensitive(`responseMessage.message = ${JSON.stringify(responseMessage.message)}`)
 
             resolve(responseMessage);
-          }
+          }*/
 
         })
         .catch((error) => {
@@ -624,6 +638,22 @@ class Gravity {
     }
   }
 
+  getCurrentTables(availableTables, requiredTablesNames) {
+    if(isValidArray(availableTables) && isValidArray(requiredTablesNames)) {
+      const allRequiredTables = requiredTablesNames.map( tableName => {
+        const currentTableData = availableTables[tableName];
+        const {address = null, passphrase = null, confirmed = null} = currentTableData || {};
+        return {
+          name: tableName,
+          address,
+          passphrase,
+          confirmed
+        };
+      });
+      return allRequiredTables;
+    }
+  }
+
   // convertAttachTableResponseToProperTableContainer(attachTableResponse){
   //   return {
   //     'name':
@@ -637,7 +667,7 @@ class Gravity {
   // [{"id":"16197549842640237948","user_record":{"id":"16197549842640237948","account":"JUP-69A8-6EHC-JCJ9-6NARY","accounthash":"$2a$08$AUrbDXw.MKuZFTG3FIf8zejjWdELWmChA6USnM6WkW/iuWY3kKHiS","alias":"Port Rowenahaven","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$95NpQwE25wO0yGCSqj1WquultThC41snMXZ5kjCCTJE0LI9TCl1ie","encryption_password":"stackit"},"date":1628864236775,"confirmed":true}]
 
   getUserRecord(tables){
-    const allSpecificTables = tables.filter( table => (table.user_record) ?  true : false);
+    /**const allSpecificTables = tables.filter( table => (table.user_record) ?  true : false);
 
     if(allSpecificTables.length == 0){
       return null;
@@ -649,7 +679,13 @@ class Gravity {
     }
     logger.debug(JSON.stringify(userRecord));
 
-    return userRecord;
+    return userRecord;*/
+    if(isValidArray(tables)) {
+      const tablewithUserRecord = tables.find(table => table.user_record ? true : false);
+      if(tablewithUserRecord) {
+        return tablewithUserRecord.user_record;
+      }
+    }    
   }
 
 
