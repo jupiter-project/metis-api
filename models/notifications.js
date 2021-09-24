@@ -1,10 +1,16 @@
 const mongoose = require('mongoose');
 
-const notificationsSchema = new mongoose.Schema({
-  alias: String,
-  jupId: String,
+const pnAccountSchema = new mongoose.Schema({
+  provider: { type: String, enum: ['android', 'ios'] },
   token: String,
-  mutedChannels: [String],
+  createdAt: Date,
+  badgeCounter: Number,
+});
+
+const notificationsSchema = new mongoose.Schema({
+  userAddress: String,
+  mutedChannelIds: [String],
+  pnAccounts: [pnAccountSchema],
 });
 
 module.exports = mongoose.model('Notifications', notificationsSchema);

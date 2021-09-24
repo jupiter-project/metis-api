@@ -1,6 +1,7 @@
 import axios from 'axios';
 import Model from './_model';
 import { gravity } from '../config/gravity';
+import {feeManagerSingleton, FeeManager} from '../services/FeeManager';
 
 
 class Message extends Model {
@@ -12,7 +13,15 @@ class Message extends Model {
       table: 'messages',
       belongsTo: 'user',
       model_params: [
-        'sender', 'message', 'name',
+        'sender',
+        'message',
+        'name',
+        'replyMessage',
+        'replyRecipientName',
+        'isInvitation', //TODO change to messageType = 'new member welcome'
+        'messageVersion',
+        'type', //TODO change type to messageType
+        'payload', //TODO update type when attachment is included in the message
       ],
     });
     this.public_key = data.public_key;
@@ -28,8 +37,8 @@ class Message extends Model {
     return record;
   }
 
-
-  sendMessage(userData, tableData) {
+  //@TODO change the name to sendRecordMessage()
+  sendRecord(userData, tableData) {
     const self = this;
     return new Promise((resolve, reject) => {
       const stringifiedRecord = JSON.stringify(self.record);
@@ -44,8 +53,11 @@ class Message extends Model {
         tableData.password,
       );
 
-      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
-      // console.log(self);
+      const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.metisMessage);
+      const subtype = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.metisMessage).subtype;
+
+
+      const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${userData.passphrase}&recipient=${tableData.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&subtype=${subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableData.publicKey}&compressMessageToEncrypt=true`;
       axios.post(callUrl)
         .then((response) => {
           if (response.data.broadcasted && response.data.broadcasted === true) {

@@ -1,4 +1,22 @@
-require('appoptics-apm');
+const { tokenVerify } = require('./middlewares/authentication');
+const firebaseAdmin = require("firebase-admin");
+// Firebase Service initializer
+const firebaseServiceAccount = {
+  type: process.env.FIREBASE_TYPE,
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') ,
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: process.env.FIREBASE_AUTH_URI,
+  token_uri: process.env.FIREBASE_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+};
+
+module.exports.firebaseAdmin =  firebaseAdmin.initializeApp({
+   credential: firebaseAdmin.credential.cert(firebaseServiceAccount)
+});
 const url = require('url');
 const kue = require('kue');
 const fs = require('fs');
@@ -11,7 +29,7 @@ require('babel-register')({
   presets: ['react'],
 });
 
-
+const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
 const express = require('express');
 
@@ -19,11 +37,10 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 const pingTimeout = 9000000;
-
 const pingInterval = 30000;
 
 // Loads job queue modules and variables
-
+//@TODO redis needs a password!!!!
 const jobs = kue.createQueue({
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
@@ -31,9 +48,6 @@ const jobs = kue.createQueue({
     auth: process.env.REDIS_PASSWORD || undefined,
   },
 });
-
-// Loads path
-// const path = require('path');
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -53,6 +67,8 @@ const flash = require('connect-flash');
 // Request logger
 const morgan = require('morgan');
 
+const swaggerUi = require('swagger-ui-express');
+
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
@@ -61,11 +77,11 @@ const RedisStore = require('connect-redis')(session);
 const find = require('find');
 
 const mongoose = require('mongoose');
-
+const swaggerDocument = require('./swagger.json');
 
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
-app.use(express.urlencoded({ extended: true })) // get information from html forms
+app.use(express.urlencoded({ extended: true })); // get information from html forms
 
 app.use((req, res, next) => {
   if (req.url !== '/favicon.ico') {
@@ -80,10 +96,8 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// Here is where we load the api routes. We put them here so passport deserializer
-// is not called everytime we make an api call to them
-require('./config/api.js')(app);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
+app.use(tokenVerify);
 
 // Sets public directory
 app.use(express.static(`${__dirname}/public`));
@@ -127,29 +141,36 @@ const socketIO = require('socket.io');
 const socketService = require('./services/socketService');
 
 const socketOptions = {
+  serveClient: true,
   pingTimeout, // pingTimeout value to consider the connection closed
   pingInterval, // how many ms before sending a new ping packet
 };
 const io = socketIO(server, socketOptions);
 io.of('/chat').on('connection', socketService.connection.bind(this));
 
-// TODO uncomment this lines once we implemented jupiter listener
+io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+
+
 const jupiterSocketService = require('./services/jupiterSocketService');
 const WebSocket = require('ws');
 const jupiterWss = new WebSocket.Server({ noServer: true });
 jupiterWss.on('connection', jupiterSocketService.connection.bind(this));
 
-server.on('upgrade', function upgrade(request, socket, head) {
-    const pathname = url.parse(request.url).pathname;
-    console.log(pathname);
-    if (pathname === '/jupiter') {
-        jupiterWss.handleUpgrade(request, socket, head, (ws) => {
-            jupiterWss.emit('connection', ws, request);
-        });
-    } else {
-        socket.destroy();
-    }
+server.on('upgrade', (request, socket, head) => {
+  const pathname = url.parse(request.url).pathname;
+  console.log(pathname);
+  if (pathname === '/jupiter') {
+    jupiterWss.handleUpgrade(request, socket, head, (ws) => {
+      jupiterWss.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
 });
+
+// Here is where we load the api routes. We put them here so passport deserializer
+// is not called everytime we make an api call to them
+require('./config/api.js')(app);
 
 const logger = require('./utils/logger')(module);
 
@@ -161,8 +182,9 @@ const {
 
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
-metisSignup(passport); //  pass passport for configuration
-metisLogin(passport, jobs, io); //  pass passport for configuration
+
+metisSignup(passport,jobs,io); //  pass passport for configuration
+metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
@@ -177,6 +199,10 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
+const {AccountRegistration} = require("./config/accountRegistration");
+const { jobScheduleService } = require('./services/jobScheduleService');
+
+jobScheduleService.init(kue);
 
 gravity.getFundingMonitor()
   .then(async (monitorResponse) => {
@@ -189,21 +215,47 @@ gravity.getFundingMonitor()
 
       logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
     }
-  });
+  })
+    .catch( error => {
+      logger.error(`getFundingError: ${error}`)
+      throw error;
+    });
 
 // Worker methods
-const RegistrationWorker = require('./workers/registration.js');
+// const RegistrationWorker = require('./workers/registration.js');
 // const TransferWorker = require('./workers/transfer.js');
 
 
-const registrationWorker = new RegistrationWorker(jobs, io);
+// const registrationWorker = new RegistrationWorker(jobs, io);
 // registrationWorker.reloadActiveWorkers('completeRegistration')
-//   .catch((error) => { if (error.error) console.log(error.message); });
+//   .catch((error) => { if (error.error) logger.debug(error.message); });
 // const transferWorker = new TransferWorker(jobs);
 
-jobs.process('completeRegistration', (job, done) => {
-  registrationWorker.checkRegistration(job.data, job.id, done);
-});
+// jobs.process('completeRegistration', (job, done) => {
+//   registrationWorker.checkRegistration(job.data, job.id, done);
+// });
+
+const WORKERS = 100;
+
+jobs.process('user-registration', WORKERS, (job,done) => {
+  logger.verbose(`###########################################`)
+  logger.verbose(`## JobQueue: user-registration`)
+  logger.verbose(`##`)
+  // logger.debug(job.data.data);
+  const decryptedData = gravity.decrypt(job.data.data)
+  const parsedData = JSON.parse(decryptedData);
+
+
+  metisRegistration(job.data.account, parsedData)
+      .then(() => {
+        return done();
+      })
+      .catch( error =>{
+        logger.error(`*********************`)
+        logger.error(`error=${error}`);
+        return done(error)
+      })
+})
 
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);

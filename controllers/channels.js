@@ -1,53 +1,20 @@
 import _ from 'lodash';
 import mailer from 'nodemailer';
 import controller from '../config/controller';
-import { gravity } from '../config/gravity';
-import { messagesConfig } from '../config/constants';
+import {gravity} from '../config/gravity';
+import {messagesConfig} from '../config/constants';
 import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
-import { findNotificationInfoByAliasOrJupId } from '../services/notificationService';
 import metis from '../config/metis';
 
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
-const { sendPushNotification } = require('../config/notifications');
 const logger = require('../utils/logger')(module);
 const { hasJsonStructure } = require('../utils/utils');
+const { getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification } = require('../services/messageService');
 
 const decryptUserData = req => JSON.parse(gravity.decrypt(req.session.accessData));
-
-const getPNTokensAndSendPushNotification = (members, senderAlias, channel, message, title) => {
-  if (members && Array.isArray(members) && !_.isEmpty(members)) {
-    findNotificationInfoByAliasOrJupId(members, channel.id)
-      .then((data) => {
-        if (data && Array.isArray(data) && !_.isEmpty(data)) {
-          const tokens = _.map(data, 'token');
-          const payload = { title, channel };
-          sendPushNotification(tokens, message, 0, payload, 'channels');
-        }
-      })
-      .catch((error) => {
-        logger.error(JSON.stringify(error));
-      });
-  }
-};
-
-const getPNTokenAndSendInviteNotification = (senderAlias, recipientAliasOrJupId, channelName) => {
-  findNotificationInfoByAliasOrJupId([recipientAliasOrJupId])
-    .then((data) => {
-      if (data && Array.isArray(data) && !_.isEmpty(data)) {
-        const tokens = _.map(data, 'token');
-        const alert = `${senderAlias} invited you to the channel "${channelName}"`;
-        const payload = { title: 'Invitation', isInvitation: true };
-        const threeMinutesDelay = 180000;
-        sendPushNotification(tokens, alert, 0, payload, 'channels', threeMinutesDelay);
-      }
-    })
-    .catch((error) => {
-      logger.error(error);
-    });
-};
 
 module.exports = (app, passport, React, ReactDOMServer) => {
   app.use(device.capture());
@@ -76,7 +43,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     res.send(page);
   });
 
-  app.post('/reportUser', controller.isLoggedIn, (req, res) => {
+  app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
     const transporter = mailer.createTransport({
       service: 'gmail',
       auth: {
@@ -141,13 +108,12 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Get a user's invites
    */
-  app.get('/channels/invites', async (req, res) => {
-  // app.get('/channels/invites', async (req, res) => {
+  app.get('/v1/api/channels/invites', async (req, res) => {
     logger.info('/n/n/nChannel Invites/n/n');
     logger.info(req.session);
+    const { accountData } = req.user;
     const invite = new Invite();
-    const accessData = _.get(req, 'session.accessData', req.headers.accessdata);
-    const userData = JSON.parse(gravity.decrypt(accessData));
+    const userData = JSON.parse(gravity.decrypt(accountData));
     invite.user = userData;
     let response;
     try {
@@ -162,45 +128,44 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Send an invite
    */
-  app.post('/channels/invite', async (req, res) => {
+  app.post('/v1/api/channels/invite', async (req, res) => {
     const { data } = req.body;
+    const { user } = req;
 
-
-    // @TODO: req.user non-functional - get record.account from a different place
-    // data.sender = req.user.record.account;
-    data.sender = _.get(req, 'user.record.account', req.headers.account);
-
+    data.sender = user.userData.account;
     const invite = new Invite(data);
-
-    // TODO change these 2 lines once the passport issue is solved
-    const accessData = _.get(req, 'session.accessData', req.headers.accessdata);
-    invite.user = JSON.parse(gravity.decrypt(accessData));
-    let response;
+    invite.user = JSON.parse(gravity.decrypt(user.accountData));
 
     try {
-      response = await invite.send();
-      const recipient = _.get(data, 'recipient', '');
-      const sender = _.get(data, 'senderAlias', '');
+      await invite.send();
+      const sender = user.userData.alias;
+      let recipient = _.get(data, 'recipient', '');
       const channelName = _.get(data, 'channel.name', '');
-      getPNTokenAndSendInviteNotification(sender, recipient, channelName);
+
+
+      if (!recipient.toLowerCase().includes('jup-')) {
+        const aliasResponse = await gravity.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      }
+
+      const message = `${sender} invited you to the channel: ${channelName}`;
+      const metadata = { isInvitation: true };
+      getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
+      res.send({success: true});
     } catch (e) {
       logger.error(e);
-      response = e;
+      res.status(500).send(e);
     }
-
-    res.send(response);
   });
 
   /**
    * Accept channel invite
    */
-  app.post('/channels/import', async (req, res) => {
-    const { data, user } = req.body;
+  app.post('/v1/api/channels/import', async (req, res) => {
+    const { data } = req.body;
+    const { accountData } = req.user;
     const channel = new Channel(data.channel_record);
-    // TODO check the function decryptUserData is using "req.session.accessData"
-    const accessData = _.get(req, 'session.accessData', user.accountData);
-    channel.user = JSON.parse(gravity.decrypt(accessData));
-    // channel.user = decryptUserData(req);
+    channel.user = JSON.parse(gravity.decrypt(accountData));
 
     let response;
     try {
@@ -242,8 +207,9 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    * Get a channel's messages
    */
-  app.get('/data/messages/:scope/:firstIndex', controller.isLoggedIn, async (req, res) => {
+  app.get('/v1/api/data/messages/:scope/:firstIndex', async (req, res) => {
     let response;
+    const { user } = req;
 
     const tableData = {
       passphrase: req.headers.channelaccess,
@@ -252,9 +218,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     };
 
     const channel = new Channel(tableData);
-    // TODO check the function decryptUserData is using "req.session.accessData"
-    const accessData = _.get(req, 'session.accessData', req.headers.accessdata);
-    channel.user = JSON.parse(gravity.decrypt(accessData));
+    channel.user = user;
     try {
       const order = _.get(req, 'headers.order', 'desc');
       const limit = _.get(req, 'headers.limit', 10);
@@ -270,28 +234,31 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       response = { success: false, fullError: e };
     }
 
-    res.send(response);
+    if (!response.success) {
+      return res.status(400).send(response);
+    }
+
+    return res.send(response);
   });
 
   /**
    * Send a message
    */
-  app.post('/data/messages', controller.isLoggedIn, async (req, res) => {
-    const { maxMessageLength } = messagesConfig;
-    let hasMessage = _.get(req, 'body.data.message', null);
+  app.post('/v1/api/data/messages', async (req, res) => {
+
     let response;
 
-    if (hasMessage && hasMessage.length <= maxMessageLength) {
-      const { tableData } = req.body;
-      const message = new Message(req.body.data);
-      // TODO fix issue "req.user" related to passportjs to improve this code, we should be able to
-      // TODO get that info from mobile requests
-      // message.record.sender = req.user.record.account || req?.body?.user?.account;
-      message.record.sender = _.get(req, 'user.record.account', req.body.user.account);
-      // accountData
-      // const userData = decryptUserData(req);
+      let { tableData, data } = req.body;
+      const { user } = req;
+      data = {
+        ...data,
+        name: user.userData.alias,
+        sender: user.userData.account,
+        senderAlias: user.userData.alias,
+      };
 
-      let { members } = await metis.getMember({
+      const message = new Message(data);
+      const { memberProfilePicture } = await metis.getMember({
         channel: tableData.account,
         account: tableData.publicKey,
         password: tableData.password,
@@ -300,36 +267,30 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const mentions = _.get(req, 'body.mentions', []);
       const channel = _.get(req, 'body.channel', []);
       const channelName = _.get(tableData, 'name', 'a channel');
-      const accessData = _.get(req, 'session.accessData', req.body.user.accountData);
-      const userData = JSON.parse(gravity.decrypt(accessData));
+      const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
-        const data = await message.sendMessage(userData, tableData, message.record);
-        response = data;
+        response = await message.sendRecord(userData, tableData);
+        let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
-          const senderName = message.record.name;
+          const senderName = user.userData.alias;
           members = members.filter(member => member !== senderName && !mentions.includes(member));
 
-          if (hasJsonStructure(hasMessage)) {
-            hasMessage = JSON.parse(hasMessage);
-            hasMessage = hasMessage.fromMsj || '';
-          }
-
-          // push notification for members
+          const pnBody = `${senderName} has sent a message on channel ${channelName}`;
           const pnTitle = `${senderName} @ ${channelName}`;
-          getPNTokensAndSendPushNotification(members, senderName, channel, hasMessage, pnTitle);
+          const channelAccount = channel && channel.channel_record
+              ? channel.channel_record.account : null;
+          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
 
           // Push notification for mentioned members
+          const pnmBody = `${senderName} was tagged on ${channelName}`;
           const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, hasMessage, pnmTitle);
+          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAccount });
         }
+        res.send(response);
       } catch (e) {
         logger.error('[/data/messages]', JSON.stringify(e));
-        response = { success: false, fullError: e };
+        res.status(500).send({ success: false, fullError: e });
       }
-    } else {
-      response = { success: false, messages: [`Message is not valid or exceeds allowable limit of ${maxMessageLength} characters`] };
-      logger.error(JSON.stringify(response));
-    }
-    res.send(response);
+
   });
 };

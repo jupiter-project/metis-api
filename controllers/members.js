@@ -7,7 +7,7 @@ const logger = require('../utils/logger')(module);
 
 module.exports = (app) => {
   app.use(device.capture());
-  app.get('/data/members', controller.isLoggedIn, async (req, res) => {
+  app.get('/v1/api/data/members', async (req, res) => {
     const tableData = {
       account: req.headers.channeladdress,
       password: req.headers.channelkey,
@@ -16,7 +16,7 @@ module.exports = (app) => {
     try {
       memberList = await metis.getMember({
         channel: tableData.account,
-        account: req.device.type === 'phone' ? req.headers.channelpublic : req.user.record.account,
+        account: req.user.account,
         password: tableData.password,
       });
     } catch (error) {
@@ -26,27 +26,30 @@ module.exports = (app) => {
     res.send(memberList);
   });
 
-  app.post('/data/members', controller.isLoggedIn, async (req, res) => {
+
+  //@TODO this endpoint has to be removed! Metis is responsible for adding users to channels. Not the user.
+  app.post('/v1/api/data/members', async (req, res) => {
     logger.info(req.body);
+    const { userData } = req.user;
     const tableData = {
       account: req.body.channeladdress,
       password: req.body.channelkey,
     };
-
     logger.info(tableData);
     let response = null;
 
     try {
       response = await metis.addToMemberList({
         channel: tableData.account,
-        account: _.get(req, 'user.record.account', req.headers.account),
         password: tableData.password,
-        alias: _.get(req, 'user.record.alias', req.headers.alias),
+        account: userData.account,
+        alias: userData.alias,
       });
+      res.send(response);
     } catch (error) {
       logger.error(error);
+      res.status(500).send(response);
     }
 
-    res.send(response);
   });
 };

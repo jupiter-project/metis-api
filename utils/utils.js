@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 const hasJsonStructure = (str) => {
   if (typeof str !== 'string') return false;
   try {
@@ -9,6 +11,7 @@ const hasJsonStructure = (str) => {
   }
 };
 
+
 module.exports = {
-  hasJsonStructure,
+  hasJsonStructure
 };

@@ -1,6 +1,8 @@
 require('dotenv').config();
 const _ = require('lodash');
 const { gravity } = require('./gravity');
+const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
+const logger = require('../utils/logger')(module);
 
 const propertyFee = 10;
 
@@ -33,6 +35,18 @@ function Metis() {
     }
 
     return properties;
+  }
+
+  async function getAliasAccountProperties(aliases = []) {
+    const profilePictures = aliases.map(async (alias) => {
+      const { accountRS } = await gravity.getAlias(alias);
+      const { properties } = await gravity.getAccountProperties({ recipient: accountRS });
+      const profilePicture = properties ? properties.find(({ property }) => property.includes('profile_picture')) : null;
+
+      return { alias, accountRS , urlProfile: profilePicture ? profilePicture.value : '' };
+    });
+
+    return Promise.all(profilePictures);
   }
 
   // Gets alias information for a single user within a channel
@@ -93,7 +107,8 @@ function Metis() {
       }
     });
 
-    return { aliases, members };
+    const memberProfilePicture = await getAliasAccountProperties(members);
+    return { aliases, members, memberProfilePicture };
   }
 
   async function addToMemberList(params) {
@@ -101,6 +116,7 @@ function Metis() {
       return { error: true, message: 'No alias provided' };
     }
     // We verify here is user has any existing aliases
+    //@TODO Cannot use Alias!! has to be the jup account!!!
     const memberSearch = await getMember(params);
     // We first retrieve the properties from recipient
     if (memberSearch.error) {
@@ -138,24 +154,35 @@ function Metis() {
         message: 'Request is missing table encryption',
       };
     }
+
+
+    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.metis_channel_member);
     const propertyParams = {
       recipient: params.channel,
-      feeNQT: propertyFee,
+      feeNQT: fee,
       property: gravity.encrypt(`${accountEnding(params.account)}-a-${aliases.length}`, params.password),
       value: gravity.encrypt(params.alias, params.password),
     };
+    return gravity.setAcountProperty(propertyParams)
+        .then((propertyCreation) => {
+          if (propertyCreation.errorDescription) {
+            logger.error(`Property creation failed: ${JSON.stringify(propertyCreation)}`);
+            return propertyCreation;
+          }
 
-    const propertyCreation = await gravity.setAcountProperty(propertyParams);
-
-    if (propertyCreation.errorDescription) {
-      return propertyCreation;
-    }
-
-    return {
-      success: true,
-      message: `${params.alias} has been added to member list of ${params.channel}`,
-      fullResponse: propertyCreation,
-    };
+          return {
+            success: true,
+            message: `${params.alias} has been added to member list of ${params.channel}`,
+            fullResponse: propertyCreation,
+          };
+        })
+        .catch(error => {
+          return {
+            success: false,
+            message: 'Error saving the member',
+            fullResponse: error,
+          };
+        });
   }
 
   return Object.freeze({

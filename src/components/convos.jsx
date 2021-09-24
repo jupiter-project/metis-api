@@ -173,7 +173,7 @@ class ConvosComponent extends React.Component {
     } else {
       indexNumber = state.firstIndex;
     }
-    const response = await axios.get(`/data/messages/${queryScope}/${indexNumber}`, config);
+    const response = await axios.get(`/v1/api/data/messages/${queryScope}/${indexNumber}`, config);
 
     return response.data;
   }
@@ -219,7 +219,7 @@ class ConvosComponent extends React.Component {
     };
     const index = state.queryScope === 'unconfirmed' ? 0 : state.firstIndex;
 
-    axios.get(`/data/messages/${state.queryScope}/${index}`, config)
+    axios.get(`/v1/api/data/messages/${state.queryScope}/${index}`, config)
       .then((response) => {
         // console.log(response.data);
         if (response.data.success) {
@@ -432,7 +432,7 @@ class ConvosComponent extends React.Component {
     let response;
 
     try {
-      response = await axios.get('/data/members', config);
+      response = await axios.get('/v1/api/data/members', config);
     } catch (e) {
       response = e;
     }
@@ -471,7 +471,7 @@ class ConvosComponent extends React.Component {
     let response;
 
     try {
-      response = await axios.post('/data/members', params);
+      response = await axios.post('/v1/api/data/members', params);
     } catch (e) {
       response = e;
       return e;
@@ -585,7 +585,7 @@ class ConvosComponent extends React.Component {
                 style={{ float: 'left', clear: 'both', color: '#f0f0f0' }}
                 ref={(el) => { this.messageEnd = el; }}
               />
-            </div>   
+            </div>
           </div>
           <div className="convo-input-outer">
 

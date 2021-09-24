@@ -2,16 +2,20 @@ name: Build and publish Metis Prod
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    tags:
+      - 'v*'
 
 jobs:
   build_and_push:
-    environment: production
     runs-on: ubuntu-latest
     steps:
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
       - name: Checkout the repo
         uses: actions/checkout@v2
+      - name: Use tag
+        run: echo ${{steps.tag.outputs.tag}}
       - name: Build image
         run: docker build -t metis .
       - name: Install doctl
@@ -21,18 +25,16 @@ jobs:
       - name: Log in to DO Container Registry
         run: doctl registry login --expiry-seconds 600
       - name: Tag image
-        run: docker tag metis ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ secrets.DIGITALOCEAN_APP_TAG }}
+        run: docker tag metis ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
       - name: Push image to DO Container Registry
-        run: docker push ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ secrets.DIGITALOCEAN_APP_TAG }}
-      - name: Launch image
-        run: doctl apps create-deployment ${{ secrets.DIGITALOCEAN_APP_ID }} --wait
+        run: docker push ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
       - name: Channel specific notification Slack
         uses: adamkdean/simple-slack-notify@master
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           channel: '#general'
-          text: 'A new version of Metis Prod has been deployed'
+          text: 'A new version ${{ steps.tag.outputs.tag }} of Metis has been deployed'
 #      - name: send custom message to Telegram
 #        uses: appleboy/telegram-action@master
 #        with:

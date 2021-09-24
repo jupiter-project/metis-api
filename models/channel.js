@@ -3,6 +3,7 @@ import events from 'events';
 import Model from './_model';
 import Methods from '../config/_methods';
 import { gravity } from '../config/gravity';
+const logger = require('../utils/logger')(module);
 
 class Channel extends Model {
   constructor(data = { id: null }) {
@@ -13,7 +14,7 @@ class Channel extends Model {
       table: 'channels',
       belongsTo: 'user',
       model_params: [
-        'id', 'passphrase', 'account', 'password', 'name', 'publicKey', 'sender', 'accountId',
+        'id', 'passphrase', 'account', 'password', 'name', 'publicKey', 'sender', 'accountId', 'createdBy',
       ],
     });
     this.public_key = data.public_key;
@@ -69,8 +70,8 @@ class Channel extends Model {
             JSON.stringify(fullRecord),
             accessLink.encryptionPassword,
           );
-
-          const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${gravity.jupiter_data.feeNQT}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true`;
+          const fee = 95000;
+          const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true`;
 
           axios.post(callUrl)
             .then((response) => {
@@ -88,7 +89,7 @@ class Channel extends Model {
         });
 
         eventEmitter.on('request_authenticated', () => {
-          self.loadTable(accessLink)
+          self.loadAppTable(accessLink)
             .then((res) => {
               recordTable = res;
               eventEmitter.emit('id_generated');
@@ -137,6 +138,7 @@ class Channel extends Model {
     return response;
   }
 
+
   async create() {
     if (!this.record.passphrase || this.record.password) {
       this.record.passphrase = Methods.generate_passphrase();
@@ -150,10 +152,23 @@ class Channel extends Model {
       this.record.publicKey = response.publicKey;
       this.data.account = response.address;
       this.data.publicKey = response.publicKey;
+
+      logger.sensitive(`response = ${JSON.stringify(response) }`);
     }
+
+    logger.sensitive(`record = ${JSON.stringify(this.record)}`);
+    logger.sensitive(`data = ${JSON.stringify(this.data)}`);
+    // logger.sensitive(`publicKey = ${JSON.stringify(response.publicKey)}`);
+
 
     if (this.accessLink) {
       return super.create(JSON.parse(gravity.decrypt(this.accessLink)));
+          // .then( channel  => {
+          //   gravity.attachTable('storage')
+          //       .then(
+          //           jimServer.sendFirstImage(fromAddress, password, passphrase, file='metisLogo' );
+          //       )
+          // }  )
     }
 
     return Promise.reject({ error: true, message: 'Missing user information' });

@@ -17,7 +17,7 @@ class User extends Model {
       model_params: ['id', 'account', 'accounthash', 'email', 'firstname', 'alias',
         'lastname', 'secret_key', 'twofa_enabled', 'twofa_completed', 'api_key', 'encryption_password',
       ],
-      prunableOnCreate: true,
+      prunableOnCreate: false, // this was set to true. Not sure why cause once the message is pruned we loose the user creds being stored in the blockchain.
       hasDatabase: true,
     },
     accessPass);
@@ -119,13 +119,23 @@ class User extends Model {
   }
 
   async setAlias(passphrase) {
+    logger.verbose('###############################################################################################')
+    logger.verbose(`## setAlias(passphrase= ${passphrase}`);
+    logger.verbose('###############################################################################################')
+
+    logger.debug(`alias= ${this.record.alias}`);
+
     const aliasCheckup = await gravity.getAlias(this.record.alias);
+
+    logger.debug(`aliasCheckup= ${JSON.stringify(aliasCheckup)}`);
+
     if (aliasCheckup.accountRS === this.record.account) {
       return { success: false, message: 'Alias already set', fullResponse: aliasCheckup };
     }
 
 
     if (aliasCheckup.available) {
+
       const aliasResponse = await gravity.setAlias({
         passphrase,
         alias: this.record.alias,
@@ -142,6 +152,8 @@ class User extends Model {
     aliasCheckup.error = true;
     return aliasCheckup;
   }
+
+
 
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
@@ -205,9 +217,9 @@ class User extends Model {
         self.accessData
       ) {
         try {
-          // console.log(self.accessData);
+          // console.log(self.accountCredentials);
           const accessKey = gravity.decrypt(self.accessData.accessKey);
-          // const encryptionKey = gravity.decrypt(self.accessData.encryptionKey);
+          // const encryptionKey = gravity.decrypt(self.accountCredentials.encryptionKey);
           const account = gravity.decrypt(self.accessData.account);
           const accountData = JSON.parse(gravity.decrypt(self.accessData.accountData));
           const record = await gravity.getUser(account, accessKey, accountData);
@@ -237,7 +249,7 @@ class User extends Model {
         reject({ false: false, verification_error: true, errors: self.verify().messages });
       } else {
         const accessKey = gravity.decrypt(self.accessData.accessKey);
-        // const encryptionKey = gravity.decrypt(self.accessData.encryptionKey);
+        // const encryptionKey = gravity.decrypt(self.accountCredentials.encryptionKey);
         const account = gravity.decrypt(self.accessData.account);
         const accountData = JSON.parse(gravity.decrypt(self.accessData.accountData));
         const record = await gravity.getUser(account, accessKey, accountData);
