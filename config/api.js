@@ -208,6 +208,7 @@ module.exports = (app) => {
       recordObject.create()
         .then((response) => {
           console.log('[MODEL]: ', recordObject.model);
+
           if(recordObject.model === 'channel') {
             // JupiterFSService.uploadPixiImageAndWait(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password)
           }

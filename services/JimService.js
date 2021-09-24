@@ -395,12 +395,15 @@ module.exports = {
         account: channel.channel_record.publicKey,
         password: channel.channel_record.password,
       }))
-      .then(({ members }) => {
-        if (Array.isArray(members) && members.length > 0) {
+      .then(({ memberProfilePicture }) => {
+        if (Array.isArray(memberProfilePicture) && memberProfilePicture.length > 0) {
           const pnTitle = `${channel.channel_record.name}`;
           const senderName = user.userData.alias;
           const message = `${senderName} sent an image`;
-          getPNTokensAndSendPushNotification(members, senderName, channel, message, pnTitle, {});
+
+          const channelMembers = memberProfilePicture.map(member => member.accountRS);
+          const membersWithoutSender = channelMembers.filter(member => member !== senderName);
+          getPNTokensAndSendPushNotification(membersWithoutSender, senderName, channel, message, pnTitle, {});
         }
       })
       .then(() => res.status(200).json({}))
