@@ -336,7 +336,6 @@ class Gravity {
             logger.debug('---------------------------------------------------------------------------------------')
             logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
             logger.debug('---------------------------------------------------------------------------------------')
-            logger.debug(`-- response = ${JSON.stringify(recordsContainer)}`);
 
             const allRecords = recordsContainer.records;
             if (Array.isArray(allRecords) && !allRecords.length ){
