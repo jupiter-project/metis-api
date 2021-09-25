@@ -13,7 +13,6 @@ class Model {
   constructor(data, accessData = null) {
     // Default values of model
     logger.verbose(`constructor()`);
-    logger.debug(`data =${ JSON.stringify(data)}`);
     this.id = null;
     this.record = {};
     this.model = data.model;
