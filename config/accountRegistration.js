@@ -102,7 +102,6 @@ class AccountRegistration {
           logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
           logger.debug('++                    fetch account data from Metis Users Table Account');
           logger.debug('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-          console.log(applicationUsersTableProperties.crypto);
 
           this.jupiterAccountService.fetchAccountData(applicationUsersTableProperties)
             .then((applicationUsersTableData) => {
@@ -398,7 +397,6 @@ class AccountRegistration {
 
                     if (Array.isArray(results) && results.length > 0) {
                         const allTables = [...currentlyAttachedTables, ...results];
-                        logger.verbose(`allTables= ${JSON.stringify(allTables)}`);
                         return resolve(allTables);
                     }
 
@@ -446,28 +444,11 @@ class AccountRegistration {
     logger.verbose(`##                      attachTable(${tableName})`);
     logger.verbose('########################################################################################');
     // @TODO before attaching make sure the table doesn't yet exist.
-    logger.debug(`attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName})`);
 
     return new Promise((resolve, reject) => {
       const accessData = this.newUserAccountProperties.generateAccessData();
-      logger.debug(`accessData= ${JSON.stringify(accessData)}`);
-
-      // this.jupiterAccountService.getStatement(this.newUserAccountProperties)
-      //     .then(accountStatement => {
-      //         if (!(accountStatement.hasMinimumAppBalance && accountStatement.hasMinimumTableBalance)) {
-      //             return reject(' needs minimal balances');
-      //         }
-      //         this.tableService.attachTable(this.newUserAccountProperties, tableName)
-      //             .then(response => {
-      //             })
-      //
-      logger.verbose(`-- attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName})`);
       this.gravity.attachTable(accessData, tableName)
         .then((res) => { // {name, address, passphrase, publicKey}
-          logger.verbose('---------------------------------------------------------------------------------------');
-          logger.verbose(`-- attachTable().attachTable(accessData= ${JSON.stringify(this.newUserAccountProperties)} , tableName = ${tableName}).THEN(res= ${!!res})`);
-          logger.verbose('---------------------------------------------------------------------------------------');
-          logger.sensitive(`res= ${JSON.stringify(res)}`);
           resolve(res);
         })
         .catch((error) => {

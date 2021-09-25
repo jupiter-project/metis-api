@@ -194,7 +194,6 @@ class TableService {
         logger.verbose(`extractTableFromTablesOrNull(tableName= ${tableName}, tables)`);
         logger.verbose('######################################');
 
-        logger.debug(`tables= ${JSON.stringify(tables)}`);
         if(!tableName){
             return null;
         }

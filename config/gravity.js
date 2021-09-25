@@ -474,7 +474,6 @@ class Gravity {
           // const currentUserRecord = this.getCurrentTable(allRecords, 'user_record');
           const currentUserRecord = this.getUserRecord(allRecords);
 
-          logger.debug(`currentTables= ${JSON.stringify(currentTables)}`);
           logger.sensitive(`-- Count of allRecords = ${allRecords.length}`);
           logger.sensitive(`-- currentUserRecord= ${ JSON.stringify(currentUserRecord)}`)
           logger.sensitive(`-- currentUsersTable= ${ JSON.stringify(currentUsersTable)}`)
@@ -515,8 +514,7 @@ class Gravity {
             const tablesRetrieved = {};
             for (let x = 0; x < Object.keys(allRecords).length; x += 1) {
               if (containedDatabase) {
-                // console.log('These are the records given in load app data through user');
-                // console.log(records[x]);
+
                 if (allRecords[x] && allRecords[x].user_record && !userRecord) {
 
                   userRecord = allRecords[x].user_record;
@@ -815,19 +813,15 @@ class Gravity {
       ownerPassword = this.password)
   {
     logger.verbose('############################################################################################################################')
-    logger.verbose(`                       getRecords(ownerAddress= ${ownerAddress}, transactionSender= ${transactionSender}, transactionSenderPassphrase= ${transactionSenderPassphrase}, scope, ownerPass=${ownerPassword}`)
+    logger.verbose(`                       getRecords(ownerAddress= ${ownerAddress}, transactionSender= ${transactionSender}, transactionSenderPassphrase, scope, ownerPass)`)
     logger.verbose('############################################################################################################################')
 
     logger.debug(`ownerAddress = ${ownerAddress}`);
     logger.debug(`transactionSender = ${transactionSender}`);
-    logger.sensitive(`transactionSenderPassphrase= ${transactionSenderPassphrase}`);
-    logger.sensitive(`ownerPassword=${ownerPassword}`);
 
     const reportSection = `Information used for retrieving Account Properties for - ${ownerAddress}`
     gravityCLIReporter.addItem('Owner Account Address', ownerAddress, reportSection )
-    gravityCLIReporter.addItem('Owner Account Password', ownerPassword, reportSection )
     gravityCLIReporter.addItem('Account Properties Holder', transactionSender,reportSection )
-    gravityCLIReporter.addItem('Account Properties Holder Passphrase', transactionSenderPassphrase ,  reportSection )
 
     const eventEmitter = new events.EventEmitter();
     const self = this;
@@ -1036,8 +1030,7 @@ class Gravity {
                     }
 
                     decryptedAndParsedMessage.confirmed = true;
-                    logger.debug(`decryptedAndParsedMessage= ${JSON.stringify(decryptedAndParsedMessage)}`)
-                    // console.log(decryptedAndParsedMessage);
+                    logger.sensitive(`decryptedAndParsedMessage= ${JSON.stringify(decryptedAndParsedMessage)}`)
                     decryptedMessages.push(decryptedAndParsedMessage);
                   } catch ( error ) {
                     notAbleToDecrypt++;
@@ -1092,7 +1085,6 @@ class Gravity {
       eventEmitter.on('database_retrieved', () => {
         logger.debug('Parsing all the transactions')
         logger.debug(`transactionSender= ${transactionSender} `);
-        console.log(database.length);
 
         for (let arrayIndex = 0; arrayIndex < Object.keys(database).length; arrayIndex += 1) {
           let completion = false;
@@ -1531,8 +1523,6 @@ class Gravity {
                 logger.warn(`1. No Application Users Table found!!!!!`)
               }
 
-              logger.debug(`applicationUsersTable= ${applicationUsersTable}`);
-
               const applicationUsersTableAddress = applicationUsersTable.address;
               // const applicationUsersTableAddress = applicationUsersTable.users.address;
 
@@ -1593,9 +1583,9 @@ class Gravity {
                             logger.debug('---------------------------------------------------------------------------------------')
                             logger.sensitive(`userAccountTablesResponse=${JSON.stringify(userAccountTablesResponse)}`);
 
-                            console.log('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
-                            console.log(userAccountTablesResponse);
-                            console.log('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            logger.sensitive(userAccountTablesResponse);
+                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
 
                             // if (userFromPassphraseResponse.databaseFound && !userFromPassphraseResponse.userNeedsSave) {
                             //   logger.debug(`database found and userNeedsSave`);
@@ -1609,9 +1599,9 @@ class Gravity {
                               appAccountTables: userAccountTablesResponse.appAccountTables
                             }
 
-                            console.log('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
-                            console.log(resolveData);
-                            console.log('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            logger.sensitive(resolveData);
+                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
 
                             return resolve(resolveData);
 
@@ -2322,8 +2312,6 @@ class Gravity {
       callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${passphrase}&recipient=${recipient}&messageToEncrypt=${dataToBeSent}&feeNQT=${feeInvitation}&deadline=${this.jupiter_data.deadline}&messageIsPrunable=true&compressMessageToEncrypt=true`;
     }
 
-    logger.info(callUrl);
-
     try {
       response = await axios.post(callUrl);
 
@@ -2394,8 +2382,6 @@ class Gravity {
     logger.verbose(`##  attachTable(database=${!!accountCredentials} , tableName=${tableName}, currentTables=${currentTables})`);
     logger.verbose('#############################################################################################################')
     logger.sensitive(`database=${JSON.stringify(accountCredentials)}`);
-
-    console.log(accountCredentials);
 
     const defaultTableNames =   ['users', 'channels','invites', 'storage']
 
@@ -2492,7 +2478,6 @@ class Gravity {
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
         const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
-        logger.debug(`callurl= ${callUrl}`);
         let response;
         try {
           logger.debug(`Sending a jupiter message`);
@@ -2641,7 +2626,6 @@ class Gravity {
     logger.verbose('#####################################################################################');
     logger.verbose(`## extractTableNamesFromTables(tables= ${!!tables})`)
     logger.verbose('#####################################################################################');
-    logger.debug(`tables= ${JSON.stringify(tables)}`);
 
     if(!tables) {
       return []
@@ -2778,7 +2762,6 @@ class Gravity {
         const firstIndex = filter.firstIndex || 0;
         const lastIndex = parseInt(firstIndex, 10) + parseInt(numberOfRecords, 10);
         const urlCall = `${this.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${address}&withMessage=true&type=1&firstIndex=${firstIndex}&lastIndex=${lastIndex}`;
-        // console.log(urlCall);
         rawTransactions = (await axios.get(urlCall)).data;
       } catch (e) {
         logger.error('Error in gravity.js, line 1671, could not retrieve unconfirmed transactions');
@@ -2904,9 +2887,6 @@ class Gravity {
     dataObject.date = dataObject.data.date || thisTransaction.fullRecord.date;
     dataObject.data.encryptionLevel = encryptionLevel;
     dataObject.encryptionLevel = encryptionLevel;
-
-    // console.log(dataObject);
-
     return dataObject;
   }
 
@@ -2953,7 +2933,6 @@ class Gravity {
         const order = filter.order || 'asc';
         this.sortByDate(dataTransactions, order);
       }
-      // console.log(dataTransactions);
 
       return dataTransactions;
     }
@@ -3091,7 +3070,6 @@ class Gravity {
         axios.post(tableListUpdateUrl)
           .then((response) => {
             if (response.data.broadcasted && response.data.broadcasted === true) {
-              // console.log('Table list updated');
             } else if (response.data.errorDescription != null) {
               logger.info('There was an Error');
               logger.info(response.data);

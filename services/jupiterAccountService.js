@@ -46,11 +46,7 @@ class JupiterAccountService {
 
                     logger.debug(`transactionId= ${transactionId}`)
                     const userRecord = accountProperties.generateUserRecord(transactionId);
-                    logger.debug(`userRecord= ${JSON.stringify(userRecord)}`)
-                    // const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
-                    logger.debug(`metisUsersTableProperties.crypto = ${JSON.stringify(metisUsersTableProperties.crypto)}`);
                     const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
-                    // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
                     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
                     const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
