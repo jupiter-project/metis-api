@@ -448,11 +448,6 @@ class Gravity {
           { size: 'all', show_pending: null, show_unconfirmed: false },
           ownerPassword )
         .then((response) => {
-          logger.debug('---------------------------------------------------------------------------------------')
-          logger.debug(`-- loadUserAndAppData(containedDatabase=${!!containedDatabase}).getRecords(address=${ownerAddress}, transactionSender=${accountPropertiesHolder}).THEN()`);
-          logger.debug('---------------------------------------------------------------------------------------')
-          logger.debug(`-- response = ${JSON.stringify(response)}`);
-
           allRecords = response.records;
           if (Array.isArray(allRecords) && !allRecords.length ){
               logger.warn(`-- the records array is empty`)
@@ -1527,7 +1522,6 @@ class Gravity {
               // const applicationUsersTableAddress = applicationUsersTable.users.address;
 
               logger.debug(`-- Count of all application records: ${allApplicationRecords.length}`);
-              logger.debug(`-- applicationUsersTable= ${JSON.stringify(applicationUsersTable)}`);
               logger.debug(`-- applicationUsersTableAddress= ${applicationUsersTableAddress}`);
 
 
@@ -1546,7 +1540,6 @@ class Gravity {
                     logger.debug('---------------------------------------------------------------------------------------')
                     logger.verbose(`getUser().getRecords(from application).then().getRecords(applicationUsersTable).THEN(applicationUsersTableRecordsResponse)`)
                     logger.debug('---------------------------------------------------------------------------------------')
-                    logger.sensitive(`-- applicationUsersTableRecordsResponse= ${JSON.stringify(applicationAccountUsersTableRecordsResponse)}`);
                       const userRecord = this.getUserRecord(applicationAccountUsersTableRecordsResponse.records);
                       logger.sensitive(`-- userRecord=${JSON.stringify(userRecord)}`);
 
