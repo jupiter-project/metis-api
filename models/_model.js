@@ -168,7 +168,6 @@ class Model {
           for (let x = 0; x < accountTables.length; x += 1) {
             if (accountTables[x].name === thisTableName) {
               const recordTable = accountTables[x];
-              logger.debug(`recordTable= ${JSON.stringify(recordTable)}`);
               return resolve(recordTable);
               break;
             }
