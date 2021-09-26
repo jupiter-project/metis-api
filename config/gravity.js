@@ -713,12 +713,12 @@ class Gravity {
 
 
 
-  getMessages(address, passphrase) {
+  async getMessages(address, passphrase) {
     const eventEmitter = new events.EventEmitter();
     const self = this;
 
     return new Promise((resolve, reject) => {
-      const records = [];
+      /**const records = [];
       const decryptedRecords = [];
       const decryptedPendings = [];
       // const pendingRecords = [];
@@ -749,6 +749,7 @@ class Gravity {
           eventEmitter.emit('check_on_pending');
         } else {
           let recordCounter = 0;
+          
           Object.keys(records).forEach((p) => {
             const transactionId = records[p];
             const thisUrl = `${self.jupiter_data.server}/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${passphrase}`;
@@ -790,7 +791,6 @@ class Gravity {
         }
         eventEmitter.emit('records_retrieved');
       });
-
       axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${address}&withMessage=true&type=1`)
         .then((response) => {
           database = response.data.transactions;
@@ -799,14 +799,82 @@ class Gravity {
         .catch((error) => {
           logger.error(error);
           resolve({ success: false, errors: error });
-        });
+        });*/
+
+      const fetchDatabaseConfig = {
+        url: `/nxt?requestType=getBlockchainTransactions&account=${address}&withMessage=true&type=1`,
+        method: axiosConstants.METHODS.GET,
+        server: axiosConstants.SERVERS.JUPITER_SERVER,
+      };
+      try {
+        const databaseResponse = await axiosInstance(fetchDatabaseConfig);
+        if(databaseResponse && databaseResponse.data 
+          && isValidArray(databaseResponse.data.transactions)) {
+          const transactions = response.data.transactions;
+          const records = transactions.map(db => {
+            if(db.attachment && db.attachment.encryptedMessage
+              && db.attachment.encryptedMessage.data != null
+              && db.recipientRS === address) {
+                return db.transaction;
+              }
+          });
+          if (isValidArray(records)) {
+            const messageServiceConfigs = Object.keys(records).map(record => {
+              const transactionId = records[record];
+              return {
+                url: `/nxt?requestType=readMessage&transaction=${transactionId}&secretPhrase=${passphrase}`,
+                method: axiosConstants.METHODS.GET,
+                server: axiosConstants.SERVERS.JUPITER_SERVER,
+              }
+            });
+            try {
+              // TODO : need to decide whether eveni emit needed for this part alone
+              const results = await Promise.allSettled(messageServiceConfigs.map(config => axiosInstance(config)));
+              const decryptedMessages = [];
+              results.forEach(result => {
+                logger.info('result', result); // TODO : remove it after validation.
+                if(result.status = 'fulfilled') {
+                  try {
+                    // This decrypts the message from the blockchain using native encryption
+                    // as well as the encryption based on encryption variable
+                    if (result.value.data && result.value.data.decryptedMessage.includes('dataType')) {
+                      decryptedRecords.push(JSON.parse(response.data.decryptedMessage));
+                    }
+                  } catch (e) {
+                    logger.error(e);
+                    // Error here tend to be trying to decrypt a regular message from Jupiter
+                    // rather than a gravity encrypted message
+                  }
+                } else {
+                  logger.error(result.reason);
+                }
+              });
+              if(isValidArray(decryptedMessages))
+              const totalRecords = decryptedMessages.length;
+              resolve({
+                  recordsFound: totalRecords,
+                  pending: [],
+                  records: decryptedMessages,
+                  last_record: decryptedRecords[totalRecords-1],
+              });
+            } catch (error) {
+              logger.error(`Error occurred when trying to fetch messages ${JSON.stringify(error)}`);
+              reject({ success: false, errors: error });
+            }            
+          } else {
+            logger.error(`No valid records found in database`);
+            reject({ success: false, errors: 'No valid records found in database'});
+          } 
+        } else {
+          logger.error(`No valid transactions found from database`);
+          reject({ success: false, errors: 'No valid transactions found from database'});
+        }
+      } catch (error) {
+        logger.error(`Error occurred when trying to fetch databases ${JSON.stringify(error)}`);
+        reject({ success: false, errors: error });
+      }
     });
   }
-
-
-
-
-
 
   /**
    *
