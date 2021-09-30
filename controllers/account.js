@@ -9,27 +9,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   let page;
   const connection = process.env.SOCKET_SERVER;
 
-  // ===========================================================
-  // This constains constants needed to connect with Jupiter
-  // ===========================================================
-
-  app.get('/account', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-    const AccountPage = require('../views/account.jsx');
-    page = ReactDOMServer.renderToString(
-      React.createElement(AccountPage, {
-        connection,
-        messages,
-        name: 'Metis - Profile',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-      }),
-    );
-    res.send(page);
-  });
-
 
   app.get('/api/account', controller.isLoggedIn, (req, res) => {
     gravity.findById(req.user.record.id, 'users', { size: 'last' })
@@ -137,52 +116,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       logger.error(error);
       res.send(error);
     }
-  });
-
-  // =======================================================
-  // 2FACTOR-AUTHENTICATION SETUP
-  // We use route middleware to verify if user is logged in
-  // =======================================================
-  app.get('/2fa_setup', controller.onlyLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    // Loads 2FA configuration page
-    const SetupPage = require('../views/setup.jsx');
-
-    if (req.user.record.twofa_completed != null && req.user.record.twofa_completed !== true) {
-      page = ReactDOMServer.renderToString(
-        React.createElement(SetupPage, {
-          messages,
-          name: 'Metis - 2FA Setup',
-          user: req.user,
-          dashboard: true,
-        }),
-      );
-
-      res.send(page);
-    } else {
-      res.redirect('/');
-    }
-  });
-
-  app.get('/2fa_checkup', controller.onlyLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    //  Page for 2fa checkup
-    const VerificationPage = require('../views/verification.jsx');
-
-    const checkCode = ReactDOMServer.renderToString(
-      React.createElement(VerificationPage, {
-        messages,
-        name: 'Metis - 2FA',
-        user: req.user,
-        dashboard: true,
-      }),
-    );
-
-    res.send(checkCode);
   });
 
   app.post('/start2fa', controller.onlyLoggedIn, (req, res) => {

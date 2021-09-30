@@ -18,30 +18,6 @@ const decryptUserData = req => JSON.parse(gravity.decrypt(req.session.accessData
 
 module.exports = (app, passport, React, ReactDOMServer) => {
   app.use(device.capture());
-  /**
-   * Render Channels page
-   */
-  app.get('/channels', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    const PageFile = require('../views/channels.jsx');
-
-    const page = ReactDOMServer.renderToString(
-      React.createElement(PageFile, {
-        connection,
-        messages,
-        name: 'Metis - Chats',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-        validation: req.session.jup_key,
-        accessData: req.session.accessData,
-      }),
-    );
-
-    res.send(page);
-  });
 
   app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
     const transporter = mailer.createTransport({
@@ -78,31 +54,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
       res.send({ success: true, data });
     });
-  });
-
-  /**
-   * Render invites page
-   */
-  app.get('/invites', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    const PageFile = require('../views/invites.jsx');
-
-    const page = ReactDOMServer.renderToString(
-      React.createElement(PageFile, {
-        connection,
-        messages,
-        name: 'Metis - Invites',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-        validation: req.session.jup_key,
-        accessData: req.session.accessData,
-      }),
-    );
-
-    res.send(page);
   });
 
   /**
@@ -176,32 +127,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     }
 
     res.send(response);
-  });
-
-  /**
-   * Render a channel's conversations
-   */
-  app.get('/channels/:id', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    const PageFile = require('../views/convos.jsx');
-
-    const page = ReactDOMServer.renderToString(
-      React.createElement(PageFile, {
-        connection,
-        messages,
-        name: `Metis - Convo#${req.params.id}`,
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-        validation: req.session.jup_key,
-        accessData: req.session.accessData,
-        channelId: req.params.id,
-      }),
-    );
-
-    res.send(page);
   });
 
   /**

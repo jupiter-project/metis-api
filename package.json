@@ -3,14 +3,14 @@
   "version": "1.1.0",
   "description": "Gravity interacts directly with the Jupiter blockchain, encrypting and securing your information in individually permissible messaging data.",
   "private": true,
-  "main": "index.js",
+  
   "scripts": {
     "test": "jest --verbose --silent",
     "eslint": "./node_modules/.bin/eslint --ext .js --ext .jsx ./ --ignore-pattern public/",
     "eslint-folders": "eslint --ext .js --ext .jsx . --ignore-pattern public/ | grep /home",
     "gulp": "gulp",
     "dev": "npx concurrently \"npx nodemon server.js NODE_ENV=dev\" \"npx webpack -p --watch\"",
-    "start": "pm2-runtime server.js -- --max-old-space-size=4096 --trace-warnings",
+    
     "dev:local": "nodemon server.js -- --max-old-space-size=4096 --trace-warnings",
     "build": "npx webpack -p",
     "gravity:db": "node -e \"require(process.env.PWD+'/config/gravity.js').gravity.loadTables('console');\"",

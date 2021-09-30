@@ -7,48 +7,6 @@ const logger = require('../utils/logger')(module);
 module.exports = (app, passport, React, ReactDOMServer) => {
   const connection = process.env.SOCKET_SERVER;
   let page;
-  // ===========================================================
-  // This constains constants needed to connect with Jupiter
-  // ===========================================================
-  // Loads Gravity module
-
-  app.get('/admin', controller.isAppAdmin, (req, res) => {
-    const messages = req.session.flash;
-    const Page = require('../views/admin/index.jsx');
-
-    req.session.flash = null;
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(Page, {
-        connection,
-        messages,
-        name: 'Metis - App Summary',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-      }),
-    );
-    res.send(page);
-  });
-
-  app.get('/admin/tables', controller.isAppAdmin, (req, res) => {
-    const messages = req.session.flash;
-    const Page = require('../views/admin/tables.jsx');
-
-    req.session.flash = null;
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(Page, {
-        connection,
-        messages,
-        name: 'Metis - Table Records',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-      }),
-    );
-    res.send(page);
-  });
 
   app.get('/admin/api/app', controller.isAppAdmin, (req, res) => {
     gravity.loadUserAndAppData()

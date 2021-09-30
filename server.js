@@ -100,7 +100,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExp
 app.use(tokenVerify);
 
 // Sets public directory
-app.use(express.static(`${__dirname}/public`));
+//app.use(express.static(`${__dirname}/public`));
 
 // required for passport
 const sessionSecret = process.env.SESSION_SECRET !== undefined ? process.env.SESSION_SECRET : 'undefined';
