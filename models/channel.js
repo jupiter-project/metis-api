@@ -44,8 +44,17 @@ class Channel extends Model {
   }
 
   loadRecords(accessData) {
-    // console.log(this);
     return super.loadRecords(accessData);
+  }
+
+  async loadChannelByAddress(account, accessData){
+    // @TODO figure out how to get a single channel
+    const { records } = await super.loadRecords(accessData);
+    if (records && Array.isArray(records)) {
+      return records.find(record => record.channel_record.account === account);
+    }
+
+    throw new Error('Channel not found');
   }
 
   import(accessLink) {

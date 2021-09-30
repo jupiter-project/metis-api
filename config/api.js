@@ -1,8 +1,7 @@
 import find from 'find';
 import jwt from 'jsonwebtoken';
 import { gravity } from './gravity';
-const JupiterFSService = require('../services/JimService');
-
+import ChannelRecord from "../models/channel.js";
 const logger = require('../utils/logger')(module);
 
 
@@ -141,6 +140,35 @@ module.exports = (app) => {
           });
         });
     }
+  });
+
+
+  /**
+   * Get channel records associated with a user
+   */
+  app.get('/v1/api/channel/:account', (req, res, next) => {
+    const { user } = req;
+    const { account } = req.params;
+
+    // We verify the user data here
+    const channelRecord = new ChannelRecord({
+      user_id: user.id,
+      public_key: user.publicKey,
+      user_api_key: user.publicKey,
+    });
+
+    const userData = JSON.parse(gravity.decrypt(user.accountData));
+    channelRecord.loadChannelByAddress(account, userData)
+        .then(channel => {
+          const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
+          return { ...channel, token };
+        })
+        .then(channel => res.status(200).send({ success: true, channel }))
+        .catch((error) => {
+          logger.error('[Channel id]->[loadRecords]:');
+          logger.error(error);
+          res.status(500).send({ success: false, error });
+        });
   });
 
 
