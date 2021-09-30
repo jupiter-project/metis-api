@@ -30,8 +30,6 @@ class TableAccountProperties {
         this.name = name;
         this.address = address;
         this.passphrase = passphrase;
-        // this.password = password;
-        // this.algorithm = algorithm;
         this.crypto = null;
 
         if(algorithm && password){

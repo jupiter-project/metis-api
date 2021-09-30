@@ -199,7 +199,7 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./config/accountRegistration");
+const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
 
 jobScheduleService.init(kue);
