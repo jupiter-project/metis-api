@@ -149,7 +149,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       }
 
       const message = `${sender} invited you to the channel: ${channelName}`;
-      const metadata = { isInvitation: true };
+      const metadata = { isInvitation: 'true' };
       getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
       res.send({success: true});
     } catch (e) {
