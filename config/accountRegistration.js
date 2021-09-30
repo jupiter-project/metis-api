@@ -392,7 +392,6 @@ class AccountRegistration {
                     logger.verbose('---------------------------------------------------------------------------------------');
                     logger.verbose(`-- attachAllDefaultTables().loadAccountData(accountProperties).then(accountData).PromiseAll(newTables).then(results= ${!!results})`);
                     logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`results= ${JSON.stringify(results)}`);
                     logger.verbose(`currentlyAttachedTables= ${currentlyAttachedTables}`);
 
                     if (Array.isArray(results) && results.length > 0) {

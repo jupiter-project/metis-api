@@ -569,10 +569,6 @@ class JupiterAPIService {
     }
 
     async setAlias(params) {
-        logger.verbose('###############################################################################################')
-        logger.info(`## params= ${JSON.stringify(params)}`);
-        logger.verbose('###############################################################################################')
-
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
 
         return this.jupiterRequest('post', {

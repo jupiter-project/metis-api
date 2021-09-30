@@ -240,7 +240,6 @@ module.exports = {
     UploadAnImageButFirstCheckForStorageAndCreateIfMissing(account, passphrase, password, fileBase64Encoded, fileName)
       .then((response) => {
         logger.debug(`jupiterUpload().then()`)
-        logger.debug(response)
         const { url } = response.data;
         const accountPropertyParams = {
           passphrase,
@@ -250,7 +249,7 @@ module.exports = {
           property: `profile_picture-${addressBreakdown[addressBreakdown.length - 1]}`,
         };
 
-        logger.debug(accountPropertyParams);
+        logger.debug(JSON.stringify(accountPropertyParams));
 
         return Promise.all([url, gravity.setAcountProperty(accountPropertyParams)]);
       })
@@ -259,6 +258,7 @@ module.exports = {
         // logger.debug(response)
         const [url, accountPropertyResponse] = response;
         if (accountPropertyResponse && accountPropertyResponse.errorDescription) {
+          logger.debug('Catch error from JIM server:' + accountPropertyResponse.errorDescription)
           throw new Error(accountPropertyResponse.errorDescription);
         }
         res.status(200).json({ url });
