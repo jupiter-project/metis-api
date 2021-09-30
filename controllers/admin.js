@@ -4,10 +4,7 @@ const controller = require('../config/controller.js');
 const { gravity } = require('../config/gravity.js');
 const logger = require('../utils/logger')(module);
 
-module.exports = (app, passport, React, ReactDOMServer) => {
-  const connection = process.env.SOCKET_SERVER;
-  let page;
-
+module.exports = (app) => {
   app.get('/admin/api/app', controller.isAppAdmin, (req, res) => {
     gravity.loadUserAndAppData()
       .then((response) => {

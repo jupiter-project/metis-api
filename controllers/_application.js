@@ -8,7 +8,7 @@ const logger = require('../utils/logger')(module);
 
 // This files handles the app's different pages and how they are routed by the system
 
-module.exports = (app, passport, React, ReactDOMServer) => {
+module.exports = (app, passport) => {
   /* var bcrypt = require('bcrypt-nodejs');
     var session = require('express-session');
     var flash = require('connect-flash');
@@ -18,7 +18,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // This constains constants needed to connect with Jupiter
   // ===========================================================
   // Loads Gravity module
-  let page;
 
   const connection = process.env.SOCKET_SERVER;
 

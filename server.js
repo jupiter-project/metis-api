@@ -26,7 +26,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 require('babel-register')({
-  presets: ['react'],
+  //presets: ['react'],
 });
 
 const {metisRegistration} = require('./config/passport');
@@ -53,8 +53,8 @@ const jobs = kue.createQueue({
 const bodyParser = require('body-parser');
 
 // Loads react libraries
-const React = require('react');
-const ReactDOMServer = require('react-dom/server');
+//const React = require('react');
+//const ReactDOMServer = require('react-dom/server');
 
 // Loads request library
 // const request = require('request')
@@ -188,7 +188,7 @@ metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, React, ReactDOMServer, jobs);
+  require(file)(app, passport, jobs);
 });
 
 // Route any invalid routes black to the root page

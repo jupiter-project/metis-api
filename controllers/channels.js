@@ -7,8 +7,6 @@ import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
 import metis from '../config/metis';
-
-const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
 const logger = require('../utils/logger')(module);
 const { hasJsonStructure } = require('../utils/utils');
@@ -16,7 +14,7 @@ const { getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification 
 
 const decryptUserData = req => JSON.parse(gravity.decrypt(req.session.accessData));
 
-module.exports = (app, passport, React, ReactDOMServer) => {
+module.exports = (app) => {
   app.use(device.capture());
 
   app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {

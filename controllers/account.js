@@ -5,11 +5,7 @@ import User from '../models/user';
 
 const logger = require('../utils/logger')(module);
 
-module.exports = (app, passport, React, ReactDOMServer) => {
-  let page;
-  const connection = process.env.SOCKET_SERVER;
-
-
+module.exports = (app) => {
   app.get('/api/account', controller.isLoggedIn, (req, res) => {
     gravity.findById(req.user.record.id, 'users', { size: 'last' })
       .then((response) => {
