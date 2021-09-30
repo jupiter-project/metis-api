@@ -272,13 +272,16 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         response = await message.sendRecord(userData, tableData);
         let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
+          const senderAccount = user.userData.account;
           const senderName = user.userData.alias;
-          members = members.filter(member => member !== senderName && !mentions.includes(member));
+          members = members.filter(member => member !== senderAccount && !mentions.includes(member));
 
           const pnBody = `${senderName} has sent a message on channel ${channelName}`;
           const pnTitle = `${senderName} @ ${channelName}`;
+
           const channelAccount = channel && channel.channel_record
               ? channel.channel_record.account : null;
+
           getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
 
           // Push notification for mentioned members

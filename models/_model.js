@@ -13,7 +13,6 @@ class Model {
   constructor(data, accessData = null) {
     // Default values of model
     logger.verbose(`constructor()`);
-    logger.debug(`data =${ JSON.stringify(data)}`);
     this.id = null;
     this.record = {};
     this.model = data.model;
@@ -168,7 +167,6 @@ class Model {
           for (let x = 0; x < accountTables.length; x += 1) {
             if (accountTables[x].name === thisTableName) {
               const recordTable = accountTables[x];
-              logger.debug(`recordTable= ${JSON.stringify(recordTable)}`);
               return resolve(recordTable);
               break;
             }

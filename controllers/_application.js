@@ -330,7 +330,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
               return res.status(200).send({ success: true, status: job.state() });
             } else {
               return res.status(200).send({ success: true, status: 'completed' });
-            }         
+            }
         } else {
             console.log(err);
             return res.status(200).send({ success: true, status: 'completed' });
@@ -373,7 +373,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       try {
         logger.verbose('attempting to decrypt the accountData');
         accountData = JSON.parse(gravity.decrypt(user.accountData));
-        logger.verbose(`accountData = ${JSON.stringify(accountData)}`);
       } catch (error) {
         const errorMessage = 'Unable to decrypt your data.';
         gravityCLIReporter.addItem('Account Data', 'Unable to decrypt Account Data');
