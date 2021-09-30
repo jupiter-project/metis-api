@@ -46,9 +46,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
             this.crypto = new GravityCrypto( algorithm, password );
         }
 
-
-
-        this.aliasList = [];
         if(!(applicationAccountProperties == null)){
             this.addApplicationAccountProperties(applicationAccountProperties);
         }
@@ -60,18 +57,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
             return this.crypto = new GravityCrypto( algorithm, password );
         }
         throw new Error('provide a password and algorithm');
-    }
-
-    addAlias(aliasName){
-        this.aliasList.push(aliasName);
-    }
-
-
-    getCurrentAliasOrNull(){
-        if(this.aliasList.length > 0){
-            return this.aliasList[0]
-        }
-        return null;
     }
 
 
@@ -118,7 +103,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 accounthash: this.passwordHash,
                 email: this.email,
                 firstname: this.firstName,
-                alias: this.getCurrentAliasOrNull(),
+                alias: this.getCurrentAliasNameOrNull(),
                 lastname: this.lastName,
                 secret_key: this.passphrase,
                 twofa_enabled: false,

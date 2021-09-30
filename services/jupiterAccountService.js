@@ -1,6 +1,7 @@
 const {FeeManager, feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {fundingManagerSingleton} = require("./fundingManager");
+const _ = require("lodash");
 const logger = require('../utils/logger')(module);
 
 
@@ -23,49 +24,34 @@ class JupiterAccountService {
 
 
 
-
-
-
-
-
-
     async addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties){
-        logger.verbose('###########################################');
+        logger.verbose('###########################################################################');
         logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
-        logger.verbose('###########################################');
-        logger.verbose(`accountProperties.address= ${accountProperties.address}`)
-        logger.verbose(`metisUsersTableProperties.address= ${metisUsersTableProperties.address}`)
-        logger.verbose(`metisUsersTableProperties.publicKey= ${metisUsersTableProperties.publicKey}`)
+        logger.verbose('##');
+        logger.verbose(`  accountProperties.address= ${accountProperties.address}`)
+        logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`)
+        logger.verbose(`  metisUsersTableProperties.publicKey= ${metisUsersTableProperties.publicKey}`)
 
         return new Promise((resolve, reject) => {
             this.generateId(accountProperties, metisUsersTableProperties)
                 .then(transactionId =>{
-                    logger.verbose('----------------------------------------');
+                    logger.verbose('---------------------------------------------------------------------------------');
                     logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
-                    logger.verbose('----------------------------------------');
-
+                    logger.verbose('--');
                     logger.debug(`transactionId= ${transactionId}`)
                     const userRecord = accountProperties.generateUserRecord(transactionId);
                     logger.debug(`userRecord= ${JSON.stringify(userRecord)}`)
-                    // const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
                     logger.debug(`metisUsersTableProperties.crypto = ${JSON.stringify(metisUsersTableProperties.crypto)}`);
                     const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
-                    // const encryptedUserRecord = metisUsersTableProperties.crypto.encrypt(userRecord);
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
                     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
                     const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
                     this.jupiterAPIService.sendSimpleEncipheredMetisMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord,fee, subtype)
                         .then(response => {
-                            logger.verbose('----------------------------------------');
+                            logger.verbose('---------------------------------------------------------------------------------');
                             logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).sendSimpleEncipheredMetisMessage().then(response)`);
-                            logger.verbose('----------------------------------------');
-
-                            return resolve(response.data.transaction);
-                        })
-                        .catch(error => {
-                            console.log(error);
-                            // logger.error(`error= ${JSON.stringify(error)}`);
-                            return reject(error);
+                            logger.verbose('--');
+                            return resolve({data: response.data , transactionsReport: [{name: 'users-table-record', id: response.data.transaction}]});
                         })
                 })
         })
@@ -326,7 +312,144 @@ class JupiterAccountService {
 // });
 
 
+// {
+//     "errorDescription": "Unknown account",
+//     "accountRS": "JUP-TD3N-4NEY-65QL-BYZC5",
+//     "errorCode": 5,
+//     "account": "10496762723099782196"
+// }
+//
 
+// {
+//     "errorDescription": "Incorrect \"account\"",
+//     "errorCode": 4
+// }
+    async getAccountOrNull(address){
+        return this.jupiterAPIService.getAccount(address)
+            .then(response=> {
+                return response;
+            })
+            .catch( error => {
+                if(error === 'Unknown account'){
+                    return null
+                }
+                if(error === 'Incorrect \\"account\\"' ){
+                    return null
+                }
+
+                throw error;
+            })
+    }
+
+
+    /**
+     *
+     * @param passphrase
+     * @returns {Promise<{accountRS,publicKey, requestProcessingTime, account }>}
+     */
+    async getAccountId(passphrase){
+        return this.jupiterAPIService.getAccountId(passphrase)
+            .then(response=> {
+                return response;
+            })
+    }
+
+    /**
+     *
+     * @param address
+     * @param passphrase
+     * @param password
+     * @param statementId
+     * @param accountType
+     * @param params
+     * @returns {Promise<{Promise<{ GravityAccountProperties, balance, records,  attachedTables: [tableStatement]}>}
+     */
+    async fetchAccountStatement( address, passphrase, password, statementId = '', accountType, params = {}) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## fetchAccountStatement(address=${address}, passphrase, password, statementId=${statementId}, accountType=${accountType})`);
+        logger.verbose('##');
+        return new Promise( async (resolve, reject) => {
+            const properties = new GravityAccountProperties(address,'','',passphrase,'',password);
+
+            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllBlockChainTransactions(address)
+            const promises = []
+            promises.push(this.getAccountOrNull(address))
+            promises.push(this.getAccountId(passphrase))
+            // async getAllMessagesFromBlockChain(accountProperties, blockChainTransactions,  decipherWith=null){
+            promises.push(this.jupiterTransactionsService.getAllMessagesFromBlockChain(properties, allBlockChainTransactions))
+            // promises.push(this.jupiterTransactionsService.fetchAllMessagesBySender(properties))
+
+            promises.push(this.jupiterAPIService.getAliases(address))
+
+            Promise.all(promises)
+                .then( results => {
+                logger.verbose('---------------------------------------------------------------------------');
+                logger.verbose(`-- fetchAccountStatement().promise.all().then()`);
+                logger.verbose('--');
+
+                const [account, getAccountIdResponse, transactionMessages, aliases] = results
+                properties.publicKey = getAccountIdResponse.publicKey
+                let accountBalance = null;
+                let accountUnconfirmedBalance = null;
+
+
+                // console.log('## ###### #');
+                // console.log(account.data);
+
+
+                if(account && account.data){
+                    properties.accountId = account.data.account;
+                    accountBalance = account.data.balanceNQT;
+                    accountUnconfirmedBalance = account.data.unconfirmedBalanceNQT;
+                }
+
+                const records = this.tableService.extractRecordsFromMessages(transactionMessages);
+
+                aliases.forEach( aliasInfo => {
+                    properties.addAlias(aliasInfo);
+                }  )
+
+                const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
+                const attachedTablesStatementsPromises = []
+                for( let i = 0; i < attachedTablesProperties.length; i++  ){
+                    const tableAccountProperties = attachedTablesProperties[i];
+                    attachedTablesStatementsPromises.push(this.fetchAccountStatement(
+                        tableAccountProperties.address,
+                        tableAccountProperties.passphrase,
+                        password,
+                        `table-${tableAccountProperties.name}`,
+                        'table',
+                        {tableName: tableAccountProperties.name}))
+                }
+
+                Promise.all(attachedTablesStatementsPromises).then( attachedTablesStatements => {
+                    // logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
+                    const statement = {
+                        statementId: statementId,
+                        properties: properties,
+                        balance: accountBalance,
+                        unconfirmedBalance: accountUnconfirmedBalance,
+                        records: records,
+                        messages: transactionMessages,
+                        attachedTables: attachedTablesStatements,
+                        blockchainTransactionCount: allBlockChainTransactions.length
+                    }
+
+                    if(accountType === 'table'){
+                        statement.tableName = params.tableName
+                    }
+
+                    return resolve(statement)
+                })
+            })
+                .catch( error => {
+                    logger.error('*******************************************************************')
+                    logger.error(`** fetchAccountStatement(address=${address}, statemetnId=${statementId})`)
+                    logger.error('**')
+                    reject(error);
+                })
+        })
+    }
 
 
     fetchAccountData(accountProperties) {
@@ -335,10 +458,10 @@ class JupiterAccountService {
         logger.verbose('##');
         return new Promise((resolve, reject) => {
 
-            this.jupiterTransactionsService.fetchMessages(accountProperties)
+            this.jupiterTransactionsService.fetchAllMessagesBySender(accountProperties)
                 .then((transactionMessages) => {
                     logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`fetchAccountData().fetchMessages().then(transactionMessages)`);
+                    logger.verbose(`fetchAccountData().fetchAllMessagesBySender().then(transactionMessages)`);
                     logger.verbose('---------------------------------------------------------------------------------------');
                     // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
                     // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
