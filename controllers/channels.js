@@ -149,7 +149,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       }
 
       const message = `${sender} invited you to the channel: ${channelName}`;
-      const metadata = { isInvitation: true };
+      const metadata = { isInvitation: 'true' };
       getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
       res.send({success: true});
     } catch (e) {
@@ -277,14 +277,14 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
           const pnBody = `${senderName} has sent a message on channel ${channelName}`;
           const pnTitle = `${senderName} @ ${channelName}`;
-          const channelAccount = channel && channel.channel_record
+          const channelAddress = channel && channel.channel_record
               ? channel.channel_record.account : null;
-          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
+          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAddress });
 
           // Push notification for mentioned members
           const pnmBody = `${senderName} was tagged on ${channelName}`;
           const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAccount });
+          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAddress });
         }
         res.send(response);
       } catch (e) {

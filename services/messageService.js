@@ -56,7 +56,7 @@ module.exports = {
             if (tb.provider === 'ios'){
               sendApplePN(tb.token, message, tb.badge, payload, 'channels');
             } else {
-              sendFirebasePN(tb.token, title, message);
+              sendFirebasePN(tb.token, title, message, metadata);
             }
           });
         })
