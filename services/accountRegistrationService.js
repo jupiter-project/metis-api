@@ -138,6 +138,12 @@ class AccountRegistration {
                     }))
                     Promise.all(promises).then( async (results)=>{
                         const [newlyAttachedTables, setAliasResponse] = results;
+                        const aliasObject = {
+                            "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
+                            "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
+                            "accountRS": setAliasResponse.data.transactionJSON.senderRS,
+                        }
+                        fundedAccountStatement.properties.addAlias(aliasObject);
                         const wait =[]
                         wait.push(this.jupiterFundingService.waitForAllTransactionConfirmations(newlyAttachedTables.transactionsReport));
                         Promise.all(wait).then( async () => {

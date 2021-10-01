@@ -65,15 +65,12 @@ class JupiterAccountProperties {
      *         "timestamp": 116641472
      *     }
      *
-     * @param {aliasURI, aliasName, accountRS, alias, account, timestamp} aliasInfo
+     * @param {{aliasURI, aliasName: *, accountRS: string}} aliasInfo
      */
     addAlias(aliasInfo){
         if(!aliasInfo.aliasName){throw new Error('jupiterAccountPorperties.addAlias(): aliasName is missing')}
         if(!aliasInfo.aliasURI){throw new Error('jupiterAccountPorperties.addAlias(): aliasURI is missing')}
         if(!aliasInfo.accountRS){throw new Error('jupiterAccountPorperties.addAlias(): accountRS is missing')}
-        if(!aliasInfo.alias){throw new Error('jupiterAccountPorperties.addAlias(): alias is missing')}
-        if(!aliasInfo.account){throw new Error('jupiterAccountPorperties.addAlias(): account is missing')}
-        if(!aliasInfo.timestamp){throw new Error('jupiterAccountPorperties.addAlias(): timestamp is missing')}
 
         this.aliasList.push(aliasInfo);
     }

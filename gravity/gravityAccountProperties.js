@@ -1,5 +1,7 @@
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {GravityCrypto} = require("../services/gravityCrypto");
+const bcrypt = require("bcrypt-nodejs");
+const gu = require("../utils/gravityUtils");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -85,6 +87,16 @@ class GravityAccountProperties extends JupiterAccountProperties {
         }
     }
 
+    generateHash(value) {
+        return bcrypt.hashSync(value, bcrypt.genSaltSync(8), null);
+    }
+
+    generateRandomHash() {
+        const newPassphrase = gu.generatePassphrase();
+
+        return  bcrypt.hashSync(newPassphrase, bcrypt.genSaltSync(8), null);
+    }
+
 
     generateUserRecord(generatingTransactionId) {
         logger.verbose('#####################################################################################');
@@ -95,20 +107,34 @@ class GravityAccountProperties extends JupiterAccountProperties {
             throw new Error('generatingTransactionId cannot be empty');
         }
 
+        if (!this.address){
+            throw new Error('Address cannot be empty');
+        }
+
+        if (!this.password){
+            throw new Error('Encryption password cannot be empty');
+        }
+
+        const alias = this.getCurrentAliasNameOrNull();
+
+        if(!alias){
+            throw new Error('Alias is missing');
+        }
+
         return {
             id: generatingTransactionId,
             user_record: {
                 id: generatingTransactionId,
                 account: this.address,
-                accounthash: this.passwordHash,
+                accounthash: this.generateHash(this.address),
                 email: this.email,
                 firstname: this.firstName,
-                alias: this.getCurrentAliasNameOrNull(),
+                alias,
                 lastname: this.lastName,
-                secret_key: this.passphrase,
+                secret_key: null,
                 twofa_enabled: false,
                 twofa_completed: false,
-                api_key: this.publicKey,
+                api_key: this.generateRandomHash(),
                 publicKey: this.publicKey,
                 encryption_password: this.password
             },

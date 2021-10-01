@@ -971,7 +971,7 @@ class Gravity {
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
-                    logger.error(JSON.stringify(error));
+                    // logger.error(JSON.stringify(error));
                     return resolve({error: true, message: error});
                   });
             })
@@ -1559,7 +1559,7 @@ class Gravity {
                     logger.debug('---------------------------------------------------------------------------------------')
                     logger.verbose(`--   Compare the given password with the password in the usersTable`)
                     logger.debug('---------------------------------------------------------------------------------------')
-                      if(!(userRecord.encryption_password == containedDatabase.encryptionPassword)){
+                      if(!(userRecord.encryption_password === containedDatabase.encryptionPassword)){
                         logger.warn('Not valid password');
                         throw new Error(`The password is not valid. Need to return the proper reject()`);
                       }

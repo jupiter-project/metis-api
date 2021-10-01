@@ -296,15 +296,11 @@ const metisLogin = (passport) => {
         logger.debug(`listOfAttachedTableNames= ${JSON.stringify(listOfAttachedTableNames)}`);
 
 
-        logger.debug(`usersTable=${JSON.stringify(response.userAccountTables.usersTable)}`);
-        logger.debug(`channelsTable=${JSON.stringify(response.userAccountTables.channelsTable)}`);
-
-
         const { userRecord } = response;
         userRecord.public_key = public_key;
 
         user = new User(userRecord);
-        if (user.record.id === undefined) {
+          if (user.record.id === undefined) {
           valid = false;
           const doneResponse = {
             error: null,

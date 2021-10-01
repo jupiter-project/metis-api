@@ -21,7 +21,8 @@ async function sendFirebasePN(tokens, title, message, metadata=null, delay = 1){
   if(!title){throw new Error('title is not valid');}
   if(!message){throw new Error('message is not valid');}
   // if(!metadata){throw new Error(' notification object is not properly formed')}
-console.log(message);
+  console.log('********************METADATA: ', metadata);
+  console.log(message);
   setTimeout(async () => {
     // Send the actual notification
     const body = firebaseService.generateMessage(title, message, metadata);
