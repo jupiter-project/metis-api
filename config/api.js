@@ -4,6 +4,19 @@ import { gravity } from './gravity';
 import ChannelRecord from "../models/channel.js";
 const logger = require('../utils/logger')(module);
 
+const getModelFilePath = tableName => {
+  const fileMatchRegex = new RegExp(`.*[\/ | \\\\]${tableName}\\.js`, 'g');
+  console.log('fileMatchRegex =', fileMatchRegex);
+  console.log('testing fileSync =', find.fileSync(fileMatchRegex, './models'));
+  const filePathArray = find.fileSync(fileMatchRegex, './models');
+  if(filePathArray && filePathArray.length) {
+    const filePath = filePathArray[0];
+    console.log('filePath:', filePath);
+    const fileFullPath = `../${filePath}`;
+    return fileFullPath;
+  }
+  return;
+};
 
 // This file handles the app's different pages and how they are routed by the system
 
@@ -49,22 +62,10 @@ module.exports = (app) => {
     if (exceptions.includes(tableName)) {
       next();
     } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
+    
+      const fullFilePath = getModelFilePath(tableName);
 
-      const file = `../models/${model}.js`;
-
-      const Record = require(file);
+      const Record = require(fullFilePath);
 
       // We verify the user data here
       const recordObject = new Record({
@@ -210,21 +211,14 @@ module.exports = (app) => {
     if (exceptions.includes(tableName)) {
       next();
     } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
-
-      const file = `../models/${model}.js`;
-      const Record = require(file);
+      const fileFullPath = getModelFilePath(tableName);
+      if(!fileFullPath) {
+        return res.status(500).send({
+          success: false,
+          errors: err.errors
+        });
+      }
+      const Record = require(fileFullPath);
 
 
       const recordObject = new Record(data);
@@ -255,7 +249,7 @@ module.exports = (app) => {
   /**
    * Update a record, assigned to the current user
    */
-  app.put('/v1/api/:tableName', (req, res, next) => {
+  /**app.put('/v1/api/:tableName', (req, res, next) => {
     const params = req.body;
     const { data } = params;
     const { tableName } = req.params;
@@ -266,22 +260,9 @@ module.exports = (app) => {
     if (exceptions.includes(tableName)) {
       next();
     } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
+      const fileFullPath = getModelFilePath(tableName);
 
-      const file = `../models/${model}.js`;
-
-      const Record = require(file);
+      const Record = require(fileFullPath);
 
       // We verify the user data here
       const recordObject = new Record(data);
@@ -295,5 +276,5 @@ module.exports = (app) => {
           res.send(err);
         });
     }
-  });
+  });*/
 };

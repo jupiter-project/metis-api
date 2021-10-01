@@ -5,7 +5,7 @@ const { gravity } = require('../config/gravity.js');
 const logger = require('../utils/logger')(module);
 
 module.exports = (app) => {
-  app.get('/admin/api/app', controller.isAppAdmin, (req, res) => {
+  /**app.get('/admin/api/app', controller.isAppAdmin, (req, res) => {
     gravity.loadUserAndAppData()
       .then((response) => {
         res.send({ success: true, application: response.app, tables: response.tables });
@@ -89,5 +89,5 @@ module.exports = (app) => {
       logger.error(error);
       res.send(error);
     }
-  });
+  });*/
 };

@@ -19,8 +19,7 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/version',
     '/v1/api/pn/badge_counter',
     '/v1/api/job/status',
-    '/api-docs',
-    '/v1/api/user/jim/login'
+    '/api-docs'
   ];
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
@@ -32,13 +31,15 @@ const tokenVerify = (req, res, next) => {
   if (!token) {
     return res.status(403).send({ success: false, message: 'Please provide a token' });
   }
+  console.log('channelToken:',channelToken);
   const decodedChannel = channelToken ? jwt.decode(channelToken) : null;
+  console.log('decodedChannel:',decodedChannel);
 
   let updatedToken = token;
   if (token.startsWith('Bearer')) {
     updatedToken = updatedToken.substring(7);
   }
-
+  console.log('updatedToken:',updatedToken);
   jwt.verify(updatedToken, process.env.SESSION_SECRET, (err, decodedUser) => {
     logger.debug('tokenVerify().verify()');
     if (err) {
@@ -48,6 +49,7 @@ const tokenVerify = (req, res, next) => {
         err,
       });
     }
+    console.log('decodedUser:', decodedUser);
     req.user = decodedUser;
     req.channel = decodedChannel;
 

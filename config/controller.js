@@ -33,18 +33,18 @@ module.exports = {
   isLoggedIn: (req, res, next) => {
     // If user is autenticated in the session, carry on
     // console.log('User',req.user ? req.user.record.admin: null);
-    if (req.isAuthenticated() && req.user && req.user.record.admin) {
+    if (req.isAuthenticated() && req.user && req.user.record && req.user.record.admin) {
       // req.flash('loginMessage','Regular account access only');
       res.redirect('/admin');
     } else if (
-      (req.isAuthenticated() && req.user.record.twofa_enabled === true
+      (req.isAuthenticated() && req.user.record && req.user.record.twofa_enabled === true
       && req.user.record.twofa_completed !== true) || (req.isAuthenticated()
       && req.session.twofa_enabled !== undefined && req.session.twofa_enabled === true
       && req.session.twofa_completed === false)) {
       // console.log('Needs to verify 2FA')
       res.redirect('/2fa_setup');
     } else if (
-      req.isAuthenticated() && req.user.record.twofa_enabled === true
+      req.isAuthenticated() && req.user.record && req.user.record.twofa_enabled === true
       && req.user.record.twofa_completed === true && req.session.twofa_pass === false) {
       // console.log('Needs to verify 2FA')
       res.redirect('/2fa_checkup');

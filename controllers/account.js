@@ -6,7 +6,7 @@ import User from '../models/user';
 const logger = require('../utils/logger')(module);
 
 module.exports = (app) => {
-  app.get('/api/account', controller.isLoggedIn, (req, res) => {
+  /**app.get('/api/account', controller.isLoggedIn, (req, res) => {
     gravity.findById(req.user.record.id, 'users', { size: 'last' })
       .then((response) => {
         const userInfo = JSON.parse(response.record.user_record);
@@ -30,7 +30,7 @@ module.exports = (app) => {
     data.firstname = params.firstname;
     data.lastname = params.lastname;
     data.email = params.email;
-    data.public_key = req.session.public_key; */
+    data.public_key = req.session.public_key; 
 
     const user = new User(req.user.record, req.session.passport.user);
     user.record.firstname = params.firstname;
@@ -233,5 +233,5 @@ module.exports = (app) => {
         logger.error(err);
         res.redirect('/security');
       });
-  });
+  });*/
 };

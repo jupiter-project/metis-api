@@ -57,7 +57,7 @@ module.exports = (app) => {
   /**
    * Get a user's invites
    */
-  app.get('/v1/api/channels/invites', async (req, res) => {
+  /**app.get('/v1/api/channels/invites', async (req, res) => {
     logger.info('/n/n/nChannel Invites/n/n');
     logger.info(req.session);
     const { accountData } = req.user;
@@ -72,7 +72,7 @@ module.exports = (app) => {
       response = e;
     }
     res.send(response);
-  });
+  });*/
 
   /**
    * Send an invite
