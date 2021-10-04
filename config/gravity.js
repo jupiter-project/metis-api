@@ -7,7 +7,7 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
-const AccountRegistration  = require('../config/accountRegistration');
+const AccountRegistration  = require('../services/accountRegistrationService');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 
 
@@ -971,7 +971,7 @@ class Gravity {
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
-                    logger.error(JSON.stringify(error));
+                    // logger.error(JSON.stringify(error));
                     return resolve({error: true, message: error});
                   });
             })
@@ -1559,7 +1559,7 @@ class Gravity {
                     logger.debug('---------------------------------------------------------------------------------------')
                     logger.verbose(`--   Compare the given password with the password in the usersTable`)
                     logger.debug('---------------------------------------------------------------------------------------')
-                      if(!(userRecord.encryption_password == containedDatabase.encryptionPassword)){
+                      if(!(userRecord.encryption_password === containedDatabase.encryptionPassword)){
                         logger.warn('Not valid password');
                         throw new Error(`The password is not valid. Need to return the proper reject()`);
                       }
@@ -2025,12 +2025,12 @@ class Gravity {
       const requestUrl = `${server}/nxt?requestType=sendMoney&secretPhrase=${senderPassphrase}&recipient=${recipient}&amountNQT=${amount}&feeNQT=${feeNQT}&deadline=60`
 
       logger.sensitive(`sendMoney: ${requestUrl}`);
-      gravityCLIReporter.addItemsInJson('Sending some Money', {
-        'sender': senderPassphrase,
-        'recepient': recipient,
-        'amountNQT': amount,
-        'feeNQT': feeNQT
-      }, `Funding` );
+      // gravityCLIReporter.addItemsInJson('Sending some Money', {
+      //   'sender': senderPassphrase,
+      //   'recepient': recipient,
+      //   'amountNQT': amount,
+      //   'feeNQT': feeNQT
+      // }, `Funding` );
 
 
       return axios.post(requestUrl)
@@ -2393,6 +2393,7 @@ class Gravity {
     let tableNamesContainer;
     // let table_created = true;
     let listOfTableNames = []
+    const transactionsReport = []
 
     return new Promise((resolve, reject) => {
       eventEmitter.on('insufficient_balance', () => {
@@ -2411,16 +2412,20 @@ class Gravity {
 
         this.sendMoney(newTableAddress, process.env.JUPITER_MININUM_TABLE_BALANCE )
           .then((response) => {
-            logger.verbose('---------------------------------------------------------------------------------------');
-            logger.debug(`attachTable().sendMoney(newTableAddress).then(response)`)
-            logger.verbose('---------------------------------------------------------------------------------------');
-            logger.info(`newTableAddress= ${tableName}`);
+            logger.verbose('------------------------------------------------------------');
+            logger.verbose(`-- attachTable().sendMoney(newTableAddress).then(response)`)
+            logger.verbose('--');
+            logger.verbose(`newTableName= ${tableName}`);
+            logger.verbose(`newTableAddress= ${newTableAddress}`);
+
+            transactionsReport.push({name: 'send-money', id: response.data.transaction})
 
             return resolve({
               name: tableName,
               address: newTableAddress,
               passphrase: newPassphrase,
-              publicKey: newPublicKey
+              publicKey: newPublicKey,
+              transactionsReport: transactionsReport
             })
 
             // resolve({

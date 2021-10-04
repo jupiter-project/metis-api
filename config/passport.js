@@ -16,7 +16,7 @@ import {FundingManager, fundingManagerSingleton} from "../services/fundingManage
 import {add} from "lodash";
 
 const { JupiterAPIService } = require('../services/jupiterAPIService');
-const { AccountRegistration } = require('./accountRegistration');
+const { AccountRegistration } = require('../services/accountRegistrationService');
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
 
@@ -81,9 +81,8 @@ const getSignUpUserInformation = (account, requestBody) => ({
 const metisRegistration = async (account, requestBody) => {
 
   logger.verbose('#####################################################################################');
-  logger.verbose(`metisRegistration(account=${account})`);
+  logger.verbose(`## metisRegistration(account=${account})`);
   logger.verbose('#####################################################################################');
-  logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
 
 
   const applicationGravityAccountProperties = new GravityAccountProperties(
@@ -107,8 +106,8 @@ const metisRegistration = async (account, requestBody) => {
   const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
   const DEADLINE = process.env.JUPITER_DEADLINE;
 
-  logger.debug('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
-  logger.debug('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
+  // logger.debug('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
+  // logger.debug('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
 
 
   //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
@@ -119,23 +118,24 @@ const metisRegistration = async (account, requestBody) => {
   applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
 
   const signUpUserInformation = getSignUpUserInformation(account, requestBody);
-  logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
+  // logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
+  //
+  // const newUserGravityAccountProperties = new GravityAccountProperties(
+  //   signUpUserInformation.account, // address
+  //   signUpUserInformation.jup_account_id, // account Id
+  //   signUpUserInformation.public_key, // public key
+  //   signUpUserInformation.passphrase, // passphrase
+  //   signUpUserInformation.hash, // password hash
+  //   signUpUserInformation.encryption_password, // password
+  //   process.env.ENCRYPT_ALGORITHM, // algorithm
+  //   signUpUserInformation.email, // email
+  //   signUpUserInformation.firstName, // firstname
+  //   signUpUserInformation.lastName, // lastname
+  // );
 
-  const newUserGravityAccountProperties = new GravityAccountProperties(
-    signUpUserInformation.account, // address
-    signUpUserInformation.jup_account_id, // account Id
-    signUpUserInformation.public_key, // public key
-    signUpUserInformation.passphrase, // passphrase
-    signUpUserInformation.hash, // password hash
-    signUpUserInformation.encryption_password, // password
-    process.env.ENCRYPT_ALGORITHM, // algorithm
-    signUpUserInformation.email, // email
-    signUpUserInformation.firstName, // firstname
-    signUpUserInformation.lastName, // lastname
-  );
-
-  logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
-  newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
+  // logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
+  // const aliasInfo = {aliasName: signUpUserInformation.alias }
+  // newUserGravityAccountProperties.addAlias(aliasInfo);
 
   const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
   const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
@@ -144,7 +144,6 @@ const metisRegistration = async (account, requestBody) => {
   const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
 
     const accountRegistration = new AccountRegistration(
-        newUserGravityAccountProperties,
         applicationGravityAccountProperties,
         jupiterAPIService,
         jupiterFundingService,
@@ -154,7 +153,8 @@ const metisRegistration = async (account, requestBody) => {
         JupiterFSService
     );
 
-    return accountRegistration.register()
+    // async register(newAccount, newAccountAlias, userPassphrase) {
+    return accountRegistration.register(signUpUserInformation.account, signUpUserInformation.alias, signUpUserInformation.passphrase, signUpUserInformation.encryption_password )
 };
 
 /**
@@ -193,7 +193,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 logger.verbose(`account= ${account}`);
                 setTimeout(()=>{
                   websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
-                }, 1000);                
+                }, 1000);
             });
 
         logger.debug(`job id= ${job.id} for account=${account}`);
@@ -296,15 +296,11 @@ const metisLogin = (passport) => {
         logger.debug(`listOfAttachedTableNames= ${JSON.stringify(listOfAttachedTableNames)}`);
 
 
-        logger.debug(`usersTable=${JSON.stringify(response.userAccountTables.usersTable)}`);
-        logger.debug(`channelsTable=${JSON.stringify(response.userAccountTables.channelsTable)}`);
-
-
         const { userRecord } = response;
         userRecord.public_key = public_key;
 
         user = new User(userRecord);
-        if (user.record.id === undefined) {
+          if (user.record.id === undefined) {
           valid = false;
           const doneResponse = {
             error: null,

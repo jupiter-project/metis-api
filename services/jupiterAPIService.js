@@ -111,27 +111,83 @@ class JupiterAPIService {
         if(!gu.isWellFormedPassphrase(passphrase)){
             throw new Error(`Jupier passphrase is not valid: ${passphrase}`);
         }
-        return this.get({
-            requestType: 'getAccountId',
-            secretPhrase: passphrase,
-        });
+        return new Promise((resolve, reject) => {
+            this.get({
+                requestType: 'getAccountId',
+                secretPhrase: passphrase,
+            }).then( response => {
+                resolve(response.data);
+            })
+        })
     }
 
+
+
+    async getAliases(address){
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error(`Jupiter Address is not valid: ${address}`);
+        }
+
+        return new Promise((resolve, reject) => {
+            this.post( {
+                requestType: 'getAliases',
+                account: address
+            }).then( response =>{
+                resolve(response.data.aliases);
+            })
+        })
+    }
+
+
+
+
+
+    /**
+     *
+     * @param address
+     * @returns {Promise<*>}
+     */
+    async getAccount(address) {
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error(`Jupiter Address is not valid: ${address}`);
+        }
+
+        return this.post( {
+            requestType: 'getAccount',
+            account: address
+        })
+    };
+
+    /**
+     *
+     * @param passphrase
+     * @returns {Promise<unknown>}
+     */
     async getAccountInformation(passphrase) {
         return new Promise((resolve, reject) => {
             this.getAccountId(passphrase)
                 .then(response => {
-                    const address = response.data.accountRS;
+
+                    if(!response){
+                        logger.error('Theres a problem with getAccountId()');
+                        logger.error(JSON.stringify(response));
+                        throw new Error('There is a problem with getAccountId()')
+                    }
+                    // {"accountRS":"JUP-KMRG-9PMP-87UD-3EXSF","publicKey":"8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068","requestProcessingTime":0,"account":"1649351268274589422"}
+                    const address = response.accountRS;
                     resolve({
                         address,
-                        accountId: response.data.account,
-                        publicKey: response.data.publicKey,
+                        accountId: response.account,
+                        publicKey: response.publicKey,
                         success: true,
                     })
                 })
                 .catch( error => {
+                    logger.error(`********************************************`)
+                    logger.error('** getAccountInformation().getAccountId().catch(error)')
+                    logger.error('**')
                     logger.error(error);
-                    logger.info('There was an error in address creation');
+
                     reject({ success: false, message: 'There was an error in getting accountId information' });
                 })
         })
@@ -148,7 +204,7 @@ class JupiterAPIService {
     async getBlockChainTransactions(address) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getBlockChainTransactions(account: ${address})`);
-        logger.verbose('#####################################################################################');
+        logger.verbose('##');
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         };
@@ -551,26 +607,34 @@ class JupiterAPIService {
 
     }
 
+
+    // jupiterRequest().response.data.error
+    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	response.data= {"errorDescription":"Unknown alias","errorCode":5}
+    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	error= "Unknown alias"
+    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	url= http://104.131.166.158:6876/nxt?aliasName=etidexcepturi&requestType=getAlias
+    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	request data= {}
+
     async getAlias(aliasName) {
         logger.verbose('###############################################################################################')
         logger.verbose(`## getAlias(aliasName= ${aliasName})`);
         logger.verbose('###############################################################################################')
 
-        try{
-            const aliasCheckup = await this.jupiterRequest('get', {
+        if(!aliasName) {
+            throw new Error('aliasName cannot be empty');
+        }
+
+        return this.jupiterRequest('get', {
                 aliasName,
                 requestType: 'getAlias',
-            });
-            return aliasCheckup;
-        } catch (error){
-            logger.debug('Alias check up ' + JSON.stringify(error));
-            return { available: true };
-        }
+        })
     }
 
-    async setAlias(params) {
-        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
 
+    async setAlias(params) {
+        logger.verbose('###############################################################################################')
+        logger.verbose(`## setAlias(params= ${JSON.stringify(params)}`);
+        logger.verbose('###############################################################################################')
+        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
         return this.jupiterRequest('post', {
             requestType: 'setAlias',
             aliasName: params.alias,
@@ -582,8 +646,6 @@ class JupiterAPIService {
     }
 
 }
-
-// import {applicationProperties} from "express";
 
 module.exports.JupiterAPIService = JupiterAPIService;
 module.exports.jupiterApiService = new JupiterAPIService(process.env.JUPITERSERVER, applicationAccountProperties)

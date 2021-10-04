@@ -94,8 +94,8 @@ app.use((req, res, next) => {
   return null;
 });
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
 app.use(tokenVerify);
 
@@ -199,7 +199,7 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./config/accountRegistration");
+const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
 
 jobScheduleService.init(kue);
