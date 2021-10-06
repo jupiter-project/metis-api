@@ -146,7 +146,7 @@ module.exports = (app) => {
   /**
    * Get channel records associated with a user
    */
-  app.get('/v1/api/channel/:account', (req, res, next) => {
+  app.get('/v1/api/:account/channel', (req, res, next) => {
     const { user } = req;
     const { account } = req.params;
 
