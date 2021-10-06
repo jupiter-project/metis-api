@@ -29,7 +29,6 @@ class ApplicationAccountProperties {
         if(!transferFeeNQT){throw new Error('missing transferFeeNQT')}
         if(!minimumTableBalance){throw new Error('missing minimumTableBalance')}
         if(!minimumAppBalance){throw new Error('missing minimumAppBalance')}
-        console.log('Decimals-------->', moneyDecimals);
         if(!moneyDecimals){throw new Error('missing moneyDecimals')}
 
         this.deadline = deadline;
