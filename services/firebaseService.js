@@ -10,9 +10,7 @@ class FirebaseService {
      * @param {} firebaseAdmin
      */
     constructor(firebaseAdmin) {
-        if(!firebaseAdmin){
-            throw new Error('Invalid argument firebaseAdmin')
-        }
+        if(!firebaseAdmin){ throw new Error('Invalid argument firebaseAdmin') }
         this.firebaseAdmin = firebaseAdmin;
     }
 

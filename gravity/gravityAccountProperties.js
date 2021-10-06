@@ -35,6 +35,12 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 lastName = '',
                 applicationAccountProperties= null
     ) {
+
+        if(!address){throw new Error('missing address')}
+        if(!passphrase){throw new Error('missing passphrase')}
+        if(!password){throw new Error('missing password')}
+        if(!algorithm){throw new Error('missing algorithm')}
+
         super(address, accountId, publicKey, passphrase, email , firstName , lastName );
         this.passwordHash = hash;
         // this.password = password;

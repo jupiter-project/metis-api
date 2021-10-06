@@ -6,6 +6,9 @@ const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
     constructor(jupiterAPIService, applicationProperties) {
+        if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
+        if(!applicationProperties){throw new Error('missing applicationProperties')}
+
         this.feeNQT = parseInt(applicationProperties.feeNQT);
         this.tableCreation = parseInt(applicationProperties.accountCreationFeeNQT)
         this.defaultNewUserTransferAmount = parseInt(applicationProperties.minimumAppBalance)

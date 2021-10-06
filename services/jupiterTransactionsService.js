@@ -6,6 +6,7 @@ const _ = require("lodash");
 class JupiterTransactionsService {
 
     constructor(jupiterAPIService) {
+        if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
         this.jupiterAPIService = jupiterAPIService;
     }
 

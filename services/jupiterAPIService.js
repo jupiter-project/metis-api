@@ -12,6 +12,9 @@ class JupiterAPIService {
      * @param {ApplicationAccountProperties} applicationAccountProperties
      */
     constructor(jupiterHost, applicationAccountProperties) {
+        if(!jupiterHost){throw new Error('missing jupiterHost')}
+        if(!applicationAccountProperties){throw new Error('missing applicationAccountProperties')}
+
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
     }
