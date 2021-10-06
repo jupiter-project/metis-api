@@ -74,13 +74,13 @@ const profileDelete = (passphrase, account, password) => {
   const addressBreakdown = account.split('-');
 
   if(!(addressBreakdown.length === 5) ){
-    throw new Error('bla blab')
+    throw new Error('Wrong jup address, please enter a valid one');
   }
 
   return axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
       .then((response) => {
         defaultHeader.headers.Authorization = `Bearer ${response.data.token}`;
-        return gravity.getAccountProperties({ recipient: channel.channel_record.account })
+        return gravity.getAccountProperties({ recipient: account })
       })
       .then((userProperties) => {
         const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
@@ -217,7 +217,7 @@ module.exports = {
       .then((userProperties) => {
         const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
         const url = profilePicture && profilePicture.value ? profilePicture.value : null;
-        const response = url === '{"threshold":"25000"}' ? { url: null } : { url };
+        const response = typeof url === 'string' && url.includes('threshold') ? { url: null } : { url };
         res.send(response);
       })
       .catch((error) => {

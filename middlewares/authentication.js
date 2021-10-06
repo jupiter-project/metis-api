@@ -7,7 +7,6 @@ const logger = require('../utils/logger')(module);
 const tokenVerify = (req, res, next) => {
   logger.debug(`tokenVerify(), URL:  ${req.url}`);
   const token = req.get('Authorization');
-  console.log('[Token]:', token);
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [
     '/create_passphrase',
@@ -20,7 +19,6 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/pn/badge_counter',
     '/v1/api/job/status',
     '/api-docs',
-    '/v1/api/user/jim/login'
   ];
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
