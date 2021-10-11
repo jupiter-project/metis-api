@@ -40,7 +40,7 @@ class JupiterAccountService {
                     logger.verbose('--');
                     logger.debug(`transactionId= ${transactionId}`)
                     const userRecord = accountProperties.generateUserRecord(transactionId);
-                    logger.debug(`userRecord= ${JSON.stringify(userRecord)}`)
+                    logger.debug(`userRecord.account=`)
                     logger.debug(`metisUsersTableProperties.crypto = ${JSON.stringify(metisUsersTableProperties.crypto)}`);
                     const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
                     logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
