@@ -5,6 +5,9 @@ const crypto = require('crypto');
 class GravityCrypto {
 
     constructor(decryptionAlgorithm, decryptionPassword) {
+        if(!decryptionAlgorithm){throw new Error('missing decryptionAlgorithm')}
+        if(!decryptionPassword){throw new Error('missing decryptionPassword')}
+
         this.decryptionAlgorithm = decryptionAlgorithm;
         this.decryptionPassword = decryptionPassword;
     }

@@ -6,6 +6,10 @@ class FundingManager {
         newUserFundingAmount,
         newTableFundingAmount
     ) {
+
+        if(!newUserFundingAmount){throw new Error('missing newUserFundingAmount')}
+        if(!newTableFundingAmount){throw new Error('missing newTableFundingAmount')}
+
         this.funding = [];
 
         this.funding.push({

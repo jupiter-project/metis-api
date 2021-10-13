@@ -30,6 +30,14 @@ class AccountRegistration {
     gravity,
     JupiterFSService) {
 
+      if(!applicationGravityAccountProperties){throw new Error('missing applicationGravityAccountProperties')}
+      if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
+      if(!jupiterFundingService){throw new Error('missing jupiterFundingService')}
+      if(!jupiterAccountService){throw new Error('missing jupiterAccountService')}
+      if(!tableService){throw new Error('missing tableService')}
+      if(!gravity){throw new Error('missing gravity')}
+      if(!JupiterFSService){throw new Error('missing JupiterFSService')}
+
     this.applicationAccountProperties = applicationGravityAccountProperties;
     this.jupiterAPIService = jupiterAPIService;
     this.jupiterFundingService = jupiterFundingService;

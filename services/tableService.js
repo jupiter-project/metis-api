@@ -18,6 +18,9 @@ class GravityTablesService {
      * @param {GravityService} gravityService
      */
     constructor(gravityService, jupiterApiService) {
+        if(!gravityService){throw new Error('missing gravityService')}
+        if(!jupiterApiService){throw new Error('missing jupiterApiService')}
+
         this.gravityService = gravityService;
         this.applicationTransactions = gravityService.applicationTransactions;
         this.jupiterAccountService = gravityService.jupiterAccountService;

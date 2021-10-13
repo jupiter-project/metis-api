@@ -23,6 +23,14 @@ class ApplicationAccountProperties {
                 minimumAppBalance,
                 moneyDecimals) {
 
+        if(!deadline){throw new Error('missing deadline')}
+        if(!feeNQT){throw new Error('missing feeNQT')}
+        if(!accountCreationFeeNQT){throw new Error('missing accountCreationFeeNQT')}
+        if(!transferFeeNQT){throw new Error('missing transferFeeNQT')}
+        if(!minimumTableBalance){throw new Error('missing minimumTableBalance')}
+        if(!minimumAppBalance){throw new Error('missing minimumAppBalance')}
+        if(!moneyDecimals){throw new Error('missing moneyDecimals')}
+
         this.deadline = deadline;
         this.minimumTableBalance = minimumTableBalance;
         this.minimumAppBalance = minimumAppBalance;

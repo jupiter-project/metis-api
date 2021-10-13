@@ -8,6 +8,11 @@ const logger = require('../utils/logger')(module);
 class JupiterAccountService {
 
     constructor(jupiterAPIService, applicationProperties, tableService, jupiterTransactionsService) {
+        if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
+        if(!applicationProperties){throw new Error('missing applicationProperties')}
+        if(!tableService){throw new Error('missing tableService')}
+        if(!jupiterTransactionsService){throw new Error('missing jupiterTransactionsService')}
+
         this.jupiterAPIService = jupiterAPIService;
         this.applicationProperties = applicationProperties;
         this.tableService = tableService;
