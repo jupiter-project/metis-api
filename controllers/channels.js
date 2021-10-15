@@ -7,7 +7,10 @@ import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
 import metis from '../config/metis';
-
+const { 
+  v1: uuidv1,
+  v4: uuidv4,
+} = require('uuid');
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
 const logger = require('../utils/logger')(module);
@@ -152,6 +155,33 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const metadata = { isInvitation: 'true' };
       getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
       res.send({success: true});
+    } catch (e) {
+      logger.error(e);
+      res.status(500).send(e);
+    }
+  });
+
+
+  /**
+   * Send an invite
+   */
+   app.post('/v1/api/channels/call', async (req, res) => {
+    const { data } = req.body;
+    const { user } = req;
+    try {
+      const sender = user.userData.alias;
+      let recipient = _.get(data, 'recipient', '');
+
+      if (!recipient.toLowerCase().includes('jup-')) {
+        const aliasResponse = await gravity.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      }
+
+      const message = `${sender} is inviting you to a video call`;
+      const url = `metis/${uuidv4()}`;
+      const metadata = { isCall: 'true', url: url, recipient: recipient, sender: sender};
+      getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'call', metadata);
+      res.send({success: true, url: url});
     } catch (e) {
       logger.error(e);
       res.status(500).send(e);
