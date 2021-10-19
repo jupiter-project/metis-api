@@ -2,12 +2,119 @@ import axios from 'axios';
 import { gravity } from '../config/gravity';
 import controller from '../config/controller';
 import User from '../models/user';
+import AccountPage from "../views/account.jsx";
+import {JupiterAPIService} from "../services/jupiterAPIService";
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 
 const logger = require('../utils/logger')(module);
 
 module.exports = (app, passport, React, ReactDOMServer) => {
   let page;
   const connection = process.env.SOCKET_SERVER;
+
+  app.get('/v1/api/balance', (req, res) => {
+    const { user } = req;
+
+    if(!user.userData.account){
+      return res.status(400).send({message: 'User account not provided'});
+    }
+
+    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    const DEADLINE = process.env.JUPITER_DEADLINE;
+
+
+    //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
+    const appAccountProperties = new ApplicationAccountProperties(
+        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    );
+    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    jupiterAPIService.getBalance(user.userData.account)
+        .then(response => {
+          if (response && response.data.unconfirmedBalanceNQT){
+            return res.status(200).send({ balance: (response.data.unconfirmedBalanceNQT/100000000) });
+          }
+          return res.status(500).send({message: 'Balance not available'});
+        })
+        .catch(error => {
+          logger.error(JSON.stringify(error));
+          return res.status(500).send({message: 'Something went wrong', error});
+        });
+  });
+
+  app.get('/v1/api/recent-transactions', (req, res) => {
+    const { user } = req;
+
+    if(!user.userData.account){
+      return res.status(400).send({message: 'User account not provided'});
+    }
+
+    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    const DEADLINE = process.env.JUPITER_DEADLINE;
+
+
+    const appAccountProperties = new ApplicationAccountProperties(
+        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    );
+    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    const params = {
+      requestType: 'getBlockchainTransactions',
+      account: user.userData.account,
+      firstIndex: 0,
+      lastIndex: 9,
+    };
+
+    //TODO make the "get" function static in order to avoid generating all unnecessary properties
+    jupiterAPIService.get(params)
+        .then(response => {
+          return res.status(200).send({transactions: response.data.transactions});
+        })
+        .catch(error => {
+          logger.error(JSON.stringify(error));
+          return res.status(500).send({message: 'Something went wrong', error});
+        });
+  });
+
+  app.post('/v1/api/transfer-money', (req, res) => {
+    const { user } = req;
+    const { recipient, amount } = req.body;
+
+    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    const DEADLINE = process.env.JUPITER_DEADLINE;
+
+    const appAccountProperties = new ApplicationAccountProperties(
+        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    );
+    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const userAccount = JSON.parse(gravity.decrypt(user.accountData));
+    const fromJupAccount = { address: user.userData.account, passphrase: userAccount.passphrase };
+    const toJupiterAccount = { address: recipient };
+
+    //TODO make the "transferMoney" function static in order to avoid generating all unnecessary properties
+    jupiterAPIService.transferMoney(fromJupAccount, toJupiterAccount, +amount, fee)
+        .then(() => res.status(200).send({message: 'Transfer successfully executed'}))
+        .catch(error => {
+          logger.error('Error with the transfer ->' + JSON.stringify(error));
+          res.status(500).send({message: 'Transfer failed', error})
+        });
+  });
 
   // ===========================================================
   // This constains constants needed to connect with Jupiter
