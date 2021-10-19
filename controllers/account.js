@@ -2,7 +2,6 @@ import axios from 'axios';
 import { gravity } from '../config/gravity';
 import controller from '../config/controller';
 import User from '../models/user';
-import AccountPage from "../views/account.jsx";
 import {JupiterAPIService} from "../services/jupiterAPIService";
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
@@ -86,9 +85,14 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         });
   });
 
-  app.post('/v1/api/transfer-money', (req, res) => {
+  app.post('/v1/api/transfer-money', async (req, res) => {
     const { user } = req;
-    const { recipient, amount } = req.body;
+    let { recipient, amount } = req.body;
+
+    if (!recipient.toLowerCase().includes('jup-')) {
+      const aliasResponse = await gravity.getAlias(recipient);
+      recipient = aliasResponse.accountRS;
+    }
 
     const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
     const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
