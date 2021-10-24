@@ -2105,9 +2105,9 @@ class Gravity {
   }
 
   async getAlias(aliasName) {
-    logger.verbose('###############################################################################################')
+    logger.verbose('GRAVITY#######################################################################################')
     logger.verbose(`## getAlias(aliasName= ${aliasName}`);
-    logger.verbose('###############################################################################################')
+    logger.verbose('##')
     const aliasCheckup = await this.jupiterRequest('get', {
       aliasName,
       requestType: 'getAlias',

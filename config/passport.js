@@ -196,32 +196,32 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 }, 1000);
             });
 
-        logger.debug(`job id= ${job.id} for account=${account}`);
+        // logger.debug(`job id= ${job.id} for account=${account}`);
 
         job.on('complete', function(result){
-            logger.verbose(`##########################`)
-            logger.verbose(`## job.on(complete)`)
-            logger.debug(`account=${account}`)
-            logger.debug('Job completed with data ', result);
+            logger.verbose(`######################################`)
+            logger.verbose(`## passport.job.on(complete(signUpSuccessful))`)
+            logger.verbose(`account=${account}`)
+            logger.sensitive('Job completed with data ', result);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpSuccessful', account);
         });
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.debug('Job failed Attempt');
-            logger.debug(`account=${account}`)
+            logger.verbose(`######################################`)
+            logger.verbose(`## passport.job.on(failed_attempt(signUpFailedAttempt))`)
+            logger.verbose(`account=${account}`)
+            logger.sensitive('errorMessage=', errorMessage);
+            logger.sensitive('doneAttempts=', doneAttempts);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
         });
 
         job.on('failed', function(errorMessage){
-            logger.error(`*********************`)
-            logger.error(`job.on(failed)`)
-            logger.debug(`account=${account}`)
+            logger.verbose(`######################################`)
+            logger.verbose(`## passport.job.on(failed(errorMessage))`)
+            logger.verbose(`account=${account}`)
+            logger.sensitive('errorMessage=', errorMessage);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
         });
-        // job.on('progress', function(progress, data){
-        //     logger.debug('^&^&')
-        //     logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
-        // });
 
         return done(null, null, job.id);
     });
