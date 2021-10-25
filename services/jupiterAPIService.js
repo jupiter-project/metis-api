@@ -1,8 +1,8 @@
 import gu from "../utils/gravityUtils";
 import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
+import {jupiterAxios as axios} from "../config/axiosConf";
 const logger = require('../utils/logger')(module);
-const axios = require('axios');
 const queryString = require('query-string');
 
 class JupiterAPIService {
@@ -48,18 +48,18 @@ class JupiterAPIService {
                     if(response.error) {
                         logger.error(`jupiterRequest().response.error`)
                         logger.error(`error= ${JSON.stringify(response.error)}`);
-                        logger.error(`url= ${url}`)
-                        logger.error(`request data= ${JSON.stringify(data)}`)
+                        logger.sensitive(`url= ${url}`)
+                        logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
                         return reject(response.error)
                     }
 
                     if(response.data && response.data.errorDescription  && response.data.errorDescription !== null) {
                         logger.error(`jupiterRequest().response.data.error`);
-                        logger.error(`response.data= ${JSON.stringify(response.data)}`);
+                        logger.sensitive(`response.data= ${JSON.stringify(response.data)}`);
                         logger.error(`error= ${JSON.stringify(response.data.errorDescription)}`)
-                        logger.error(`url= ${url}`)
-                        logger.error(`request data= ${JSON.stringify(data)}`)
+                        logger.sensitive(`url= ${url}`)
+                        logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
                         return reject(response.data.errorDescription);
                     }
@@ -68,7 +68,10 @@ class JupiterAPIService {
                 })
                 .catch( error => {
                     logger.error(`jupiterRequest().axios.catch(error)`)
+                    logger.sensitive(`url= ${url}`);
+                    logger.sensitive(`request data= ${JSON.stringify(data)}`)
                     logger.error(`error= ${error}`);
+
                     reject(error);
                 })
         }  )
@@ -76,15 +79,21 @@ class JupiterAPIService {
     }
 
     async get(params) {
+        // logger.verbose('##########################');
+        // logger.verbose(`## get(params)`)
+        // logger.verbose('##');
+        // logger.sensitive(`params=${JSON.stringify(params)}`);
+
         return this.jupiterRequest('get', params);
     }
 
     async post(params, data = {}) {
-        logger.sensitive('#####################################################################################');
-        logger.sensitive(`## post()`)
-        logger.sensitive('#####################################################################################');
-        logger.sensitive(`params= ${JSON.stringify(params)}`);
-        logger.sensitive(`data= ${JSON.stringify(data)}`);
+        // logger.verbose('##########################');
+        // logger.verbose(`## post(params, data)`)
+        // logger.verbose('##');
+        // logger.sensitive(`params=${JSON.stringify(params)}`);
+        // logger.sensitive(`data=${JSON.stringify(data)}`);
+
         return this.jupiterRequest('post', params, data);
     }
 
@@ -611,41 +620,43 @@ class JupiterAPIService {
     }
 
 
-    // jupiterRequest().response.data.error
-    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	response.data= {"errorDescription":"Unknown alias","errorCode":5}
-    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	error= "Unknown alias"
-    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	url= http://104.131.166.158:6876/nxt?aliasName=etidexcepturi&requestType=getAlias
-    // metis_1  | [0] *09-28 16:22:37|error|services/jupiterAPIService.js|	request data= {}
-
     async getAlias(aliasName) {
-        logger.verbose('###############################################################################################')
+        logger.verbose('#################################################')
         logger.verbose(`## getAlias(aliasName= ${aliasName})`);
-        logger.verbose('###############################################################################################')
+        logger.verbose('##')
 
-        if(!aliasName) {
-            throw new Error('aliasName cannot be empty');
+        if(!aliasName) {throw new Error('aliasName cannot be empty')}
+
+        const params = {
+            aliasName,
+            requestType: 'getAlias',
         }
 
-        return this.jupiterRequest('get', {
-                aliasName,
-                requestType: 'getAlias',
-        })
+        return this.get(params)
     }
 
 
     async setAlias(params) {
-        logger.verbose('###############################################################################################')
-        logger.verbose(`## setAlias(params= ${JSON.stringify(params)}`);
-        logger.verbose('###############################################################################################')
+        logger.verbose('#####################################################');
+        logger.verbose(`## setAlias(params`);
+        logger.verbose('##');
+        logger.sensitive(`params=${JSON.stringify(params)}`);
+
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
-        return this.jupiterRequest('post', {
+        if(!params.passphrase) {throw new Error('need a passphrase value')}
+        if(!params.alias) {throw new Error('need an alias value')}
+        if(!params.account) {throw new Error('need an account value')}
+
+        const newParams = {
             requestType: 'setAlias',
             aliasName: params.alias,
             secretPhrase: params.passphrase,
             aliasURI: `acct:${params.account}@nxt`,
             feeNQT: fee,
             deadline: this.appProps.deadline
-        });
+        }
+
+        return this.post(newParams)
     }
 
 }
