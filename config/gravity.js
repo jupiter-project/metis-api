@@ -2008,7 +2008,6 @@ class Gravity {
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
     const feeNQT = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const tableCreation = 750;
     let amount = transferAmount;
     const senderPassphrase = sender || process.env.APP_ACCOUNT;
     const server = process.env.JUPITERSERVER;
@@ -2023,16 +2022,7 @@ class Gravity {
       }
 
       const requestUrl = `${server}/nxt?requestType=sendMoney&secretPhrase=${senderPassphrase}&recipient=${recipient}&amountNQT=${amount}&feeNQT=${feeNQT}&deadline=60`
-
       logger.sensitive(`sendMoney: ${requestUrl}`);
-      // gravityCLIReporter.addItemsInJson('Sending some Money', {
-      //   'sender': senderPassphrase,
-      //   'recepient': recipient,
-      //   'amountNQT': amount,
-      //   'feeNQT': feeNQT
-      // }, `Funding` );
-
-
       return axios.post(requestUrl)
         .then((response) => {
           if (response.data.signatureHash != null) {
