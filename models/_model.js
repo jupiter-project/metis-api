@@ -418,8 +418,6 @@ class Model {
         eventEmitter.on('id_generated', () => {
           const stringifiedRecord = JSON.stringify(self.record);
 
-          console.log('new record---->', self.record);
-
           const fullRecord = {
             id: self.record.id,
             [`${self.model}_record`]: stringifiedRecord,
