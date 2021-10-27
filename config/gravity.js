@@ -180,7 +180,7 @@ class Gravity {
       let ruleOne;
       let ruleTwo;
 
-      if (order === 'asc' || order !== 'desc') {
+      if (order !== 'asc' || order === 'desc') {
         ruleOne = (x !== undefined && x > y);
         ruleTwo = (x === undefined || x < y);
       } else {

@@ -418,6 +418,8 @@ class Model {
         eventEmitter.on('id_generated', () => {
           const stringifiedRecord = JSON.stringify(self.record);
 
+          console.log('new record---->', self.record);
+
           const fullRecord = {
             id: self.record.id,
             [`${self.model}_record`]: stringifiedRecord,
@@ -467,9 +469,13 @@ class Model {
 
           axios.post(callUrl)
             .then((response) => {
-
               if (response.data.broadcasted && response.data.broadcasted === true) {
-                resolve({ success: true, message: 'Record created' });
+                const accountInfo = {
+                  transaction: response.data.transactionJSON.transaction,
+                  account: self.record.account,
+                  publicKey: self.record.publicKey
+                };
+                resolve({ success: true, message: 'Record created', accountInfo });
               } else if (response.data.errorDescription != null) {
                 reject({ success: false, errors: response.data.errorDescription });
               } else {

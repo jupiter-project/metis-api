@@ -174,83 +174,79 @@ module.exports = (app) => {
 
   /**
    * Create a record, assigned to the current user
+   * TODO verify if we can remove this commented code, check table creation commands
    */
-  app.post('/v1/api/create/:tableName', (req, res, next) => {
-    logger.verbose(`app.post(/v1/api/create/:tableName)`);
-    const params = req.body;
-    let { data } = params;
-    const { tableName } = req.params;
-    const {
-      id,
-      accessKey,
-      accountData,
-      userData,
-    } = req.user;
-
-    const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
-
-    logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
-
-    const exceptions = ['users'];
-    let model = '';
-    data = {
-      ...data,
-      address: decryptedAccountData.account,
-      passphrase: '',
-      password: '',
-      public_key: decryptedAccountData.publicKey,
-      user_address: decryptedAccountData.account,
-      user_api_key: accessKey,
-      user_id: id,
-      sender: userData.account,
-      createdBy: userData.account,
-    };
-
-    // If table in route is in the exception list, then it goes lower in the route list
-    if (exceptions.includes(tableName)) {
-      next();
-    } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
-
-      const file = `../models/${model}.js`;
-      const Record = require(file);
-
-
-      const recordObject = new Record(data);
-      if (recordObject.belongsTo === 'user') {
-        if (accountData) {
-          recordObject.accessLink = accountData;
-        }
-      }
-      recordObject.create()
-        .then((response) => {
-          console.log('[MODEL]: ', recordObject.model);
-
-          if(recordObject.model === 'channel') {
-            // JupiterFSService.uploadPixiImageAndWait(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password)
-          }
-          res.status(200).send(response);
-        })
-        .catch((err) => {
-          logger.error(`app.post() recordObject.create().catch() ${ JSON.stringify(err)}`);
-          res.status(500).send({
-            success: false,
-            errors: err.errors
-          });
-        });
-    }
-  });
+  // app.post('/v1/api/create/:tableName', (req, res, next) => {
+  //   logger.verbose(`app.post(/v1/api/create/:tableName)`);
+  //   const params = req.body;
+  //   let { data } = params;
+  //   const { tableName } = req.params;
+  //   const {
+  //     id,
+  //     accessKey,
+  //     accountData,
+  //     userData,
+  //   } = req.user;
+  //
+  //   const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+  //
+  //   logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
+  //
+  //   const exceptions = ['users'];
+  //   let model = '';
+  //   data = {
+  //     ...data,
+  //     address: decryptedAccountData.account,
+  //     passphrase: '',
+  //     password: '',
+  //     public_key: decryptedAccountData.publicKey,
+  //     user_address: decryptedAccountData.account,
+  //     user_api_key: accessKey,
+  //     user_id: id,
+  //     sender: userData.account,
+  //     createdBy: userData.account,
+  //   };
+  //
+  //   // If table in route is in the exception list, then it goes lower in the route list
+  //   if (exceptions.includes(tableName)) {
+  //     next();
+  //   } else {
+  //     find.fileSync(/\.js$/, './models').forEach((file) => {
+  //       const modelName = file.replace('models/', '').replace('.js', '');
+  //       let isIncluded = tableName.includes(modelName);
+  //       if (tableName.includes('_')) {
+  //         if (!modelName.includes('_')) {
+  //           isIncluded = false;
+  //         }
+  //       }
+  //       if (isIncluded) {
+  //         model = modelName;
+  //       }
+  //     });
+  //
+  //     const file = `../models/${model}.js`;
+  //     const Record = require(file);
+  //
+  //
+  //     const recordObject = new Record(data);
+  //     if (recordObject.belongsTo === 'user') {
+  //       if (accountData) {
+  //         recordObject.accessLink = accountData;
+  //       }
+  //     }
+  //     recordObject.create()
+  //       .then((response) => {
+  //         res.status(200).send(response);
+  //       })
+  //       .catch((err) => {
+  //         logger.error(`app.post() recordObject.create().catch() ${ JSON.stringify(err)}`);
+  //         res.status(500).send({
+  //           success: false,
+  //           errors: err.errors
+  //         });
+  //       });
+  //   }
+  // });
 
   /**
    * Update a record, assigned to the current user

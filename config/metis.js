@@ -2,6 +2,14 @@ require('dotenv').config();
 const _ = require('lodash');
 const { gravity } = require('./gravity');
 const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
+const {fundingManagerSingleton, FundingManager} = require("../services/fundingManager");
+const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {ApplicationAccountProperties} = require("../gravity/applicationAccountProperties");
+const {JupiterAPIService} = require("../services/jupiterAPIService");
+const {JupiterFundingService} = require("../services/jupiterFundingService");
+const {GravityCrypto} = require("../services/gravityCrypto");
+const {channelConfig} = require("./constants");
+const {hasJsonStructure} = require("../utils/utils");
 const logger = require('../utils/logger')(module);
 
 const propertyFee = 10;
@@ -111,6 +119,28 @@ function Metis() {
     return { aliases, members, memberProfilePicture };
   }
 
+  function getChannelUsersArray(channelAccount, tag) {
+    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    const DEADLINE = process.env.JUPITER_DEADLINE;
+
+    const appAccountProperties = new ApplicationAccountProperties(
+        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    );
+    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    return jupiterAPIService.getBlockChainTransactions(channelAccount, tag, false)
+        .then(({ data: transactions }) => {
+          if (transactions && Array.isArray(transactions.transactions)){
+            return transactions.transactions.filter(t => t.attachment.message === tag);
+          }
+          return [];
+        })
+  }
+
   async function addToMemberList(params) {
     if (!params.alias) {
       return { error: true, message: 'No alias provided' };
@@ -185,10 +215,100 @@ function Metis() {
         });
   }
 
+  function addMemberToChannel(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword){
+    const applicationGravityAccountProperties = new GravityAccountProperties(
+        process.env.APP_ACCOUNT_ADDRESS,
+        process.env.APP_ACCOUNT_ID,
+        process.env.APP_PUBLIC_KEY,
+        process.env.APP_ACCOUNT,
+        '', // hash
+        process.env.ENCRYPT_PASSWORD,
+        process.env.ENCRYPT_ALGORITHM,
+        process.env.APP_EMAIL,
+        process.env.APP_NAME,
+        '', // lastname
+    );
+
+    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    const DEADLINE = process.env.JUPITER_DEADLINE;
+
+    const appAccountProperties = new ApplicationAccountProperties(
+        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    );
+    applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
+
+
+    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    const channelCrypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, recipientPassword);
+    const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
+
+
+    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.metisMessage);
+    const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.metisMessage); //{type:1, subtype:12}
+
+    return getChannelUsersArray(to, channelConfig.channel_users)
+        .then(channelUsers => {
+          const channelUserDecryptedMessages = channelUsers.map(channelUser => jupiterAPIService.getMessage(channelUser.transaction, from));
+          return Promise.all(channelUserDecryptedMessages);
+        })
+        .then(channelUserDecryptedMessagesResponse => {
+
+          const JupiterDecryptedMessages = channelUserDecryptedMessagesResponse.map(response => response.data.decryptedMessage);
+
+          const newUserChannel = { userAddress: memberAccessData.account, userPublicKey, date: Date.now() };
+          const [lastChannelUserTransaction] = JupiterDecryptedMessages; // TODO get the last channel user transaction
+          let encryptedMessage = '';
+          let messageObjectArray = null;
+
+          if ( lastChannelUserTransaction ){
+            const decryptedMessage = channelCrypto.decryptOrNull(lastChannelUserTransaction);
+
+            if ( decryptedMessage && hasJsonStructure(decryptedMessage) ) {
+
+              messageObjectArray = JSON.parse(decryptedMessage);
+              const isUserAlreadySet = messageObjectArray.some(message => message.userPublicKey === userPublicKey );
+
+              if (!isUserAlreadySet){
+                messageObjectArray.push(newUserChannel);
+                encryptedMessage = channelCrypto.encrypt(JSON.stringify(messageObjectArray));
+
+              } else {
+                throw new Error ('User Already set');
+              }
+
+            } else {
+              throw new Error ('Not able to decrypt the message or the message is malformed');
+            }
+
+          } else {
+            encryptedMessage = channelCrypto.encrypt(JSON.stringify([newUserChannel]));
+          }
+
+          return jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+              from,
+              to,
+              encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
+              channelConfig.channel_users, // message: 'metis.channel-users.v1'
+              fee,
+              subtype,
+              false,
+              recipientPublicKey
+          )
+              .then(response => jupiterFundingService.waitForTransactionConfirmation(response.data.transaction))
+        });
+  }
+
   return Object.freeze({
     getChannelProperties,
     getMember,
     addToMemberList,
+    addMemberToChannel,
+    getChannelUsersArray
   });
 }
 

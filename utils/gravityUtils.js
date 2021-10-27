@@ -60,6 +60,8 @@ const isWellFormedJupiterAddress = function(address){
  */
 const isWellFormedJupiterTransactionId = function(transactionId){
     const re = /^[0-9]{15,25}$/
+    console.log('[isWellFormedJupiterTransactionId]', re.test(transactionId));
+    console.log('[transactionId]', transactionId);
     if(re.test(transactionId)){
         return true;
     }

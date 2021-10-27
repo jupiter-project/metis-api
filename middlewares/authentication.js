@@ -26,7 +26,6 @@ const tokenVerify = (req, res, next) => {
     return next();
   }
 
-
   if (!token) {
     return res.status(403).send({ success: false, message: 'Please provide a token' });
   }
