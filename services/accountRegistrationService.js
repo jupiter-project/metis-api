@@ -1,12 +1,4 @@
-// import { gravity } from '../config/gravity';
-// const gravity = require('../config/gravity');
-// import User from '../models/user';
-const { JupiterAccountProperties } = require('../gravity/jupiterAccountProperties');
 const { JupiterFundingService } = require('./jupiterFundingService');
-const { applicationAccountProperties } = require('../gravity/applicationAccountProperties');
-const { FundingNotConfirmedError } = require('../errors/metisError');
-const gravity = require("../config/gravity");
-const {feeManagerSingleton, FeeManager} = require("./FeeManager");
 const logger = require('../utils/logger')(module);
 /**
  *
