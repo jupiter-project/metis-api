@@ -96,7 +96,7 @@ export default class Worker {
   addToQueue(queueName, data, priority = 'high') {
     this.jobs.create(queueName, data)
       .priority(priority).attempts(2)
-      .removeOnComplete(true)
+      .removeOnComplete(false)
       .save();
   }
 
