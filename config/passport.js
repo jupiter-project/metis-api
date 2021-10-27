@@ -182,7 +182,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
 
         const job = jobsQueue.create('user-registration', jobData)
             .priority('high')
-            .removeOnComplete(true)
+            .removeOnComplete(false)
             .save( (err) =>{
                 if(err){
                     logger.error(`there is a problem saving to redis`);
