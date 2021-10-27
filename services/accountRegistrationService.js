@@ -260,10 +260,10 @@ class AccountRegistration {
             this.gravity.attachTable(accessData, tableName)
                 .then((response) => { // {name, address, passphrase, publicKey, transactionsIds}
                     logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`-- attachTable().attachTable(accessData= ${JSON.stringify(accountProperties)} , tableName = ${tableName}).THEN(res= ${!!response})`);
+                    logger.verbose(`-- attachTable().gravity.attachTable(accessData, tableName = ${tableName}).THEN(res= ${!!response})`);
                     logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.sensitive(`res= ${JSON.stringify(response)}`);
-
+                    logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`)
+                    logger.sensitive(`response= ${JSON.stringify(response)}`);
 
                     const attachTableResponse = {
                         data: {

@@ -15,7 +15,7 @@ class JupiterFundingService {
         this.defaultNewTableTransferAmount = parseInt(applicationProperties.minimumTableBalance)
         this.jupiterAPIService = jupiterAPIService;
         this.applicationProperties = applicationProperties;
-        this.intervalTimeInSeconds = 5; //5
+        this.intervalTimeInSeconds = 8;
         this.maxWaitTimeLimitInSeconds = 180;//seconds
     }
 
@@ -39,11 +39,14 @@ class JupiterFundingService {
      * @returns {Promise<unknown>}
      */
     async waitForTransactionConfirmation(transactionId){
-        logger.verbose('waiting for confirmation');
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## waitForTransactionConfirmation( transactionId=${transactionId})`);
+        logger.verbose('##');
 
         if(!transactionId){
             throw new Error('transactionId cannot be empty');
         }
+
         return new Promise(async (resolve, reject) => {
             let workTime = 0;
             const milliseconds = this.intervalTimeInSeconds * 1000;
@@ -77,7 +80,7 @@ class JupiterFundingService {
     async provideInitialStandardUserFunds(recipientProperties){
         logger.verbose('#####################################################################################');
         logger.verbose(`## provideInitialStandardApplicationFunds( recipientProperties= ${!!recipientProperties})`);
-        logger.verbose('#####################################################################################');
+        logger.verbose('##');
         const initialAmount = this.defaultNewUserTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
@@ -86,7 +89,7 @@ class JupiterFundingService {
     async provideInitialStandardTableFunds(recipientProperties){
         logger.verbose('#####################################################################################');
         logger.verbose(`## provideInitialStandardApplicationFunds( recipientProperties= ${!!recipientProperties})`);
-        logger.verbose('#####################################################################################');
+        logger.verbose('##');
         const initialAmount = this.defaultNewTableTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);

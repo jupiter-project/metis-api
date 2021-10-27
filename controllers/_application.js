@@ -274,7 +274,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
         gravityCLIReporter.addItemsInJson('Account Created', { ...response.data, ...formData });
         // gravityCLIReporter.sendReportAndReset();
-        logger.sensitive(jupiterAccount);
+        logger.sensitive(`jupiterAccount=${ JSON.stringify(jupiterAccount)}`);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
@@ -346,7 +346,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     gravityCLIReporter.setTitle('  METIS LOGIN ');
     logger.verbose('appLogin()');
     logger.debug('--headers--');
-    logger.sensitive(JSON.stringify(req.headers));
+    logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
 
     passport.authenticate('gravity-login', (error, user, message) => {
       logger.debug('passport.authentication(CALLBACK).');

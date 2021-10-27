@@ -65,30 +65,31 @@ class JupiterTransactionsService {
      * @returns {boolean}
      */
     areValidTransactions(transactions) {
+        logger.verbose('############################################3');
+        logger.verbose('## areValidTransactions(transactions)');
+        logger.verbose('##');
         logger.error('use ajv!!!')
-        logger.verbose('areValidTransactions()');
         if (!Array.isArray(transactions)) {
             logger.error('-- not Array');
             return false;
         }
+        logger.verbose(`transactions.length=${transactions.length}`);
 
         if (transactions <= 0) {
             logger.error('-- empty array passed in');
             return false
         }
 
-        logger.debug(`-- Total transactions to validate: ${transactions.length}`)
+        // logger.debug(`-- Total transactions to validate: ${transactions.length}`)
 
         for (let i = 0; i < transactions.length; i++) {
-            // console.log(JSON.stringify(transactions[i]));
             if (!this.isValidBaseTransaction(transactions[i])) {
                 logger.error(` -- invalid transaction`);
                 logger.sensitive(`this.isValidBaseTransaction(transactions[i]) = ${JSON.stringify(transactions[i])}`)
                 return false;
             }
         }
-
-        logger.verbose(` -- Transactions are valid.`);
+        // logger.verbose(` -- Transactions are valid.`);
         return true;
     }
 
@@ -616,27 +617,47 @@ class JupiterTransactionsService {
      * @returns {Promise<array>}
      */
     async readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase) {
-        logger.verbose('#####################################################################################');
+        logger.verbose('##############################################################################################');
         logger.verbose('## readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)');
-        logger.verbose('#####################################################################################');
-        return new Promise((resolve, reject) => {
+        logger.verbose('##');
+        logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
+
+        const groupMaxSize = 100;
+
+        return new Promise(async (resolve, reject) => {
             if (!(messageTransactionIds.length > 0)) {
                 logger.warn(`Empty messageTransactionIds array`);
-                return resolve([]);
-                // return reject({status: '', message: ''});
+                return resolve([]); // return reject({status: '', message: ''});
             }
 
-            logger.verbose(`readMessagesFromMessageTransactionIdsAndFilterOutUnreadables(messageTransactionIds Count: ${messageTransactionIds.length})`);
             let metisMessagePromises = [];
-            // let counter = 0;
-            messageTransactionIds.forEach(transactionId => {
-                metisMessagePromises.push(
-                    this.getReadableMessageFromMessageTransactionIdAndDecrypt(transactionId, crypto, passphrase)
-                )
-            });
+            let transactionGroupCount = Math.ceil((messageTransactionIds.length)/groupMaxSize);
+            // console.log(`Total transactions: ${messageTransactionIds.length}`);
+            // console.log(`transactionGroupCount=${transactionGroupCount}`);
+            let results = [];
+            for(let currentGroup = 0; currentGroup < transactionGroupCount; currentGroup++) {
+                // console.log(`-- Current Group: ${currentGroup} --`);
+                let transactionsCount = Math.min(messageTransactionIds.length, groupMaxSize);
+                for(let j = 0; j < transactionsCount; j++){
+                    metisMessagePromises.push(
+                        this.getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionIds.pop(), crypto, passphrase)
+                    )
+                }
 
-            logger.debug(`metisMessagePromises.length= ${metisMessagePromises.length}`);
+                // console.log('START AWAIT ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                results = results.concat(await this.allMessagePromises(metisMessagePromises));
+                // console.log('END AWAIT -----------------------++++++++++++++++++++++++++++++++++++----------------------------------')
+            }
 
+            logger.debug(`messageTransactionIds.length=${messageTransactionIds.length}`);
+            logger.debug(`metisMessagePromises.length=${metisMessagePromises.length}`);
+
+            return  resolve(results);
+        })
+    }
+
+    allMessagePromises(promises){
+        return new Promise((resolve, reject) => {
             /**
              * // [
              //   {status: "fulfilled", value: 33},
@@ -645,7 +666,7 @@ class JupiterTransactionsService {
              //   {status: "rejected",  reason: Error: an error}
              // ]
              */
-            Promise.all(metisMessagePromises)
+            Promise.all(promises)
                 .then((results) => {
                     logger.verbose('---------------------------------------------------------------------------------------');
                     logger.verbose(`readMessagesFromMessageTransactionIdsAndDecrypt().Promise.all().then(results)`)
@@ -654,6 +675,7 @@ class JupiterTransactionsService {
 
                     const decryptedMessages = results.reduce(function (filtered, result) {
                         if(!result){
+                            // console.log('|')
                             return filtered;
                         }
                         filtered.push(result);
@@ -665,11 +687,11 @@ class JupiterTransactionsService {
                 .catch((error) => {
                     logger.error('PROMISE ERROR');
                     logger.error(error);
-                    reject({status: 'error', message: error});
+                    return reject({status: 'error', message: error});
                 })
+
         })
     }
-
 
     /**
      *  Don't return rejections cause we are doing Promise.all()
@@ -680,13 +702,14 @@ class JupiterTransactionsService {
      * @returns {Promise<unknown>}
      */
     async getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
-        // logger.verbose('###########  getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)  ###############');
+        // logger.verbose('#####################################################################################');
+        // logger.verbose('## getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)');
+        // logger.verbose('####');
+        logger.verbose(`messageTransactionId=${messageTransactionId}`);
         return new Promise((resolve, reject) => {
             this.getReadableMessageFromMessageTransactionId(messageTransactionId, passphrase)
-                .then(decryptedMessage => { //decryptedMessage
-                    // logger.verbose('------------------  getReadableMessageFromMessageTransactionIdAndDecrypt().getReadableMessageFromMessageTransactionId().then(decryptedMessage)   -----------------------');
+                .then(decryptedMessage => {
                     // logger.sensitive(`decryptedMessage = ${decryptedMessage}`);
-                    // logger.error('decryptedMessage.message?  might just need to be decruptedMesssage')
                     try {
                         // logger.error('what happens if i try to parse a non JSON String?');
                         // logger.debug(`decryptedMessage.message= ${decryptedMessage.message}`);
@@ -694,23 +717,26 @@ class JupiterTransactionsService {
                         const messageToParse = crypto.decryptOrNull(decryptedMessage);
 
                         if(!messageToParse){
-                            return resolve(''); // becuase of Promise.all we should not do reject.
+                            logger.debug('messageToParse is null');
+                            return resolve(''); // because of Promise.all we should not do reject.
                         }
 
-                        const message = JSON.parse(messageToParse);
+                        // const message = JSON.parse(messageToParse);
+                        const message = gu.jsonParseOrPassThrough(messageToParse);
                         return resolve(message);
+
                     } catch (error) {
                         logger.error(`********************`)
                         logger.error(`** getReadableMessageFromMessageTransactionIdAndDecrypt().getReadableMessageFromMessageTransactionId().then().catch(error)`)
-                        logger.error( `error= ${JSON.stringify(error)}`);
+                        console.log(error);
                         logger.error(`**`)
-                        return resolve('');
+                        return resolve(''); // because of Promise.all we should not do reject.
                     }
                 })
                 .catch(error => {
                     logger.error(`********************`)
                     logger.error(`** getReadableMessageFromMessageTransactionIdAndDecrypt().getReadableMessageFromMessageTransactionId().catch(error)`);
-                    logger.error(`** error= ${JSON.stringify(error)}`);
+                    console.log(error);
                     logger.error(`**`)
                     return resolve(''); // because of Promise.all we should not do reject.
                 })
@@ -724,21 +750,26 @@ class JupiterTransactionsService {
      * @returns {Promise<string>} - decyptedMessage
      */
     async getReadableMessageFromMessageTransactionId(messageTransactionId, passphrase) {
+        // logger.verbose('#####################################################################################');
+        // logger.verbose('## getReadableMessageFromMessageTransactionId(messageTransactionId,passphrase)');
+        // logger.verbose('####');
         return new Promise((resolve, reject) => {
             if (!gu.isWellFormedJupiterTransactionId(messageTransactionId)) {
                 logger.warn(`invalid messageTransactionId`);
                 return reject({status: 'Error', message: `Transaction ID is not valid : ${messageTransactionId}`});
             }
-            // logger.verbose(`getReadableMessageFromMessageTransactionId(messageTransactionId : ${messageTransactionId})`);
             //getMessage() = {data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}
             this.jupiterAPIService.getMessage(messageTransactionId, passphrase)
                 .then((response) => {
-                    // logger.debug('getReadableMessageFromMessageTransactionId().getMessage()');
+                    // logger.sensitive(response);
                     return resolve(response.data.decryptedMessage);
                 })
                 .catch((error) => {
+                    logger.error(`********************`)
+                    logger.error('** getReadableMessageFromMessageTransactionId().apiService.getMessage().catch()');
                     const errorMessage = `readMessagesFromMessageTransactionIds().readMessage().then(): ${error}`;
                     logger.error(errorMessage);
+
                     return reject(error);
                 })
         })

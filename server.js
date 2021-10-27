@@ -268,6 +268,7 @@ mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   logger.info('Mongo DB Online.');
 });
 
+server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
 server.listen(port, () => {
   logger.info(JSON.stringify(process.memoryUsage()));

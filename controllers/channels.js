@@ -14,7 +14,10 @@ import {JupiterAPIService} from "../services/jupiterAPIService";
 import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {GravityCrypto} from "../services/gravityCrypto";
 import channelRecord from "../models/channel.js";
-
+const {
+  v1: uuidv1,
+  v4: uuidv4,
+} = require('uuid');
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
 const logger = require('../utils/logger')(module);
@@ -165,6 +168,33 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     }
   });
 
+
+  /**
+   * Send an invite
+   */
+   app.post('/v1/api/channels/call', async (req, res) => {
+    const { data } = req.body;
+    const { user } = req;
+    try {
+      const sender = user.userData.alias;
+      let recipient = _.get(data, 'recipient', '');
+
+      if (!recipient.toLowerCase().includes('jup-')) {
+        const aliasResponse = await gravity.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      }
+
+      const message = `${sender} is inviting you to a video call`;
+      const url = `metis/${uuidv4()}`;
+      const metadata = { isCall: 'true', url: url, recipient: recipient, sender: sender};
+      getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'call', metadata);
+      res.send({success: true, url: url});
+    } catch (e) {
+      logger.error(e);
+      res.status(500).send(e);
+    }
+  });
+
   /**
    * Accept channel invite
    */
@@ -179,55 +209,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const channel = new Channel(channel_record);
     channel.user = JSON.parse(gravity.decrypt(accountData));
 
-    // const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-    // const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    // const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    // const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-    // const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-    // const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-    // const DEADLINE = process.env.JUPITER_DEADLINE;
-
-
-    // //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
-    // const appAccountProperties = new ApplicationAccountProperties(
-    //     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-    // );
-
-    // const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-    // const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.metisMessage);
-    // const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.metisMessage); //{type:1, subtype:12}
-
-    // const message = [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
-
-    // TODO from channel to the channel
-
-    // console.log('[sendEncipheredMetisMessageAndMessage]', {
-    //   from: channel.user.passphrase,
-    //   to: channel_record.account,
-    //   messageToEncrypt: JSON.stringify(message),
-    //   message: channelConfig.channel_users,
-    //   fee
-    // });
-
-    // const gravityCrypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, channel_record.password);
-    // const encryptedMessage = gravityCrypto.encrypt(JSON.stringify(message));
-
-
     channel.import(channel.user)
-        // .then(response => {
-        //   console.log('Invite import --------> ', response);
-        //       return jupiterAPIService.sendEncipheredMetisMessageAndMessage(
-        //           channel_record.passphrase, // from
-        //           channel_record.account, // to
-        //           encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
-        //           channelConfig.channel_users, // message: 'metis.channel-users.v1'
-        //           fee,
-        //           subtype,
-        //           false,
-        //           channel_record.publicKey // recipient public key
-        //           )
-        //     }
-        // )
         .then(() => {
           return res.send({success: true, message: 'Invite accepted'});
         })

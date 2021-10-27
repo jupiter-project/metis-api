@@ -3,6 +3,25 @@ const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 
 
+
+
+
+
+
+const jsonParseOrPassThrough = function (stringToParse)
+{
+    let json = null;
+    try{
+        json = JSON.parse(stringToParse);
+    } catch(error) {
+        return stringToParse
+    }
+
+    return json;
+};
+
+
+
 /**
  * Helper Function
  * @param obj
@@ -166,6 +185,7 @@ module.exports = {
     isWellFormedJupiterTransactionId,
     isWellFormedJupiterAccountData,
     isWellFormedPublicKey,
+    jsonParseOrPassThrough,
 };
 
 
