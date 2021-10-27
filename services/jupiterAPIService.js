@@ -27,7 +27,7 @@ class JupiterAPIService {
   jupiterUrl(givenParams) {
     const params = givenParams;
     const url = `${this.jupiterHost}/nxt?`;
-    const query = queryString.stringify(params);
+    const query = params ? queryString.stringify(params) : '';
 
     return url + query;
     }
@@ -556,7 +556,7 @@ class JupiterAPIService {
         if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ params.compressMessageToEncryptToSelf = 'true'}
 
         return new Promise( (resolve, reject) => {
-            this.post(params)
+            this.post(null, params)
                 .then((response) => {
                     logger.debug(`then()`);
                     if (response.data.broadcasted && response.data.broadcasted === true) {

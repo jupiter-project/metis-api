@@ -70,6 +70,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const params = {
       requestType: 'getBlockchainTransactions',
       account: user.userData.account,
+      type: '0', // TODO FIGURE OUT WHY TYPE IS STRING
       firstIndex: 0,
       lastIndex: 9,
     };
