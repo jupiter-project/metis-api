@@ -556,7 +556,7 @@ class JupiterAPIService {
         if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ params.compressMessageToEncryptToSelf = 'true'}
 
         return new Promise( (resolve, reject) => {
-            this.post(null, params)
+            this.post({requestType: params.requestType}, params)
                 .then((response) => {
                     logger.debug(`then()`);
                     if (response.data.broadcasted && response.data.broadcasted === true) {
