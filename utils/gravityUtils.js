@@ -1,10 +1,7 @@
 
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
-
-
-
-
+const checksum = require('checksum');
 
 
 
@@ -173,6 +170,14 @@ const generatePassphrase = function() {
     return wordsString.trim();
 }
 
+const generateChecksum = (text) => {
+    if(typeof text !== 'string'){
+        throw new Error('text must be string');
+    }
+
+    return checksum(text);
+}
+
 module.exports = {
     isObject,
     jsonPropertyIsNonEmptyArray,
@@ -184,6 +189,7 @@ module.exports = {
     isWellFormedJupiterAccountData,
     isWellFormedPublicKey,
     jsonParseOrPassThrough,
+    generateChecksum
 };
 
 
