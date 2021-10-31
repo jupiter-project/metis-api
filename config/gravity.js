@@ -318,11 +318,10 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   loadAccountData(accountCredentials ) { // -> getREcords
-    logger.verbose('#####################################################################################')
-    logger.verbose(`                       loadAccountData(accountCredentials = ${!!accountCredentials})`)
-    logger.verbose('#####################################################################################')
-    logger.sensitive(`accountCredentials = ${JSON.stringify(accountCredentials)}`);
-
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## loadAccountData(accountCredentials)`);
+    logger.verbose(`## `);
+    logger.sensitive(`accountCredentials=${JSON.stringify(accountCredentials)}`);
     return new Promise((resolve, reject) => {
 
       logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
@@ -333,10 +332,10 @@ class Gravity {
           { size: 'all', show_pending: null, show_unconfirmed: false },
           accountCredentials.password )
           .then((recordsContainer) => { //{records,last_record,pending}
-            logger.debug('---------------------------------------------------------------------------------------')
+            logger.verbose(`-----------------------------------------------------------------------------------`);
             logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
-            logger.debug('---------------------------------------------------------------------------------------')
-
+            logger.verbose(`-- `);
+            logger.sensitive(`recordsContainer=${JSON.stringify(recordsContainer)}`);
             const allRecords = recordsContainer.records;
             if (Array.isArray(allRecords) && !allRecords.length ){
               logger.warn(`-- the records array is empty`)
@@ -374,8 +373,10 @@ class Gravity {
             return resolve(payload)
           })
           .catch((error) => {
-            logger.error('Theres an error!');
-            logger.error(error);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** loadAccountData.getRecords.catch(error)`);
+            logger.error(`** `);
+            logger.sensitive(`error=${JSON.stringify(error)}`);
             reject('There was an error loading records');
           });
     });

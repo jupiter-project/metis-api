@@ -282,6 +282,12 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Send a message
    */
   app.post('/v1/api/data/messages', async (req, res) => {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## Send A Message)`);
+    logger.verbose(`## app.post('/v1/api/data/messages'(req, res)`);
+    logger.verbose(`## `);
+    logger.sensitive(`req.body=${JSON.stringify(req.body)}`);
+    logger.sensitive(`res=${JSON.stringify(res)}`);
     let response;
       let { data } = req.body;
       const { user, channel } = req;
@@ -305,6 +311,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
         response = await message.sendRecord(userData, tableData);
+        logger.sensitive(`response=${JSON.stringify(response)}`);
         let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
           const senderAccount = user.userData.account;
@@ -335,7 +342,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Create a record, assigned to the current user
    */
   app.post('/v1/api/create/channels', (req, res, next) => {
-    logger.verbose(`app.post(/v1/api/create/channels)`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## app.post('/v1/api/create/channels')(req,res,next)`);
+    logger.verbose(`## `);
+    logger.sensitive(`req=${JSON.stringify(req)}`);
+    logger.sensitive(`res=${JSON.stringify(res)}`);
     const params = req.body;
     let { channelName } = params;
     const {
@@ -347,7 +358,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
     const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
 
-    logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
+    // logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
     const data = {
       name: channelName,
       date_confirmed: Date.now(),
@@ -362,14 +373,24 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       createdBy: userData.account,
     };
 
+    logger.sensitive(`data=${JSON.stringify(data)}`);
     const channelRecord = require('../models/channel.js');
     const channelObject = new channelRecord(data);
     channelObject.create(decryptedAccountData)
         .then((response) => {
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- channelObject.then(response)`);
+          logger.verbose(`-- `);
+          logger.sensitive(`response=${JSON.stringify(response)}`);
+          logger.sensitive(`decryptedAccountData=${JSON.stringify(decryptedAccountData)}`);
+
           res.status(200).send(response);
         })
         .catch((err) => {
-          logger.error(`app.post() recordObject.create().catch() ${ JSON.stringify(err)}`);
+          logger.error(`***********************************************************************************`);
+          logger.error(`** channelObject.create(decryptedAccountData).catch(err)`);
+          logger.error(`** `);
+          logger.sensitive(`err=${JSON.stringify(err)}`);
           res.status(500).send({
             success: false,
             errors: err.errors

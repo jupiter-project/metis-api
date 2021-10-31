@@ -26,10 +26,10 @@ class JupiterTransactionsService {
 
 
     isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer) {
-        logger.verbose('################################################################');
-        logger.verbose('## isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer)');
-        logger.verbose('##');
-        // console.log(unconfirmedTransactionsContainer);
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer)`);
+        logger.verbose(`## `);
+        logger.sensitive(`unconfirmedTransactionsContainer=${JSON.stringify(unconfirmedTransactionsContainer)}`);
 
         try {
             const unconfirmedTransactions = unconfirmedTransactionsContainer.unconfirmedTransactions;

@@ -416,6 +416,10 @@ class Model {
         reject({ false: false, verification_error: true, errors: self.verify().messages });
       } else {
         eventEmitter.on('id_generated', () => {
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- create().on.id_generated`);
+          logger.verbose(`-- `);
+
           const stringifiedRecord = JSON.stringify(self.record);
 
           const fullRecord = {
@@ -464,9 +468,14 @@ class Model {
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);
 
-
           axios.post(callUrl)
             .then((response) => {
+              logger.verbose(`-----------------------------------------------------------------------------------`);
+              logger.verbose(`-- create().on.id_generated.axiosPost().then(response)`);
+              logger.verbose(`-- `);
+              logger.sensitive(`response=${JSON.stringify(response)}`);
+              logger.sensitive(`callUrl=${JSON.stringify(callUrl)}`);
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 const accountInfo = {
                   transaction: response.data.transactionJSON.transaction,
@@ -485,40 +494,61 @@ class Model {
             });
         });
         eventEmitter.on('table_loaded', () => {
-          logger.debug(`create().on(table_loaded)`);
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- create().on.table_loaded()`);
+          logger.verbose(`-- `);
           logger.debug(`create().generateID()`);
 
           self.generateId(appTableCredentials)
             .then(() => {
-              logger.debug(`create().generateID().then()`);
+              logger.verbose(`-----------------------------------------------------------------------------------`);
+              logger.verbose(`-- create().generateId(appTableCredentials).then()`);
+              logger.verbose(`-- `);
+              logger.sensitive(`appTableCredentials=${JSON.stringify(appTableCredentials)}`);
               if (self.record.id === undefined) {
                 reject({ success: false, errors: 'Id for model was not generated' });
               }
               eventEmitter.emit('id_generated');
             })
             .catch((err) => {
+              logger.error(`***********************************************************************************`);
+              logger.error(`** reate().generateId(appTableCredentials).catch(err)`);
+              logger.error(`** `);
+              logger.sensitive(`err=${JSON.stringify(err)}`);
               logger.error(err);
               reject({ success: false, errors: err });
             });
         });
 
         eventEmitter.on('request_authenticated', () => {
-          logger.verbose(`create().on(request_authenticated)`);
-          logger.debug(`create().loadTable()`);
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- create().on.request_authenticated()`);
+          logger.verbose(`-- `);
+
           self.loadAppTable(accessLink)
             .then((applicationTableCredentials) => {
-              logger.debug(`create().loadTable().then()`);
+              logger.verbose(`-----------------------------------------------------------------------------------`);
+              logger.verbose(`-- self.loadAppTable(accessLink)`);
+              logger.verbose(`-- `);
+              logger.sensitive(`accessLink=${JSON.stringify(accessLink)}`);
               appTableCredentials = applicationTableCredentials;
               logger.sensitive(`recordTable = ${JSON.stringify(appTableCredentials)}`);
               logger.sensitive(`accessLink = ${JSON.stringify(accessLink)}`);
               eventEmitter.emit('table_loaded');
             })
             .catch((err) => {
+              logger.error(`***********************************************************************************`);
+              logger.error(`** self.loadAppTable(accessLink).catch(err)`);
+              logger.error(`** `);
+              logger.sensitive(`err=${JSON.stringify(err)}`);
               reject({ success: false, errors: err });
             });
         });
 
         eventEmitter.on('authenticate_user_request', () => {
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- functionName(on.authenticate_user_request)`);
+          logger.verbose(`-- `);
           if (user.record.api_key === self.user.api_key) {
             eventEmitter.emit('request_authenticated');
           } else {
@@ -548,14 +578,10 @@ class Model {
           });
           eventEmitter.emit('authenticate_user_request');
         } else if (self.user && self.user.id) {
-
           const User = require('./user.js');
           gravity.findById(self.user.id, 'user')
             .then((response) => {
-
               user = new User(response.record);
-
-
               eventEmitter.emit('authenticate_user_request');
             })
             .catch((err) => {
@@ -563,7 +589,6 @@ class Model {
               reject({ success: false, errors: 'There was an error in authentication of request/user validation' });
             });
         } else {
-          // eventEmitter.emit('request_authenticated');
           reject({ success: false, errors: 'There was an error in authentication of request/user validation' });
         }
       }
