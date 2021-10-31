@@ -325,15 +325,10 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const {jobId} = req.query;
       const callback = function(err, job) {
         if(!err){
-            if(job){
-              logger.info(`Job ${jobId} status ${job.state()}`);
-              return res.status(200).send({ success: true, status: job.state() });
-            } else {
-              return res.status(200).send({ success: true, status: 'completed' });
-            }
+          return res.status(200).send({ success: true, status: job.state() });
         } else {
-            console.log(err);
-            return res.status(200).send({ success: true, status: 'completed' });
+          console.log(err);
+          return res.status(404).send({ success: false, status: `Problem with job id: ${jobId}` });
         }
       }
       jobScheduleService.checkJobStatus(jobId, callback);

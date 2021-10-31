@@ -2,12 +2,19 @@ import _ from 'lodash';
 import mailer from 'nodemailer';
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
-import {messagesConfig} from '../config/constants';
+import {channelConfig, messagesConfig} from '../config/constants';
 import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
 import metis from '../config/metis';
-const { 
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {JupiterAPIService} from "../services/jupiterAPIService";
+import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {GravityCrypto} from "../services/gravityCrypto";
+import channelRecord from "../models/channel.js";
+const {
   v1: uuidv1,
   v4: uuidv4,
 } = require('uuid');
@@ -192,20 +199,24 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Accept channel invite
    */
   app.post('/v1/api/channels/import', async (req, res) => {
-    const { data } = req.body;
-    const { accountData } = req.user;
-    const channel = new Channel(data.channel_record);
+    // const { userPublicKey } = req.body;
+    const { accountData, userData } = req.user;
+    const { channel_record } = req.channel;
+
+
+    channel_record.invited = true;
+    channel_record.sender = userData.account;
+    const channel = new Channel(channel_record);
     channel.user = JSON.parse(gravity.decrypt(accountData));
 
-    let response;
-    try {
-      response = await channel.import(channel.user);
-    } catch (e) {
-      logger.error(e);
-      response = { error: true, fullError: e };
-    }
-
-    res.send(response);
+    channel.import(channel.user)
+        .then(() => {
+          return res.send({success: true, message: 'Invite accepted'});
+        })
+        .catch(error => {
+          logger.error(`Error accepting invite: ${JSON.stringify(error)}`);
+          return res.status(500).send({ error: true, fullError: error });
+        });
   });
 
   /**
@@ -238,48 +249,32 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Get a channel's messages
    */
   app.get('/v1/api/data/messages/:scope/:firstIndex', async (req, res) => {
-    let response;
-    const { user } = req;
-
+    const { user, channel } = req;
     const tableData = {
-      passphrase: req.headers.channelaccess,
-      account: req.headers.channeladdress,
-      password: req.headers.channelkey,
+      passphrase: channel.channel_record.passphrase,
+      account: channel.channel_record.account,
+      password: channel.channel_record.password,
     };
+    const channelModel = new Channel(tableData);
+    channelModel.user = user;
 
-    const channel = new Channel(tableData);
-    channel.user = user;
-    try {
       const order = _.get(req, 'headers.order', 'desc');
       const limit = _.get(req, 'headers.limit', 10);
-      const data = await channel.loadMessages(
-        req.params.scope,
-        req.params.firstIndex,
-        order,
-        limit,
-      );
-      response = data;
-    } catch (e) {
-      logger.error(e);
-      response = { success: false, fullError: e };
-    }
-
-    if (!response.success) {
-      return res.status(400).send(response);
-    }
-
-    return res.send(response);
+      channelModel.loadMessages(req.params.scope, req.params.firstIndex, order, limit)
+      .then(response => res.send(response))
+      .catch(error => {
+        console.log('Error getting messages', error);
+        return res.status(500).send({success: false, message: 'Something went wrong'});
+      });
   });
 
   /**
    * Send a message
    */
   app.post('/v1/api/data/messages', async (req, res) => {
-
     let response;
-
-      let { tableData, data } = req.body;
-      const { user } = req;
+      let { data } = req.body;
+      const { user, channel } = req;
       data = {
         ...data,
         name: user.userData.alias,
@@ -287,6 +282,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         senderAlias: user.userData.alias,
       };
 
+      const tableData = channel.channel_record;
       const message = new Message(data);
       const { memberProfilePicture } = await metis.getMember({
         channel: tableData.account,
@@ -294,8 +290,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         password: tableData.password,
       });
 
-      const mentions = _.get(req, 'body.mentions', []);
-      const channel = _.get(req, 'body.channel', []);
+      const mentions = _.get(req, 'data.mentions', []);
       const channelName = _.get(tableData, 'name', 'a channel');
       const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
@@ -324,6 +319,52 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         logger.error('[/data/messages]', JSON.stringify(e));
         res.status(500).send({ success: false, fullError: e });
       }
+  });
+
+  /**
+   * Create a record, assigned to the current user
+   */
+  app.post('/v1/api/create/channels', (req, res, next) => {
+    logger.verbose(`app.post(/v1/api/create/channels)`);
+    const params = req.body;
+    let { channelName } = params;
+    const {
+      id,
+      accessKey,
+      accountData,
+      userData,
+    } = req.user;
+
+    const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+
+    logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
+    const data = {
+      name: channelName,
+      date_confirmed: Date.now(),
+      address: decryptedAccountData.account,
+      passphrase: '',
+      password: '',
+      public_key: decryptedAccountData.publicKey,
+      user_address: decryptedAccountData.account,
+      user_api_key: accessKey,
+      user_id: id,
+      sender: userData.account,
+      createdBy: userData.account,
+    };
+
+    const channelRecord = require('../models/channel.js');
+    const channelObject = new channelRecord(data);
+    channelObject.create(decryptedAccountData)
+        .then((response) => {
+          res.status(200).send(response);
+        })
+        .catch((err) => {
+          logger.error(`app.post() recordObject.create().catch() ${ JSON.stringify(err)}`);
+          res.status(500).send({
+            success: false,
+            errors: err.errors
+          });
+        });
 
   });
 };

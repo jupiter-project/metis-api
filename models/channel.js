@@ -2,7 +2,17 @@ import axios from 'axios';
 import events from 'events';
 import Model from './_model';
 import Methods from '../config/_methods';
-import { gravity } from '../config/gravity';
+import {gravity} from '../config/gravity';
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import JupiterFSService from "../services/JimService";
+import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {JupiterAPIService} from "../services/jupiterAPIService";
+import {GravityCrypto} from "../services/gravityCrypto";
+import {channelConfig} from "../config/constants";
+import {JupiterFundingService} from "../services/jupiterFundingService";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+
 const logger = require('../utils/logger')(module);
 
 class Channel extends Model {
@@ -79,7 +89,7 @@ class Channel extends Model {
             JSON.stringify(fullRecord),
             accessLink.encryptionPassword,
           );
-          const fee = 95000;
+          const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
           const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true`;
 
           axios.post(callUrl)
@@ -137,8 +147,6 @@ class Channel extends Model {
       query.noConfirmed = true;
     }
 
-
-    // console.log(query);
     const response = await gravity.getDataTransactions(query);
 
     if (!response.error) {
@@ -148,10 +156,11 @@ class Channel extends Model {
   }
 
 
-  async create() {
-    logger.verbose('#########################################################');
-    logger.verbose(`## Channel.create()`);
-    logger.verbose('##');
+  async create(accessLink) {
+      logger.verbose('#########################################################');
+      logger.verbose(`## Channel.create(accessLink)`);
+      logger.verbose('##');
+
     if (!this.record.passphrase || this.record.password) {
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();
@@ -175,17 +184,43 @@ class Channel extends Model {
 
     logger.sensitive(`record = ${JSON.stringify(this.record)}`);
     logger.sensitive(`data = ${JSON.stringify(this.data)}`);
-    // logger.sensitive(`publicKey = ${JSON.stringify(response.publicKey)}`);
 
+    if (accessLink) {
+      const applicationGravityAccountProperties = new GravityAccountProperties(
+          process.env.APP_ACCOUNT_ADDRESS,
+          process.env.APP_ACCOUNT_ID,
+          process.env.APP_PUBLIC_KEY,
+          process.env.APP_ACCOUNT,
+          '', // hash
+          process.env.ENCRYPT_PASSWORD,
+          process.env.ENCRYPT_ALGORITHM,
+          process.env.APP_EMAIL,
+          process.env.APP_NAME,
+          '', // lastname
+      );
 
-    if (this.accessLink) {
-      return super.create(JSON.parse(gravity.decrypt(this.accessLink)));
-          // .then( channel  => {
-          //   gravity.attachTable('storage')
-          //       .then(
-          //           jimServer.sendFirstImage(fromAddress, password, passphrase, file='metisLogo' );
-          //       )
-          // }  )
+      const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+      const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+      const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+      const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+      const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+      const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+      const DEADLINE = process.env.JUPITER_DEADLINE;
+
+      const appAccountProperties = new ApplicationAccountProperties(
+          DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+      );
+
+      applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
+
+      const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+      const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
+
+      return super.create(accessLink)
+          .then( ({accountInfo}) =>
+              Promise.all([accountInfo, jupiterFundingService.waitForTransactionConfirmation(accountInfo.transaction)]))
+          .then(([accountInfo]) => jupiterFundingService.provideInitialStandardTableFunds({ address: accountInfo.account }))
+          .then(sendMoneyResponse => jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction));
     }
 
     return Promise.reject({ error: true, message: 'Missing user information' });

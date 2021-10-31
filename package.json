@@ -68,6 +68,7 @@
     "bcrypt-nodejs": "0.0.3",
     "body-parser": "^1.17.2",
     "bull": "^3.3.1",
+    "checksum": "^1.0.0",
     "cloudinary": "^1.21.0",
     "concurrently": "^3.5.0",
     "connect-flash": "^0.1.1",

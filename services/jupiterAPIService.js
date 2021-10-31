@@ -27,7 +27,7 @@ class JupiterAPIService {
   jupiterUrl(givenParams) {
     const params = givenParams;
     const url = `${this.jupiterHost}/nxt?`;
-    const query = queryString.stringify(params);
+    const query = params ? queryString.stringify(params) : '';
 
     return url + query;
     }
@@ -208,12 +208,14 @@ class JupiterAPIService {
     /**
      *
      * @param {string} address - JUP-123
+     * @param {string} message
+     * @param {boolean} withMessage
      * @returns {Promise<*>} - { requestProcessingTime, transactions: [{signature, transactionIndex,type,phased,ecBlockId,
      * signatureHash,attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, version.MetisMetaData,
      * version.EncryptedMessage},senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
-    async getBlockChainTransactions(address) {
+    async getBlockChainTransactions(address, message , withMessage = true ) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getBlockChainTransactions(account: ${address})`);
         logger.verbose('##');
@@ -224,7 +226,8 @@ class JupiterAPIService {
         return this.get( {
             requestType: 'getBlockchainTransactions',
             account: address,
-            withMessage: true,
+            message,
+            withMessage,
             type: 1
         });
     }
@@ -305,6 +308,7 @@ class JupiterAPIService {
         logger.verbose(`## sendSimpleNonEncipheredMetisMessage(from: ${from}, to: ${to}, message, fee=${fee}, subtype=${subtype}, prunable=${prunable})`);
         logger.verbose('##');
         logger.sensitive(`message= ${message}`);
+
         return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, subtype, prunable)
     }
 
@@ -409,6 +413,48 @@ class JupiterAPIService {
             null,
             null,
             message,
+            true,
+            null,
+            null,
+            prunable,
+            true,
+            null,
+            null,
+            null,
+            null,
+            null,
+            subtype
+        )
+    }
+
+
+    /**
+     * Send encrypted metis message and message
+     * @param from
+     * @param to
+     * @param messageToEncrypt
+     * @param message
+     * @param fee
+     * @param subtype
+     * @param prunable
+     * @param recipientPublicKey
+     * @returns {Promise<*>}
+     */
+    sendEncipheredMetisMessageAndMessage(from, to, messageToEncrypt, message, fee, subtype, prunable, recipientPublicKey ) {
+        return this.sendMetisMessageOrMessage(
+            'sendMetisMessage',
+            to,
+            recipientPublicKey,
+            from,
+            null,
+            fee,
+            this.appProps.deadline,
+            null,
+            null,
+            message,
+            null,
+            null,
+            messageToEncrypt,
             true,
             null,
             null,
