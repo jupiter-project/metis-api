@@ -199,21 +199,31 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Accept channel invite
    */
   app.post('/v1/api/channels/import', async (req, res) => {
-    // const { userPublicKey } = req.body;
+
+    logger.verbose('#########################################################');
+    logger.verbose(`## Accept Channel Invitation`);
+    logger.verbose(`## app.post(/v1/api/channels/import)`);
+    logger.verbose('##');
     const { accountData, userData } = req.user;
-    const { channel_record } = req.channel;
-
-
-    channel_record.invited = true;
-    channel_record.sender = userData.account;
-    const channel = new Channel(channel_record);
-    channel.user = JSON.parse(gravity.decrypt(accountData));
-
+    const { channel_record: channelRecord } = req.channel;
+    logger.sensitive(`accountData=${JSON.stringify(accountData)}`)
+    logger.sensitive(`userData=${JSON.stringify(userData)}`)
+    channelRecord.invited = true;
+    channelRecord.sender = userData.account;
+    logger.sensitive(`channel_record=${JSON.stringify(channelRecord)}`)
+    const channel = new Channel(channelRecord);
+    const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+    logger.sensitive(`decryptedAccountData= ${JSON.stringify(decryptedAccountData)}`);
+    channel.user = decryptedAccountData;
     channel.import(channel.user)
         .then(() => {
+          logger.verbose(`------------------------------------------`)
+          logger.verbose(`-- channel.import.then()`)
           return res.send({success: true, message: 'Invite accepted'});
         })
         .catch(error => {
+          logger.verbose(`*********************************************`)
+          logger.error(`** channel.import.catch(error)`)
           logger.error(`Error accepting invite: ${JSON.stringify(error)}`);
           return res.status(500).send({ error: true, fullError: error });
         });

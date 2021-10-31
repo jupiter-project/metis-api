@@ -514,25 +514,17 @@ class JupiterTransactionsService {
                 logger.debug(`transactionId= ${transactionId}`)
                 metisMessagePromises.push(
                     new Promise((res, rej) => {
-                        //async getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
                         this.getReadableMessageFromMessageTransactionIdAndDecrypt(
                             transactionId,
                             accountProperties.passphrase.crypto,
                             accountProperties.passphrase
                         )
                             .then(message => {
-                                console.log('i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i ')
-                                console.log(message)
-                                console.log('i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i ')
-
-
-
-
                                 logger.verbose(`-----------------------------------------------------`)
                                 logger.verbose(`decipherMessagesFromMessageTransactionsAndReturnTransactions(messageTransactions).getReadableMessageFromMessageTransactionIdAndDecrypt().then()`)
                                 logger.verbose(`-----------------------------------------------------`)
                                 transaction.attachment.decryptedMessage = {};
-                                transaction.attachment.decryptedMessage.data = message;
+                                transaction.attachment.decryptedMessage.data = message.message;
                                 res(transaction)
 
                             })
@@ -705,7 +697,7 @@ class JupiterTransactionsService {
         // logger.verbose('#####################################################################################');
         // logger.verbose('## getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)');
         // logger.verbose('####');
-        logger.verbose(`messageTransactionId=${messageTransactionId}`);
+        // logger.verbose(`messageTransactionId=${messageTransactionId}`);
         return new Promise((resolve, reject) => {
             this.getReadableMessageFromMessageTransactionId(messageTransactionId, passphrase)
                 .then(decryptedMessage => {
@@ -717,13 +709,13 @@ class JupiterTransactionsService {
                         const messageToParse = crypto.decryptOrNull(decryptedMessage);
 
                         if(!messageToParse){
-                            logger.debug('messageToParse is null');
+                            // logger.debug('messageToParse is null');
                             return resolve(''); // because of Promise.all we should not do reject.
                         }
 
                         // const message = JSON.parse(messageToParse);
                         const message = gu.jsonParseOrPassThrough(messageToParse);
-                        return resolve(message);
+                        return resolve({message: message, transactionId: messageTransactionId});
 
                     } catch (error) {
                         logger.error(`********************`)
@@ -857,9 +849,45 @@ class JupiterTransactionsService {
     }
 
 
-    async getAllMessagesFromBlockChain(accountProperties, blockChainTransactions,  decipherWith=null){
+    async getAllMessagesFromBlockChainAndReturnMessageContainers(accountProperties, blockChainTransactions, decipherWith=null){
         logger.verbose('##############################################################################################');
-        logger.verbose(`## getAllMessagesFromBlockChain(accountProperties, blockChainTransactions,  decipherWith=null)`);
+        logger.verbose(`## getAllMessagesFromBlockChainAndReturnMessageContainers(accountProperties, blockChainTransactions,  decipherWith=null)`);
+        logger.verbose('##');
+        logger.debug(`    blockChainTransactions.length= ${JSON.stringify(blockChainTransactions.length)}`);
+        let crypto = null;
+        if (!decipherWith){
+            crypto = accountProperties.crypto;
+        } else {
+            crypto = decipherWith;
+        }
+
+        const messageTransactions = this.filterMessageTransactionsBySender(blockChainTransactions, accountProperties.address);
+        const filteredTransactionIds = this.extractTransactionIds(messageTransactions);
+
+        return new Promise( (resolve, reject) => {
+            this.readMessagesFromMessageTransactionIdsAndDecrypt(
+                filteredTransactionIds,
+                crypto,
+                accountProperties.passphrase
+            )
+                .then((messageContainers) => {
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`getAllMessagesFromBlockChainAndReturnMessageContainers().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`messages.length ${messageContainers.length}`);
+
+                    return resolve(messageContainers);
+                })
+                .catch( error => {
+                    reject(error);
+                })
+        })
+
+    }
+
+    async getAllMessagesFromBlockChainAndIncludeTransactionInformation(accountProperties, blockChainTransactions,  decipherWith=null){
+        logger.verbose('##############################################################################################');
+        logger.verbose(`## getAllMessagesFromBlockChainAndIncludeTransactionInformation(accountProperties, blockChainTransactions,  decipherWith=null)`);
         logger.verbose('##');
         logger.debug(`    blockChainTransactions.length= ${JSON.stringify(blockChainTransactions.length)}`);
         let crypto = null;
@@ -880,9 +908,10 @@ class JupiterTransactionsService {
             )
                 .then((messages) => {
                     logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`getAllMessagesFromBlockChain().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
-                    logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`messages.length ${messages.length}`);
+                    logger.verbose(`-- getAllMessagesFromBlockChainAndIncludeTransactionInformation().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
+                    logger.verbose('--');
+                    logger.verbose(`messages.length: ${messages.length}`);
+
                     return resolve(messages);
                 })
                 .catch( error => {
@@ -891,7 +920,6 @@ class JupiterTransactionsService {
         })
 
     }
-
 
     /**
      *
@@ -942,6 +970,7 @@ class JupiterTransactionsService {
                             logger.verbose(`fetchAllMessagesBySender().getAllBlockChainTransactions().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
                             logger.verbose('---------------------------------------------------------------------------------------');
                             logger.verbose(`messages.length ${messages.length}`);
+
                             return resolve(messages);
                         })
                 })

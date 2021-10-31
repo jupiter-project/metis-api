@@ -4,7 +4,6 @@ const {words} = require('../config/_word_list');
 const checksum = require('checksum');
 
 
-
 const jsonParseOrPassThrough = function (stringToParse)
 {
     let json = null;

@@ -304,6 +304,11 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## sendSimpleNonEncipheredMetisMessage(from: ${from}, to: ${to}, message, fee=${fee}, subtype=${subtype}, prunable=${prunable})`);
+        logger.verbose('##');
+        logger.sensitive(`message= ${message}`);
+
         return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, subtype, prunable)
     }
 
@@ -321,13 +326,13 @@ class JupiterAPIService {
      * @returns {Promise<unknown>}
      */
     async sendSimpleNonEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, subtype, prunable) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## sendSimpleNonEncipheredMessageOrMetisMessage(requestType: ${requestType}, from: ${from}, to: ${to}, message, fee=${fee}, subtype=${subtype}, prunable=${prunable})`);
+        logger.verbose('##');
+        logger.sensitive(`message= ${message}`);
 
         if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){ throw new Error('invalid request type') }
-
-        console.log(subtype)
-        if(requestType == 'sendMetisMessage' && !subtype) {
-            throw new Error('subtype is invalid');
-        }
+        if(requestType == 'sendMetisMessage' && !subtype) {throw new Error('subtype is invalid')}
 
         return this.sendMetisMessageOrMessage(
             requestType,
@@ -518,7 +523,7 @@ class JupiterAPIService {
     ) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## sendMetisMessageOrMessage(*)`);
-        logger.verbose('#####################################################################################');
+        logger.verbose('##');
 
         let params = {}
 
@@ -555,6 +560,8 @@ class JupiterAPIService {
         if(encryptToSelfMessageNonce){ params.encryptToSelfMessageNonce = encryptToSelfMessageNonce}
         if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ params.compressMessageToEncryptToSelf = 'true'}
 
+        logger.sensitive(`params= ${JSON.stringify(params)}`);
+
         return new Promise( (resolve, reject) => {
             this.post(params)
                 .then((response) => {
@@ -567,11 +574,11 @@ class JupiterAPIService {
                 })
                 .catch( error  => {
                     logger.error(`error()`);
+                    console.log(error)
                     return reject({errorType: 'requestError', message: error});
                 });
         })
     }
-
 
 
     /**

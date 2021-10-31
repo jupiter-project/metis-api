@@ -67,39 +67,48 @@ module.exports = (app) => {
 
   //@TODO this endpoint has to be removed! Metis is responsible for adding users to channels. Not the user.
   app.post('/v1/api/data/members', async (req, res) => {
-    const { userData, accountData } = req.user;
-    const { userPublicKey } = req.body;
-    const { channel_record: {
-      account : channelAccount,
-      passphrase: channelPassphrase,
-      publicKey: channelPublicKey,
-      password: channelPassword }} = req.channel;
+      logger.verbose('#####################################################################################');
+      logger.verbose(`## app.post(/v1/api/data/members)`);
+      logger.verbose('##');
+      logger.sensitive(req.body);
+      const { userData, accountData } = req.user;
+        const { userPublicKey } = req.body;
+        const { channel_record: {
+          account : channelAccount,
+          passphrase: channelPassphrase,
+          publicKey: channelPublicKey,
+          password: channelPassword }} = req.channel;
 
-    const memberAccessData = JSON.parse(gravity.decrypt(accountData));
-    const params = {
-      channel: channelAccount,
-      password: channelPassword,
-      account: userData.account,
-      alias: userData.alias,
-    };
+        const memberAccessData = JSON.parse(gravity.decrypt(accountData));
+        const params = {
+          channel: channelAccount,
+          password: channelPassword,
+          account: userData.account,
+          alias: userData.alias,
+        };
 
-    metis.addToMemberList(params)
-        .then(() => {
-          return metis.addMemberToChannel(
-              memberAccessData,
-              userPublicKey,
-              channelPassphrase,  // from
-              channelAccount, // to
-              channelPublicKey,
-              channelPassword
-          );
-        })
-        .then(() => {
-          res.send({success: true, message: 'Member successfully added'});
-        })
-        .catch(error => {
-          logger.error('Error adding member:' + JSON.parse(error));
-          res.status(500).send({success: false, message: 'There was a problem adding the member'});
-        });
-  });
+        metis.addToMemberList(params)
+            .then(() => {
+              return metis.addMemberToChannel(
+                  memberAccessData,
+                  userPublicKey,
+                  channelPassphrase,  // from
+                  channelAccount, // to
+                  channelPublicKey,
+                  channelPassword
+              );
+            })
+            .then(() => {
+              res.send({success: true, message: 'Member successfully added'});
+            })
+            .catch(error => {
+                logger.error(`*************************************`)
+                logger.error(`** app.post() error`)
+                logger.error(`**`)
+                logger.error(`error=${error}`);
+              logger.error('Error adding member:' + JSON.parse(error));
+
+              res.status(500).send({success: false, message: 'There was a problem adding the member'});
+            });
+      });
 };

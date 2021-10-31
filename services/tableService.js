@@ -7,6 +7,7 @@ const logger = require('../utils/logger')(module);
 // import {GravityAccountProperties} from "./gravityAccountProperties";
 // const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
+const jupiterApiService = require("./jupiterAPIService");
 
 /**
  *

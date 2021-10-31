@@ -162,9 +162,9 @@ const metisRegistration = async (account, requestBody) => {
  * @param {*} passport
  */
 const metisSignup = (passport, jobsQueue, websocket ) => {
-  logger.verbose('#####################################################################################');
+  logger.verbose('######################################################');
   logger.verbose('##  metisSignup(passport)');
-  logger.verbose('#####################################################################################');
+  logger.verbose('##');
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',

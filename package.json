@@ -120,7 +120,8 @@
     "winston": "^3.3.3",
     "winston-mongodb": "^5.0.7",
     "winston-papertrail": "^1.0.5",
-    "winston-syslog": "^2.4.4"
+    "winston-syslog": "^2.4.4",
+    "yargs": "^17.2.1"
   },
   "devDependencies": {
     "bootstrap": "^4.0.0",

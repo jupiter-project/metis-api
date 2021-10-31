@@ -1,5 +1,6 @@
 const { JupiterFundingService } = require('./jupiterFundingService');
 const logger = require('../utils/logger')(module);
+const gu = require('../utils/gravityUtils');
 /**
  *
  */
@@ -299,39 +300,116 @@ class AccountRegistration {
             accountType
         ).then( statement => {
 
-            const tables = statement.attachedTables.reduce( (reduced, tableStatement) => {
-                const tableInfo = `
-        statement id:${tableStatement.statementId}
-        address: ${tableStatement.properties.address}
-        balance: ${tableStatement.balance}                          
-        unconfirmed balance: ${tableStatement.unconfirmedBalance}                          
-        table name: ${tableStatement.tableName}   
-        record count: ${tableStatement.records.length}     
-        messages count: ${tableStatement.messages.length} 
-        blockchainTransaction Count: ${tableStatement.blockchainTransactionCount}                         
-                  `
-                return reduced + tableInfo;
-            }, '')
+            const records = statement.records.slice(-15).reverse().reduce( (recordStatement, record) => {
+                return recordStatement + JSON.stringify(record) + `\n\n`
+            }, '' )
 
+            const messages = statement.messages.slice(-15).reverse().reduce( (messageStatement, messageContainer) => {
+                return messageStatement + JSON.stringify(messageContainer) + `\n\n`
+            }, '' )
+
+            const transactions = statement.transactions.slice(-15).reverse().reduce( (transactionStatement, transaction) => {
+                return transactionStatement + JSON.stringify(transaction) + `\n\n`
+            }, '' )
+
+            const tableStatement = this.printTableStatement(statement.attachedTables)
+
+            const label = statement.statementId.toUpperCase();
             return `
-                        -THE STATEMENT-
-                   
+            
+#################################################################################################################
+######## ##     ## ########     ######  ########    ###    ######## ######## ##     ## ######## ##    ## ######## 
+   ##    ##     ## ##          ##    ##    ##      ## ##      ##    ##       ###   ### ##       ###   ##    ##    
+   ##    ##     ## ##          ##          ##     ##   ##     ##    ##       #### #### ##       ####  ##    ##    
+   ##    ######### ######       ######     ##    ##     ##    ##    ######   ## ### ## ######   ## ## ##    ##    
+   ##    ##     ## ##                ##    ##    #########    ##    ##       ##     ## ##       ##  ####    ##    
+   ##    ##     ## ##          ##    ##    ##    ##     ##    ##    ##       ##     ## ##       ##   ###    ##    
+   ##    ##     ## ########     ######     ##    ##     ##    ##    ######## ##     ## ######## ##    ##    ##    
+#################################################################################################################
+
+         
+  ${label}
+  ------------
+                      
   statement id: ${statement.statementId}
   address: ${statement.properties.address}
+  passphrase: ${statement.properties.passphrase}
+  password: ${statement.properties.password}
   balance: ${statement.balance}     
   unconfirmedBalance: ${statement.unconfirmedBalance}     
   record count: ${statement.records.length}     
   messages count: ${statement.messages.length}     
   attachedTables count: ${statement.attachedTables.length}     
   blockchainTransaction Count: ${statement.blockchainTransactionCount}
-                        
-              TABLES
-              ${tables}
-              
+  transactions Count: ${statement.transactions.length}
+  
+  ${label} RECORDS
+  -------------
+  ${records}
+            
+  ${label} MESSAGES
+  ---------------
+  ${messages}
+  
+  ${label} TRANSACTIONS
+  ---------------
+  ${transactions}
+  
+  ${label} TABLES
+  -------------
+  ${tableStatement}
+            
 ths end.              
               `
         } )
-        // })
+    }
+
+    printTableStatement(attachedTables){
+        const tables = attachedTables.reduce( (reduced, tableStatement) => {
+
+            let count = 0
+            const records = tableStatement.records.slice(-15).reverse().reduce( (recordStatement, record) => {
+                count++;
+                return `(${count}) ` + recordStatement + JSON.stringify(record) + `\n\n`
+            }, '' )
+
+            const messages = tableStatement.messages.slice(-15).reverse().reduce( (messageStatement, message) => {
+                return messageStatement + JSON.stringify(message) + `\n\n`
+            }, '' )
+
+            const transactions = tableStatement.transactions.slice(-15).reverse().reduce( (transactionStatement, transaction) => {
+                transaction.attachment.encryptedMessage.data = ''
+                return transactionStatement + JSON.stringify(transaction) + `\n\n`
+            }, '' )
+
+            const label = tableStatement.statementId;
+
+            const tableInfo = `
+        -- ${label}
+        
+            statement id:${tableStatement.statementId}
+            address: ${tableStatement.properties.address}
+            passphrase: ${tableStatement.properties.passphrase}
+            password: ${tableStatement.properties.password}
+            balance: ${tableStatement.balance}                          
+            unconfirmed balance: ${tableStatement.unconfirmedBalance}                          
+            table name: ${tableStatement.tableName}   
+            record count: ${tableStatement.records.length}     
+            messages count: ${tableStatement.messages.length} 
+            blockchainTransaction Count: ${tableStatement.blockchainTransactionCount}      
+            transaction Count: ${tableStatement.transactions.length}      
+            -- ${label} records -------------------------------------------------------- 
+            ${records}
+            -- ${label} messages --------------------------------------------------------
+            ${messages}
+            -- ${label} transactions  --------------------------------------------------------
+            ${transactions}
+         
+                  `
+            return reduced + tableInfo;
+        }, '')
+
+        return tables;
     }
 }
 
