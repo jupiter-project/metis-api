@@ -149,6 +149,9 @@ class Channel extends Model {
 
 
   async create() {
+    logger.verbose('#########################################################');
+    logger.verbose(`## Channel.create()`);
+    logger.verbose('##');
     if (!this.record.passphrase || this.record.password) {
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();
@@ -162,6 +165,11 @@ class Channel extends Model {
       this.data.account = response.address;
       this.data.publicKey = response.publicKey;
 
+      logger.sensitive(`creating a new Channel Account`);
+      logger.sensitive(`address: ${response.address}`);
+      logger.sensitive(`publicKey: ${response.publicKey}`);
+      logger.sensitive(`passphrase: ${this.record.passphrase}`);
+      logger.sensitive(`password: ${this.record.password}`);
       logger.sensitive(`response = ${JSON.stringify(response) }`);
     }
 

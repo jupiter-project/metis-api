@@ -162,9 +162,9 @@ const metisRegistration = async (account, requestBody) => {
  * @param {*} passport
  */
 const metisSignup = (passport, jobsQueue, websocket ) => {
-  logger.verbose('#####################################################################################');
+  logger.verbose('######################################################');
   logger.verbose('##  metisSignup(passport)');
-  logger.verbose('#####################################################################################');
+  logger.verbose('##');
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -182,7 +182,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
 
         const job = jobsQueue.create('user-registration', jobData)
             .priority('high')
-            .removeOnComplete(true)
+            .removeOnComplete(false)
             .save( (err) =>{
                 if(err){
                     logger.error(`there is a problem saving to redis`);

@@ -29,6 +29,9 @@ module.exports = (app) => {
 
   //@TODO this endpoint has to be removed! Metis is responsible for adding users to channels. Not the user.
   app.post('/v1/api/data/members', async (req, res) => {
+    logger.verbose('#####################################################################################');
+    logger.verbose(`## app.post(/v1/api/data/members)`);
+    logger.verbose('##');
     logger.info(req.body);
     const { userData } = req.user;
     const tableData = {
@@ -47,7 +50,10 @@ module.exports = (app) => {
       });
       res.send(response);
     } catch (error) {
-      logger.error(error);
+      logger.error(`*************************************`)
+      logger.error(`** app.post() error`)
+      logger.error(`**`)
+      logger.error(`error=${error}`);
       res.status(500).send(response);
     }
 

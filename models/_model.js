@@ -397,7 +397,7 @@ class Model {
   create(accessLink = false) {
     logger.verbose('#####################################################################################')
     logger.verbose(`##  create(accessLink= ${!!accessLink})`);
-    logger.verbose('#####################################################################################')
+    logger.verbose('##')
 
     const self = this;
     const eventEmitter = new events.EventEmitter();

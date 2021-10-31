@@ -3,11 +3,6 @@ const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 
 
-
-
-
-
-
 const jsonParseOrPassThrough = function (stringToParse)
 {
     let json = null;

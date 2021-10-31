@@ -380,10 +380,7 @@ class JupiterAccountService {
             const promises = []
             promises.push(this.getAccountOrNull(address))
             promises.push(this.getAccountId(passphrase))
-            // async getAllMessagesFromBlockChain(accountProperties, blockChainTransactions,  decipherWith=null){
-            promises.push(this.jupiterTransactionsService.getAllMessagesFromBlockChain(properties, allBlockChainTransactions))
-            // promises.push(this.jupiterTransactionsService.fetchAllMessagesBySender(properties))
-
+            promises.push(this.jupiterTransactionsService.getAllMessagesFromBlockChainAndReturnMessageContainers(properties, allBlockChainTransactions))
             promises.push(this.jupiterAPIService.getAliases(address))
 
             Promise.all(promises)
@@ -392,7 +389,8 @@ class JupiterAccountService {
                 logger.verbose(`-- fetchAccountStatement().promise.all().then()`);
                 logger.verbose('--');
 
-                const [account, getAccountIdResponse, transactionMessages, aliases] = results
+                const [account, getAccountIdResponse, transactionMessagesContainer, aliases] = results;
+                const transactionMessages = transactionMessagesContainer.map(message => message.message);
                 properties.publicKey = getAccountIdResponse.publicKey
                 let accountBalance = null;
                 let accountUnconfirmedBalance = null;
@@ -435,9 +433,10 @@ class JupiterAccountService {
                         balance: accountBalance,
                         unconfirmedBalance: accountUnconfirmedBalance,
                         records: records,
-                        messages: transactionMessages,
+                        messages: transactionMessagesContainer,
                         attachedTables: attachedTablesStatements,
-                        blockchainTransactionCount: allBlockChainTransactions.length
+                        blockchainTransactionCount: allBlockChainTransactions.length,
+                        transactions: allBlockChainTransactions
                     }
 
                     if(accountType === 'table'){
@@ -464,13 +463,12 @@ class JupiterAccountService {
         return new Promise((resolve, reject) => {
 
             this.jupiterTransactionsService.fetchAllMessagesBySender(accountProperties)
-                .then((transactionMessages) => {
+                .then((transactionMessagesContainers) => {
                     logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`fetchAccountData().fetchAllMessagesBySender().then(transactionMessages)`);
-                    logger.verbose('---------------------------------------------------------------------------------------');
-                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
-                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+                    logger.verbose(`-- fetchAccountData().fetchAllMessagesBySender().then(transactionMessages)`);
+                    logger.verbose('--');
 
+                    const transactionMessages = transactionMessagesContainers.map(messageContainer => messageContainer.message);
 
                     const attachedTables = this.tableService.extractTablesFromMessages(transactionMessages);
                     logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
@@ -484,7 +482,7 @@ class JupiterAccountService {
                             accountProperties.publicKey = accountInformationResponse.publicKey;
                             resolve({
                                 attachedTables: attachedTables,
-                                allMessages: transactionMessages,
+                                allMessages: transactionMessagesContainers,
                                 allRecords: records,
                                 accountProperties: accountProperties
                             })
