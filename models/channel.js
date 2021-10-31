@@ -67,7 +67,17 @@ class Channel extends Model {
     throw new Error('Channel not found');
   }
 
+  /**
+   *
+   * @param accessLink
+   * @returns {Promise<unknown>}
+   */
   import(accessLink) {
+    logger.verbose('#####################################################################################');
+    logger.verbose(`## import(accessLink)`);
+    logger.verbose('##');
+    logger.sensitive(`accessLink=${JSON.stringify(accessLink)}`);
+
     const self = this;
     const eventEmitter = new events.EventEmitter();
     let recordTable;
@@ -84,7 +94,7 @@ class Channel extends Model {
             [`${self.model}_record`]: stringifiedRecord,
             date: Date.now(),
           };
-
+          logger.sensitive(`fullRecord=${JSON.stringify(fullRecord)}`);
           const encryptedRecord = gravity.encrypt(
             JSON.stringify(fullRecord),
             accessLink.encryptionPassword,
@@ -92,8 +102,17 @@ class Channel extends Model {
           const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
           const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true`;
 
+          logger.sensitive(`channel invitation----`)
+          logger.sensitive(`url:`)
+          logger.sensitive(callUrl);
+
           axios.post(callUrl)
             .then((response) => {
+              logger.verbose(`-----------------------------------------------------------------`);
+              logger.verbose(`-- import().then`);
+              logger.verbose(`-- `);
+              logger.sensitive(`callUrl=${JSON.stringify(callUrl)}`);
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 resolve({ success: true, message: 'Record created' });
               } else if (response.data.errorDescription != null) {
@@ -103,6 +122,10 @@ class Channel extends Model {
               }
             })
             .catch((error) => {
+              logger.verbose(`********************************************************************************`);
+              logger.verbose(`** import().catch(error)`);
+              logger.verbose(`** `);
+              logger.sensitive(`error=${JSON.stringify(error)}`);
               reject({ success: false, errors: error });
             });
         });
