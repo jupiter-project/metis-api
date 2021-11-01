@@ -11,8 +11,12 @@ const logger = require('../utils/logger')(module);
 
 class Model {
   constructor(data, accessData = null) {
-    // Default values of model
-    logger.verbose(`constructor()`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## constructor(data, accessData)`);
+    logger.verbose(`## `);
+    logger.sensitive(`data=${JSON.stringify(data)}`);
+    logger.sensitive(`accessData=${JSON.stringify(accessData)}`);
+
     this.id = null;
     this.record = {};
     this.model = data.model;
@@ -30,7 +34,9 @@ class Model {
   }
 
   setRecord() {
-    logger.verbose(`setRecord()`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## setRecord()`);
+    logger.verbose(`## `);
     const record = {};
     const self = this;
 
@@ -44,29 +50,33 @@ class Model {
     self.id = record.id;
     self.record.date = Date.now();
 
+    let  userData = null;
     if (self.model === 'user') {
-      self.user = {
+       userData = {
         id: self.id,
         api_key: self.record.api_key,
         public_key: self.data.public_key
       };
 
     } else {
-      self.user = {
+      userData = {
         id: self.data.user_id,
         api_key: self.data.user_api_key,
         public_key: self.data.public_key,
         address: self.data.user_address,
       };
     }
+    self.user = userData;
+    logger.sensitive(`userData=${JSON.stringify(userData)}`);
 
-    logger.debug(`self.user = ${JSON.stringify(self.user)}`);
     return record;
   }
 
   generateId(tableCredentials) {
-    logger.verbose(`generateId()`);
-    logger.sensitive(`tableCredentials = ${tableCredentials}`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## generateId(tableCredentials)`);
+    logger.verbose(`## `);
+    logger.sensitive(`tableCredentials=${JSON.stringify(tableCredentials)}`);
     const self = this;
     const eventEmitter = new events.EventEmitter();
 

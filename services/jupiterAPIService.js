@@ -5,6 +5,9 @@ import {jupiterAxios as axios} from "../config/axiosConf";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
+/**
+ *
+ */
 class JupiterAPIService {
     /**
      *

@@ -2,6 +2,7 @@ const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {GravityCrypto} = require("../services/gravityCrypto");
 const bcrypt = require("bcrypt-nodejs");
 const gu = require("../utils/gravityUtils");
+const {applicationAccountProperties} = require("./applicationAccountProperties");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -21,7 +22,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
      * @param {string} email
      * @param {string} firstName
      * @param {string} lastName
-     * @param {JupiterAccountProperties} applicationAccountProperties
+     * @param {ApplicationAccountProperties} applicationAccountProperties
      */
     constructor(address,
                 accountId,
@@ -53,7 +54,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
         if(algorithm && password){
             this.crypto = new GravityCrypto( algorithm, password );
         }
-
+        this.applicationAccountProperties = applicationAccountProperties
         if(!(applicationAccountProperties == null)){
             this.addApplicationAccountProperties(applicationAccountProperties);
         }
@@ -74,6 +75,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
      */
     addApplicationAccountProperties(applicationAccountProperties){
         this.isApp = true
+        this.applicationAccountProperties = applicationAccountProperties;
         this.deadline = applicationAccountProperties.deadline;
         this.minimumTableBalance = applicationAccountProperties.minimumTableBalance;
         this.minimumAppBalance = applicationAccountProperties.minimumAppBalance;
@@ -106,8 +108,8 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
     generateUserRecord(generatingTransactionId) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## generateUserRecord()`);
-        logger.verbose('#####################################################################################');
+        logger.verbose(`## generateUserRecord(generatingTransactionId)`);
+        logger.verbose('##');
 
         if(!generatingTransactionId){
             throw new Error('generatingTransactionId cannot be empty');
@@ -150,3 +152,20 @@ class GravityAccountProperties extends JupiterAccountProperties {
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
+
+
+
+module.exports.metisGravityAccountProperties = new GravityAccountProperties(
+    process.env.APP_ACCOUNT_ADDRESS,
+    process.env.APP_ACCOUNT_ID,
+    process.env.APP_PUBLIC_KEY,
+    process.env.APP_ACCOUNT,
+    '', // hash
+    process.env.ENCRYPT_PASSWORD,
+    process.env.ENCRYPT_ALGORITHM,
+    process.env.APP_EMAIL,
+    process.env.APP_NAME,
+    '', // lastname
+    applicationAccountProperties
+);
+

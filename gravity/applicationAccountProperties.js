@@ -1,4 +1,6 @@
 const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
+const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {fundingManagerSingleton, FundingManager} = require("../services/fundingManager");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -42,14 +44,19 @@ class ApplicationAccountProperties {
 }
 
 module.exports.ApplicationAccountProperties = ApplicationAccountProperties;
+
+const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
 const jupTransferFee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-const newUserFunding = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+
 module.exports.applicationAccountProperties = new ApplicationAccountProperties(
     process.env.JUPITER_DEADLINE,
-    process.env.FEE_NQT,
-    newUserFunding,
+    STANDARD_FEE,
+    ACCOUNT_CREATION_FEE,
     jupTransferFee,
-    process.env.JUPITER_MININUM_TABLE_BALANCE,
-    process.env.JUPITER_MINIMUM_APP_BALANCE,
+    MINIMUM_TABLE_BALANCE,
+    MINIMUM_APP_BALANCE,
     process.env.JUPITER_MONEY_DECIMALS
 );

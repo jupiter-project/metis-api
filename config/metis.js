@@ -3,14 +3,16 @@ const _ = require('lodash');
 const { gravity } = require('./gravity');
 const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const {fundingManagerSingleton, FundingManager} = require("../services/fundingManager");
-const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {GravityAccountProperties, metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {ApplicationAccountProperties} = require("../gravity/applicationAccountProperties");
 const {JupiterAPIService} = require("../services/jupiterAPIService");
-const {JupiterFundingService} = require("../services/jupiterFundingService");
+const {JupiterFundingService, jupiterFundingService} = require("../services/jupiterFundingService");
 const {GravityCrypto} = require("../services/gravityCrypto");
 const {channelConfig} = require("./constants");
 const {hasJsonStructure} = require("../utils/utils");
 const {generateChecksum} = require("../utils/gravityUtils");
+const jupiterApiService = require("../services/jupiterAPIService");
+const {profilingInfo} = require("mongodb/lib/operations/db_ops");
 const logger = require('../utils/logger')(module);
 
 const propertyFee = 10;
@@ -216,118 +218,157 @@ function Metis() {
         });
   }
 
-  function addMemberToChannel(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword){
-    const applicationGravityAccountProperties = new GravityAccountProperties(
-        process.env.APP_ACCOUNT_ADDRESS,
-        process.env.APP_ACCOUNT_ID,
-        process.env.APP_PUBLIC_KEY,
-        process.env.APP_ACCOUNT,
-        '', // hash
-        process.env.ENCRYPT_PASSWORD,
-        process.env.ENCRYPT_ALGORITHM,
-        process.env.APP_EMAIL,
-        process.env.APP_NAME,
-        '', // lastname
-    );
-
-    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-    const DEADLINE = process.env.JUPITER_DEADLINE;
-
-    const appAccountProperties = new ApplicationAccountProperties(
-        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-    );
-    applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
+  /**
+   *
+   * @param memberAccessData
+   * @param userPublicKey
+   * @param from
+   * @param to
+   * @param recipientPublicKey
+   * @param recipientPassword
+   * @returns {*}
+   */
+  function addMemberToChannelIfDoesntExist(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword){
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## addMemberToChannel(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword)`);
+    logger.verbose(`## `);
+    logger.sensitive(`memberAccessData=${JSON.stringify(memberAccessData)}`);
+    logger.sensitive(`userPublicKey=${JSON.stringify(userPublicKey)}`);
+    logger.sensitive(`from=${JSON.stringify(from)}`);
+    logger.sensitive(`to=${JSON.stringify(to)}`);
+    logger.sensitive(`recipientPublicKey=${JSON.stringify(recipientPublicKey)}`);
+    logger.sensitive(`recipientPassword=${JSON.stringify(recipientPassword)}`);
 
 
-    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    // const applicationGravityAccountProperties = new GravityAccountProperties(
+    //     process.env.APP_ACCOUNT_ADDRESS,
+    //     process.env.APP_ACCOUNT_ID,
+    //     process.env.APP_PUBLIC_KEY,
+    //     process.env.APP_ACCOUNT,
+    //     '', // hash
+    //     process.env.ENCRYPT_PASSWORD,
+    //     process.env.ENCRYPT_ALGORITHM,
+    //     process.env.APP_EMAIL,
+    //     process.env.APP_NAME,
+    //     '', // lastname
+    // );
+
+    // const applicationGravityAccountProperties = metisGravityAccountProperties;
+
+    // const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    // const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    // const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    // const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    // const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    // const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    // const DEADLINE = process.env.JUPITER_DEADLINE;
+    //
+    // const appAccountProperties = new ApplicationAccountProperties(
+    //     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    // );
+    // metisGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
+
+
+    // const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, metisGravityAccountProperties.applicationAccountProperties);
+
+
     const channelCrypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, recipientPassword);
 
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
     const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-    const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
-
-
+    // const jupiterFundingService = new JupiterFundingService(jupiterAPIService, metisGravityAccountProperties);
     const checksumPublicKey = generateChecksum(userPublicKey);
     const tag = `${channelConfig.channel_users}.${memberAccessData.account}.${checksumPublicKey}`;
 
     // get transaction tag = v1.metis.channel.public-key.JUP-NEW_USER
     return getChannelUsersArray(to, tag)
         .then(useTransactions => {
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- getChannelUsersArray(to,tag).then(useTransactions)`);
+          logger.verbose(`-- `);
+          logger.sensitive(`to=${JSON.stringify(to)}`);
+          logger.sensitive(`tag=${JSON.stringify(tag)}`);
+          logger.sensitive(`useTransactions=${JSON.stringify(useTransactions)}`);
+
           if(useTransactions && useTransactions.length > 0){
-            throw new Error('User already set');
-          }
-          return getChannelUsersArray(to, channelConfig.channel_user_list)
-        })
-        .then(transactionList => {
-          const newUserChannel = { userAddress: memberAccessData.account, userPublicKey, date: Date.now() };
-          const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
-
-          // if the user is not part of the user list, we need to add the user
-          const newUserPromise = jupiterAPIService.sendEncipheredMetisMessageAndMessage(
-              from,
-              to,
-              encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
-              tag, // message: 'v1.metis.channel.public-key.{JupAccount.checksum'
-              fee,
-              subtype,
-              false,
-              recipientPublicKey
-          );
-
-          if (transactionList && transactionList.length > 0){
-            const [channelUserList] = transactionList;
-            const channelUserListPromise = jupiterAPIService.getMessage(channelUserList.transaction, from);
-
-            return Promise.all([newUserPromise, channelUserListPromise]);
+            logger.sensitive(`user already a member`);
+            return 'confirmed';
           }
 
-          return Promise.all([newUserPromise, null]);
-        })
-        .then(([newUserResponse, channelUserListResponse]) => {
-          let newUserChannel = [];
+          getChannelUsersArray(to, channelConfig.channel_user_list)
+              .then(transactionList => {
+                logger.verbose(`-----------------------------------------------------------------------------------`);
+                logger.verbose(`-- getChannelUsersArray(to, channelConfig.channel_user_list).then(transactionList)`);
+                logger.verbose(`-- `);
+                logger.sensitive(`to=${JSON.stringify(to)}`);
+                logger.sensitive(`channelConfig.channel_user_list=${JSON.stringify(channelConfig.channel_user_list)}`);
+                logger.sensitive(`transactionList=${JSON.stringify(transactionList)}`);
 
-          if (!channelUserListResponse){
-            newUserChannel = [newUserResponse.data.transaction];
-          } else {
-            const jupiterDecryptedMessage = channelUserListResponse.data.decryptedMessage;
-            const metisDecryptedMessage = channelCrypto.decryptOrNull(jupiterDecryptedMessage);
-            if(metisDecryptedMessage && hasJsonStructure(metisDecryptedMessage)){
-              const channelListObject = JSON.parse(metisDecryptedMessage);// encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
-              newUserChannel.push(...channelListObject, newUserResponse.data.transaction);
-            } else {
-              newUserChannel = [newUserResponse.data.transaction];
-            }
-          }
 
-          const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
+                const newUserChannel = { userAddress: memberAccessData.account, userPublicKey, date: Date.now() };
+                logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
 
-          return jupiterAPIService.sendEncipheredMetisMessageAndMessage(
-              from,
-              to,
-              encryptedMessage, // encipher message  [t1,t2,t3,t4,tn];
-              channelConfig.channel_user_list, // message: 'v1.metis.channel.public-key.list'
-              fee,
-              subtype,
-              false,
-              recipientPublicKey
-          );
+                const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
+                // if the user is not part of the user list, we need to add the user
+                const newUserPromise = jupiterApiService.sendEncipheredMetisMessageAndMessage(
+                    from,
+                    to,
+                    encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
+                    tag, // message: 'v1.metis.channel.public-key.{JupAccount.checksum'
+                    fee,
+                    subtype,
+                    false,
+                    recipientPublicKey
+                );
 
-        })
-        .then(response => {
-          return jupiterFundingService.waitForTransactionConfirmation(response.data.transaction)
-        });
+                if (transactionList && transactionList.length > 0){
+                  const [channelUserList] = transactionList;
+                  const channelUserListPromise = jupiterApiService.getMessage(channelUserList.transaction, from);
+                  return Promise.all([newUserPromise, channelUserListPromise]);
+                }
+                return Promise.all([newUserPromise, null]);
+              })
+              .then(([newUserResponse, channelUserListResponse]) => {
+                let newUserChannel = [];
+
+                if (!channelUserListResponse){
+                  newUserChannel = [newUserResponse.data.transaction];
+                } else {
+                  const jupiterDecryptedMessage = channelUserListResponse.data.decryptedMessage;
+                  const metisDecryptedMessage = channelCrypto.decryptOrNull(jupiterDecryptedMessage);
+                  if(metisDecryptedMessage && hasJsonStructure(metisDecryptedMessage)){
+                    const channelListObject = JSON.parse(metisDecryptedMessage);// encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
+                    newUserChannel.push(...channelListObject, newUserResponse.data.transaction);
+                  } else {
+                    newUserChannel = [newUserResponse.data.transaction];
+                  }
+                }
+
+                const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
+
+                return jupiterApiService.sendEncipheredMetisMessageAndMessage(
+                    from,
+                    to,
+                    encryptedMessage, // encipher message  [t1,t2,t3,t4,tn];
+                    channelConfig.channel_user_list, // message: 'v1.metis.channel.public-key.list'
+                    fee,
+                    subtype,
+                    false,
+                    recipientPublicKey
+                );
+
+              })
+              .then(response => {
+                return jupiterFundingService.waitForTransactionConfirmation(response.data.transaction)
+              });
+            })
   }
 
   return Object.freeze({
     getChannelProperties,
     getMember,
     addToMemberList,
-    addMemberToChannel,
+    addMemberToChannelIfDoesntExist: addMemberToChannelIfDoesntExist,
     getChannelUsersArray,
   });
 }

@@ -2,6 +2,8 @@ const {feeManagerSingleton, FeeManager} = require("./FeeManager");
 const {resolve} = require("path");
 const {reject} = require("lodash");
 const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
+const {metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const jupiterApiService = require("./jupiterAPIService");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -128,3 +130,5 @@ class JupiterFundingService {
 }
 
 module.exports.JupiterFundingService = JupiterFundingService;
+// const jupiterFundingService = new JupiterFundingService(jupiterAPIService, metisGravityAccountProperties);
+module.exports.jupiterFundingService = new JupiterFundingService(jupiterApiService, metisGravityAccountProperties);
