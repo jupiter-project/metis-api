@@ -10,7 +10,7 @@ Metis runs on the blockchain and is 100% encrypted with AES-256 encryption. By u
 
 Try the [mobile app](https://getmetis.io) and then build your own instance!
 
-1. Clone Metis
+1. Clone Metis asd
 2. Install Dependencies
     - Nodejs - https://nodejs.org/en/download/ and follow directions for your OS
     - Redis - https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-18-04
