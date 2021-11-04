@@ -1,22 +1,6 @@
-import events from 'events';
 import { gravity } from './gravity';
 import User from '../models/user';
-// import RegistrationWorker from '../workers/registration';
-// import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-const JupiterFSService = require('../services/JimService');
-import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterFundingService} from "../services/jupiterFundingService";
-import {JupiterAccountService} from "../services/jupiterAccountService";
-import {TableService} from "../services/tableService";
-import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
-import {FundingNotConfirmedError} from "../errors/metisError";
-import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
-import {add} from "lodash";
-
-const { JupiterAPIService } = require('../services/jupiterAPIService');
-const { AccountRegistration } = require('../services/accountRegistrationService');
+import {accountRegistration} from "../services/accountRegistrationService";
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
 
@@ -79,82 +63,19 @@ const getSignUpUserInformation = (account, requestBody) => ({
  *
  */
 const metisRegistration = async (account, requestBody) => {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## metisRegistration(account, requestBody)`);
+    logger.verbose(`## `);
+    logger.sensitive(`account=${JSON.stringify(account)}`);
+    logger.sensitive(`requestBody=${JSON.stringify(requestBody)}`);
 
-  logger.verbose('#####################################################################################');
-  logger.verbose(`## metisRegistration(account=${account})`);
-  logger.verbose('#####################################################################################');
-
-
-  const applicationGravityAccountProperties = new GravityAccountProperties(
-    process.env.APP_ACCOUNT_ADDRESS,
-    process.env.APP_ACCOUNT_ID,
-    process.env.APP_PUBLIC_KEY,
-    process.env.APP_ACCOUNT,
-    '', // hash
-    process.env.ENCRYPT_PASSWORD,
-    process.env.ENCRYPT_ALGORITHM,
-    process.env.APP_EMAIL,
-    process.env.APP_NAME,
-    '', // lastname
-  );
-
-  const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding); //@TODO break this into user and table funding fee.
-  const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-  const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-  const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-  const DEADLINE = process.env.JUPITER_DEADLINE;
-
-  // logger.debug('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
-  // logger.debug('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
-
-
-  //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
-  const appAccountProperties = new ApplicationAccountProperties(
-    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-  );
-
-  applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
-  const signUpUserInformation = getSignUpUserInformation(account, requestBody);
-  // logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
-  //
-  // const newUserGravityAccountProperties = new GravityAccountProperties(
-  //   signUpUserInformation.account, // address
-  //   signUpUserInformation.jup_account_id, // account Id
-  //   signUpUserInformation.public_key, // public key
-  //   signUpUserInformation.passphrase, // passphrase
-  //   signUpUserInformation.hash, // password hash
-  //   signUpUserInformation.encryption_password, // password
-  //   process.env.ENCRYPT_ALGORITHM, // algorithm
-  //   signUpUserInformation.email, // email
-  //   signUpUserInformation.firstName, // firstname
-  //   signUpUserInformation.lastName, // lastname
-  // );
-
-  // logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
-  // const aliasInfo = {aliasName: signUpUserInformation.alias }
-  // newUserGravityAccountProperties.addAlias(aliasInfo);
-
-  const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-  const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
-  const jupiterTransactionsService = new JupiterTransactionsService(jupiterAPIService);
-  const tableService = new TableService(jupiterTransactionsService, jupiterAPIService);
-  const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
-
-    const accountRegistration = new AccountRegistration(
-        applicationGravityAccountProperties,
-        jupiterAPIService,
-        jupiterFundingService,
-        jupiterAccountService,
-        tableService,
-        gravity,
-        JupiterFSService
-    );
-
-    // async register(newAccount, newAccountAlias, userPassphrase) {
-    return accountRegistration.register(signUpUserInformation.account, signUpUserInformation.alias, signUpUserInformation.passphrase, signUpUserInformation.encryption_password )
+    const signUpUserInformation = getSignUpUserInformation(account, requestBody);
+    return accountRegistration.register(
+        signUpUserInformation.account,
+        signUpUserInformation.alias,
+        signUpUserInformation.passphrase,
+        signUpUserInformation.encryption_password
+    )
 };
 
 /**
@@ -395,9 +316,9 @@ const metisLogin = (passport) => {
 };
 
 module.exports = {
-  serializeUser,
-  deserializeUser,
-  metisSignup,
-  metisLogin,
+    serializeUser,
+    deserializeUser,
+    metisSignup,
+    metisLogin,
     metisRegistration
 };

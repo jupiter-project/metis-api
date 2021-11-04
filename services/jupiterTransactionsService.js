@@ -2,9 +2,15 @@ const {GravityCrypto} = require("./gravityCrypto");
 const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
 const _ = require("lodash");
+const {jupiterAPIService} = require("./jupiterAPIService");
+
 
 class JupiterTransactionsService {
 
+    /**
+     *
+     * @param jupiterAPIService
+     */
     constructor(jupiterAPIService) {
         if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
         this.jupiterAPIService = jupiterAPIService;
@@ -24,7 +30,11 @@ class JupiterTransactionsService {
     //     return this.isValidMessageTransaction(transaction)
     // }
 
-
+    /**
+     *
+     * @param unconfirmedTransactionsContainer
+     * @returns {arg is any[]|boolean}
+     */
     isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer) {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer)`);
@@ -43,6 +53,11 @@ class JupiterTransactionsService {
         }
     }
 
+    /**
+     *
+     * @param transaction
+     * @returns {boolean}
+     */
     isValidUnconfirmedTransaction(transaction) {
         const transactionProperties = ['unconfirmedTransactions', 'requestProcessingTime']
         try {
@@ -981,3 +996,4 @@ class JupiterTransactionsService {
 }
 
 module.exports.JupiterTransactionsService = JupiterTransactionsService;
+module.exports.jupiterTransactionsService = new JupiterTransactionsService(jupiterAPIService);

@@ -7,7 +7,11 @@ const logger = require('../utils/logger')(module);
 // import {GravityAccountProperties} from "./gravityAccountProperties";
 // const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
-const jupiterApiService = require("./jupiterAPIService");
+// const jupiterApiService = require("./jupiterAPIService");
+const {jupiterAPIService} = require("./jupiterAPIService");
+const {jupiterTransactionsService} = require("./jupiterTransactionsService");
+// const {jupiterAPIService} = require("./jupiterAPIService");
+// const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 
 /**
  *
@@ -418,16 +422,30 @@ class GravityTablesService {
      * @returns {Promise<unknown>}
      */
     async attachTable(database, nameOfTableToAttach, currentTables=[]) {
-        logger.verbose('attachTable');
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## attachTable(database, nameOfTableToAttach, currentTables=[])`);
+        logger.verbose(`## `);
+        logger.sensitive(`nameOfTableToAttach=${JSON.stringify(nameOfTableToAttach)}`);
+        logger.sensitive(`currentTables=${JSON.stringify(currentTables)}`);
         return new Promise((resolve, reject) => {
             this.applicationTransactions.getAccountStatement()
                 .then(accountStatement => {
+                    logger.verbose(`-----------------------------------------------------------------------------------`);
+                    logger.verbose(`-- attachTable().getAccountStatement().then()`);
+                    logger.verbose(`-- `);
+                    logger.sensitive(`accountStatement=${JSON.stringify(accountStatement)}`);
+
                     if(!(accountStatement.hasMinimumAppBalance && accountStatement.hasMinimumTableBalance)){
                         return reject(accountStatement);
                     }
 
                     this.gravityService.getUserAccountData() // gravity.loadAppData
                         .then((userAccountData) => {
+                            logger.verbose(`-----------------------------------------------------------------------------------`);
+                            logger.verbose(`-- attachTable().getAccountStatement().then().getUserAccountData().then()`);
+                            logger.verbose(`-- `);
+                            logger.sensitive(`userAccountData=${JSON.stringify(userAccountData)}`);
+
 
                             if(!gu.jsonPropertyIsNonEmptyArray('tables', userAccountData)){
                                 return reject('Table name cannot be undefined');
@@ -674,12 +692,17 @@ class TableService {
     /**
      *
      * @param jupiterTransactionsService
-     * @param jupiterApiService
+     * @param jupiterAPIService
      */
     constructor( jupiterTransactionsService, jupiterApiService ) {
         this.jupiterTransactionsService = jupiterTransactionsService;
         this.jupiterApiService = jupiterApiService;
     }
+
+    // constructor( jupiterTransactionsService, jupiterAPIService ) {
+    //     this.jupiterTransactionsService = jupiterTransactionsService;
+    //     this.jupiterAPIService = jupiterAPIService;
+    // }
 
     /**
      *
@@ -707,45 +730,6 @@ class TableService {
         }
         return tableData;
     }
-
-
-
-//
-// ] --
-//     metis_1  | [0] { id: '2376166064047524148',
-//     metis_1  | [0]   user_record:
-//         metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-//     metis_1  | [0]   date: 1625269463920 }
-// metis_1  | [0] --
-// metis_1  | [0] { id: '2376166064047524148',
-// metis_1  | [0]   user_record:
-//     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-// metis_1  | [0]   date: 1625269463920 }
-// metis_1  | [0] --
-// metis_1  | [0] { id: '2376166064047524148',
-// metis_1  | [0]   user_record:
-//     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-// metis_1  | [0]   date: 1625269463920 }
-// metis_1  | [0] --
-// metis_1  | [0] { id: '2376166064047524148',
-// metis_1  | [0]   user_record:
-//     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-// metis_1  | [0]   date: 1625269463920 }
-// metis_1  | [0] --
-// metis_1  | [0] { id: '2376166064047524148',
-// metis_1  | [0]   user_record:
-//     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-// metis_1  | [0]   date: 1625269463920 }
-// metis_1  | [0] --
-// metis_1  | [0] { id: '2376166064047524148',
-// metis_1  | [0]   user_record:
-//     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-// metis_1  | [0]   date: 1625269463920 }
-// metis_1  | [0] --
-// metis_1  | [0] { id: '2376166064047524148',
-// metis_1  | [0]   user_record:
-//     metis_1  | [0]    '{"id":"2376166064047524148","account":"JUP-KMRG-9PMP-87UD-3EXSF","accounthash":"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW","alias":"sprtz","secret_key":null,"twofa_enabled":false,"twofa_completed":false,"api_key":"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO","encryption_password":"sprtz"}',
-// metis_1  | [0]   date: 1625269463920 }
 
 
     /**
@@ -1066,7 +1050,7 @@ class TableService {
 }
 
 module.exports.TableService = TableService;
-
+module.exports.tableService = new TableService( jupiterTransactionsService, jupiterAPIService  );
 
 
 /**

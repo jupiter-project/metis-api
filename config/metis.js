@@ -11,10 +11,9 @@ const {GravityCrypto} = require("../services/gravityCrypto");
 const {channelConfig} = require("./constants");
 const {hasJsonStructure} = require("../utils/utils");
 const {generateChecksum} = require("../utils/gravityUtils");
-const jupiterApiService = require("../services/jupiterAPIService");
+const jupiterAPIService = require("../services/jupiterAPIService");
 const {profilingInfo} = require("mongodb/lib/operations/db_ops");
 const logger = require('../utils/logger')(module);
-
 const propertyFee = 10;
 
 // This contains specific helper methods for the Metis app
@@ -123,18 +122,18 @@ function Metis() {
   }
 
   function getChannelUsersArray(channelAccount, tag) {
-    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-    const DEADLINE = process.env.JUPITER_DEADLINE;
-
-    const appAccountProperties = new ApplicationAccountProperties(
-        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-    );
-    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+    // const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    // const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    // const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+    // const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+    // const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+    // const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+    // const DEADLINE = process.env.JUPITER_DEADLINE;
+    //
+    // const appAccountProperties = new ApplicationAccountProperties(
+    //     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+    // );
+    // const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
     return jupiterAPIService.getBlockChainTransactions(channelAccount, tag, false)
         .then(({ data: transactions }) => {
           if (transactions && Array.isArray(transactions.transactions)){
@@ -310,7 +309,7 @@ function Metis() {
 
                 const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
                 // if the user is not part of the user list, we need to add the user
-                const newUserPromise = jupiterApiService.sendEncipheredMetisMessageAndMessage(
+                const newUserPromise = jupiterAPIService.sendEncipheredMetisMessageAndMessage(
                     from,
                     to,
                     encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
@@ -323,7 +322,7 @@ function Metis() {
 
                 if (transactionList && transactionList.length > 0){
                   const [channelUserList] = transactionList;
-                  const channelUserListPromise = jupiterApiService.getMessage(channelUserList.transaction, from);
+                  const channelUserListPromise = jupiterAPIService.getMessage(channelUserList.transaction, from);
                   return Promise.all([newUserPromise, channelUserListPromise]);
                 }
                 return Promise.all([newUserPromise, null]);
@@ -346,7 +345,7 @@ function Metis() {
 
                 const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
 
-                return jupiterApiService.sendEncipheredMetisMessageAndMessage(
+                return jupiterAPIService.sendEncipheredMetisMessageAndMessage(
                     from,
                     to,
                     encryptedMessage, // encipher message  [t1,t2,t3,t4,tn];

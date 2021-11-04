@@ -43,6 +43,10 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async jupiterRequest(rtype, params, data = {}) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## jupiterRequest(rtype,params,data)`);
+        logger.verbose(`## `);
+        logger.sensitive(`data=${JSON.stringify(data)}`);
         const url = this.jupiterUrl(params);
         // logger.sensitive(`jupiterRequest > url= ${url}`);
         return new Promise((resolve, reject) => {
@@ -123,6 +127,11 @@ class JupiterAPIService {
      * @returns {Promise<object>} -
      */
     async getAccountId(passphrase) {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## getAccountId(passphrase)`);
+    logger.verbose(`## `);
+    logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+
         if(!gu.isWellFormedPassphrase(passphrase)){
             throw new Error(`Jupier passphrase is not valid: ${passphrase}`);
         }
@@ -139,6 +148,10 @@ class JupiterAPIService {
 
 
     async getAliases(address){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAlias(address)`);
+        logger.verbose(`## `);
+        logger.sensitive(address`=${JSON.stringify(address)}`);
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter Address is not valid: ${address}`);
         }
@@ -153,13 +166,9 @@ class JupiterAPIService {
         })
     }
 
-
-
-
-
     /**
      *
-     * @param address
+     * @param {string} address
      * @returns {Promise<*>}
      */
     async getAccount(address) {
@@ -179,6 +188,10 @@ class JupiterAPIService {
      * @returns {Promise<unknown>}
      */
     async getAccountInformation(passphrase) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAccountInformation(passphrase)`);
+        logger.verbose(`## `);
+        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
         return new Promise((resolve, reject) => {
             this.getAccountId(passphrase)
                 .then(response => {
@@ -608,13 +621,14 @@ class JupiterAPIService {
                 return reject('problem with toProperties');
             }
 
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
             logger.info(`++ Transferring Money`);
             logger.info(`++ from: ${fromJupiterAccount.address}`);
             logger.info(`++ to: ${toJupiterAccount.address}`);
             logger.info(`++ amount: ${amount}`);
             logger.info(`++ feeNQT: ${feeNQT}`);
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+
 
             this.post( {
                 requestType: 'sendMoney',
@@ -714,5 +728,7 @@ class JupiterAPIService {
 
 }
 
-module.exports.JupiterAPIService = JupiterAPIService;
-module.exports.jupiterApiService = new JupiterAPIService(process.env.JUPITERSERVER, applicationAccountProperties)
+module.exports = {
+    JupiterAPIService: JupiterAPIService,
+    jupiterAPIService: new JupiterAPIService(process.env.JUPITERSERVER, applicationAccountProperties)
+};

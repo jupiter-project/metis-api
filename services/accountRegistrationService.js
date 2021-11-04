@@ -1,43 +1,41 @@
-const { JupiterFundingService } = require('./jupiterFundingService');
 const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
+const {metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {jupiterAccountService} = require("./jupiterAccountService");
+const {tableService} = require("./tableService");
+
 /**
  *
  */
 class AccountRegistration {
-  /**
+    /**
      *
-     * @param {GravityAccountProperties} applicationGravityAccountProperties
-     * @param {JupiterAPIService} jupiterAPIService
-     * @param {JupiterFundingService} jupiterFundingService
-     * @param {JupiterAccountService} jupiterAccountService
-     * @param {TableService} tableService
-     * @param {Gravity} gravity
+     * @param applicationGravityAccountProperties
+     * @param jupApi
+     * @param jupiterFundingService
+     * @param jupiterAccountService
+     * @param tableService
+     * @param gravity
      */
   constructor(
     applicationGravityAccountProperties,
-    jupiterAPIService,
+    jupApi,
     jupiterFundingService,
     jupiterAccountService,
     tableService,
-    gravity,
-    JupiterFSService) {
-
+    gravity) {
       if(!applicationGravityAccountProperties){throw new Error('missing applicationGravityAccountProperties')}
-      if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
+      if(!jupApi){throw new Error('missing jupiterAPIService')}
       if(!jupiterFundingService){throw new Error('missing jupiterFundingService')}
       if(!jupiterAccountService){throw new Error('missing jupiterAccountService')}
       if(!tableService){throw new Error('missing tableService')}
       if(!gravity){throw new Error('missing gravity')}
-      if(!JupiterFSService){throw new Error('missing JupiterFSService')}
-
-    this.applicationAccountProperties = applicationGravityAccountProperties;
-    this.jupiterAPIService = jupiterAPIService;
-    this.jupiterFundingService = jupiterFundingService;
-    this.jupiterAccountService = jupiterAccountService;
-    this.tableService = tableService;
-    this.gravity = gravity;
-    this.JupiterFSService = JupiterFSService;
+      this.applicationAccountProperties = applicationGravityAccountProperties;
+      this.jupApi = jupApi;
+      this.jupiterFundingService = jupiterFundingService;
+      this.jupiterAccountService = jupiterAccountService;
+      this.tableService = tableService;
+      this.gravity = gravity;
   }
 
   defaultTableNames() {
@@ -58,7 +56,7 @@ class AccountRegistration {
   }
 
   async isAliasAvailable(aliasName){
-      return this.jupiterAPIService.getAlias(aliasName)
+      return this.jupApi.getAlias(aliasName)
           .then(response => {
               return false;
           })
@@ -132,7 +130,7 @@ class AccountRegistration {
                         fundedAccountStatement.attachedTables,
                         fundedAccountStatement.properties
                     ));
-                    promises.push(this.jupiterAPIService.setAlias({
+                    promises.push(this.jupApi.setAlias({
                         alias: newAccountAliasName,
                         passphrase: newAccountPassphrase,
                         account: newAccountAddress
@@ -413,4 +411,17 @@ ths end.
     }
 }
 
+
+const {jupiterAPIService} = require("./jupiterAPIService");
+const { gravity} = require('../config/gravity');
+const {jupiterFundingService} = require("./jupiterFundingService");
+
 module.exports.AccountRegistration = AccountRegistration;
+module.exports.accountRegistration = new AccountRegistration(
+    metisGravityAccountProperties,
+    jupiterAPIService,
+    jupiterFundingService,
+    jupiterAccountService,
+    tableService,
+    gravity
+)

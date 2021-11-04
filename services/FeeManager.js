@@ -195,6 +195,10 @@ class FeeManager {
      * @returns {number}
      */
     getFee(feeType) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getFee(feeType)`);
+        logger.verbose(`## `);
+        logger.sensitive(`feeType=${JSON.stringify(feeType)}`);
         const fees = this.fees.filter(fee => {
             return feeType === fee.feeType
         })
@@ -228,7 +232,6 @@ class FeeManager {
 }
 
 module.exports.FeeManager = FeeManager;
-
 
 module.exports.feeManagerSingleton = new FeeManager(
     process.env.REGULAR_TRANSACTION_FEE,
