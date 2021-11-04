@@ -241,18 +241,19 @@ jobs.process('user-registration', WORKERS, (job,done) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: user-registration`)
   logger.verbose(`##`)
-  // logger.debug(job.data.data);
   const decryptedData = gravity.decrypt(job.data.data)
   const parsedData = JSON.parse(decryptedData);
-
 
   metisRegistration(job.data.account, parsedData)
       .then(() => {
         return done();
       })
       .catch( error =>{
-        logger.error(`*********************`)
-        logger.error(`error=${error}`);
+        logger.error(`***********************************************************************************`);
+        logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
+        logger.error(`** `);
+        console.log(error);
+
         return done(error)
       })
 })

@@ -106,7 +106,8 @@ class AccountRegistration {
             'user'
         ));
 
-        Promise.all(promises).then( async promiseResults =>{
+        Promise.all(promises)
+            .then( async promiseResults =>{
             const [appStatement, newAccountStatement] = promiseResults;
             const applicationUsersTableStatement = appStatement.attachedTables.find( table => table.statementId === 'table-users');
             if (!applicationUsersTableStatement) {
@@ -182,6 +183,13 @@ class AccountRegistration {
                     return reject(error);
                 })
         } )
+            .catch(error => {
+                logger.error(`***********************************************************************************`);
+                logger.error(`** register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword).fetchAccountStatement().then()`);
+                logger.error(`** `);
+                console.log(error);
+                return reject(error);
+            })
     });
   }
 

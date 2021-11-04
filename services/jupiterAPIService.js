@@ -43,10 +43,10 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async jupiterRequest(rtype, params, data = {}) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## jupiterRequest(rtype,params,data)`);
-        logger.verbose(`## `);
-        logger.sensitive(`data=${JSON.stringify(data)}`);
+        // logger.verbose(`###################################################################################`);
+        // logger.verbose(`## jupiterRequest(rtype,params,data)`);
+        // logger.verbose(`## `);
+        // logger.sensitive(`data=${JSON.stringify(data)}`);
         const url = this.jupiterUrl(params);
         // logger.sensitive(`jupiterRequest > url= ${url}`);
         return new Promise((resolve, reject) => {
@@ -151,7 +151,7 @@ class JupiterAPIService {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## getAlias(address)`);
         logger.verbose(`## `);
-        logger.sensitive(address`=${JSON.stringify(address)}`);
+        logger.sensitive(`address=${JSON.stringify(address)}`);
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter Address is not valid: ${address}`);
         }

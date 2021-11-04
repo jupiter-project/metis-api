@@ -70,12 +70,14 @@ const metisRegistration = async (account, requestBody) => {
     logger.sensitive(`requestBody=${JSON.stringify(requestBody)}`);
 
     const signUpUserInformation = getSignUpUserInformation(account, requestBody);
-    return accountRegistration.register(
-        signUpUserInformation.account,
-        signUpUserInformation.alias,
-        signUpUserInformation.passphrase,
-        signUpUserInformation.encryption_password
-    )
+        const registration = accountRegistration.register(
+            signUpUserInformation.account,
+            signUpUserInformation.alias,
+            signUpUserInformation.passphrase,
+            signUpUserInformation.encryption_password
+        )
+
+        return registration;
 };
 
 /**
