@@ -345,8 +345,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     logger.verbose(`###################################################################################`);
     logger.verbose(`## app.post('/v1/api/create/channels')(req,res,next)`);
     logger.verbose(`## `);
-    logger.sensitive(`req=${JSON.stringify(req)}`);
-    logger.sensitive(`res=${JSON.stringify(res)}`);
     const params = req.body;
     let { channelName } = params;
     const {

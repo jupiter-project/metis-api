@@ -483,7 +483,6 @@ class Model {
               logger.verbose(`-----------------------------------------------------------------------------------`);
               logger.verbose(`-- create().on.id_generated.axiosPost().then(response)`);
               logger.verbose(`-- `);
-              logger.sensitive(`response=${JSON.stringify(response)}`);
               logger.sensitive(`callUrl=${JSON.stringify(callUrl)}`);
 
               if (response.data.broadcasted && response.data.broadcasted === true) {
