@@ -40,7 +40,7 @@ module.exports = {
 
         jupiterFundingService.provideInitialStandardTableFunds({address: channelRecord.record.account})
             .then(fundingResponse => jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction))
-            .then(() => metis.addMemberToChannel(
+            .then(() => metis.addMemberToChannelIfDoesntExist(
                     decryptedAccountData,
                     userPublicKey,
                     channelRecord.record.passphrase,  // from
@@ -54,7 +54,7 @@ module.exports = {
                 done()
             })
             .catch(error => {
-                handleChannelCreationError();
+                handleChannelCreationError(channelRecord);
                 done(error);
             });
     }
