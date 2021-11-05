@@ -176,8 +176,7 @@ class Gravity {
       const y = b.date;
       let ruleOne;
       let ruleTwo;
-
-      if (order !== 'asc' || order === 'desc') {
+      if (order === 'asc' || order !== 'desc') {
         ruleOne = (x !== undefined && x > y);
         ruleTwo = (x === undefined || x < y);
       } else {
@@ -2916,7 +2915,7 @@ class Gravity {
       }
       if (dataTransactions.length > 1) {
         const order = filter.order || 'asc';
-        this.sortByDate(dataTransactions, order);
+        return this.sortByDate(dataTransactions, order);
       }
 
       return dataTransactions;

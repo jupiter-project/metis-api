@@ -442,6 +442,7 @@ class Model {
 
           let encryptedRecord;
 
+          //TODO we should not encrypt anything wth metis account
           if (accessLink && accessLink.encryptionPassword) {
             encryptedRecord = gravity.encrypt(JSON.stringify(fullRecord), accessLink.encryptionPassword);
           } else {
@@ -473,27 +474,29 @@ class Model {
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
           } else {
             // TODO use the jupiter api service
+            // TODO change to "sendMetisMessage"
+            // TODO all send messages should include tag
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${appTableCredentials.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${appTableCredentials.public_key}&compressMessageToEncrypt=true`;
           }
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);
 
+          //TODO use jupiter API service
           axios.post(callUrl)
-            .then((response) => {
+            .then((channelDataMessageResponse) => {
               logger.verbose(`-----------------------------------------------------------------------------------`);
               logger.verbose(`-- create().on.id_generated.axiosPost().then(response)`);
               logger.verbose(`-- `);
               logger.sensitive(`callUrl=${JSON.stringify(callUrl)}`);
-
-              if (response.data.broadcasted && response.data.broadcasted === true) {
+              if (channelDataMessageResponse.data.broadcasted && channelDataMessageResponse.data.broadcasted === true) {
                 const accountInfo = {
-                  transaction: response.data.transactionJSON.transaction,
+                  transaction: channelDataMessageResponse.data.transactionJSON.transaction,
                   account: self.record.account,
                   publicKey: self.record.publicKey
                 };
                 resolve({ success: true, message: 'Record created', accountInfo });
-              } else if (response.data.errorDescription != null) {
-                reject({ success: false, errors: response.data.errorDescription });
+              } else if (channelDataMessageResponse.data.errorDescription != null) {
+                reject({ success: false, errors: channelDataMessageResponse.data.errorDescription });
               } else {
                 reject({ success: false, errors: 'Unable to save data in blockchain' });
               }
@@ -502,13 +505,14 @@ class Model {
               reject({ success: false, errors: error });
             });
         });
+
         eventEmitter.on('table_loaded', () => {
           logger.verbose(`-----------------------------------------------------------------------------------`);
           logger.verbose(`-- create().on.table_loaded()`);
           logger.verbose(`-- `);
           logger.debug(`create().generateID()`);
 
-          self.generateId(appTableCredentials)
+          self.generateId(appTableCredentials) //TODO is this id required?
             .then(() => {
               logger.verbose(`-----------------------------------------------------------------------------------`);
               logger.verbose(`-- create().generateId(appTableCredentials).then()`);

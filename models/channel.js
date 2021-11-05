@@ -209,41 +209,7 @@ class Channel extends Model {
     logger.sensitive(`data = ${JSON.stringify(this.data)}`);
 
     if (accessLink) {
-      const applicationGravityAccountProperties = new GravityAccountProperties(
-          process.env.APP_ACCOUNT_ADDRESS,
-          process.env.APP_ACCOUNT_ID,
-          process.env.APP_PUBLIC_KEY,
-          process.env.APP_ACCOUNT,
-          '', // hash
-          process.env.ENCRYPT_PASSWORD,
-          process.env.ENCRYPT_ALGORITHM,
-          process.env.APP_EMAIL,
-          process.env.APP_NAME,
-          '', // lastname
-      );
-
-      const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-      const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-      const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-      const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-      const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-      const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-      const DEADLINE = process.env.JUPITER_DEADLINE;
-
-      const appAccountProperties = new ApplicationAccountProperties(
-          DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-      );
-
-      applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
-      const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-      const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
-
-      return super.create(accessLink)
-          .then( ({accountInfo}) =>
-              Promise.all([accountInfo, jupiterFundingService.waitForTransactionConfirmation(accountInfo.transaction)]))
-          .then(([accountInfo]) => jupiterFundingService.provideInitialStandardTableFunds({ address: accountInfo.account }))
-          .then(sendMoneyResponse => jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction));
+      return super.create(accessLink);
     }
 
     return Promise.reject({ error: true, message: 'Missing user information' });

@@ -17,7 +17,7 @@ class ApplicationAccountProperties {
      * @param minimumAppBalance
      * @param moneyDecimals
      */
-    constructor( deadline,
+    constructor(deadline,
                 feeNQT,
                 accountCreationFeeNQT,
                 transferFeeNQT,

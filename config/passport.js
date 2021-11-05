@@ -117,6 +117,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 setTimeout(()=>{
                   websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
                 }, 1000);
+                done(null, null, job.id);
             });
 
         // logger.debug(`job id= ${job.id} for account=${account}`);
@@ -145,8 +146,6 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             logger.sensitive('errorMessage=', errorMessage);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
         });
-
-        return done(null, null, job.id);
     });
   }));
 };

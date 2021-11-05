@@ -5,14 +5,13 @@ const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
 const {fundingManagerSingleton, FundingManager} = require("../services/fundingManager");
 const {GravityAccountProperties, metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {ApplicationAccountProperties} = require("../gravity/applicationAccountProperties");
-const {JupiterAPIService} = require("../services/jupiterAPIService");
 const {JupiterFundingService, jupiterFundingService} = require("../services/jupiterFundingService");
 const {GravityCrypto} = require("../services/gravityCrypto");
 const {channelConfig} = require("./constants");
 const {hasJsonStructure} = require("../utils/utils");
 const {generateChecksum} = require("../utils/gravityUtils");
-const jupiterAPIService = require("../services/jupiterAPIService");
 const {profilingInfo} = require("mongodb/lib/operations/db_ops");
+const {jupiterAPIService} = require("../services/jupiterAPIService");
 const logger = require('../utils/logger')(module);
 const propertyFee = 10;
 

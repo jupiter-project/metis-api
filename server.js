@@ -146,9 +146,15 @@ const socketOptions = {
   pingInterval, // how many ms before sending a new ping packet
 };
 const io = socketIO(server, socketOptions);
+// messages socket
 io.of('/chat').on('connection', socketService.connection.bind(this));
 
+// sign up socket
 io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+
+// channel creation
+io.of('/channels').on('connection', socketService.channelCreationConnection.bind(this));
+// io.of('/channels').on('connection', socketService.channelCreationConnection(this));
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
@@ -188,7 +194,7 @@ metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, React, ReactDOMServer, jobs);
+  require(file)(app, passport, React, ReactDOMServer, jobs, io);
 });
 
 // Route any invalid routes black to the root page
@@ -201,6 +207,8 @@ app.get('/*', (req, res) => {
 const { gravity } = require('./config/gravity');
 const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
+const {jupiterFundingService} = require("./services/jupiterFundingService");
+const {channelCreationSetUp} = require("./services/channelService");
 
 jobScheduleService.init(kue);
 
@@ -245,9 +253,7 @@ jobs.process('user-registration', WORKERS, (job,done) => {
   const parsedData = JSON.parse(decryptedData);
 
   metisRegistration(job.data.account, parsedData)
-      .then(() => {
-        return done();
-      })
+      .then(() => done())
       .catch( error =>{
         logger.error(`***********************************************************************************`);
         logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
@@ -256,6 +262,21 @@ jobs.process('user-registration', WORKERS, (job,done) => {
 
         return done(error)
       })
+})
+
+
+
+jobs.process('channel-creation-confirmation', WORKERS, ( job, done ) => {
+  logger.verbose(`###########################################`)
+  logger.verbose(`## JobQueue: channel-creation-confirmation`)
+  logger.verbose(`##`)
+  const {channelRecord, decryptedAccountData, userPublicKey } = job.data;
+  channelCreationSetUp(channelRecord, decryptedAccountData, userPublicKey, (error) => {
+    if(error){
+      return done(error)
+    }
+    return done();
+  });
 })
 
 /* jobs.process('fundAccount', (job, done) => {

@@ -71,7 +71,6 @@ class Message extends Model {
           logger.verbose(`-----------------------------------------------------------------------------------`);
           logger.verbose(`-- axios.post.then(response)`);
           logger.verbose(`-- `);
-          logger.sensitive(`response=${JSON.stringify(response)}`);
           if (response.data.broadcasted && response.data.broadcasted === true) {
             resolve({ success: true, message: 'Message sent!' });
           } else if (response.data.errorDescription != null) {

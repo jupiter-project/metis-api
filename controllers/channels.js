@@ -14,6 +14,7 @@ import {JupiterAPIService} from "../services/jupiterAPIService";
 import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {GravityCrypto} from "../services/gravityCrypto";
 import channelRecord from "../models/channel.js";
+import {jupiterFundingService} from "../services/jupiterFundingService";
 const {
   v1: uuidv1,
   v4: uuidv4,
@@ -24,9 +25,7 @@ const logger = require('../utils/logger')(module);
 const { hasJsonStructure } = require('../utils/utils');
 const { getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification } = require('../services/messageService');
 
-const decryptUserData = req => JSON.parse(gravity.decrypt(req.session.accessData));
-
-module.exports = (app, passport, React, ReactDOMServer) => {
+module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
   app.use(device.capture());
   /**
    * Render Channels page
@@ -199,26 +198,37 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    * Accept channel invite
    */
   app.post('/v1/api/channels/import', async (req, res) => {
-
-    logger.verbose('#########################################################');
-    logger.verbose(`## Accept Channel Invitation`);
-    logger.verbose(`## app.post(/v1/api/channels/import)`);
-    logger.verbose('##');
+    const { userPublicKey } = req.body;
     const { accountData, userData } = req.user;
-    const { channel_record: channelRecord } = req.channel;
-    logger.sensitive(`accountData=${JSON.stringify(accountData)}`)
-    logger.sensitive(`userData=${JSON.stringify(userData)}`)
-    channelRecord.invited = true;
-    channelRecord.sender = userData.account;
-    logger.sensitive(`channel_record=${JSON.stringify(channelRecord)}`)
-    const channel = new Channel(channelRecord);
-    const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
-    logger.sensitive(`decryptedAccountData= ${JSON.stringify(decryptedAccountData)}`);
-    channel.user = decryptedAccountData;
-    channel.import(channel.user)
+    const { channel_record } = req.channel;
+
+    channel_record.invited = true;
+    channel_record.sender = userData.account;
+    const channel = new Channel(channel_record);
+    channel.user = JSON.parse(gravity.decrypt(accountData));
+
+    let decryptedAccountData = null;
+
+    try{
+      decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+    } catch (error){
+      return res.status(500).send({ success: false, message: 'Error while decrypting the user information' });
+    }
+
+    return metis.addMemberToChannel(
+        decryptedAccountData,
+        userPublicKey,
+        channel_record.passphrase,  // from
+        channel_record.account, // to
+        channel_record.publicKey,
+        channel_record.password)
         .then(() => {
           logger.verbose(`------------------------------------------`)
           logger.verbose(`-- channel.import.then()`)
+          return channel.import(channel.user);
+        })
+        .then(() => {
+          websocket.of('/channels').to(`channel-creation`).emit('channelMemberAdded', { channelToken: req.channel.token });
           return res.send({success: true, message: 'Invite accepted'});
         })
         .catch(error => {
@@ -286,8 +296,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     logger.verbose(`## Send A Message)`);
     logger.verbose(`## app.post('/v1/api/data/messages'(req, res)`);
     logger.verbose(`## `);
-    logger.sensitive(`req.body=${JSON.stringify(req.body)}`);
-    logger.sensitive(`res=${JSON.stringify(res)}`);
     let response;
       let { data } = req.body;
       const { user, channel } = req;
@@ -311,7 +319,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const userData = JSON.parse(gravity.decrypt(user.accountData));
       try {
         response = await message.sendRecord(userData, tableData);
-        logger.sensitive(`response=${JSON.stringify(response)}`);
         let members = memberProfilePicture.map(member => member.accountRS);
         if (Array.isArray(members) && members.length > 0) {
           const senderAccount = user.userData.account;
@@ -345,16 +352,22 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     logger.verbose(`###################################################################################`);
     logger.verbose(`## app.post('/v1/api/create/channels')(req,res,next)`);
     logger.verbose(`## `);
-    const params = req.body;
-    let { channelName } = params;
+    const { channelName, userPublicKey } = req.body;
     const {
       id,
       accessKey,
-      accountData,
+      accountData, // encrypted { passphrase, password, account }
       userData,
     } = req.user;
 
-    const decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+    let decryptedAccountData = null;
+
+    try{
+      decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+    } catch (error){
+      return res.status(500).send({ success: false, message: 'Error while decrypting the user information' });
+    }
+
 
     // logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
     const data = {
@@ -375,15 +388,82 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const channelRecord = require('../models/channel.js');
     const channelObject = new channelRecord(data);
     channelObject.create(decryptedAccountData)
-        .then((response) => {
+        .then(channelCreationResponse => {
           logger.verbose(`-----------------------------------------------------------------------------------`);
           logger.verbose(`-- channelObject.then(response)`);
           logger.verbose(`-- `);
-          logger.sensitive(`response=${JSON.stringify(response)}`);
+          logger.sensitive(`response=${JSON.stringify(channelCreationResponse)}`);
           logger.sensitive(`decryptedAccountData=${JSON.stringify(decryptedAccountData)}`);
 
-          res.status(200).send(response);
+          const {transaction} = channelCreationResponse.accountInfo;
+
+          const transactionData = { channelRecord: channelObject, decryptedAccountData, userPublicKey };
+
+          const job = jobs.create('channel-creation-confirmation', transactionData)
+              .priority('high')
+              .removeOnComplete(false)
+              .save( err => {
+                if(err){
+                  logger.error(`there is a problem saving to redis`);
+                  logger.error(JSON.stringify(err));
+                  console.log('Socket on failed');
+                  websocket.of('/channels').to(`channel-creation`).emit('channelCreationFailed', job.id);
+                }
+                logger.verbose(`jobQueue.save() id= ${job.id}`);
+                const channel = {
+                  account: channelObject.record.account,
+                  name: channelObject.record.name,
+                  status: 'inProgress'
+                };
+                websocket.of('/channels').to(`channel-creation`).emit('channelCreated', { jobId: job.id, channel });
+                res.status(200).send({jobId: job.id, paymentTransaction: transaction});
+              });
+
+          job.on('complete', function(result){
+            console.log('Socket on completed');
+            const channel = {
+              account: channelObject.record.account,
+              name: channelObject.record.name
+            }
+            websocket.of('/channels').to(`channel-creation`).emit('channelSuccessful', { jobId: job.id, channel });
+          });
+
+          job.on('failed attempt', function(errorMessage, doneAttempts){
+            console.log('Socket on failed attempt');
+            websocket.of('/channels').to(`channel-creation`).emit('channelCreationFailed',job.id);
+          });
+
+          job.on('failed', function(errorMessage){
+            console.log('Socket on failed');
+            websocket.of('/channels').to(`channel-creation`).emit('channelCreationFailed', job.id);
+          });
+
         })
+        // .then(({accountResponse}) =>
+        //     Promise.all([accountResponse.accountInfo, jupiterFundingService.provideInitialStandardTableFunds({ address: accountResponse.accountInfo.account })])
+        // )
+        // .then(([accountInfo, fundingResponse]) =>
+        //     Promise.all([accountInfo, jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction)])
+        // )
+        // .then(([accountInfo]) => {
+        //   const newMemberParams = {
+        //     channel: accountInfo.account,
+        //     password: accountInfo.password,
+        //     account: userData.account,
+        //     alias: userData.alias,
+        //   };
+        //   return metis.addMemberToChannel(
+        //       decryptedAccountData,
+        //       userPublicKey,
+        //       channelObject.record.passphrase,  // from
+        //       channelObject.record.account, // to
+        //       channelObject.record.publicKey,
+        //       channelObject.record.password
+        //   );
+        // })
+        // .then(() => {
+        //
+        // })
         .catch((err) => {
           logger.error(`***********************************************************************************`);
           logger.error(`** channelObject.create(decryptedAccountData).catch(err)`);
@@ -394,6 +474,5 @@ module.exports = (app, passport, React, ReactDOMServer) => {
             errors: err.errors
           });
         });
-
   });
 };

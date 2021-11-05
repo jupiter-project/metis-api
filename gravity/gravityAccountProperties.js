@@ -152,6 +152,19 @@ class GravityAccountProperties extends JupiterAccountProperties {
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
+module.exports.metisGravityAccountProperties = new GravityAccountProperties(
+    process.env.APP_ACCOUNT_ADDRESS,
+    process.env.APP_ACCOUNT_ID,
+    process.env.APP_PUBLIC_KEY,
+    process.env.APP_ACCOUNT,
+    '', // hash
+    process.env.ENCRYPT_PASSWORD,
+    process.env.ENCRYPT_ALGORITHM,
+    process.env.APP_EMAIL,
+    process.env.APP_NAME,
+    '', // lastname
+    applicationAccountProperties
+);
 
 
 

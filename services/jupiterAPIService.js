@@ -646,6 +646,7 @@ class JupiterAPIService {
                     return reject(response);
                 })
                 .catch( error =>{
+                    logger.error('Error: [transferMoney]', error)
                     reject(error);
                 })
 
