@@ -7,10 +7,7 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
-const AccountRegistration  = require('../services/accountRegistrationService');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
-
-
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 
 class Gravity {
@@ -3250,7 +3247,6 @@ class Gravity {
     });
   }
 }
-
 
 module.exports = {
   gravity: new Gravity(),

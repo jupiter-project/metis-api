@@ -1,7 +1,10 @@
 const {FeeManager, feeManagerSingleton} = require("./FeeManager");
-const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {GravityAccountProperties, metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {fundingManagerSingleton} = require("./fundingManager");
 const _ = require("lodash");
+const {jupiterAPIService} = require("./jupiterAPIService");
+const {tableService} = require("./tableService");
+const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const logger = require('../utils/logger')(module);
 
 
@@ -598,6 +601,11 @@ class JupiterAccountService {
     // }
 
 
+    /**
+     *
+     * @param accountProperties
+     * @returns {Promise<unknown>}
+     */
     async getStatement(accountProperties) {
         logger.verbose('##############################################################')
         logger.verbose('## getStatement()');
@@ -628,3 +636,10 @@ class JupiterAccountService {
 }
 
 module.exports.JupiterAccountService = JupiterAccountService;
+
+module.exports.jupiterAccountService = new JupiterAccountService(
+    jupiterAPIService,
+    metisGravityAccountProperties,
+    tableService,
+    jupiterTransactionsService
+);

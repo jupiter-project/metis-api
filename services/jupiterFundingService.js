@@ -3,7 +3,7 @@ const {resolve} = require("path");
 const {reject} = require("lodash");
 const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
 const {metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
-const jupiterApiService = require("./jupiterAPIService");
+const {jupiterAPIService} = require("./jupiterAPIService");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -88,6 +88,11 @@ class JupiterFundingService {
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 
+    /**
+     *
+     * @param recipientProperties
+     * @returns {Promise<*>}
+     */
     async provideInitialStandardTableFunds(recipientProperties){
         logger.verbose('#####################################################################################');
         logger.verbose(`## provideInitialStandardApplicationFunds( recipientProperties= ${!!recipientProperties})`);
@@ -107,22 +112,14 @@ class JupiterFundingService {
      */
      transfer(senderProperties, recipientProperties, transferAmount, fee ) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`transfer(senderProperties= ${!!senderProperties}, recipientProperties= ${!!recipientProperties}, transferAmount= ${transferAmount})`)
-        logger.verbose('#####################################################################################');
-        logger.debug(`sender: ${senderProperties.address}`);
-        logger.debug(`recipient: ${recipientProperties.address}`);
-        logger.debug(`amount: ${transferAmount}`);
-        if (!transferAmount) {
-            throw new Error('transfer amount missing');
-        }
-
-        if (!recipientProperties) {
-            throw new Error('recipient missing');
-        }
-
-        if (!senderProperties) {
-            throw new Error('sender missing');
-        }
+        logger.verbose(`## transfer(senderProperties= ${!!senderProperties}, recipientProperties= ${!!recipientProperties}, transferAmount= ${transferAmount})`)
+        logger.verbose('##');
+        logger.sensitive(`sender: ${senderProperties.address}`);
+        logger.sensitive(`recipient: ${recipientProperties.address}`);
+        logger.sensitive(`amount: ${transferAmount}`);
+        if (!transferAmount) {throw new Error('transfer amount missing');}
+        if (!recipientProperties) {throw new Error('recipient missing');}
+        if (!senderProperties) {throw new Error('sender missing');}
 
         return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, transferAmount, fee )
     }
@@ -130,5 +127,4 @@ class JupiterFundingService {
 }
 
 module.exports.JupiterFundingService = JupiterFundingService;
-// const jupiterFundingService = new JupiterFundingService(jupiterAPIService, metisGravityAccountProperties);
-module.exports.jupiterFundingService = new JupiterFundingService(jupiterApiService, metisGravityAccountProperties);
+module.exports.jupiterFundingService = new JupiterFundingService(jupiterAPIService, metisGravityAccountProperties);

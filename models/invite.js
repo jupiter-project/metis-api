@@ -1,7 +1,7 @@
 import Model from './_model';
 import { gravity } from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import {jupiterApiService} from "../services/jupiterAPIService";
+import {jupiterAPIService} from "../services/jupiterAPIService";
 import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
 
 class Invite extends Model {
@@ -64,7 +64,7 @@ class Invite extends Model {
     }
 
 
-    return jupiterApiService.sendMetisMessageOrMessage(
+    return jupiterAPIService.sendMetisMessageOrMessage(
         'sendMetisMessage',
         recipient,
         null,
