@@ -288,7 +288,10 @@ class Model {
   }
 
   loadRecords(accessData = false) {
-    logger.verbose(`loadRecords()`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## loadRecords(accessData)`);
+    logger.verbose(`## `);
+
     const self = this;
     const eventEmitter = new events.EventEmitter();
     const finalList = [];
@@ -313,8 +316,12 @@ class Model {
           },
         )
           .then((res) => {
-            logger.debug(`loadRecords().getRecords().then()`)
+            logger.verbose(`-----------------------------------------------------------------------------------`);
+            logger.verbose(`-- loadRecords().getRecords().then(res)`);
+            logger.verbose(`-- `);
             const { records } = res;
+            logger.sensitive(`records=${JSON.stringify(records)}`);
+
             const recordsBreakdown = {};
             for (let x = 0; x < Object.keys(records).length; x += 1) {
               const thisRecord = records[x];
@@ -348,13 +355,15 @@ class Model {
                 date: createdAt,
               });
             }
+            logger.sensitive(`finalList=${JSON.stringify(finalList)}`);
 
-
-            logger.sensitive(JSON.stringify({ success: true, records: finalList, records_found: finalList.length }))
-            resolve({ success: true, records: finalList, records_found: finalList.length });
+            return resolve({ success: true, records: finalList, records_found: finalList.length });
           })
           .catch((err) => {
-            logger.error('[getRecords]', err);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** loadRecords().getRecords().catch(var)`);
+            logger.error(`** `);
+            logger.sensitive(`err=${JSON.stringify(err)}`);
             reject(err);
           });
       });

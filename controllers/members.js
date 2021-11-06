@@ -85,7 +85,7 @@ module.exports = (app) => {
   //
   //   metis.addToMemberList(params)
   //       .then(() => {
-  //         return metis.addMemberToChannel(
+  //         return metis.addMemberToChannelIfDoesntExist(
   //             memberAccessData,
   //             userPublicKey,
   //             channelPassphrase,  // from

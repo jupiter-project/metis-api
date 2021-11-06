@@ -215,7 +215,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
       return res.status(500).send({ success: false, message: 'Error while decrypting the user information' });
     }
 
-    return metis.addMemberToChannel(
+    return metis.addMemberToChannelIfDoesntExist(
         decryptedAccountData,
         userPublicKey,
         channel_record.passphrase,  // from
@@ -452,7 +452,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         //     account: userData.account,
         //     alias: userData.alias,
         //   };
-        //   return metis.addMemberToChannel(
+        //   return metis.addMemberToChannelIfDoesntExist(
         //       decryptedAccountData,
         //       userPublicKey,
         //       channelObject.record.passphrase,  // from

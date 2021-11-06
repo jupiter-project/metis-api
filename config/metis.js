@@ -228,7 +228,7 @@ function Metis() {
    */
   function addMemberToChannelIfDoesntExist(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword){
     logger.verbose(`###################################################################################`);
-    logger.verbose(`## addMemberToChannel(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword)`);
+    logger.verbose(`## addMemberToChannelIfDoesntExist(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword)`);
     logger.verbose(`## `);
     logger.sensitive(`memberAccessData=${JSON.stringify(memberAccessData)}`);
     logger.sensitive(`userPublicKey=${JSON.stringify(userPublicKey)}`);
