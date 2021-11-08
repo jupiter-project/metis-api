@@ -238,47 +238,13 @@ function Metis() {
     logger.sensitive(`recipientPassword=${JSON.stringify(recipientPassword)}`);
 
 
-    // const applicationGravityAccountProperties = new GravityAccountProperties(
-    //     process.env.APP_ACCOUNT_ADDRESS,
-    //     process.env.APP_ACCOUNT_ID,
-    //     process.env.APP_PUBLIC_KEY,
-    //     process.env.APP_ACCOUNT,
-    //     '', // hash
-    //     process.env.ENCRYPT_PASSWORD,
-    //     process.env.ENCRYPT_ALGORITHM,
-    //     process.env.APP_EMAIL,
-    //     process.env.APP_NAME,
-    //     '', // lastname
-    // );
-
-    // const applicationGravityAccountProperties = metisGravityAccountProperties;
-
-    // const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-    // const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    // const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    // const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-    // const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-    // const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-    // const DEADLINE = process.env.JUPITER_DEADLINE;
-    //
-    // const appAccountProperties = new ApplicationAccountProperties(
-    //     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-    // );
-    // metisGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
-
-    // const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, metisGravityAccountProperties.applicationAccountProperties);
-
-
     const channelCrypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, recipientPassword);
 
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
     const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-    // const jupiterFundingService = new JupiterFundingService(jupiterAPIService, metisGravityAccountProperties);
     const checksumPublicKey = generateChecksum(userPublicKey);
     const tag = `${channelConfig.channel_users}.${memberAccessData.account}.${checksumPublicKey}`;
-
-    // get transaction tag = v1.metis.channel.public-key.JUP-NEW_USER
+    logger.debug('Getting messages with tag', tag);
     return getChannelUsersArray(to, tag)
         .then(useTransactions => {
           logger.verbose(`-----------------------------------------------------------------------------------`);
@@ -366,7 +332,7 @@ function Metis() {
     getChannelProperties,
     getMember,
     addToMemberList,
-    addMemberToChannelIfDoesntExist: addMemberToChannelIfDoesntExist,
+    addMemberToChannelIfDoesntExist,
     getChannelUsersArray,
   });
 }

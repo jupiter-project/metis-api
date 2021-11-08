@@ -457,6 +457,10 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     sendEncipheredMetisMessageAndMessage(from, to, messageToEncrypt, message, fee, subtype, prunable, recipientPublicKey ) {
+        logger.verbose('#####################################################################################');
+        logger.verbose(`## sendEncipheredMetisMessageAndMessage(requestType: from, to, messageToEncrypt, message, fee, subtype, prunable, recipientPublicKey`);
+        logger.verbose('##');
+        logger.sensitive(`from: ${from}, to: ${to}, messageToEncrypt: ${messageToEncrypt}, message: ${message}, fee: ${fee}, subtype: ${subtype}, prunable: ${prunable}, recipientPublicKey: ${recipientPublicKey}`);
         return this.sendMetisMessageOrMessage(
             'sendMetisMessage',
             to,

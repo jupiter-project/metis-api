@@ -55,6 +55,8 @@ module.exports = (app) => {
             account: req.user.account,
             password: tableData.password
           });
+
+          logger.sensitive('Channel user Members', publicKeysMessagesResponse);
           return { ...memberList, channelUserList: publicKeysMessagesResponse };
         })
         .then(memberList => res.send(memberList))
