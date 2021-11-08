@@ -2915,7 +2915,8 @@ class Gravity {
       }
       if (dataTransactions.length > 1) {
         const order = filter.order || 'asc';
-        return this.sortByDate(dataTransactions, order);
+        // return this.sortByDate(dataTransactions, order);
+        return _.orderBy(dataTransactions, [(obj) => new Date(obj.date)], [order]);
       }
 
       return dataTransactions;
