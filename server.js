@@ -20,6 +20,7 @@ module.exports.firebaseAdmin =  firebaseAdmin.initializeApp({
 const url = require('url');
 const kue = require('kue');
 const fs = require('fs');
+const cors = require('cors');
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').load();
@@ -79,6 +80,7 @@ const find = require('find');
 const mongoose = require('mongoose');
 const swaggerDocument = require('./swagger.json');
 
+app.use(cors());
 app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
