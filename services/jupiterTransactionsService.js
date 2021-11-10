@@ -2,10 +2,17 @@ const {GravityCrypto} = require("./gravityCrypto");
 const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
 const _ = require("lodash");
+const {jupiterAPIService} = require("./jupiterAPIService");
+
 
 class JupiterTransactionsService {
 
+    /**
+     *
+     * @param jupiterAPIService
+     */
     constructor(jupiterAPIService) {
+        if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
         this.jupiterAPIService = jupiterAPIService;
     }
 
@@ -23,12 +30,16 @@ class JupiterTransactionsService {
     //     return this.isValidMessageTransaction(transaction)
     // }
 
-
+    /**
+     *
+     * @param unconfirmedTransactionsContainer
+     * @returns {arg is any[]|boolean}
+     */
     isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer) {
-        logger.verbose('################################################################');
-        logger.verbose('## isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer)');
-        logger.verbose('##');
-        // console.log(unconfirmedTransactionsContainer);
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer)`);
+        logger.verbose(`## `);
+        logger.sensitive(`unconfirmedTransactionsContainer=${JSON.stringify(unconfirmedTransactionsContainer)}`);
 
         try {
             const unconfirmedTransactions = unconfirmedTransactionsContainer.unconfirmedTransactions;
@@ -42,6 +53,11 @@ class JupiterTransactionsService {
         }
     }
 
+    /**
+     *
+     * @param transaction
+     * @returns {boolean}
+     */
     isValidUnconfirmedTransaction(transaction) {
         const transactionProperties = ['unconfirmedTransactions', 'requestProcessingTime']
         try {
@@ -64,30 +80,31 @@ class JupiterTransactionsService {
      * @returns {boolean}
      */
     areValidTransactions(transactions) {
+        logger.verbose('############################################3');
+        logger.verbose('## areValidTransactions(transactions)');
+        logger.verbose('##');
         logger.error('use ajv!!!')
-        logger.verbose('areValidTransactions()');
         if (!Array.isArray(transactions)) {
             logger.error('-- not Array');
             return false;
         }
+        logger.verbose(`transactions.length=${transactions.length}`);
 
         if (transactions <= 0) {
             logger.error('-- empty array passed in');
             return false
         }
 
-        logger.debug(`-- Total transactions to validate: ${transactions.length}`)
+        // logger.debug(`-- Total transactions to validate: ${transactions.length}`)
 
         for (let i = 0; i < transactions.length; i++) {
-            // console.log(JSON.stringify(transactions[i]));
             if (!this.isValidBaseTransaction(transactions[i])) {
                 logger.error(` -- invalid transaction`);
                 logger.sensitive(`this.isValidBaseTransaction(transactions[i]) = ${JSON.stringify(transactions[i])}`)
                 return false;
             }
         }
-
-        logger.verbose(` -- Transactions are valid.`);
+        // logger.verbose(` -- Transactions are valid.`);
         return true;
     }
 
@@ -306,9 +323,10 @@ class JupiterTransactionsService {
                     resolve(blockChainTransactions);
                 })
                 .catch((error) => {
-                    logger.error(`********************`)
-                    logger.error(`__ error= ${JSON.stringify(error)}`);
-                    logger.error(`********************`)
+                    logger.error(`*****************************************`)
+                    logger.error(`** jupiterAPIService.getBlockChainTransactions().catch()}`);
+                    logger.error(`** error= ${JSON.stringify(error)}`);
+                    logger.error(`** `)
                     reject(error);
                 });
         });
@@ -511,25 +529,17 @@ class JupiterTransactionsService {
                 logger.debug(`transactionId= ${transactionId}`)
                 metisMessagePromises.push(
                     new Promise((res, rej) => {
-                        //async getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
                         this.getReadableMessageFromMessageTransactionIdAndDecrypt(
                             transactionId,
                             accountProperties.passphrase.crypto,
                             accountProperties.passphrase
                         )
                             .then(message => {
-                                console.log('i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i ')
-                                console.log(message)
-                                console.log('i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i i ')
-
-
-
-
                                 logger.verbose(`-----------------------------------------------------`)
                                 logger.verbose(`decipherMessagesFromMessageTransactionsAndReturnTransactions(messageTransactions).getReadableMessageFromMessageTransactionIdAndDecrypt().then()`)
                                 logger.verbose(`-----------------------------------------------------`)
                                 transaction.attachment.decryptedMessage = {};
-                                transaction.attachment.decryptedMessage.data = message;
+                                transaction.attachment.decryptedMessage.data = message.message;
                                 res(transaction)
 
                             })
@@ -614,27 +624,47 @@ class JupiterTransactionsService {
      * @returns {Promise<array>}
      */
     async readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase) {
-        logger.verbose('#####################################################################################');
+        logger.verbose('##############################################################################################');
         logger.verbose('## readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)');
-        logger.verbose('#####################################################################################');
-        return new Promise((resolve, reject) => {
+        logger.verbose('##');
+        logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
+
+        const groupMaxSize = 100;
+
+        return new Promise(async (resolve, reject) => {
             if (!(messageTransactionIds.length > 0)) {
                 logger.warn(`Empty messageTransactionIds array`);
-                return resolve([]);
-                // return reject({status: '', message: ''});
+                return resolve([]); // return reject({status: '', message: ''});
             }
 
-            logger.verbose(`readMessagesFromMessageTransactionIdsAndFilterOutUnreadables(messageTransactionIds Count: ${messageTransactionIds.length})`);
             let metisMessagePromises = [];
-            // let counter = 0;
-            messageTransactionIds.forEach(transactionId => {
-                metisMessagePromises.push(
-                    this.getReadableMessageFromMessageTransactionIdAndDecrypt(transactionId, crypto, passphrase)
-                )
-            });
+            let transactionGroupCount = Math.ceil((messageTransactionIds.length)/groupMaxSize);
+            // console.log(`Total transactions: ${messageTransactionIds.length}`);
+            // console.log(`transactionGroupCount=${transactionGroupCount}`);
+            let results = [];
+            for(let currentGroup = 0; currentGroup < transactionGroupCount; currentGroup++) {
+                // console.log(`-- Current Group: ${currentGroup} --`);
+                let transactionsCount = Math.min(messageTransactionIds.length, groupMaxSize);
+                for(let j = 0; j < transactionsCount; j++){
+                    metisMessagePromises.push(
+                        this.getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionIds.pop(), crypto, passphrase)
+                    )
+                }
 
-            logger.debug(`metisMessagePromises.length= ${metisMessagePromises.length}`);
+                // console.log('START AWAIT ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+                results = results.concat(await this.allMessagePromises(metisMessagePromises));
+                // console.log('END AWAIT -----------------------++++++++++++++++++++++++++++++++++++----------------------------------')
+            }
 
+            logger.debug(`messageTransactionIds.length=${messageTransactionIds.length}`);
+            logger.debug(`metisMessagePromises.length=${metisMessagePromises.length}`);
+
+            return  resolve(results);
+        })
+    }
+
+    allMessagePromises(promises){
+        return new Promise((resolve, reject) => {
             /**
              * // [
              //   {status: "fulfilled", value: 33},
@@ -643,7 +673,7 @@ class JupiterTransactionsService {
              //   {status: "rejected",  reason: Error: an error}
              // ]
              */
-            Promise.all(metisMessagePromises)
+            Promise.all(promises)
                 .then((results) => {
                     logger.verbose('---------------------------------------------------------------------------------------');
                     logger.verbose(`readMessagesFromMessageTransactionIdsAndDecrypt().Promise.all().then(results)`)
@@ -652,6 +682,7 @@ class JupiterTransactionsService {
 
                     const decryptedMessages = results.reduce(function (filtered, result) {
                         if(!result){
+                            // console.log('|')
                             return filtered;
                         }
                         filtered.push(result);
@@ -663,11 +694,11 @@ class JupiterTransactionsService {
                 .catch((error) => {
                     logger.error('PROMISE ERROR');
                     logger.error(error);
-                    reject({status: 'error', message: error});
+                    return reject({status: 'error', message: error});
                 })
+
         })
     }
-
 
     /**
      *  Don't return rejections cause we are doing Promise.all()
@@ -678,13 +709,14 @@ class JupiterTransactionsService {
      * @returns {Promise<unknown>}
      */
     async getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
-        // logger.verbose('###########  getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)  ###############');
+        // logger.verbose('#####################################################################################');
+        // logger.verbose('## getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)');
+        // logger.verbose('####');
+        // logger.verbose(`messageTransactionId=${messageTransactionId}`);
         return new Promise((resolve, reject) => {
             this.getReadableMessageFromMessageTransactionId(messageTransactionId, passphrase)
-                .then(decryptedMessage => { //decryptedMessage
-                    // logger.verbose('------------------  getReadableMessageFromMessageTransactionIdAndDecrypt().getReadableMessageFromMessageTransactionId().then(decryptedMessage)   -----------------------');
+                .then(decryptedMessage => {
                     // logger.sensitive(`decryptedMessage = ${decryptedMessage}`);
-                    // logger.error('decryptedMessage.message?  might just need to be decruptedMesssage')
                     try {
                         // logger.error('what happens if i try to parse a non JSON String?');
                         // logger.debug(`decryptedMessage.message= ${decryptedMessage.message}`);
@@ -692,23 +724,28 @@ class JupiterTransactionsService {
                         const messageToParse = crypto.decryptOrNull(decryptedMessage);
 
                         if(!messageToParse){
-                            return resolve(''); // becuase of Promise.all we should not do reject.
+                            // logger.debug('messageToParse is null');
+                            return resolve(''); // because of Promise.all we should not do reject.
                         }
 
-                        const message = JSON.parse(messageToParse);
-                        return resolve(message);
+                        // const message = JSON.parse(messageToParse);
+                        const message = gu.jsonParseOrPassThrough(messageToParse);
+                        return resolve({message: message, transactionId: messageTransactionId});
+
                     } catch (error) {
                         logger.error(`********************`)
-                        logger.error(`error= ${JSON.stringify(error)}`);
-                        logger.error(`********************`)
-                        return resolve('');
+                        logger.error(`** getReadableMessageFromMessageTransactionIdAndDecrypt().getReadableMessageFromMessageTransactionId().then().catch(error)`)
+                        console.log(error);
+                        logger.error(`**`)
+                        return resolve(''); // because of Promise.all we should not do reject.
                     }
                 })
                 .catch(error => {
                     logger.error(`********************`)
-                    logger.error(`error= ${JSON.stringify(error)}`);
-                    logger.error(`********************`)
-                    return resolve(''); // becuase of Promise.all we should not do reject.
+                    logger.error(`** getReadableMessageFromMessageTransactionIdAndDecrypt().getReadableMessageFromMessageTransactionId().catch(error)`);
+                    console.log(error);
+                    logger.error(`**`)
+                    return resolve(''); // because of Promise.all we should not do reject.
                 })
         })
     }
@@ -720,21 +757,26 @@ class JupiterTransactionsService {
      * @returns {Promise<string>} - decyptedMessage
      */
     async getReadableMessageFromMessageTransactionId(messageTransactionId, passphrase) {
+        // logger.verbose('#####################################################################################');
+        // logger.verbose('## getReadableMessageFromMessageTransactionId(messageTransactionId,passphrase)');
+        // logger.verbose('####');
         return new Promise((resolve, reject) => {
             if (!gu.isWellFormedJupiterTransactionId(messageTransactionId)) {
                 logger.warn(`invalid messageTransactionId`);
                 return reject({status: 'Error', message: `Transaction ID is not valid : ${messageTransactionId}`});
             }
-            // logger.verbose(`getReadableMessageFromMessageTransactionId(messageTransactionId : ${messageTransactionId})`);
             //getMessage() = {data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}
             this.jupiterAPIService.getMessage(messageTransactionId, passphrase)
                 .then((response) => {
-                    // logger.debug('getReadableMessageFromMessageTransactionId().getMessage()');
+                    // logger.sensitive(response);
                     return resolve(response.data.decryptedMessage);
                 })
                 .catch((error) => {
+                    logger.error(`********************`)
+                    logger.error('** getReadableMessageFromMessageTransactionId().apiService.getMessage().catch()');
                     const errorMessage = `readMessagesFromMessageTransactionIds().readMessage().then(): ${error}`;
                     logger.error(errorMessage);
+
                     return reject(error);
                 })
         })
@@ -746,64 +788,26 @@ class JupiterTransactionsService {
      * @param {GravityAccountProperties} accountProperties
      * @returns {Promise<[]>}
      */
-    async fetchMessages(accountProperties) { // ie gravity.getRecords()
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## fetchMessages()`);
-        logger.verbose('#####################################################################################');
-        logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
-        logger.sensitive(`accountProperties.crypt.decryptionPassword= ${JSON.stringify(accountProperties.crypto.decryptionPassword)}`);
-
-        return new Promise((resolve, reject) => {
-            this.fetchAllMessagesBySender(accountProperties)
-                .then(messages => {
-                    return resolve(messages);
-                })
-                .catch( error => {
-                    logger.error(`********************`)
-                    logger.error(`fetchMessages().catch(error= ${!!error})`);
-                    logger.error(`********************`)
-                    logger.sensitive(`error= ${JSON.stringify(error)}`);
-                    reject(error);
-                })
-            // const promise2 = this.fetchUnconfirmedMessages(accountProperties);
-            // const allPromises = Promise.all([promise1, promise2]);
-            // promise1
-            //     .then(messagesPromiseResultGrouping => {
-            //         logger.verbose('---------------------------------------------------------------------------------------');
-            //         logger.verbose(`-- fetchMessages().AllPromises().then(messagesPromiseResultGrouping)`);
-            //         logger.verbose('---------------------------------------------------------------------------------------');
-            //         logger.verbose(`TOTAL messagesPromiseResultGrouping: ${messagesPromiseResultGrouping.length}`);
-            //         // console.log(messagesPromiseResultGrouping);
-            //         console.log('$ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ ')
-            //         // return resolve([])
-            //         // return resolve(messagesPromiseResultGrouping);
-            //         // console.log('$ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ ')
-            //
-            //         const confirmedMessages = messagesPromiseResultGrouping[0];
-            //         const unconfirmedMessages = messagesPromiseResultGrouping[1];
-            //         const allMessages = [...confirmedMessages, ...unconfirmedMessages];
-            //         logger.verbose(`confirmedMessages Count: ${confirmedMessages.length}`)
-            //         logger.verbose(`unconfirmedMessages Count: ${unconfirmedMessages.length}`)
-            //         resolve(allMessages);
-            //     })
-            //     .catch( error => {
-            //         logger.error(`********************`)
-            //         logger.error(`fetchMessagesContainer().catch(error= ${!!error})`);
-            //         logger.error(`********************`)
-            //         logger.sensitive(`error= ${JSON.stringify(error)}`);
-            //         reject(error);
-            //     })
-        });
-    }
-
-
-    /**
-     *
-     * @returns {Promise<unknown>}
-     */
-    // async fetchUnconfirmedAccountTransactions(accountProperties) {
-    //     logger.verbose(`fetchUnconfirmedAccountTransactions()`)
-    //     return this.fetchUnconfirmedAndDecryptedTransactionMessages(accountProperties);
+    // async fetchMessages(accountProperties) { // ie gravity.getRecords()
+    //     logger.verbose('#####################################################################################');
+    //     logger.verbose(`## fetchMessages(accountProperties)`);
+    //     logger.verbose('##');
+    //     logger.sensitive(` accountProperties= ${JSON.stringify(accountProperties)}`);
+    //     logger.sensitive(` accountProperties.crypt.decryptionPassword= ${JSON.stringify(accountProperties.crypto.decryptionPassword)}`);
+    //
+    //     return new Promise((resolve, reject) => {
+    //         this.fetchAllMessagesBySender(accountProperties)
+    //             .then(messages => {
+    //                 return resolve(messages);
+    //             })
+    //             .catch( error => {
+    //                 logger.error(`********************************************`)
+    //                 logger.error(`** fetchMessages().catch(error= ${!!error})`);
+    //                 logger.error(`**`)
+    //                 logger.sensitive(`error= ${JSON.stringify(error)}`);
+    //                 return reject(error);
+    //             });
+    //     });
     // }
 
 
@@ -860,6 +864,78 @@ class JupiterTransactionsService {
     }
 
 
+    async getAllMessagesFromBlockChainAndReturnMessageContainers(accountProperties, blockChainTransactions, decipherWith=null){
+        logger.verbose('##############################################################################################');
+        logger.verbose(`## getAllMessagesFromBlockChainAndReturnMessageContainers(accountProperties, blockChainTransactions,  decipherWith=null)`);
+        logger.verbose('##');
+        logger.debug(`    blockChainTransactions.length= ${JSON.stringify(blockChainTransactions.length)}`);
+        let crypto = null;
+        if (!decipherWith){
+            crypto = accountProperties.crypto;
+        } else {
+            crypto = decipherWith;
+        }
+
+        const messageTransactions = this.filterMessageTransactionsBySender(blockChainTransactions, accountProperties.address);
+        const filteredTransactionIds = this.extractTransactionIds(messageTransactions);
+
+        return new Promise( (resolve, reject) => {
+            this.readMessagesFromMessageTransactionIdsAndDecrypt(
+                filteredTransactionIds,
+                crypto,
+                accountProperties.passphrase
+            )
+                .then((messageContainers) => {
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`getAllMessagesFromBlockChainAndReturnMessageContainers().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`messages.length ${messageContainers.length}`);
+
+                    return resolve(messageContainers);
+                })
+                .catch( error => {
+                    reject(error);
+                })
+        })
+
+    }
+
+    async getAllMessagesFromBlockChainAndIncludeTransactionInformation(accountProperties, blockChainTransactions,  decipherWith=null){
+        logger.verbose('##############################################################################################');
+        logger.verbose(`## getAllMessagesFromBlockChainAndIncludeTransactionInformation(accountProperties, blockChainTransactions,  decipherWith=null)`);
+        logger.verbose('##');
+        logger.debug(`    blockChainTransactions.length= ${JSON.stringify(blockChainTransactions.length)}`);
+        let crypto = null;
+        if (!decipherWith){
+            crypto = accountProperties.crypto;
+        } else {
+            crypto = decipherWith;
+        }
+
+        const messageTransactions = this.filterMessageTransactionsBySender(blockChainTransactions, accountProperties.address);
+        const filteredTransactionIds = this.extractTransactionIds(messageTransactions);
+
+        return new Promise( (resolve, reject) => {
+            this.readMessagesFromMessageTransactionIdsAndDecrypt(
+                filteredTransactionIds,
+                crypto,
+                accountProperties.passphrase
+            )
+                .then((messages) => {
+                    logger.verbose('---------------------------------------------------------------------------------------');
+                    logger.verbose(`-- getAllMessagesFromBlockChainAndIncludeTransactionInformation().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
+                    logger.verbose('--');
+                    logger.verbose(`messages.length: ${messages.length}`);
+
+                    return resolve(messages);
+                })
+                .catch( error => {
+                    reject(error);
+                })
+        })
+
+    }
+
     /**
      *
      * @param {GravityAccountProperties} accountProperties
@@ -909,24 +985,10 @@ class JupiterTransactionsService {
                             logger.verbose(`fetchAllMessagesBySender().getAllBlockChainTransactions().readMessagesFromMessageTransactionIdsAndDecrypt().then(messages)`);
                             logger.verbose('---------------------------------------------------------------------------------------');
                             logger.verbose(`messages.length ${messages.length}`);
+
                             return resolve(messages);
                         })
-                        .catch(error => {
-                            const errorMessage = `fetchMessagesContainer().getAllBlockChainTransactions().then().readMessagesFromMessageTransactionIds().catch() ${error}`;
-                            logger.error(`********************`)
-                            logger.error(`********************`)
-                            logger.error(errorMessage);
-                            logger.error(`********************`)
-                            reject(errorMessage);
-                        })
                 })
-                .catch((error) => {
-                    logger.error(`********************`)
-                    logger.error(`********************`)
-                    logger.error(`** fetchAllMessagesBySender(accountProperties).getAllBlockChainTransactions(address).catch() > error: ${error}`)
-                    logger.error(`********************`)
-                    reject(error);
-                });
         })
     }
 
@@ -934,3 +996,4 @@ class JupiterTransactionsService {
 }
 
 module.exports.JupiterTransactionsService = JupiterTransactionsService;
+module.exports.jupiterTransactionsService = new JupiterTransactionsService(jupiterAPIService);

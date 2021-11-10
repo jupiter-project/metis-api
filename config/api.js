@@ -1,8 +1,7 @@
 import find from 'find';
 import jwt from 'jsonwebtoken';
 import { gravity } from './gravity';
-const JupiterFSService = require('../services/JupiterFSService');
-
+import ChannelRecord from "../models/channel.js";
 const logger = require('../utils/logger')(module);
 
 const getModelFilePath = tableName => {
@@ -154,7 +153,6 @@ module.exports = (app) => {
     }
   });
 
-
   /**
    * Create a record, assigned to the current user
    */
@@ -197,16 +195,37 @@ module.exports = (app) => {
       }
       recordObject.create()
         .then(response => {
-          /**console.log('[MODEL]: ', recordObject.model);
-          if(recordObject.model === 'channel') {
-            JupiterFSService.channelStorageCreate(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password);
-          }  */
           return sendSuccessResponse({req, res, data: response});
         })
         .catch(error => {
           return sendFailureResponse({req, res, error});
         });      
     }
+  });
+
+  app.get('/v1/api/:account/channel', (req, res, next) => {
+    const { user } = req;
+    const { account } = req.params;
+
+    // We verify the user data here
+    const channelRecord = new ChannelRecord({
+      user_id: user.id,
+      public_key: user.publicKey,
+      user_api_key: user.publicKey,
+    });
+
+    const userData = JSON.parse(gravity.decrypt(user.accountData));
+    channelRecord.loadChannelByAddress(account, userData)
+        .then(channel => {
+          const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
+          return { ...channel, token };
+        })
+        .then(channel => res.status(200).send({ success: true, channel }))
+        .catch((error) => {
+          logger.error('[Channel id]->[loadRecords]:');
+          logger.error(error);
+          res.status(500).send({ success: false, error });
+        });
   });
 
   /**

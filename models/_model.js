@@ -11,9 +11,12 @@ const logger = require('../utils/logger')(module);
 
 class Model {
   constructor(data, accessData = null) {
-    // Default values of model
-    logger.verbose(`constructor()`);
-    logger.debug(`data =${ JSON.stringify(data)}`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## constructor(data, accessData)`);
+    logger.verbose(`## `);
+    logger.sensitive(`data=${JSON.stringify(data)}`);
+    logger.sensitive(`accessData=${JSON.stringify(accessData)}`);
+
     this.id = null;
     this.record = {};
     this.model = data.model;
@@ -31,7 +34,9 @@ class Model {
   }
 
   setRecord() {
-    logger.verbose(`setRecord()`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## setRecord()`);
+    logger.verbose(`## `);
     const record = {};
     const self = this;
 
@@ -45,29 +50,33 @@ class Model {
     self.id = record.id;
     self.record.date = Date.now();
 
+    let  userData = null;
     if (self.model === 'user') {
-      self.user = {
+       userData = {
         id: self.id,
         api_key: self.record.api_key,
         public_key: self.data.public_key
       };
 
     } else {
-      self.user = {
+      userData = {
         id: self.data.user_id,
         api_key: self.data.user_api_key,
         public_key: self.data.public_key,
         address: self.data.user_address,
       };
     }
+    self.user = userData;
+    logger.sensitive(`userData=${JSON.stringify(userData)}`);
 
-    logger.debug(`self.user = ${JSON.stringify(self.user)}`);
     return record;
   }
 
   generateId(tableCredentials) {
-    logger.verbose(`generateId()`);
-    logger.sensitive(`tableCredentials = ${tableCredentials}`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## generateId(tableCredentials)`);
+    logger.verbose(`## `);
+    logger.sensitive(`tableCredentials=${JSON.stringify(tableCredentials)}`);
     const self = this;
     const eventEmitter = new events.EventEmitter();
 
@@ -99,9 +108,12 @@ class Model {
           });
       });
 
+      //@TODO the message is fixed size non-encrypted. its 20 chars long. The fee needs to reflect this.
       const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record)
+      const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+
       if (tableCredentials.public_key) {
-        callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableCredentials.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
+        callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&subtype=${subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${tableCredentials.public_key}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
         eventEmitter.emit('data_prepared');
       } else {
         logger.debug(`No public_key. Getting Account Info`);
@@ -109,8 +121,8 @@ class Model {
           .then((response) => {
             logger.debug(`generateId().getAccountInformation().then()`);
             const { publicKey } = response;
-            const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record)
-            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${publicKey}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
+            // const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record)
+            callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${tableCredentials.passphrase}&recipient=${tableCredentials.address}&messageToEncrypt=${'Generating Id for record'}&feeNQT=${fee}&subtype=${subtype}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${publicKey}&compressMessageToEncrypt=true&encryptedMessageIsPrunable=true`;
             logger.sensitive(`Calling sendMessage(): ${callUrl}`);
             eventEmitter.emit('data_prepared');
           })
@@ -165,7 +177,6 @@ class Model {
           for (let x = 0; x < accountTables.length; x += 1) {
             if (accountTables[x].name === thisTableName) {
               const recordTable = accountTables[x];
-              logger.debug(`recordTable= ${JSON.stringify(recordTable)}`);
               return resolve(recordTable);
               break;
             }
@@ -277,7 +288,10 @@ class Model {
   }
 
   loadRecords(accessData = false) {
-    logger.verbose(`loadRecords()`);
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## loadRecords(accessData)`);
+    logger.verbose(`## `);
+
     const self = this;
     const eventEmitter = new events.EventEmitter();
     const finalList = [];
@@ -302,8 +316,12 @@ class Model {
           },
         )
           .then((res) => {
-            logger.debug(`loadRecords().getRecords().then()`)
+            logger.verbose(`-----------------------------------------------------------------------------------`);
+            logger.verbose(`-- loadRecords().getRecords().then(res)`);
+            logger.verbose(`-- `);
             const { records } = res;
+            logger.sensitive(`records=${JSON.stringify(records)}`);
+
             const recordsBreakdown = {};
             for (let x = 0; x < Object.keys(records).length; x += 1) {
               const thisRecord = records[x];
@@ -337,13 +355,15 @@ class Model {
                 date: createdAt,
               });
             }
+            logger.sensitive(`finalList=${JSON.stringify(finalList)}`);
 
-
-            logger.sensitive(JSON.stringify({ success: true, records: finalList, records_found: finalList.length }))
-            resolve({ success: true, records: finalList, records_found: finalList.length });
+            return resolve({ success: true, records: finalList, records_found: finalList.length });
           })
           .catch((err) => {
-            logger.error('[getRecords]', err);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** loadRecords().getRecords().catch(var)`);
+            logger.error(`** `);
+            logger.sensitive(`err=${JSON.stringify(err)}`);
             reject(err);
           });
       });
@@ -396,7 +416,7 @@ class Model {
   create(accessLink = false) {
     logger.verbose('#####################################################################################')
     logger.verbose(`##  create(accessLink= ${!!accessLink})`);
-    logger.verbose('#####################################################################################')
+    logger.verbose('##')
 
     const self = this;
     const eventEmitter = new events.EventEmitter();
@@ -415,6 +435,10 @@ class Model {
         reject({ false: false, verification_error: true, errors: self.verify().messages });
       } else {
         eventEmitter.on('id_generated', () => {
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- create().on.id_generated`);
+          logger.verbose(`-- `);
+
           const stringifiedRecord = JSON.stringify(self.record);
 
           const fullRecord = {
@@ -427,6 +451,7 @@ class Model {
 
           let encryptedRecord;
 
+          //TODO we should not encrypt anything wth metis account
           if (accessLink && accessLink.encryptionPassword) {
             encryptedRecord = gravity.encrypt(JSON.stringify(fullRecord), accessLink.encryptionPassword);
           } else {
@@ -435,7 +460,7 @@ class Model {
 
           let callUrl;
           const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-          const typeSubType = feeManagerSingleton.getTransactionType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+          const typeSubType = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
           if (self.model === 'user') {
             if (self.prunableOnCreate) {
               logger.info('Record is prunable');
@@ -458,19 +483,29 @@ class Model {
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${self.user.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.public_key}&compressMessageToEncrypt=true`;
           } else {
             // TODO use the jupiter api service
+            // TODO change to "sendMetisMessage"
+            // TODO all send messages should include tag
             callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${appTableCredentials.passphrase}&recipient=${appTableCredentials.address}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${appTableCredentials.public_key}&compressMessageToEncrypt=true`;
           }
 
           logger.verbose(`create().axiosPost(): ${callUrl}`);
 
-
+          //TODO use jupiter API service
           axios.post(callUrl)
-            .then((response) => {
-
-              if (response.data.broadcasted && response.data.broadcasted === true) {
-                resolve({ success: true, message: 'Record created' });
-              } else if (response.data.errorDescription != null) {
-                reject({ success: false, errors: response.data.errorDescription });
+            .then((channelDataMessageResponse) => {
+              logger.verbose(`-----------------------------------------------------------------------------------`);
+              logger.verbose(`-- create().on.id_generated.axiosPost().then(response)`);
+              logger.verbose(`-- `);
+              logger.sensitive(`callUrl=${JSON.stringify(callUrl)}`);
+              if (channelDataMessageResponse.data.broadcasted && channelDataMessageResponse.data.broadcasted === true) {
+                const accountInfo = {
+                  transaction: channelDataMessageResponse.data.transactionJSON.transaction,
+                  account: self.record.account,
+                  publicKey: self.record.publicKey
+                };
+                resolve({ success: true, message: 'Record created', accountInfo });
+              } else if (channelDataMessageResponse.data.errorDescription != null) {
+                reject({ success: false, errors: channelDataMessageResponse.data.errorDescription });
               } else {
                 reject({ success: false, errors: 'Unable to save data in blockchain' });
               }
@@ -479,41 +514,63 @@ class Model {
               reject({ success: false, errors: error });
             });
         });
+
         eventEmitter.on('table_loaded', () => {
-          logger.debug(`create().on(table_loaded)`);
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- create().on.table_loaded()`);
+          logger.verbose(`-- `);
           logger.debug(`create().generateID()`);
 
-          self.generateId(appTableCredentials)
+          self.generateId(appTableCredentials) //TODO is this id required?
             .then(() => {
-              logger.debug(`create().generateID().then()`);
+              logger.verbose(`-----------------------------------------------------------------------------------`);
+              logger.verbose(`-- create().generateId(appTableCredentials).then()`);
+              logger.verbose(`-- `);
+              logger.sensitive(`appTableCredentials=${JSON.stringify(appTableCredentials)}`);
               if (self.record.id === undefined) {
                 reject({ success: false, errors: 'Id for model was not generated' });
               }
               eventEmitter.emit('id_generated');
             })
             .catch((err) => {
+              logger.error(`***********************************************************************************`);
+              logger.error(`** reate().generateId(appTableCredentials).catch(err)`);
+              logger.error(`** `);
+              logger.sensitive(`err=${JSON.stringify(err)}`);
               logger.error(err);
               reject({ success: false, errors: err });
             });
         });
 
         eventEmitter.on('request_authenticated', () => {
-          logger.verbose(`create().on(request_authenticated)`);
-          logger.debug(`create().loadTable()`);
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- create().on.request_authenticated()`);
+          logger.verbose(`-- `);
+
           self.loadAppTable(accessLink)
             .then((applicationTableCredentials) => {
-              logger.debug(`create().loadTable().then()`);
+              logger.verbose(`-----------------------------------------------------------------------------------`);
+              logger.verbose(`-- self.loadAppTable(accessLink)`);
+              logger.verbose(`-- `);
+              logger.sensitive(`accessLink=${JSON.stringify(accessLink)}`);
               appTableCredentials = applicationTableCredentials;
               logger.sensitive(`recordTable = ${JSON.stringify(appTableCredentials)}`);
               logger.sensitive(`accessLink = ${JSON.stringify(accessLink)}`);
               eventEmitter.emit('table_loaded');
             })
             .catch((err) => {
+              logger.error(`***********************************************************************************`);
+              logger.error(`** self.loadAppTable(accessLink).catch(err)`);
+              logger.error(`** `);
+              logger.sensitive(`err=${JSON.stringify(err)}`);
               reject({ success: false, errors: err });
             });
         });
 
         eventEmitter.on('authenticate_user_request', () => {
+          logger.verbose(`-----------------------------------------------------------------------------------`);
+          logger.verbose(`-- functionName(on.authenticate_user_request)`);
+          logger.verbose(`-- `);
           if (user.record.api_key === self.user.api_key) {
             eventEmitter.emit('request_authenticated');
           } else {
@@ -543,14 +600,10 @@ class Model {
           });
           eventEmitter.emit('authenticate_user_request');
         } else if (self.user && self.user.id) {
-
           const User = require('./user.js');
           gravity.findById(self.user.id, 'user')
             .then((response) => {
-
               user = new User(response.record);
-
-
               eventEmitter.emit('authenticate_user_request');
             })
             .catch((err) => {
@@ -558,7 +611,6 @@ class Model {
               reject({ success: false, errors: 'There was an error in authentication of request/user validation' });
             });
         } else {
-          // eventEmitter.emit('request_authenticated');
           reject({ success: false, errors: 'There was an error in authentication of request/user validation' });
         }
       }

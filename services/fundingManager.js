@@ -6,6 +6,10 @@ class FundingManager {
         newUserFundingAmount,
         newTableFundingAmount
     ) {
+
+        if(!newUserFundingAmount){throw new Error('missing newUserFundingAmount')}
+        if(!newTableFundingAmount){throw new Error('missing newTableFundingAmount')}
+
         this.funding = [];
 
         this.funding.push({
@@ -37,12 +41,7 @@ class FundingManager {
             return fundingType === fundAmount.fundingType
         })
 
-        console.log(this.funding)
-
-        console.log(fundAmount)
-
         if (fundAmount.length > 0) {
-            console.log('amount', fundAmount[0].amount)
             return fundAmount[0].amount
         }
 

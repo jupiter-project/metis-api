@@ -1,5 +1,8 @@
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {GravityCrypto} = require("../services/gravityCrypto");
+const bcrypt = require("bcrypt-nodejs");
+const gu = require("../utils/gravityUtils");
+const {applicationAccountProperties} = require("./applicationAccountProperties");
 const logger = require('../utils/logger')(module);
 
 /**
@@ -19,7 +22,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
      * @param {string} email
      * @param {string} firstName
      * @param {string} lastName
-     * @param {JupiterAccountProperties} applicationAccountProperties
+     * @param {ApplicationAccountProperties} applicationAccountProperties
      */
     constructor(address,
                 accountId,
@@ -33,6 +36,12 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 lastName = '',
                 applicationAccountProperties= null
     ) {
+
+        if(!address){throw new Error('missing address')}
+        if(!passphrase){throw new Error('missing passphrase')}
+        if(!password){throw new Error('missing password')}
+        if(!algorithm){throw new Error('missing algorithm')}
+
         super(address, accountId, publicKey, passphrase, email , firstName , lastName );
         this.passwordHash = hash;
         // this.password = password;
@@ -45,10 +54,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
         if(algorithm && password){
             this.crypto = new GravityCrypto( algorithm, password );
         }
-
-
-
-        this.aliasList = [];
+        this.applicationAccountProperties = applicationAccountProperties
         if(!(applicationAccountProperties == null)){
             this.addApplicationAccountProperties(applicationAccountProperties);
         }
@@ -62,18 +68,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
         throw new Error('provide a password and algorithm');
     }
 
-    addAlias(aliasName){
-        this.aliasList.push(aliasName);
-    }
-
-
-    getCurrentAliasOrNull(){
-        if(this.aliasList.length > 0){
-            return this.aliasList[0]
-        }
-        return null;
-    }
-
 
     /**
      *
@@ -81,13 +75,13 @@ class GravityAccountProperties extends JupiterAccountProperties {
      */
     addApplicationAccountProperties(applicationAccountProperties){
         this.isApp = true
+        this.applicationAccountProperties = applicationAccountProperties;
         this.deadline = applicationAccountProperties.deadline;
         this.minimumTableBalance = applicationAccountProperties.minimumTableBalance;
         this.minimumAppBalance = applicationAccountProperties.minimumAppBalance;
         this.moneyDecimals = applicationAccountProperties.moneyDecimals;
         this.transferFeeNQT = applicationAccountProperties.transferFeeNQT;
         this.feeNQT = applicationAccountProperties.feeNQT;
-        this.standardFeeNQT = applicationAccountProperties.standardFeeNQT;
         this.accountCreationFeeNQT = applicationAccountProperties.accountCreationFeeNQT;
     }
 
@@ -101,14 +95,38 @@ class GravityAccountProperties extends JupiterAccountProperties {
         }
     }
 
+    generateHash(value) {
+        return bcrypt.hashSync(value, bcrypt.genSaltSync(8), null);
+    }
+
+    generateRandomHash() {
+        const newPassphrase = gu.generatePassphrase();
+
+        return  bcrypt.hashSync(newPassphrase, bcrypt.genSaltSync(8), null);
+    }
+
 
     generateUserRecord(generatingTransactionId) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## generateUserRecord()`);
-        logger.verbose('#####################################################################################');
+        logger.verbose(`## generateUserRecord(generatingTransactionId)`);
+        logger.verbose('##');
 
         if(!generatingTransactionId){
             throw new Error('generatingTransactionId cannot be empty');
+        }
+
+        if (!this.address){
+            throw new Error('Address cannot be empty');
+        }
+
+        if (!this.password){
+            throw new Error('Encryption password cannot be empty');
+        }
+
+        const alias = this.getCurrentAliasNameOrNull();
+
+        if(!alias){
+            throw new Error('Alias is missing');
         }
 
         return {
@@ -116,15 +134,15 @@ class GravityAccountProperties extends JupiterAccountProperties {
             user_record: {
                 id: generatingTransactionId,
                 account: this.address,
-                accounthash: this.passwordHash,
+                accounthash: this.generateHash(this.address),
                 email: this.email,
                 firstname: this.firstName,
-                alias: this.getCurrentAliasOrNull(),
+                alias,
                 lastname: this.lastName,
-                secret_key: this.passphrase,
+                secret_key: null,
                 twofa_enabled: false,
                 twofa_completed: false,
-                api_key: this.publicKey,
+                api_key: this.generateRandomHash(),
                 publicKey: this.publicKey,
                 encryption_password: this.password
             },
@@ -134,3 +152,33 @@ class GravityAccountProperties extends JupiterAccountProperties {
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
+module.exports.metisGravityAccountProperties = new GravityAccountProperties(
+    process.env.APP_ACCOUNT_ADDRESS,
+    process.env.APP_ACCOUNT_ID,
+    process.env.APP_PUBLIC_KEY,
+    process.env.APP_ACCOUNT,
+    '', // hash
+    process.env.ENCRYPT_PASSWORD,
+    process.env.ENCRYPT_ALGORITHM,
+    process.env.APP_EMAIL,
+    process.env.APP_NAME,
+    '', // lastname
+    applicationAccountProperties
+);
+
+
+
+module.exports.metisGravityAccountProperties = new GravityAccountProperties(
+    process.env.APP_ACCOUNT_ADDRESS,
+    process.env.APP_ACCOUNT_ID,
+    process.env.APP_PUBLIC_KEY,
+    process.env.APP_ACCOUNT,
+    '', // hash
+    process.env.ENCRYPT_PASSWORD,
+    process.env.ENCRYPT_ALGORITHM,
+    process.env.APP_EMAIL,
+    process.env.APP_NAME,
+    '', // lastname
+    applicationAccountProperties
+);
+

@@ -924,8 +924,9 @@
           "type": "object",
           "properties": {
             "data": {
-              "type": "string",
-              "description": "message"
+              "type": "object",
+              "description": "message",
+              "$ref": "#/definitions/MessageData"
             },
             "mentions": {
               "type": "array",
@@ -982,7 +983,8 @@
       "type": "object",
       "properties": {
         "channel": {
-          "type": "object"
+          "type": "object",
+          "$ref": "#/definitions/Channel"
         },
         "message": {
           "type": "string"
@@ -1052,7 +1054,8 @@
               "description": "Alias or Jup id recipient"
             },
             "channel": {
-              "type": "object"
+              "type": "object",
+              "$ref": "#/definitions/Channel"
             }
           }
         }
@@ -1073,7 +1076,8 @@
         },
         "channel": {
           "type": "object",
-          "description": "Channel info"
+          "description": "Channel info",
+          "$ref": "#/definitions/Channel"
         },
         "mentions": {
           "type": "array",
@@ -1188,6 +1192,9 @@
       "type": "object",
       "properties": {
         "id": {
+          "type": "string"
+        },
+        "name": {
           "type": "string"
         },
         "channel_record": {

@@ -1,6 +1,5 @@
 const { tokenVerify } = require('./middlewares/authentication');
 const firebaseAdmin = require("firebase-admin");
-
 // Firebase Service initializer
 const firebaseServiceAccount = {
   type: process.env.FIREBASE_TYPE,
@@ -50,7 +49,6 @@ const jobs = kue.createQueue({
   },
 });
 
-
 // Loads Body parser
 const bodyParser = require('body-parser');
 
@@ -96,8 +94,8 @@ app.use((req, res, next) => {
   return null;
 });
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
 app.use(tokenVerify);
 
@@ -148,9 +146,15 @@ const socketOptions = {
   pingInterval, // how many ms before sending a new ping packet
 };
 const io = socketIO(server, socketOptions);
+// messages socket
 io.of('/chat').on('connection', socketService.connection.bind(this));
 
+// sign up socket
 io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+
+// channel creation
+io.of('/channels').on('connection', socketService.channelCreationConnection.bind(this));
+// io.of('/channels').on('connection', socketService.channelCreationConnection(this));
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
@@ -190,7 +194,7 @@ metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, React, ReactDOMServer, jobs);
+  require(file)(app, passport, React, ReactDOMServer, jobs, io);
 });
 
 // Route any invalid routes black to the root page
@@ -201,7 +205,12 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./config/accountRegistration");
+const {AccountRegistration} = require("./services/accountRegistrationService");
+const { jobScheduleService } = require('./services/jobScheduleService');
+const {jupiterFundingService} = require("./services/jupiterFundingService");
+const {channelCreationSetUp} = require("./services/channelService");
+
+jobScheduleService.init(kue);
 
 gravity.getFundingMonitor()
   .then(async (monitorResponse) => {
@@ -240,20 +249,34 @@ jobs.process('user-registration', WORKERS, (job,done) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: user-registration`)
   logger.verbose(`##`)
-  // logger.debug(job.data.data);
   const decryptedData = gravity.decrypt(job.data.data)
   const parsedData = JSON.parse(decryptedData);
 
-
   metisRegistration(job.data.account, parsedData)
-      .then(() => {
-        return done();
-      })
+      .then(() => done())
       .catch( error =>{
-        logger.error(`*********************`)
-        logger.error(`error=${error}`);
+        logger.error(`***********************************************************************************`);
+        logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
+        logger.error(`** `);
+        console.log(error);
+
         return done(error)
       })
+})
+
+
+
+jobs.process('channel-creation-confirmation', WORKERS, ( job, done ) => {
+  logger.verbose(`###########################################`)
+  logger.verbose(`## JobQueue: channel-creation-confirmation`)
+  logger.verbose(`##`)
+  const {channelRecord, decryptedAccountData, userPublicKey } = job.data;
+  channelCreationSetUp(channelRecord, decryptedAccountData, userPublicKey, (error) => {
+    if(error){
+      return done(error)
+    }
+    return done();
+  });
 })
 
 /* jobs.process('fundAccount', (job, done) => {
@@ -267,6 +290,7 @@ mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   logger.info('Mongo DB Online.');
 });
 
+server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
 server.listen(port, () => {
   logger.info(JSON.stringify(process.memoryUsage()));

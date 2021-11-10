@@ -35,7 +35,7 @@ module.exports = {
           return null;
         })
         .then((notifications) => {
-          const payload = { title, channel, message, metadata };
+          const payload = { title, message, metadata };
           if (notifications && Array.isArray(notifications) && !_.isEmpty(notifications)) {
 
             const tokensAndBadge = [];
@@ -56,7 +56,7 @@ module.exports = {
             if (tb.provider === 'ios'){
               sendApplePN(tb.token, message, tb.badge, payload, 'channels');
             } else {
-              sendFirebasePN(tb.token, title, message);
+              sendFirebasePN(tb.token, title, message, metadata);
             }
           });
         })

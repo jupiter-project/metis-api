@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
-
+import {jobScheduleService} from '../services/jobScheduleService';
 const logger = require('../utils/logger')(module);
 
 // This files handles the app's different pages and how they are routed by the system
@@ -274,7 +274,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
         gravityCLIReporter.addItemsInJson('Account Created', { ...response.data, ...formData });
         // gravityCLIReporter.sendReportAndReset();
-        logger.sensitive(jupiterAccount);
+        logger.sensitive(`jupiterAccount=${ JSON.stringify(jupiterAccount)}`);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
@@ -305,6 +305,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    */
   app.post('/v1/api/signup', (req, res, next) => {
     passport.authenticate('gravity-signup', (error, user, message) => {
+      console.log(error, user, message);
       if (error) {
         logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         logger.error(`500 ERROR!!!!`)
@@ -317,6 +318,22 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     })(req, res, next);
   });
 
+   /**
+   *
+   */
+    app.get('/v1/api/job/status', (req, res, next) => {
+      const {jobId} = req.query;
+      const callback = function(err, job) {
+        if(!err){
+          return res.status(200).send({ success: true, status: job.state() });
+        } else {
+          console.log(err);
+          return res.status(404).send({ success: false, status: `Problem with job id: ${jobId}` });
+        }
+      }
+      jobScheduleService.checkJobStatus(jobId, callback);
+    });
+
   /**
    *
    */
@@ -324,7 +341,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     gravityCLIReporter.setTitle('  METIS LOGIN ');
     logger.verbose('appLogin()');
     logger.debug('--headers--');
-    logger.sensitive(JSON.stringify(req.headers));
+    logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
 
     passport.authenticate('gravity-login', (error, user, message) => {
       logger.debug('passport.authentication(CALLBACK).');
@@ -351,7 +368,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       try {
         logger.verbose('attempting to decrypt the accountData');
         accountData = JSON.parse(gravity.decrypt(user.accountData));
-        logger.verbose(`accountData = ${JSON.stringify(accountData)}`);
       } catch (error) {
         const errorMessage = 'Unable to decrypt your data.';
         gravityCLIReporter.addItem('Account Data', 'Unable to decrypt Account Data');
