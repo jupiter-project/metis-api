@@ -52,13 +52,6 @@ const jobs = kue.createQueue({
 // Loads Body parser
 const bodyParser = require('body-parser');
 
-// Loads react libraries
-//const React = require('react');
-//const ReactDOMServer = require('react-dom/server');
-
-// Loads request library
-// const request = require('request')
-
 // Loads passport for authentication
 const passport = require('passport');
 
@@ -94,13 +87,10 @@ app.use((req, res, next) => {
   return null;
 });
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
 app.use(tokenVerify);
-
-// Sets public directory
-//app.use(express.static(`${__dirname}/public`));
 
 // required for passport
 const sessionSecret = process.env.SESSION_SECRET !== undefined ? process.env.SESSION_SECRET : 'undefined';
@@ -146,10 +136,15 @@ const socketOptions = {
   pingInterval, // how many ms before sending a new ping packet
 };
 const io = socketIO(server, socketOptions);
+// messages socket
 io.of('/chat').on('connection', socketService.connection.bind(this));
 
+// sign up socket
 io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
 
+// channel creation
+io.of('/channels').on('connection', socketService.channelCreationConnection.bind(this));
+// io.of('/channels').on('connection', socketService.channelCreationConnection(this));
 
 const jupiterSocketService = require('./services/jupiterSocketService');
 const WebSocket = require('ws');
@@ -158,7 +153,7 @@ jupiterWss.on('connection', jupiterSocketService.connection.bind(this));
 
 server.on('upgrade', (request, socket, head) => {
   const pathname = url.parse(request.url).pathname;
-  console.log(pathname);
+  logger.info(pathname);
   if (pathname === '/jupiter') {
     jupiterWss.handleUpgrade(request, socket, head, (ws) => {
       jupiterWss.emit('connection', ws, request);
@@ -199,8 +194,10 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./config/accountRegistration");
+const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
+const {jupiterFundingService} = require("./services/jupiterFundingService");
+const {channelCreationSetUp} = require("./services/channelService");
 
 jobScheduleService.init(kue);
 
@@ -221,45 +218,38 @@ gravity.getFundingMonitor()
       throw error;
     });
 
-// Worker methods
-// const RegistrationWorker = require('./workers/registration.js');
-// const TransferWorker = require('./workers/transfer.js');
-
-
-// const registrationWorker = new RegistrationWorker(jobs, io);
-// registrationWorker.reloadActiveWorkers('completeRegistration')
-//   .catch((error) => { if (error.error) logger.debug(error.message); });
-// const transferWorker = new TransferWorker(jobs);
-
-// jobs.process('completeRegistration', (job, done) => {
-//   registrationWorker.checkRegistration(job.data, job.id, done);
-// });
-
 const WORKERS = 100;
 
 jobs.process('user-registration', WORKERS, (job,done) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: user-registration`)
   logger.verbose(`##`)
-  // logger.debug(job.data.data);
   const decryptedData = gravity.decrypt(job.data.data)
   const parsedData = JSON.parse(decryptedData);
 
-
   metisRegistration(job.data.account, parsedData)
-      .then(() => {
-        return done();
-      })
+      .then(() => done())
       .catch( error =>{
-        logger.error(`*********************`)
-        logger.error(`error=${error}`);
+        logger.error(`***********************************************************************************`);
+        logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
+        logger.error(`** `);
+        logger.error(error);
         return done(error)
       })
 })
 
-/* jobs.process('fundAccount', (job, done) => {
-  transferWorker.fundAccount(job.data, job.id, done);
-}); */
+jobs.process('channel-creation-confirmation', WORKERS, ( job, done ) => {
+  logger.verbose(`###########################################`)
+  logger.verbose(`## JobQueue: channel-creation-confirmation`)
+  logger.verbose(`##`)
+  const {channelRecord, decryptedAccountData, userPublicKey } = job.data;
+  channelCreationSetUp(channelRecord, decryptedAccountData, userPublicKey, (error) => {
+    if(error){
+      return done(error)
+    }
+    return done();
+  });
+})
 
 mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   if (err) {
@@ -268,6 +258,7 @@ mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   logger.info('Mongo DB Online.');
 });
 
+server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
 server.listen(port, () => {
   logger.info(JSON.stringify(process.memoryUsage()));

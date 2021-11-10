@@ -65,6 +65,32 @@ const signUpFailed = function (account) {
   this.broadcast.to(`sign-up-${account}`).emit('signUpFailed');
 };
 
+const channelCreationConnection = function (socket) {
+  const { room, user } = socket.handshake.query;
+  if (!room || !user) {
+    logger.error(`Missing parameter ${JSON.stringify({ room, user })}`);
+    return socket.close();
+  }
+
+  joinRoom(socket, room, user);
+
+  socket.on('leaveRoom', leaveRoom);
+  socket.on('connect_error', (error) => {
+    logger.error(JSON.stringify(error));
+  });
+  /**
+   * io server disconnect The server has forcefully disconnected the socket with socket.disconnect()
+   * io client disconnect The socket was manually disconnected using socket.disconnect()
+   * ping timeout The server did not send a PING within the pingInterval + pingTimeout range
+   * transport close The connection was closed (example: the user has lost connection, or the network was changed from WiFi to 4G)
+   * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
+   */
+  socket.on('disconnect', (reason) => {
+    logger.info(`reason: ${reason}`);
+    logger.info(`${socket.name} has disconnected from the chat.${socket.id}`);
+  });
+}
+
 const signUpConnection = function (socket) {
   const { room, user } = socket.handshake.query;
   if (!room || !user) {
@@ -125,4 +151,4 @@ const connection = function (socket) {
   });
 };
 
-module.exports = { connection, signUpConnection };
+module.exports = { connection, signUpConnection, channelCreationConnection };

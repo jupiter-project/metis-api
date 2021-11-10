@@ -7,10 +7,7 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
-const AccountRegistration  = require('../config/accountRegistration');
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
-
-
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 
 class Gravity {
@@ -179,7 +176,6 @@ class Gravity {
       const y = b.date;
       let ruleOne;
       let ruleTwo;
-
       if (order === 'asc' || order !== 'desc') {
         ruleOne = (x !== undefined && x > y);
         ruleTwo = (x === undefined || x < y);
@@ -318,11 +314,10 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   loadAccountData(accountCredentials ) { // -> getREcords
-    logger.verbose('#####################################################################################')
-    logger.verbose(`                       loadAccountData(accountCredentials = ${!!accountCredentials})`)
-    logger.verbose('#####################################################################################')
-    logger.sensitive(`accountCredentials = ${JSON.stringify(accountCredentials)}`);
-
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## loadAccountData(accountCredentials)`);
+    logger.verbose(`## `);
+    logger.sensitive(`accountCredentials=${JSON.stringify(accountCredentials)}`);
     return new Promise((resolve, reject) => {
 
       logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
@@ -333,10 +328,10 @@ class Gravity {
           { size: 'all', show_pending: null, show_unconfirmed: false },
           accountCredentials.password )
           .then((recordsContainer) => { //{records,last_record,pending}
-            logger.debug('---------------------------------------------------------------------------------------')
+            logger.verbose(`-----------------------------------------------------------------------------------`);
             logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
-            logger.debug('---------------------------------------------------------------------------------------')
-
+            logger.verbose(`-- `);
+            logger.sensitive(`recordsContainer=${JSON.stringify(recordsContainer)}`);
             const allRecords = recordsContainer.records;
             if (Array.isArray(allRecords) && !allRecords.length ){
               logger.warn(`-- the records array is empty`)
@@ -374,8 +369,10 @@ class Gravity {
             return resolve(payload)
           })
           .catch((error) => {
-            logger.error('Theres an error!');
-            logger.error(error);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** loadAccountData.getRecords.catch(error)`);
+            logger.error(`** `);
+            logger.sensitive(`error=${JSON.stringify(error)}`);
             reject('There was an error loading records');
           });
     });
@@ -971,7 +968,7 @@ class Gravity {
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
-                    logger.error(JSON.stringify(error));
+                    // logger.error(JSON.stringify(error));
                     return resolve({error: true, message: error});
                   });
             })
@@ -1559,7 +1556,7 @@ class Gravity {
                     logger.debug('---------------------------------------------------------------------------------------')
                     logger.verbose(`--   Compare the given password with the password in the usersTable`)
                     logger.debug('---------------------------------------------------------------------------------------')
-                      if(!(userRecord.encryption_password == containedDatabase.encryptionPassword)){
+                      if(!(userRecord.encryption_password === containedDatabase.encryptionPassword)){
                         logger.warn('Not valid password');
                         throw new Error(`The password is not valid. Need to return the proper reject()`);
                       }
@@ -2008,7 +2005,6 @@ class Gravity {
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
     const feeNQT = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const tableCreation = 750;
     let amount = transferAmount;
     const senderPassphrase = sender || process.env.APP_ACCOUNT;
     const server = process.env.JUPITERSERVER;
@@ -2023,16 +2019,7 @@ class Gravity {
       }
 
       const requestUrl = `${server}/nxt?requestType=sendMoney&secretPhrase=${senderPassphrase}&recipient=${recipient}&amountNQT=${amount}&feeNQT=${feeNQT}&deadline=60`
-
       logger.sensitive(`sendMoney: ${requestUrl}`);
-      gravityCLIReporter.addItemsInJson('Sending some Money', {
-        'sender': senderPassphrase,
-        'recepient': recipient,
-        'amountNQT': amount,
-        'feeNQT': feeNQT
-      }, `Funding` );
-
-
       return axios.post(requestUrl)
         .then((response) => {
           if (response.data.signatureHash != null) {
@@ -2105,9 +2092,9 @@ class Gravity {
   }
 
   async getAlias(aliasName) {
-    logger.verbose('###############################################################################################')
+    logger.verbose('GRAVITY#######################################################################################')
     logger.verbose(`## getAlias(aliasName= ${aliasName}`);
-    logger.verbose('###############################################################################################')
+    logger.verbose('##')
     const aliasCheckup = await this.jupiterRequest('get', {
       aliasName,
       requestType: 'getAlias',
@@ -2393,6 +2380,7 @@ class Gravity {
     let tableNamesContainer;
     // let table_created = true;
     let listOfTableNames = []
+    const transactionsReport = []
 
     return new Promise((resolve, reject) => {
       eventEmitter.on('insufficient_balance', () => {
@@ -2411,16 +2399,20 @@ class Gravity {
 
         this.sendMoney(newTableAddress, process.env.JUPITER_MININUM_TABLE_BALANCE )
           .then((response) => {
-            logger.verbose('---------------------------------------------------------------------------------------');
-            logger.debug(`attachTable().sendMoney(newTableAddress).then(response)`)
-            logger.verbose('---------------------------------------------------------------------------------------');
-            logger.info(`newTableAddress= ${tableName}`);
+            logger.verbose('------------------------------------------------------------');
+            logger.verbose(`-- attachTable().sendMoney(newTableAddress).then(response)`)
+            logger.verbose('--');
+            logger.verbose(`newTableName= ${tableName}`);
+            logger.verbose(`newTableAddress= ${newTableAddress}`);
+
+            transactionsReport.push({name: 'send-money', id: response.data.transaction})
 
             return resolve({
               name: tableName,
               address: newTableAddress,
               passphrase: newPassphrase,
-              publicKey: newPublicKey
+              publicKey: newPublicKey,
+              transactionsReport: transactionsReport
             })
 
             // resolve({
@@ -2923,7 +2915,8 @@ class Gravity {
       }
       if (dataTransactions.length > 1) {
         const order = filter.order || 'asc';
-        this.sortByDate(dataTransactions, order);
+        // return this.sortByDate(dataTransactions, order);
+        return _.orderBy(dataTransactions, [(obj) => new Date(obj.date)], [order]);
       }
 
       return dataTransactions;
@@ -3254,7 +3247,6 @@ class Gravity {
     });
   }
 }
-
 
 module.exports = {
   gravity: new Gravity(),

@@ -19,25 +19,16 @@ const getModelFilePath = tableName => {
 };
 
 // This file handles the app's different pages and how they are routed by the system
-
 module.exports = (app) => {
-  // let bcrypt = require('bcrypt-nodejs');
-  // let session = require('express-session');
-  // let flash = require('connect-flash');
-  // let Queue = require('bull');
-  // let controller = require('../config/controller.js');
-
   // ===========================================================
   // This constains constants needed to connect with Jupiter
   // ===========================================================
   // Loads Gravity module
   // let gravity = require('../config/gravity.js');
 
-
   // ===============================================================================
   //  API GENERAL ROUTES
   // ===============================================================================
-
   /**
    * Get alias
    */
@@ -91,7 +82,6 @@ module.exports = (app) => {
     }
   });
 
-
   /**
    * Get channel records associated with a user
    */
@@ -143,11 +133,10 @@ module.exports = (app) => {
     }
   });
 
-
   /**
    * Get channel records associated with a user
    */
-  app.get('/v1/api/channel/:account', (req, res, next) => {
+  app.get('/v1/api/:account/channel', (req, res, next) => {
     const { user } = req;
     const { account } = req.params;
 
@@ -171,7 +160,6 @@ module.exports = (app) => {
           res.status(500).send({ success: false, error });
         });
   });
-
 
   /**
    * Create a record, assigned to the current user
@@ -220,7 +208,6 @@ module.exports = (app) => {
       }
       const Record = require(fileFullPath);
 
-
       const recordObject = new Record(data);
       if (recordObject.belongsTo === 'user') {
         if (accountData) {
@@ -232,7 +219,6 @@ module.exports = (app) => {
           console.log('[MODEL]: ', recordObject.model);
 
           if(recordObject.model === 'channel') {
-            // JupiterFSService.uploadPixiImageAndWait(recordObject.record.account, recordObject.record.passphrase, recordObject.record.password)
           }
           res.status(200).send(response);
         })
@@ -245,36 +231,4 @@ module.exports = (app) => {
         });
     }
   });
-
-  /**
-   * Update a record, assigned to the current user
-   */
-  /**app.put('/v1/api/:tableName', (req, res, next) => {
-    const params = req.body;
-    const { data } = params;
-    const { tableName } = req.params;
-    const exceptions = ['users'];
-    let model = '';
-
-    // If table in route is in the exception list, then it goes lower in the route list
-    if (exceptions.includes(tableName)) {
-      next();
-    } else {
-      const fileFullPath = getModelFilePath(tableName);
-
-      const Record = require(fileFullPath);
-
-      // We verify the user data here
-      const recordObject = new Record(data);
-
-      recordObject.update()
-        .then((response) => {
-          res.send(response);
-        })
-        .catch((err) => {
-          logger.error(err);
-          res.send(err);
-        });
-    }
-  });*/
 };

@@ -15,7 +15,6 @@ class JupiterAccountProperties {
      * @param {string} email
      * @param {string} firstName
      * @param {string} lastName
-     * @param {string} alias
      * @param {boolean} twofactorAuthenticationEnabled
      * @param {boolean} twofactorAuthenticationcompleted
      */
@@ -26,10 +25,12 @@ class JupiterAccountProperties {
                 email = '',
                 firstName = '',
                 lastName = '',
-                alias='',
                 twofactorAuthenticationEnabled = false,
-                twofactorAuthenticationcompleted = false
+                twofactorAuthenticationcompleted = false,
     ) {
+
+        if(!address){throw new Error('missing address')}
+        if(!passphrase){throw new Error('missing passphrase')}
 
         //d7eb6f6854193941a7d45738e763331c28bd947956d7fe96b6b5969dea9af967
         if(!gu.isWellFormedPublicKey(publicKey)){
@@ -44,7 +45,6 @@ class JupiterAccountProperties {
             throw new Error('passphrase key is not valid');
         }
 
-
         this.address = address;
         this.accountId = accountId;
         this.publicKey = publicKey;
@@ -52,21 +52,54 @@ class JupiterAccountProperties {
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.alias = alias;
         this.twofactorAuthenticationEnabled = twofactorAuthenticationEnabled;
         this.twofactorAuthenticationcompleted = twofactorAuthenticationcompleted;
+        this.aliasList = [];
     }
 
 
+    /**
+     * {
+     *        "aliasURI": "acct:JUP-KMRG-9PMP-87UD-3EXSF@nxt",
+     *         "aliasName": "sprtz",
+     *         "accountRS": "JUP-KMRG-9PMP-87UD-3EXSF",
+     *          "alias": "10959857533315209502",
+     *         "account": "1649351268274589422",
+     *         "timestamp": 116641472
+     *     }
+     *
+     * @param {{aliasURI, aliasName: *, accountRS: string}} aliasInfo
+     */
+    addAlias(aliasInfo){
+        if(!aliasInfo.aliasName){throw new Error('jupiterAccountPorperties.addAlias(): aliasName is missing')}
+        if(!aliasInfo.aliasURI){throw new Error('jupiterAccountPorperties.addAlias(): aliasURI is missing')}
+        if(!aliasInfo.accountRS){throw new Error('jupiterAccountPorperties.addAlias(): accountRS is missing')}
 
-    static createProperties(address = null, passphrase = null, publicKey = null){
+        this.aliasList.push(aliasInfo);
+    }
+
+
+    /**
+     *
+     * @returns {null|*}
+     */
+    getCurrentAliasNameOrNull(){
+        if(this.aliasList.length > 0){
+            //@TODO order alias by timestamp and return the latest.
+            return this.aliasList[0].aliasName;
+        }
+        return null;
+    }
+
+
+    static createProperties(address = null, passphrase = null, publicKey = null, accountId = null){
         logger.verbose('#####################################################################################');
         logger.verbose(`## createProperties(address=${address}, passphrase=${passphrase}, publicKey=${publicKey})`);
         logger.verbose('#####################################################################################');
 
         return new JupiterAccountProperties(
             address,
-            null,
+            accountId,
             publicKey,
             passphrase
         )

@@ -1,22 +1,6 @@
-import events from 'events';
 import { gravity } from './gravity';
 import User from '../models/user';
-// import RegistrationWorker from '../workers/registration';
-// import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-const JupiterFSService = require('../services/JimService');
-import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterFundingService} from "../services/jupiterFundingService";
-import {JupiterAccountService} from "../services/jupiterAccountService";
-import {TableService} from "../services/tableService";
-import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
-import {FundingNotConfirmedError} from "../errors/metisError";
-import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
-import {add} from "lodash";
-
-const { JupiterAPIService } = require('../services/jupiterAPIService');
-const { AccountRegistration } = require('./accountRegistration');
+import {accountRegistration} from "../services/accountRegistrationService";
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
 
@@ -79,82 +63,21 @@ const getSignUpUserInformation = (account, requestBody) => ({
  *
  */
 const metisRegistration = async (account, requestBody) => {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## metisRegistration(account, requestBody)`);
+    logger.verbose(`## `);
+    logger.sensitive(`account=${JSON.stringify(account)}`);
+    logger.sensitive(`requestBody=${JSON.stringify(requestBody)}`);
 
-  logger.verbose('#####################################################################################');
-  logger.verbose(`metisRegistration(account=${account})`);
-  logger.verbose('#####################################################################################');
-  logger.sensitive(`requestBody= ${JSON.stringify(requestBody)}`);
+    const signUpUserInformation = getSignUpUserInformation(account, requestBody);
+        const registration = accountRegistration.register(
+            signUpUserInformation.account,
+            signUpUserInformation.alias,
+            signUpUserInformation.passphrase,
+            signUpUserInformation.encryption_password
+        )
 
-
-  const applicationGravityAccountProperties = new GravityAccountProperties(
-    process.env.APP_ACCOUNT_ADDRESS,
-    process.env.APP_ACCOUNT_ID,
-    process.env.APP_PUBLIC_KEY,
-    process.env.APP_ACCOUNT,
-    '', // hash
-    process.env.ENCRYPT_PASSWORD,
-    process.env.ENCRYPT_ALGORITHM,
-    process.env.APP_EMAIL,
-    process.env.APP_NAME,
-    '', // lastname
-  );
-
-  const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding); //@TODO break this into user and table funding fee.
-  const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-  const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-  const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-  const DEADLINE = process.env.JUPITER_DEADLINE;
-
-  logger.debug('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
-  logger.debug('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
-
-
-  //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
-  const appAccountProperties = new ApplicationAccountProperties(
-    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-  );
-
-  applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
-  const signUpUserInformation = getSignUpUserInformation(account, requestBody);
-  logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
-
-  const newUserGravityAccountProperties = new GravityAccountProperties(
-    signUpUserInformation.account, // address
-    signUpUserInformation.jup_account_id, // account Id
-    signUpUserInformation.public_key, // public key
-    signUpUserInformation.passphrase, // passphrase
-    signUpUserInformation.hash, // password hash
-    signUpUserInformation.encryption_password, // password
-    process.env.ENCRYPT_ALGORITHM, // algorithm
-    signUpUserInformation.email, // email
-    signUpUserInformation.firstName, // firstname
-    signUpUserInformation.lastName, // lastname
-  );
-
-  logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
-  newUserGravityAccountProperties.addAlias(signUpUserInformation.alias);
-
-  const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-  const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
-  const jupiterTransactionsService = new JupiterTransactionsService(jupiterAPIService);
-  const tableService = new TableService(jupiterTransactionsService, jupiterAPIService);
-  const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
-
-    const accountRegistration = new AccountRegistration(
-        newUserGravityAccountProperties,
-        applicationGravityAccountProperties,
-        jupiterAPIService,
-        jupiterFundingService,
-        jupiterAccountService,
-        tableService,
-        gravity,
-        JupiterFSService
-    );
-
-    return accountRegistration.register()
+        return registration;
 };
 
 /**
@@ -162,9 +85,9 @@ const metisRegistration = async (account, requestBody) => {
  * @param {*} passport
  */
 const metisSignup = (passport, jobsQueue, websocket ) => {
-  logger.verbose('#####################################################################################');
+  logger.verbose('######################################################');
   logger.verbose('##  metisSignup(passport)');
-  logger.verbose('#####################################################################################');
+  logger.verbose('##');
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -182,7 +105,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
 
         const job = jobsQueue.create('user-registration', jobData)
             .priority('high')
-            .removeOnComplete(true)
+            .removeOnComplete(false)
             .save( (err) =>{
                 if(err){
                     logger.error(`there is a problem saving to redis`);
@@ -193,37 +116,36 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                 logger.verbose(`account= ${account}`);
                 setTimeout(()=>{
                   websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
-                }, 1000);                
+                }, 1000);
+                done(null, null, job.id);
             });
 
-        logger.debug(`job id= ${job.id} for account=${account}`);
+        // logger.debug(`job id= ${job.id} for account=${account}`);
 
         job.on('complete', function(result){
-            logger.verbose(`##########################`)
-            logger.verbose(`## job.on(complete)`)
-            logger.debug(`account=${account}`)
-            logger.debug('Job completed with data ', result);
+            logger.verbose(`######################################`)
+            logger.verbose(`## passport.job.on(complete(signUpSuccessful))`)
+            logger.verbose(`account=${account}`)
+            logger.sensitive('Job completed with data ', result);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpSuccessful', account);
         });
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.debug('Job failed Attempt');
-            logger.debug(`account=${account}`)
+            logger.verbose(`######################################`)
+            logger.verbose(`## passport.job.on(failed_attempt(signUpFailedAttempt))`)
+            logger.verbose(`account=${account}`)
+            logger.sensitive('errorMessage=', errorMessage);
+            logger.sensitive('doneAttempts=', doneAttempts);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
         });
 
         job.on('failed', function(errorMessage){
-            logger.error(`*********************`)
-            logger.error(`job.on(failed)`)
-            logger.debug(`account=${account}`)
+            logger.verbose(`######################################`)
+            logger.verbose(`## passport.job.on(failed(errorMessage))`)
+            logger.verbose(`account=${account}`)
+            logger.sensitive('errorMessage=', errorMessage);
             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
         });
-        // job.on('progress', function(progress, data){
-        //     logger.debug('^&^&')
-        //     logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
-        // });
-
-        return done(null, null, job.id);
     });
   }));
 };
@@ -296,15 +218,11 @@ const metisLogin = (passport) => {
         logger.debug(`listOfAttachedTableNames= ${JSON.stringify(listOfAttachedTableNames)}`);
 
 
-        logger.debug(`usersTable=${JSON.stringify(response.userAccountTables.usersTable)}`);
-        logger.debug(`channelsTable=${JSON.stringify(response.userAccountTables.channelsTable)}`);
-
-
         const { userRecord } = response;
         userRecord.public_key = public_key;
 
         user = new User(userRecord);
-        if (user.record.id === undefined) {
+          if (user.record.id === undefined) {
           valid = false;
           const doneResponse = {
             error: null,
@@ -399,9 +317,9 @@ const metisLogin = (passport) => {
 };
 
 module.exports = {
-  serializeUser,
-  deserializeUser,
-  metisSignup,
-  metisLogin,
+    serializeUser,
+    deserializeUser,
+    metisSignup,
+    metisLogin,
     metisRegistration
 };

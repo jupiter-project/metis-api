@@ -143,7 +143,7 @@ module.exports = (app, passport) => {
 
         gravityCLIReporter.addItemsInJson('Account Created', { ...response.data, ...formData });
         // gravityCLIReporter.sendReportAndReset();
-        logger.sensitive(jupiterAccount);
+        logger.sensitive(`jupiterAccount=${ JSON.stringify(jupiterAccount)}`);
 
         if (response.data.accountRS == null) {
           res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
@@ -194,15 +194,10 @@ module.exports = (app, passport) => {
       const {jobId} = req.query;
       const callback = function(err, job) {
         if(!err){
-            if(job){
-              logger.info(`Job ${jobId} status ${job.state()}`);
-              return res.status(200).send({ success: true, status: job.state() });
-            } else {
-              return res.status(200).send({ success: true, status: 'completed' });
-            }
+          return res.status(200).send({ success: true, status: job.state() });
         } else {
-            console.log(err);
-            return res.status(200).send({ success: true, status: 'completed' });
+          console.log(err);
+          return res.status(404).send({ success: false, status: `Problem with job id: ${jobId}` });
         }
       }
       jobScheduleService.checkJobStatus(jobId, callback);
@@ -215,7 +210,7 @@ module.exports = (app, passport) => {
     gravityCLIReporter.setTitle('  METIS LOGIN ');
     logger.verbose('appLogin()');
     logger.debug('--headers--');
-    logger.sensitive(JSON.stringify(req.headers));
+    logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
 
     passport.authenticate('gravity-login', (error, user, message) => {
       logger.debug('passport.authentication(CALLBACK).');
