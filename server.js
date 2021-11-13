@@ -149,13 +149,13 @@ const socketOptions = {
 };
 const io = socketIO(server, socketOptions);
 // messages socket
-io.of('/chat').on('connection', socketService.connection.bind(this));
+io.of('/chat').on('connection', socketService.connection);
 
 // sign up socket
-io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+io.of('/sign-up').on('connection', socketService.signUpConnection);
 
 // channel creation
-io.of('/channels').on('connection', socketService.channelCreationConnection.bind(this));
+io.of('/channels').on('connection', socketService.channelCreationConnection);
 // io.of('/channels').on('connection', socketService.channelCreationConnection(this));
 
 

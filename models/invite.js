@@ -3,6 +3,9 @@ import { gravity } from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {jupiterAPIService} from "../services/jupiterAPIService";
 import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+const logger = require('../utils/logger')(module);
 
 class Invite extends Model {
   constructor(data = { id: null }) {
@@ -34,15 +37,33 @@ class Invite extends Model {
   }
 
   async get() {
-    let response;
+    const memberAccountProperties = new GravityAccountProperties(
+        this.user.account,
+        '', // accountId
+        this.user.publicKey,
+        this.user.passphrase,
+        '', // hash
+        this.user.encryptionPassword
+    );
 
-    try {
-      response = await gravity.getMessages(this.user.account, this.user.passphrase);
-    } catch (e) {
-      response = { error: true, fullError: e };
-    }
-
-    return response;
+    return jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(this.user.account)
+        .then(transactionList => {
+              return jupiterTransactionsService
+                  .getAllMessagesFromBlockChainAndIncludeTransactionInformation(
+                      memberAccountProperties,
+                      transactionList,
+                      this.user.encryptionPassword
+                  );
+            })
+        .then(messages => {
+          logger.sensitive(`Decrypted invites: ${JSON.stringify(messages)}`);
+          return messages.reduce((reduced, message) => {
+            if (message.message.dataType === 'channelInvite'){
+              reduced.push(message.message);
+            }
+            return reduced;
+          }, []);
+        });
   }
 
   //@TODO rename to sendInvitation
