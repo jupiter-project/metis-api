@@ -12,6 +12,7 @@ class AccountRegistration {
      *
      * @param applicationGravityAccountProperties
      * @param jupApi
+     * @param {JupiterTransactionsService} jupiterTransactionsService
      * @param jupiterFundingService
      * @param jupiterAccountService
      * @param tableService
@@ -20,17 +21,20 @@ class AccountRegistration {
   constructor(
     applicationGravityAccountProperties,
     jupApi,
+    jupiterTransactionsService,
     jupiterFundingService,
     jupiterAccountService,
     tableService,
     gravity) {
       if(!applicationGravityAccountProperties){throw new Error('missing applicationGravityAccountProperties')}
       if(!jupApi){throw new Error('missing jupiterAPIService')}
+      if(!jupiterTransactionsService){throw new Error('missing jupiterTransactionsService')}
       if(!jupiterFundingService){throw new Error('missing jupiterFundingService')}
       if(!jupiterAccountService){throw new Error('missing jupiterAccountService')}
       if(!tableService){throw new Error('missing tableService')}
       if(!gravity){throw new Error('missing gravity')}
       this.applicationAccountProperties = applicationGravityAccountProperties;
+      this.jupiterTransactionsService = jupiterTransactionsService;
       this.jupApi = jupApi;
       this.jupiterFundingService = jupiterFundingService;
       this.jupiterAccountService = jupiterAccountService;
@@ -55,18 +59,18 @@ class AccountRegistration {
       return !!userAccountPropertiesFoundInApplication
   }
 
-  async isAliasAvailable(aliasName){
-      return this.jupApi.getAlias(aliasName)
-          .then(response => {
-              return false;
-          })
-          .catch( error => {
-              if(error === 'Unknown alias'){
-                  return true;
-              }
-              throw error;
-          })
-  }
+  // async isAliasAvailable(aliasName){
+  //     return this.jupApi.getAlias(aliasName)
+  //         .then(response => {
+  //             return false;
+  //         })
+  //         .catch( error => {
+  //             if(error === 'Unknown alias'){
+  //                 return true;
+  //             }
+  //             throw error;
+  //         })
+  // }
 
     /**
      *
@@ -88,7 +92,7 @@ class AccountRegistration {
             let metisAppAccountStatement = null;
             let usersTableStatement = null;
 
-            this.isAliasAvailable(newAccountAliasName)
+            this.jupiterTransactionsService.isAliasAvailable(newAccountAliasName)
                 .then(isAliasAvailable => {
                     if(!isAliasAvailable){
                         throw new Error('alias is already in user');
@@ -389,11 +393,13 @@ the end.
 const {jupiterAPIService} = require("./jupiterAPIService");
 const { gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
+const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 
 module.exports.AccountRegistration = AccountRegistration;
 module.exports.accountRegistration = new AccountRegistration(
     metisGravityAccountProperties,
     jupiterAPIService,
+    jupiterTransactionsService,
     jupiterFundingService,
     jupiterAccountService,
     tableService,

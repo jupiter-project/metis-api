@@ -214,10 +214,17 @@ const {channelCreationSetUp} = require("./services/channelService");
 
 jobScheduleService.init(kue);
 
+
 gravity.getFundingMonitor()
   .then(async (monitorResponse) => {
+    // console.log(monitorResponse);
+    logger.verbose(`-----------------------------------------------------------------------------------`);
+    logger.verbose(`-- gravity.getFundingMonitor().then(monitorResponse)`);
+    logger.verbose(`-- `);
+    logger.sensitive(`!!monitorResponse =${!!monitorResponse}`);
     const { monitors } = monitorResponse;
-    if (monitors.length === 0) {
+    logger.sensitive(`monitors= ${monitors}`);
+    if (monitors && monitors.length === 0) {
       logger.info('Funding property not set for app. Setting it now...');
       const fundingResponse = await gravity.setFundingProperty({
         passphrase: process.env.APP_ACCOUNT,
