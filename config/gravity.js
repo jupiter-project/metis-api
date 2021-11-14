@@ -2908,8 +2908,8 @@ class Gravity {
         if (proceed) {
           // eslint-disable-next-line no-await-in-loop
           const dataObject = await this.decryptSingleTransaction(thisTransaction, filter);
-          if (!dataObject.error) {
-            dataTransactions.push(dataObject);
+          if (!dataObject.error && dataObject.data) {
+            dataTransactions.push(dataObject.data);
           }
         }
       }

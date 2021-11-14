@@ -124,14 +124,12 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     const invite = new Invite();
     const userData = JSON.parse(gravity.decrypt(accountData));
     invite.user = userData;
-    let response;
-    try {
-      response = await invite.get('channelInvite');
-    } catch (e) {
-      logger.error(e);
-      response = e;
-    }
-    res.send(response);
+
+    invite.get()
+      .then(response => res.send(response))
+      .catch(error => {
+        res.status(500).send({ success: false, error });
+      })
   });
 
   /**
@@ -228,7 +226,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
           return channel.import(channel.user);
         })
         .then(() => {
-          websocket.of('/channels').to(`channel-creation`).emit('channelMemberAdded', { channelToken: req.channel.token });
+          // websocket.of('/channels').to(`channel-creation`).emit('channelMemberAdded', { channelToken: req.channel.token });
           return res.send({success: true, message: 'Invite accepted'});
         })
         .catch(error => {
@@ -296,7 +294,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     logger.verbose(`## Send A Message)`);
     logger.verbose(`## app.post('/v1/api/data/messages'(req, res)`);
     logger.verbose(`## `);
-    let response;
       let { data } = req.body;
       const { user, channel } = req;
       data = {
@@ -317,32 +314,48 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
       const mentions = _.get(req, 'data.mentions', []);
       const channelName = _.get(tableData, 'name', 'a channel');
       const userData = JSON.parse(gravity.decrypt(user.accountData));
-      try {
-        response = await message.sendRecord(userData, tableData);
-        let members = memberProfilePicture.map(member => member.accountRS);
-        if (Array.isArray(members) && members.length > 0) {
-          const senderAccount = user.userData.account;
-          const senderName = user.userData.alias;
-          members = members.filter(member => member !== senderAccount && !mentions.includes(member));
 
-          const pnBody = `${senderName} has sent a message on channel ${channelName}`;
-          const pnTitle = `${senderName} @ ${channelName}`;
+    message.sendRecord(userData, tableData)
+        .then(() => {
+          const messagePayload = {
+            sender: user.userData.account,
+            message: data.message,
+            name: user.userData.alias,
+            replyMessage: data.replyMessage,
+            replyRecipientName: data.replyRecipientName,
+            isInvitation: data.isInvitation || false,
+            messageVersion: data.messageVersion,
+            date: Date.now(),
+            encryptionLevel: "channel"
+          };
+          websocket.of('/chat').to(channel.id).emit('createMessage', messagePayload);
+        })
+        .then(() => {
+          let members = memberProfilePicture.map(member => member.accountRS);
+          if (Array.isArray(members) && members.length > 0) {
+            const senderAccount = user.userData.account;
+            const senderName = user.userData.alias;
+            members = members.filter(member => member !== senderAccount && !mentions.includes(member));
 
-          const channelAccount = channel && channel.channel_record
-              ? channel.channel_record.account : null;
+            const pnBody = `${senderName} has sent a message on channel ${channelName}`;
+            const pnTitle = `${senderName} @ ${channelName}`;
 
-          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
+            const channelAccount = channel && channel.channel_record
+                ? channel.channel_record.account : null;
 
-          // Push notification for mentioned members
-          const pnmBody = `${senderName} was tagged on ${channelName}`;
-          const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAccount });
-        }
-        res.send(response);
-      } catch (e) {
-        logger.error('[/data/messages]', JSON.stringify(e));
-        res.status(500).send({ success: false, fullError: e });
-      }
+            getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
+
+            // Push notification for mentioned members
+            const pnmBody = `${senderName} was tagged on ${channelName}`;
+            const pnmTitle = `${senderName} has tagged @ ${channelName}`;
+            getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAccount });
+          }
+        })
+        .then(() => res.send({ success: true, message: 'Message successfully sent' }))
+        .catch(error => {
+          logger.error('[/data/messages]', JSON.stringify(error));
+          res.status(500).send({ success: false, fullError: error });
+        });
   });
 
   /**
@@ -407,7 +420,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                   logger.error(`there is a problem saving to redis`);
                   logger.error(JSON.stringify(err));
                   console.log('Socket on failed');
-                  websocket.of('/channels').to(`channel-creation`).emit('channelCreationFailed', job.id);
+                  websocket.of('/channels').to(userData.account).emit('channelCreationFailed', job.id);
                 }
                 logger.verbose(`jobQueue.save() id= ${job.id}`);
                 const channel = {
@@ -415,7 +428,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                   name: channelObject.record.name,
                   status: 'inProgress'
                 };
-                websocket.of('/channels').to(`channel-creation`).emit('channelCreated', { jobId: job.id, channel });
+                websocket.of('/channels').to(userData.account).emit('channelCreated', { jobId: job.id, channel });
                 res.status(200).send({jobId: job.id, paymentTransaction: transaction});
               });
 
@@ -425,17 +438,17 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
               account: channelObject.record.account,
               name: channelObject.record.name
             }
-            websocket.of('/channels').to(`channel-creation`).emit('channelSuccessful', { jobId: job.id, channel });
+            websocket.of('/channels').to(userData.account).emit('channelSuccessful', { jobId: job.id, channel });
           });
 
           job.on('failed attempt', function(errorMessage, doneAttempts){
             console.log('Socket on failed attempt');
-            websocket.of('/channels').to(`channel-creation`).emit('channelCreationFailed',job.id);
+            websocket.of('/channels').to(userData.account).emit('channelCreationFailed',job.id);
           });
 
           job.on('failed', function(errorMessage){
             console.log('Socket on failed');
-            websocket.of('/channels').to(`channel-creation`).emit('channelCreationFailed', job.id);
+            websocket.of('/channels').to(userData.account).emit('channelCreationFailed', job.id);
           });
 
         })

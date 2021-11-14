@@ -92,6 +92,14 @@ class GravityCrypto {
             return null;
         }
     }
+
+    decryptOrPassThrough(data) {
+        try {
+            return this.decrypt(data)
+        } catch (error) {
+            return data;
+        }
+    }
 }
 
 module.exports.GravityCrypto = GravityCrypto;

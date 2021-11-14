@@ -216,6 +216,9 @@ class JupiterAPIService {
     };
 
     /**
+     * All parameters: account,timestamp,type, subtype, firstIndex, lastIndex, numberOfConfirmations, withMessage,
+     * phasedOnly, nonPhasedOnly, includeExpiredPrunable, includePhasingResult, executedOnly, message, requireBlock,
+     * requireLastBlock
      *
      * @param {string} address - JUP-123
      * @param {string} message
@@ -225,21 +228,27 @@ class JupiterAPIService {
      * version.EncryptedMessage},senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
-    async getBlockChainTransactions(address, message , withMessage = true ) {
+    async getBlockChainTransactions(address, message, withMessage = true, type = 1 , includeExpiredPrunable = true) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getBlockChainTransactions(account: ${address})`);
         logger.verbose('##');
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
-        };
+        }
 
-        return this.get( {
+        let params = {
             requestType: 'getBlockchainTransactions',
             account: address,
-            message,
+            type,
             withMessage,
-            type: 1
-        });
+            includeExpiredPrunable
+        };
+
+        if(withMessage && message){
+            params = {...params, message}
+        }
+
+        return this.get( params);
     }
 
 
@@ -723,6 +732,16 @@ class JupiterAPIService {
         }
 
         return this.post(newParams)
+    }
+
+    async getUnconfirmedBlockChainTransactions(address) {
+        logger.verbose('----------------------------------------');
+        logger.verbose(`fetchUnconfirmedBlockChainTransactions(address)`);
+        logger.verbose('--');
+        return this.jupiterRequest('get', {
+            requestType: 'getUnconfirmedTransactions',
+            account: address,
+        });
     }
 
 }

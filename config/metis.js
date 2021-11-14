@@ -273,6 +273,7 @@ function Metis() {
                 logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
 
                 const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
+                logger.debug('Sending public key to the blockchain');
                 // if the user is not part of the user list, we need to add the user
                 const newUserPromise = jupiterAPIService.sendEncipheredMetisMessageAndMessage(
                     from,
@@ -309,6 +310,7 @@ function Metis() {
                 }
 
                 const encryptedMessage = channelCrypto.encrypt(JSON.stringify(newUserChannel));
+                logger.debug('Sending user member list to the blockchain');
 
                 return jupiterAPIService.sendEncipheredMetisMessageAndMessage(
                     from,

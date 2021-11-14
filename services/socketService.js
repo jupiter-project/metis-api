@@ -15,7 +15,7 @@ const leaveRoom = function (data, callback) {
 };
 
 const createMessage = function (data, callback) {
-  const { room } = data;
+  const { room, message } = data;
   if (!room) {
     return callback({
       error: true,
@@ -23,7 +23,7 @@ const createMessage = function (data, callback) {
     });
   }
 
-  this.broadcast.to(room).emit('createMessage');
+  this.broadcast.to(room).emit('createMessage', message);
 };
 
 const invites = function (data) {
@@ -40,7 +40,21 @@ const joinRoom = (socket, room, user) => {
   logger.debug(`  room= ${room}`)
 
   socket.name = user;
-  socket.join(room);
+  socket.join(room); // creates the room and join the socket
+  socket.in(room).allSockets().then((result) => {
+    logger.info(`The user ${user} joined to the room ${room}, and the number of user connected is: ${result.size}`);
+  });
+};
+
+
+const joinChannelRoom = (socket, room, user) => {
+  logger.verbose(`###############################`)
+  logger.verbose(`## joinChannelRoom()`)
+  logger.verbose(`##`)
+  logger.debug(`  room= ${room}`)
+
+  socket.name = user;
+  socket.join(room); // creates the room and join the socket
   socket.in(room).allSockets().then((result) => {
     logger.info(`The user ${user} joined to the room ${room}, and the number of user connected is: ${result.size}`);
   });
@@ -72,7 +86,7 @@ const channelCreationConnection = function (socket) {
     return socket.close();
   }
 
-  joinRoom(socket, room, user);
+  joinChannelRoom(socket, room, user);
 
   socket.on('leaveRoom', leaveRoom);
   socket.on('connect_error', (error) => {
@@ -129,11 +143,11 @@ const connection = function (socket) {
     return socket.close();
   }
 
-  joinRoom(socket, room, user, event);
+  joinRoom(socket, room, user);
 
   socket.on('leaveRoom', leaveRoom);
   socket.on('createMessage', createMessage);
-  socket.on('invites', invites);
+  socket.on('acceptInvites', invites);
   socket.on('connect_error', (error) => {
     logger.error(JSON.stringify(error));
   });
