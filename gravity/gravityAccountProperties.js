@@ -16,7 +16,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
      * @param {string} accountId - Jupiter Account ID.( Seems to be the same as pub key.)
      * @param {string} publicKey - Jupiter  public key.
      * @param {string} passphrase - 12 words passphrase
-     * @param {string} hash
+     * @param {string} passwordHash
      * @param {string} password
      * @param {string} algorithm
      * @param {string} email
@@ -28,7 +28,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 accountId,
                 publicKey,
                 passphrase,
-                hash,
+                passwordHash,
                 password,
                 algorithm = 'aes-256-cbc',
                 email = '',
@@ -41,13 +41,11 @@ class GravityAccountProperties extends JupiterAccountProperties {
         if(!passphrase){throw new Error('missing passphrase')}
         if(!password){throw new Error('missing password')}
         if(!algorithm){throw new Error('missing algorithm')}
+        if(!passwordHash){throw new Error('missing passwordHash')}
 
         super(address, accountId, publicKey, passphrase, email , firstName , lastName );
-        this.passwordHash = hash;
-        // this.password = password;
-        // this.algorithm = algorithm;
         this.isApp = false;
-        // this.crypto = new GravityCrypto( this.algorithm, this.password );
+        this.passwordHash = passwordHash;
         this.password = password;
         this.publicKey = publicKey;
         this.crypto = null;
@@ -106,10 +104,16 @@ class GravityAccountProperties extends JupiterAccountProperties {
     }
 
 
+    /**
+     *
+     * @param generatingTransactionId
+     * @returns {{date: number, user_record: {firstname: string, twofa_enabled: boolean, publicKey: string, lastname: string, secret_key: null, accounthash: string, twofa_completed: boolean, api_key: *, alias: *, encryption_password: string, id, account: string, email: string}, id}}
+     */
     generateUserRecord(generatingTransactionId) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## generateUserRecord(generatingTransactionId)`);
         logger.verbose('##');
+        logger.sensitive(`generatingTransactionId=${JSON.stringify(generatingTransactionId)}`);
 
         if(!generatingTransactionId){
             throw new Error('generatingTransactionId cannot be empty');
@@ -129,25 +133,31 @@ class GravityAccountProperties extends JupiterAccountProperties {
             throw new Error('Alias is missing');
         }
 
-        return {
+
+        const userRecord = {
             id: generatingTransactionId,
             user_record: {
-                id: generatingTransactionId,
+                id: generatingTransactionId, //@todo what is this?
                 account: this.address,
-                accounthash: this.generateHash(this.address),
+                accounthash: this.passwordHash, //@todo what is this?
                 email: this.email,
                 firstname: this.firstName,
                 alias,
                 lastname: this.lastName,
-                secret_key: null,
+                secret_key: null, //@todo what is this?
                 twofa_enabled: false,
                 twofa_completed: false,
-                api_key: this.generateRandomHash(),
-                publicKey: this.publicKey,
+                api_key: this.generateRandomHash(), //@todo what is this?
+                publicKey: this.publicKey, //@todo what is this?
                 encryption_password: this.password
             },
             date: Date.now(),
         };
+
+        logger.sensitive(`userRecord=${JSON.stringify(userRecord)}`);
+
+        return userRecord;
+
     }
 }
 
@@ -157,23 +167,7 @@ module.exports.metisGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ID,
     process.env.APP_PUBLIC_KEY,
     process.env.APP_ACCOUNT,
-    '', // hash
-    process.env.ENCRYPT_PASSWORD,
-    process.env.ENCRYPT_ALGORITHM,
-    process.env.APP_EMAIL,
-    process.env.APP_NAME,
-    '', // lastname
-    applicationAccountProperties
-);
-
-
-
-module.exports.metisGravityAccountProperties = new GravityAccountProperties(
-    process.env.APP_ACCOUNT_ADDRESS,
-    process.env.APP_ACCOUNT_ID,
-    process.env.APP_PUBLIC_KEY,
-    process.env.APP_ACCOUNT,
-    '', // hash
+    process.env.APP_ACCOUNT_HASH,
     process.env.ENCRYPT_PASSWORD,
     process.env.ENCRYPT_ALGORITHM,
     process.env.APP_EMAIL,

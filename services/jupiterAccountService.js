@@ -1,11 +1,12 @@
+import gu from "../utils/gravityUtils";
 const {FeeManager, feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties, metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
-const {fundingManagerSingleton} = require("./fundingManager");
 const _ = require("lodash");
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {tableService} = require("./tableService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const logger = require('../utils/logger')(module);
+const bcrypt = require("bcrypt-nodejs");
 
 
 class JupiterAccountService {
@@ -372,19 +373,36 @@ class JupiterAccountService {
      * @param params
      * @returns {Promise<{Promise<{ GravityAccountProperties, balance, records,  attachedTables: [tableStatement]}>}
      */
-    async fetchAccountStatement( address, passphrase, password, statementId = '', accountType, params = {}) {
+    async fetchAccountStatement( passphrase, password, statementId = '', accountType, params = {}) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## fetchAccountStatement(address=${address}, passphrase, password, statementId=${statementId}, accountType=${accountType})`);
+        logger.verbose(`## fetchAccountStatement(passphrase, password, statementId=${statementId}, accountType=${accountType})`);
         logger.verbose('##');
-        return new Promise( async (resolve, reject) => {
-            const properties = new GravityAccountProperties(address,'','',passphrase,'',password);
+        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+        logger.sensitive(`password=${JSON.stringify(password)}`);
+        logger.sensitive(`statementId=${JSON.stringify(statementId)}`);
+        logger.sensitive(`accountType=${JSON.stringify(accountType)}`);
+        logger.sensitive(`params=${JSON.stringify(params)}`);
 
-            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllBlockChainTransactions(address)
+        if(!gu.isWellFormedPassphrase(passphrase)){ throw new Error('problem with passphrase')}
+
+        return new Promise( async (resolve, reject) => {
+            const accountInfo = await jupiterAPIService.getAccountInformation(passphrase); //{address,accountId,publicKey,success}
+            const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(8), null);
+            const properties = new GravityAccountProperties(
+                accountInfo.address,
+                accountInfo.accountId,
+                accountInfo.publicKey,
+                passphrase,
+                passwordHash,
+                password);
+
+
+            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllBlockChainTransactions(accountInfo.address)
             const promises = []
-            promises.push(this.getAccountOrNull(address))
+            promises.push(this.getAccountOrNull(accountInfo.address))
             promises.push(this.getAccountId(passphrase))
             promises.push(this.jupiterTransactionsService.getAllMessagesFromBlockChainAndReturnMessageContainers(properties, allBlockChainTransactions))
-            promises.push(this.jupiterAPIService.getAliases(address))
+            promises.push(this.jupiterAPIService.getAliases(accountInfo.address))
 
             Promise.all(promises)
                 .then( results => {
@@ -397,11 +415,6 @@ class JupiterAccountService {
                 properties.publicKey = getAccountIdResponse.publicKey
                 let accountBalance = null;
                 let accountUnconfirmedBalance = null;
-
-
-                // console.log('## ###### #');
-                // console.log(account.data);
-
 
                 if(account && account.data){
                     properties.accountId = account.data.account;
@@ -419,8 +432,8 @@ class JupiterAccountService {
                 const attachedTablesStatementsPromises = []
                 for( let i = 0; i < attachedTablesProperties.length; i++  ){
                     const tableAccountProperties = attachedTablesProperties[i];
+
                     attachedTablesStatementsPromises.push(this.fetchAccountStatement(
-                        tableAccountProperties.address,
                         tableAccountProperties.passphrase,
                         password,
                         `table-${tableAccountProperties.name}`,
@@ -451,7 +464,7 @@ class JupiterAccountService {
             })
                 .catch( error => {
                     logger.error('*******************************************************************')
-                    logger.error(`** fetchAccountStatement(address=${address}, statemetnId=${statementId})`)
+                    logger.error(`** fetchAccountStatement( passphrase, password, statementId = '', accountType, params = {})`)
                     logger.error('**')
                     reject(error);
                 })

@@ -734,9 +734,9 @@ class TableService {
 
     /**
      *
-     * @param accountProperties
-     * @param arrayOfTableNames
-     * @returns {Promise<*>}
+     * @param {GravityAccountProperties}accountProperties
+     * @param {[]} arrayOfTableNames
+     * @returns {Promise<{data, transactionReport: [{name, id}]}>}
      */
     async createTableListRecord(accountProperties, arrayOfTableNames) {
         logger.verbose('###################################################################################')
@@ -759,7 +759,7 @@ class TableService {
                 subtype,
                 false)
                 .then(response => {
-                    resolve({data: response.data, transactionReport: [{name: 'create-table-list-record', id: response.data.transaction}]})
+                    resolve({responseData: response.data, transactionReport: {name: 'create-table-list-record', id: response.data.transaction}})
                 })
         })
     }
