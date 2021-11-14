@@ -1092,6 +1092,27 @@ class JupiterTransactionsService {
         });
     }
 
+    /**
+     *
+     * @param aliasName
+     * @returns {Promise<boolean>}
+     */
+    isAliasAvailable(aliasName){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## isAliasAvailable(aliasName=${aliasName})`);
+        logger.verbose(`## `);
+        return this.jupiterAPIService.getAlias(aliasName)
+            .then(response => {
+                return false;
+            })
+            .catch( error => {
+                if(error === 'Unknown alias'){
+                    return true;
+                }
+                throw error;
+            })
+    }
+
 
 }
 

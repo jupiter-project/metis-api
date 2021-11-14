@@ -2083,24 +2083,37 @@ class Gravity {
     return url;
   }
 
+  /**
+   *
+   * @param rtype
+   * @param params
+   * @param data
+   * @param callback
+   * @returns {Promise<*>}
+   */
   async jupiterRequest(rtype, params, data = {}, callback) {
     const url = this.jupiterURL(params);
-
     const response = await this.request(rtype, url, data, callback);
 
     return response;
   }
 
+  /**
+   *
+   * @param aliasName
+   * @returns {Promise<{available: boolean}|*|{aliasCheckup: ({errorDescription}|*)}>}
+   */
   async getAlias(aliasName) {
     logger.verbose('GRAVITY#######################################################################################')
     logger.verbose(`## getAlias(aliasName= ${aliasName}`);
     logger.verbose('##')
-    const aliasCheckup = await this.jupiterRequest('get', {
-      aliasName,
-      requestType: 'getAlias',
-    });
 
-    logger.debug('Alias check up ' + JSON.stringify(aliasCheckup));
+    if(!aliasName){throw new Error('aliasName is empty')};
+    const aliasCheckup = await this.jupiterRequest(
+        'get',
+        {aliasName, requestType: 'getAlias'}
+    );
+
     if (
       aliasCheckup.errorDescription
       && aliasCheckup.errorDescription === 'Unknown alias'
@@ -2116,6 +2129,11 @@ class Gravity {
     return aliasCheckup;
   }
 
+  /**
+   *
+   * @param params
+   * @returns {Promise<*>}
+   */
   async setAlias(params) {
     logger.verbose('###############################################################################################')
     logger.info(`## params= ${JSON.stringify(params)}`);
@@ -2129,6 +2147,11 @@ class Gravity {
     });
   }
 
+  /**
+   *
+   * @param params
+   * @returns {Promise<*>}
+   */
   async deleteAlias(params) {
     return this.jupiterRequest('post', {
       requestType: 'deleteAlias',
@@ -2155,6 +2178,11 @@ class Gravity {
     return this.jupiterRequest('post', postParams);
   }
 
+  /**
+   *
+   * @param params
+   * @returns {Promise<*>}
+   */
   async getFundingMonitor(params = {}) {
     return this.jupiterRequest('post', {
       requestType: 'getFundingMonitor',
