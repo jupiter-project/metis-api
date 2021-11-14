@@ -2380,7 +2380,7 @@ class Gravity {
     let tableNamesContainer;
     // let table_created = true;
     let listOfTableNames = []
-    const transactionsReport = []
+    const transactionsSentList = []
 
     return new Promise((resolve, reject) => {
       eventEmitter.on('insufficient_balance', () => {
@@ -2405,14 +2405,14 @@ class Gravity {
             logger.verbose(`newTableName= ${tableName}`);
             logger.verbose(`newTableAddress= ${newTableAddress}`);
 
-            transactionsReport.push({name: 'send-money', id: response.data.transaction})
+            transactionsSentList.push({name: 'send-money', id: response.data.transaction})
 
             return resolve({
               name: tableName,
               address: newTableAddress,
               passphrase: newPassphrase,
               publicKey: newPublicKey,
-              transactionsReport: transactionsReport
+              transactions: transactionsSentList
             })
 
             // resolve({

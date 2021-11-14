@@ -5,6 +5,7 @@ import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
 import {jobScheduleService} from '../services/jobScheduleService';
 const logger = require('../utils/logger')(module);
+const bcrypt = require("bcrypt-nodejs");
 
 // This files handles the app's different pages and how they are routed by the system
 
@@ -223,13 +224,10 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   app.post('/v1/api/get_jupiter_account', (req, res) => {
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
       .then((response) => {
-        // new_account_created = true;
-        // bcrypt.hashSync(password, bcrypt.genSaltSync(8), null)
         const { accountRS, publicKey } = response.data;
         res.send({
           success: true,
           account: accountRS, // TODO check if the right value should be response.data.account
-          accounthash: accountRS,
           public_key: publicKey,
         });
       })
@@ -247,33 +245,36 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
 
   app.post('/v1/api/create_jupiter_account', (req, res) => {
-    gravityCLIReporter.setTitle('Creating Jupiter Account');
-    logger.verbose('app.post(create_jupiter_account)');
-    const formData = req.body.account_data;
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## create_jupiter_account`);
+    logger.verbose(`## app.post('/v1/api/create_jupiter_account', (req, res)`);
+    logger.verbose(`## `);
+    if(!req.body.account_data){
+      return res.send({ success: false, message: 'missing account_data'});
+    }
+    const accountData = req.body.account_data;
+    logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    logger.info(`++ req.body.account_data= ${JSON.stringify(accountData)}`);
+    logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    const passwordHash = bcrypt.hashSync(accountData.encryption_password, bcrypt.genSaltSync(8), null);
+    const passphrase = accountData.passphrase;
     res.setHeader('Content-Type', 'application/json');
-    const seedphrase = req.body.account_data.passphrase;
-    gravityCLIReporter.addItemsInJson('account credentials', req.body.account_data);
+    logger.sensitive(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`);
 
-    logger.sensitive(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`);
-
-    axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${seedphrase}`)
+    axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`) // will create an account if doesnt exist.
       .then((response) => {
-        // new_account_created = true;
-        // bcrypt.hashSync(password, bcrypt.genSaltSync(8), null)
         const jupiterAccount = {
           account: response.data.accountRS,
           public_key: response.data.publicKey,
           alias: response.data.alias,
-          accounthash: gravity.encrypt(response.data.accountRS),
+          accounthash: passwordHash,
           jup_account_id: response.data.account,
-          email: formData.email,
-          firstname: formData.firstname,
-          lastname: formData.lastname,
-          twofa_enabled: formData.twofa_enabled,
+          email: accountData.email,
+          firstname: accountData.firstname,
+          lastname: accountData.lastname,
+          twofa_enabled: accountData.twofa_enabled,
         };
 
-        gravityCLIReporter.addItemsInJson('Account Created', { ...response.data, ...formData });
-        // gravityCLIReporter.sendReportAndReset();
         logger.sensitive(`jupiterAccount=${ JSON.stringify(jupiterAccount)}`);
 
         if (response.data.accountRS == null) {
@@ -307,11 +308,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     passport.authenticate('gravity-signup', (error, user, message) => {
       console.log(error, user, message);
       if (error) {
-        logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        logger.error(`500 ERROR!!!!`)
-        logger.error('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         console.log(error);
-
         return res.status(500).send({ success: false, message });
       }
       return res.status(200).send({ success: true, message });

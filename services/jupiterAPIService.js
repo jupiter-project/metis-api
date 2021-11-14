@@ -42,7 +42,7 @@ class JupiterAPIService {
      * @param {object} data [data={}] - the payload to send
      * @returns {Promise<*>}
      */
-    async jupiterRequest(rtype, params, data = {}) {
+    jupiterRequest(rtype, params, data = {}) {
         // logger.verbose(`###################################################################################`);
         // logger.verbose(`## jupiterRequest(rtype,params,data)`);
         // logger.verbose(`## `);
@@ -50,7 +50,7 @@ class JupiterAPIService {
         const url = this.jupiterUrl(params);
         // logger.sensitive(`jupiterRequest > url= ${url}`);
         return new Promise((resolve, reject) => {
-            axios({url: url, method: rtype, data: data})
+            return axios({url: url, method: rtype, data: data})
                 .then(response => {
                     if(response.error) {
                         logger.error(`jupiterRequest().response.error`)
@@ -94,13 +94,7 @@ class JupiterAPIService {
         return this.jupiterRequest('get', params);
     }
 
-    async post(params, data = {}) {
-        // logger.verbose('##########################');
-        // logger.verbose(`## post(params, data)`)
-        // logger.verbose('##');
-        // logger.sensitive(`params=${JSON.stringify(params)}`);
-        // logger.sensitive(`data=${JSON.stringify(data)}`);
-
+    post(params, data = {}) {
         return this.jupiterRequest('post', params, data);
     }
 
@@ -717,7 +711,7 @@ class JupiterAPIService {
     }
 
 
-    async setAlias(params) {
+    setAlias(params) {
         logger.verbose('#####################################################');
         logger.verbose(`## setAlias(params`);
         logger.verbose('##');

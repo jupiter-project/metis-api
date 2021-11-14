@@ -28,6 +28,8 @@ class JupiterFundingService {
      * @returns {Promise<unknown[]>}
      */
     async waitForAllTransactionConfirmations(transactionsReport){
+        if(!Array.isArray(transactionsReport)){throw new Error('not an array')};
+
         const allTransactions = [];
         transactionsReport.forEach( transactionReport => {
             allTransactions.push(this.waitForTransactionConfirmation(transactionReport.id));

@@ -169,8 +169,8 @@ const metisLogin = (passport) => {
    * account. This was we can register their current jup account with metis.
    */
     logger.verbose('#####################################################################################');
-    logger.verbose('                                  metisLogin(passport)');
-    logger.verbose('#####################################################################################');
+    logger.verbose('## metisLogin(passport)');
+    logger.verbose('##');
     const {
       jupkey,
       public_key,
@@ -191,17 +191,15 @@ const metisLogin = (passport) => {
       originalTime: Date.now(),
     };
 
+    logger.sensitive(`containedDatabase=${JSON.stringify(containedDatabase)}`);
 
-    logger.debug('--------------------------------');
-    logger.sensitive(JSON.stringify(containedDatabase));
 
-    logger.verbose('getUser(account, jupkey, containedDatabase)');
+    logger.verbose('gravity.getUser(account, jupkey, containedDatabase)');
     gravity.getUser(account, jupkey, containedDatabase)
       .then(async (response) => {
         logger.debug('---------------------------------------------------------------------------------------');
         logger.debug('-- getUser(account, jupkey, containedDatabase).then(response)');
-        logger.debug('---------------------------------------------------------------------------------------');
-        logger.sensitive(`response=${JSON.stringify(response)}`);
+        logger.debug('--');
         logger.sensitive(`response.userAccountTables=${JSON.stringify(response.userAccountTables)}`);
         logger.sensitive(`response.userRecord= ${JSON.stringify(response.userRecord)}`);
 
@@ -220,6 +218,8 @@ const metisLogin = (passport) => {
 
         const { userRecord } = response;
         userRecord.public_key = public_key;
+        logger.sensitive(`userRecord=${JSON.stringify(userRecord)}`);
+
 
         user = new User(userRecord);
           if (user.record.id === undefined) {
@@ -244,7 +244,7 @@ const metisLogin = (passport) => {
           return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }
 
-        if (!user.validPassword(accounthash)) {
+        if (!user.validPassword(containedDatabase.encryptionPassword)) {
           valid = false;
           const doneResponse = {
             error: null,
@@ -291,7 +291,6 @@ const metisLogin = (passport) => {
         };
         logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
         // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
-
 
         const doneResponse = {
           error: null,

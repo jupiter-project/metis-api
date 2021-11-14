@@ -76,177 +76,150 @@ class AccountRegistration {
      * @param newAccountPassword
      * @returns {Promise<unknown>}
      */
-  async register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword) {
-    logger.verbose('###########################################');
-    logger.verbose('## register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword)');
-    logger.verbose('##');
-    logger.verbose('##');
+    register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword) {
+        logger.verbose('###########################################');
+        logger.verbose('## register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword)');
+        logger.verbose('##');
+        logger.verbose('##');
 
-    return new Promise(async (resolve, reject) => {
-        const isAliasAvailable = await this.isAliasAvailable(newAccountAliasName);
+        return new Promise( (resolve, reject) => {
+            let transactionIdForUserFunding = null;
+            let newAndFundedAccountStatement = null;
+            let metisAppAccountStatement = null;
+            let usersTableStatement = null;
 
-        if(!isAliasAvailable){
-            return reject('Alias is already in use');
-        }
+            this.isAliasAvailable(newAccountAliasName)
+                .then(isAliasAvailable => {
+                    if(!isAliasAvailable){
+                        throw new Error('alias is already in user');
+                    }
+                })
+                .then( () => {
+                    const promises = [];
+                    promises.push(this.jupiterAccountService.fetchAccountStatement(
+                        this.applicationAccountProperties.passphrase,
+                        this.applicationAccountProperties.password,
+                        'metis-account',
+                        'app'
+                    ));
 
-        const promises = [];
-        promises.push(this.jupiterAccountService.fetchAccountStatement(
-            this.applicationAccountProperties.address,
-            this.applicationAccountProperties.passphrase,
-            this.applicationAccountProperties.password,
-            'metis-account',
-            'app'
-        ));
-
-        promises.push(this.jupiterAccountService.fetchAccountStatement(
-            newAccountAddress,
-            newAccountPassphrase,
-            newAccountPassword,
-            'new-user-account',
-            'user'
-        ));
-
-        Promise.all(promises)
-            .then( async promiseResults =>{
-            const [appStatement, newAccountStatement] = promiseResults;
-            const applicationUsersTableStatement = appStatement.attachedTables.find( table => table.statementId === 'table-users');
-            if (!applicationUsersTableStatement) {
-                reject('there is no application users table!');
-            }
-            if(this.isAccountRegisteredWithApp(newAccountAddress, appStatement.records)){
-                return reject('account is already registered');
-            }
-            const sendMoneyResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountStatement.properties);
-            this.jupiterFundingService.waitForTransactionConfirmation(sendMoneyResponse.data.transaction)// TODO This should probably go to JupiterTransactionsService
-                .then( async ()=>{
-                    const fundedAccountStatement = await this.jupiterAccountService.fetchAccountStatement(
-                        newAccountAddress,
+                    promises.push(this.jupiterAccountService.fetchAccountStatement(
                         newAccountPassphrase,
                         newAccountPassword,
                         'new-user-account',
                         'user'
-                    );
-                    const promises = []
-                    promises.push(this.attachMissingDefaultTables(
-                        fundedAccountStatement.attachedTables,
-                        fundedAccountStatement.properties
                     ));
-                    promises.push(this.jupApi.setAlias({
-                        alias: newAccountAliasName,
-                        passphrase: newAccountPassphrase,
-                        account: newAccountAddress
-                    }))
-                    Promise.all(promises).then( async (results)=>{
-                        const [newlyAttachedTables, setAliasResponse] = results;
-                        const aliasObject = {
-                            "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
-                            "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
-                            "accountRS": setAliasResponse.data.transactionJSON.senderRS,
-                        }
-                        fundedAccountStatement.properties.addAlias(aliasObject);
-                        const wait =[]
-                        wait.push(this.jupiterFundingService.waitForAllTransactionConfirmations(newlyAttachedTables.transactionsReport));
-                        Promise.all(wait).then( async () => {
-                            const addRecordToMetisUsersTableResponse = await this.jupiterAccountService.addRecordToMetisUsersTable(fundedAccountStatement.properties, applicationUsersTableStatement.properties)
-                            await this.jupiterFundingService.waitForAllTransactionConfirmations(addRecordToMetisUsersTableResponse.transactionsReport)
-                            const metisAppRegistrationData = this.printRegistrationData(
-                                this.applicationAccountProperties.address,
-                                this.applicationAccountProperties.passphrase,
-                                this.applicationAccountProperties.password,
-                                'metis-app',
-                                'app'
-                            )
-                            const newUserRegistrationData = this.printRegistrationData(
-                                newAccountAddress,
-                                newAccountPassphrase,
-                                newAccountPassword,
-                                'new-user',
-                                'user'
-                            )
 
-                            Promise.all([metisAppRegistrationData, newUserRegistrationData]).then( results => {
-                                results.forEach(report => {
-                                    logger.sensitive(report);
-                                })
-                            })
-
-                            console.log('DONE.');
-                            return resolve('done')
-                        }  )
-
-                    })
+                    return Promise.all(promises);
                 })
-                .catch( error => {
-                    logger.error('************************************************');
-                    logger.error('**  waitForTransactionConfirmation().catch(error)');
-                    logger.error('**');
-                    return reject(error);
+                .then( promiseResults => {
+                    const [appStatement, newAccountStatement] = promiseResults;
+                    metisAppAccountStatement = appStatement;
+
+                    usersTableStatement = metisAppAccountStatement.attachedTables.find( table => table.statementId === 'table-users');
+                    if (!usersTableStatement) {
+                        throw new Error('There is no application users table');
+                    }
+                    if(this.isAccountRegisteredWithApp(newAccountAddress, metisAppAccountStatement.records)){
+                        throw new Error('Account is already registered');
+                    }
+
+                    return  this.jupiterFundingService.provideInitialStandardUserFunds(newAccountStatement.properties);
                 })
-        } )
-            .catch(error => {
-                logger.error(`***********************************************************************************`);
-                logger.error(`** register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword).fetchAccountStatement().then()`);
-                logger.error(`** `);
-                console.log(error);
-                return reject(error);
-            })
-    });
+                .then( provideInitialStandardUserFundsResponse => {
+                    transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
+                    return this.jupiterFundingService.waitForTransactionConfirmation(provideInitialStandardUserFundsResponse.data.transaction);
+                } )
+                .then( () => {
+                    return this.jupiterAccountService.fetchAccountStatement(
+                        newAccountPassphrase,
+                        newAccountPassword,
+                        'new-user-account',
+                        'user'
+                    )
+
+                })
+                .then( fundedAccountStatement => {
+                    newAndFundedAccountStatement = fundedAccountStatement;
+                    const promises = [];
+                    promises.push(this.attachMissingDefaultTables(fundedAccountStatement.attachedTables, fundedAccountStatement.properties ));
+                    promises.push(this.jupApi.setAlias({alias: newAccountAliasName, passphrase: newAccountPassphrase, account: newAccountAddress}));
+
+                    return Promise.all(promises);
+                })
+                .then(promiseResults => {
+
+                    const [attachMissingDefaultTablesResponse, setAliasResponse ] = promiseResults;
+
+                    const aliasObject = {
+                        "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
+                        "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
+                        "accountRS": setAliasResponse.data.transactionJSON.senderRS,
+                    }
+                    newAndFundedAccountStatement.properties.addAlias(aliasObject);
+
+                    return this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions)
+                })
+                .then( () => {
+                    return this.jupiterAccountService.addRecordToMetisUsersTable(newAndFundedAccountStatement.properties, usersTableStatement.properties)
+                })
+                .then( addRecordToMetisUsersTableResponse => {
+                    return this.jupiterFundingService.waitForAllTransactionConfirmations(addRecordToMetisUsersTableResponse.transactionsReport)
+                })
+                .then( () => {
+                    const metisAppRegistrationData = this.printRegistrationData(newAndFundedAccountStatement)
+                    logger.sensitive(metisAppRegistrationData);
+                    const newUserRegistrationData = this.printRegistrationData(metisAppAccountStatement)
+                    logger.sensitive(newUserRegistrationData);
+                    console.log('DONE.');
+
+                    return resolve('done')
+                })
+                .catch( (error) => {
+                    reject(error);
+                })
+        })
   }
 
     /**
      *
-     * @param currentlyAttachedTableStatements
-     * @param tableOwnerProperties
-     * @returns {Promise<unknown>}
+     * @param {object} currentlyAttachedTableStatements
+     * @param {GravityAccountProperties} tableOwnerProperties
+     * @returns {Promise<{data: {newTables:[]}, transactionsReport}>}
      */
-    async attachMissingDefaultTables(currentlyAttachedTableStatements, tableOwnerProperties) {
+    attachMissingDefaultTables(currentlyAttachedTableStatements, tableOwnerProperties) {
         logger.verbose('#####################################################################################');
-        logger.verbose('## attachMissingDefaultTables(currentlyAttachedTables, accountProperties)');
+        logger.verbose('## attachMissingDefaultTables(currentlyAttachedTableStatements, tableOwnerProperties)');
         logger.verbose('##');
-        if (!tableOwnerProperties) {
-            throw new Error('accountProperties is missing')
-        }
+        if (!tableOwnerProperties) { throw new Error('accountProperties is missing') }
         logger.sensitive(`attaching tables to: ${tableOwnerProperties.address}`)
-        return new Promise((resolve, reject) => {
-            const listOfAttachedTableNames = currentlyAttachedTableStatements.map(statement => statement.tableName);
-            logger.debug(`listOfAttachedTableNames= ${listOfAttachedTableNames}`);
-            logger.debug(`listOfdefaultTableNames= ${this.defaultTableNames()}`);
-            const listOfMissingTableNames = this.defaultTableNames().filter(defaultTableName => !listOfAttachedTableNames.includes(defaultTableName));
-            logger.debug(`listOfMissingTableNames= ${listOfMissingTableNames}`);
-            const tablesToAttach = [];
-            for (let i = 0; i < listOfMissingTableNames.length; i++) {
-                logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${tableOwnerProperties.address}`)
-                tablesToAttach.push(this.attachTable(listOfMissingTableNames[i], tableOwnerProperties)); //{name, address, passphrase, publicKey, sendMoneyTransactionId}
-            }
-            Promise.all(tablesToAttach)
-                .then(async (tablesToAttachResults) => { // [{name, address, passphrase, publicKey, sendMoneyTransactionId}]
-                    this.tableService.createTableListRecord(tableOwnerProperties, this.defaultTableNames())
-                        .then(response => {
-                            logger.verbose('------------------------------------------------------------------');
-                            logger.verbose(`-- attachMissingDefaultTables().createTableListRecord().then()`);
-                            logger.verbose('-- ');
 
-                            const transactionsReport = []
-                            transactionsReport.concat(response.transactionsReport);
-                            transactionsReport.concat(tablesToAttachResults.transactionsReport);
-                            return resolve({
-                                data:
-                                    {
-                                        newTables: tablesToAttachResults
-                                    },
-                                transactionsReport: transactionsReport
-                            });
-                        })
-                })
-                .catch((error) => {
-                    logger.error(`********************************************`)
-                    logger.error(`** There was a problem attaching a table!`)
-                    logger.error(`** Attaching to the account: ${tableOwnerProperties.address}`)
-                    logger.error('**')
-                    console.log(error);
-                    reject(error);
-                });
-        });
+        const listOfAttachedTableNames = currentlyAttachedTableStatements.map(statement => statement.tableName);
+        logger.debug(`listOfAttachedTableNames= ${listOfAttachedTableNames}`);
+        logger.debug(`listOfdefaultTableNames= ${this.defaultTableNames()}`);
+        const listOfMissingTableNames = this.defaultTableNames().filter(defaultTableName => !listOfAttachedTableNames.includes(defaultTableName));
+        logger.debug(`listOfMissingTableNames= ${listOfMissingTableNames}`);
+        const tablesToAttach = [];
+        for (let i = 0; i < listOfMissingTableNames.length; i++) {
+            logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${tableOwnerProperties.address}`)
+            tablesToAttach.push(this.attachTable(listOfMissingTableNames[i], tableOwnerProperties)); //{name, address, passphrase, publicKey, sendMoneyTransactionId}
+        }
+        return Promise.all(tablesToAttach)
+            .then( tablesToAttachResults => { // [{name, address, passphrase, publicKey, sendMoneyTransactionId}]
+                return this.tableService.createTableListRecord(tableOwnerProperties, this.defaultTableNames())
+                    .then(createTableListRecordResponse => {
+                        logger.verbose('------------------------------------------------------------------');
+                        logger.verbose(`-- attachMissingDefaultTables().createTableListRecord().then()`);
+                        logger.verbose('-- ');
+                        const transactionsReport = tablesToAttachResults.reduce(  (reduced, tablesToAttachResult) => {
+                            reduced = [...reduced, ...tablesToAttachResult.transactions]
+                            return reduced;
+                        }, []);
+                        transactionsReport.push(createTableListRecordResponse.transactionReport);
+
+                        return {newTables: tablesToAttachResults, transactions: transactionsReport};
+                    })
+            })
     }
 
     /**
@@ -273,13 +246,11 @@ class AccountRegistration {
                     logger.sensitive(`response= ${JSON.stringify(response)}`);
 
                     const attachTableResponse = {
-                        data: {
-                            name: response.name,
-                            address: response.address,
-                            passphrase: response.passphrase,
-                            publicKey: response.publicKey
-                        },
-                        transactionsReport: response.transactionsReport
+                        name: response.name,
+                        address: response.address,
+                        passphrase: response.passphrase,
+                        publicKey: response.publicKey,
+                        transactions: response.transactions
                     }
 
                     resolve(attachTableResponse);
@@ -296,15 +267,7 @@ class AccountRegistration {
         });
     }
 
-    async printRegistrationData(address,passphrase, password,statementId, accountType){
-        logger.debug(`address= ${address}`);
-        return this.jupiterAccountService.fetchAccountStatement(
-            address,
-            passphrase,
-            password,
-            statementId,
-            accountType
-        ).then( statement => {
+    printRegistrationData(statement){
 
             const records = statement.records.slice(-15).reverse().reduce( (recordStatement, record) => {
                 return recordStatement + JSON.stringify(record) + `\n\n`
@@ -339,8 +302,9 @@ class AccountRegistration {
                       
   statement id: ${statement.statementId}
   address: ${statement.properties.address}
-  passphrase: ${statement.properties.passphrase}
   password: ${statement.properties.password}
+  passwordHash: ${statement.properties.passwordHash}
+  passphrase: ${statement.properties.passphrase}
   balance: ${statement.balance}     
   unconfirmedBalance: ${statement.unconfirmedBalance}     
   record count: ${statement.records.length}     
@@ -365,26 +329,28 @@ class AccountRegistration {
   -------------
   ${tableStatement}
             
-ths end.              
+the end.              
               `
-        } )
     }
 
     printTableStatement(attachedTables){
         const tables = attachedTables.reduce( (reduced, tableStatement) => {
 
             let count = 0
-            const records = tableStatement.records.slice(-15).reverse().reduce( (recordStatement, record) => {
+            const records = tableStatement.records.slice(-5).reverse().reduce( (recordStatement, record) => {
                 count++;
                 return `(${count}) ` + recordStatement + JSON.stringify(record) + `\n\n`
             }, '' )
 
-            const messages = tableStatement.messages.slice(-15).reverse().reduce( (messageStatement, message) => {
+            const messages = tableStatement.messages.slice(-5).reverse().reduce( (messageStatement, message) => {
                 return messageStatement + JSON.stringify(message) + `\n\n`
             }, '' )
 
-            const transactions = tableStatement.transactions.slice(-15).reverse().reduce( (transactionStatement, transaction) => {
-                transaction.attachment.encryptedMessage.data = ''
+            const transactions = tableStatement.transactions.slice(-5).reverse().reduce( (transactionStatement, transaction) => {
+                if(transaction.attachment.encryptedMessage){
+                    transaction.attachment.encryptedMessage.data = ''
+                }
+
                 return transactionStatement + JSON.stringify(transaction) + `\n\n`
             }, '' )
 
