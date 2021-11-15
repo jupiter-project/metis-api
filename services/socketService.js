@@ -105,6 +105,11 @@ const channelCreationConnection = function (socket) {
   });
 }
 
+/**
+ *
+ * @param socket
+ * @returns {*}
+ */
 const signUpConnection = function (socket) {
   const { room, user } = socket.handshake.query;
   if (!room || !user) {
@@ -116,8 +121,12 @@ const signUpConnection = function (socket) {
 
   socket.on('leaveRoom', leaveRoom);
   socket.on('connect_error', (error) => {
-    logger.error(JSON.stringify(error));
+    logger.error(`***********************************************************************************`);
+    logger.error(`** signUpConnection(socket).catch(error)`);
+    logger.error(`** `);
+    console.log(error);
   });
+
   socket.on('signUpSuccessful', signUpSuccessful);
   socket.on('signupFailedAttempt', signupFailedAttempt);
   socket.on('signUpFailed', signUpFailed);
@@ -129,6 +138,9 @@ const signUpConnection = function (socket) {
    * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
    */
   socket.on('disconnect', (reason) => {
+    logger.debug(`***********************************************************************************`);
+    logger.debug(`** signUpConnection(socket).onDisconnect(reason)`);
+    logger.debug(`** `);
     logger.info(`reason: ${reason}`);
     logger.info(`${socket.name} has disconnected from the chat.${socket.id}`);
   });

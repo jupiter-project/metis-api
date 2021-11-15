@@ -3,7 +3,9 @@ const {GravityCrypto} = require("../services/gravityCrypto");
 const bcrypt = require("bcrypt-nodejs");
 const gu = require("../utils/gravityUtils");
 const {applicationAccountProperties} = require("./applicationAccountProperties");
+const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 const logger = require('../utils/logger')(module);
+const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 
 /**
  *
@@ -30,7 +32,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 passphrase,
                 passwordHash,
                 password,
-                algorithm = 'aes-256-cbc',
+                algorithm = encryptAlgorithm,
                 email = '',
                 firstName = '',
                 lastName = '',
@@ -158,6 +160,48 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
         return userRecord;
 
+    }
+
+    /**
+     *
+     * @param jwtAccountData
+     * @returns {Object}
+     */
+    static instantiateBasicGravityAccountProperties(passphrase, password){
+        return jupiterTransactionsService.getAccountInformation(passphrase)
+            .then(accountInfo => {
+                return GravityAccountProperties.instantiateGravityAccountProperties(
+                    accountInfo.address,
+                    passphrase,
+                    password,
+                    accountInfo.accountId,
+                    accountInfo.publicKey,
+                    gu.generateHash(password)
+                )
+            })
+    }
+
+    /**
+     *
+     * @param address
+     * @param passphrase
+     * @param password
+     * @param accountId
+     * @param publicKey
+     * @param accountHash
+     * @param algorithm
+     * @returns {GravityAccountProperties}
+     */
+    static instantiateGravityAccountProperties(address, passphrase, password, accountId, publicKey, accountHash, algorithm = encryptAlgorithm){
+        return new GravityAccountProperties(
+            address,
+            accountId,
+            publicKey,
+            passphrase,
+            accountHash,
+            password,
+            algorithm
+        );
     }
 }
 

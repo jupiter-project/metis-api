@@ -2,6 +2,17 @@
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
+import bcrypt from 'bcrypt-nodejs';
+
+
+/**
+ *
+ * @param value
+ * @returns {string}
+ */
+const generateHash = function (value) {
+    return bcrypt.hashSync(value, bcrypt.genSaltSync(8), null);
+}
 
 
 const jsonParseOrPassThrough = function (stringToParse)
@@ -188,7 +199,8 @@ module.exports = {
     isWellFormedJupiterAccountData,
     isWellFormedPublicKey,
     jsonParseOrPassThrough,
-    generateChecksum
+    generateChecksum,
+    generateHash
 };
 
 

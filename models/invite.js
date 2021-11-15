@@ -27,43 +27,44 @@ class Invite extends Model {
 
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
-    const record = super.setRecord(this.data);
-
-    return record;
+    return  super.setRecord(this.data);
   }
 
   loadRecords(accessData) {
     return super.loadRecords(accessData);
   }
 
+  /**
+   *
+   * @returns {Promise<string>}
+   */
   async get() {
-    const memberAccountProperties = new GravityAccountProperties(
-        this.user.account,
-        '', // accountId
-        this.user.publicKey,
-        this.user.passphrase,
-        '', // hash
-        this.user.encryptionPassword
-    );
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## Invite.get()`);
+    logger.verbose(`## `);
 
-    return jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(this.user.account)
-        .then(transactionList => {
-              return jupiterTransactionsService
-                  .getAllMessagesFromBlockChainAndIncludeTransactionInformation(
-                      memberAccountProperties,
-                      transactionList,
-                      this.user.encryptionPassword
-                  );
-            })
-        .then(messages => {
-          logger.sensitive(`Decrypted invites: ${JSON.stringify(messages)}`);
-          return messages.reduce((reduced, message) => {
-            if (message.message.dataType === 'channelInvite'){
-              reduced.push(message.message);
-            }
-            return reduced;
-          }, []);
-        });
+    return GravityAccountProperties.instantiateBasicGravityAccountProperties(this.user.passphrase, this.user.encryptionPassword)
+        .then(memberAccountProperties => {
+          //@TODO we need to use tags here!!
+          return jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(this.user.account)
+              .then(transactionList => {
+                return jupiterTransactionsService
+                    .getAllMessagesFromBlockChainAndIncludeTransactionInformation(
+                        memberAccountProperties,
+                        transactionList,
+                        this.user.encryptionPassword
+                    );
+              })
+              .then(messages => {
+                logger.sensitive(`Decrypted invites: ${JSON.stringify(messages)}`);
+                return messages.reduce((reduced, message) => {
+                  if (message.message.dataType === 'channelInvite'){
+                    reduced.push(message.message);
+                  }
+                  return reduced;
+                }, []);
+              });
+        })
   }
 
   //@TODO rename to sendInvitation

@@ -127,7 +127,13 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             logger.verbose(`## passport.job.on(complete(signUpSuccessful))`)
             logger.verbose(`account=${account}`)
             logger.sensitive('Job completed with data ', result);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpSuccessful', account);
+            const room = `sign-up-${account}`;
+
+            websocket.in(room).allSockets().then((result) => {
+                logger.info(`The number of users connected is: ${result.size}`);
+            });
+
+            websocket.of('/sign-up').to(room).emit('signUpSuccessful', account);
         });
 
         job.on('failed attempt', function(errorMessage, doneAttempts){

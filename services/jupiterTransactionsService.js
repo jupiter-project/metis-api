@@ -1092,6 +1092,29 @@ class JupiterTransactionsService {
         });
     }
 
+
+    getAccountInformation(passphrase) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAccountInformation(passphrase)`);
+        logger.verbose(`## `);
+        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+
+        return jupiterAPIService.getAccountId(passphrase)
+            .then(accountIdResponse => {
+                if (!accountIdResponse) {
+                    throw new Error('theres a problem with getAccountId')
+                }
+
+                return {
+                    address: accountIdResponse.accountRS,
+                    accountId: accountIdResponse.account,
+                    publicKey: accountIdResponse.publicKey,
+                    passphrase: passphrase
+                }
+            })
+    }
+
     /**
      *
      * @param aliasName
