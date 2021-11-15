@@ -119,15 +119,18 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
    */
   app.get('/v1/api/channels/invites', async (req, res) => {
     logger.info('/n/n/nChannel Invites/n/n');
-    logger.info(req.session);
     const { accountData } = req.user;
     const invite = new Invite();
     const userData = JSON.parse(gravity.decrypt(accountData));
+    logger.sensitive(JSON.stringify(userData));
     invite.user = userData;
 
     invite.get()
       .then(response => res.send(response))
       .catch(error => {
+          logger.verbose(`*********************************************`)
+          logger.error(`** invite.get.catch(error)`)
+          logger.error(`Error getting invites: ${JSON.stringify(error)}`);
         res.status(500).send({ success: false, error });
       })
   });
