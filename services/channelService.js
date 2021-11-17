@@ -30,13 +30,20 @@ module.exports = {
             throw new Error('[channelCreationSetUp]: Channel record is required');
         }
 
-        if (!decryptedAccountData){
+        if (!decryptedAccountData) {
             throw new Error('[channelCreationSetUp]: User account data is required');
         }
 
-        if (!userPublicKey){
+        if (!userPublicKey) {
             throw new Error('[channelCreationSetUp]: User public key is required');
         }
+
+        const params = {
+            channel: channelRecord.record.account,
+            password: channelRecord.record.password,
+            account: decryptedAccountData.account,
+            alias: decryptedAccountData.alias,
+        };
 
         jupiterFundingService.provideInitialStandardTableFunds({address: channelRecord.record.account})
             .then(fundingResponse => jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction))
@@ -49,10 +56,8 @@ module.exports = {
                     channelRecord.record.password
                 )
             )
-            .then(() => {
-                console.log('Trabajo terminado.!')
-                done()
-            })
+            .then(() => metis.addToMemberList(params))
+            .then(() => done())
             .catch(error => {
                 handleChannelCreationError(channelRecord);
                 done(error);

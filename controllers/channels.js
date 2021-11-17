@@ -150,15 +150,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
       await invite.send();
       const sender = user.userData.alias;
       let recipient = _.get(data, 'recipient', '');
-      const channelName = _.get(data, 'channel.name', '');
-
 
       if (!recipient.toLowerCase().includes('jup-')) {
         const aliasResponse = await gravity.getAlias(recipient);
         recipient = aliasResponse.accountRS;
       }
 
-      const message = `${sender} invited you to the channel: ${channelName}`;
+      const message = `${sender} invited you to join a channel`;
       const metadata = { isInvitation: 'true' };
       getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
       res.send({success: true});
@@ -216,13 +214,22 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
       return res.status(500).send({ success: false, message: 'Error while decrypting the user information' });
     }
 
-    return metis.addMemberToChannelIfDoesntExist(
-        decryptedAccountData,
-        userPublicKey,
-        channel_record.passphrase,  // from
-        channel_record.account, // to
-        channel_record.publicKey,
-        channel_record.password)
+      const params = {
+          channel: channel_record.account,
+          password: channel_record.password,
+          account: decryptedAccountData.account,
+          alias: userData.alias,
+      };
+
+    return metis.addToMemberList(params)
+          .then(() => metis.addMemberToChannelIfDoesntExist(
+              decryptedAccountData,
+              userPublicKey,
+              channel_record.passphrase,  // from
+              channel_record.account, // to
+              channel_record.publicKey,
+              channel_record.password)
+          )
         .then(() => {
           logger.verbose(`------------------------------------------`)
           logger.verbose(`-- channel.import.then()`)
@@ -331,6 +338,10 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             date: Date.now(),
             encryptionLevel: "channel"
           };
+
+          if(!!data.isInvitation){
+              websocket.of('/chat').to(channel.id).emit('newMemberChannel');
+          }
           websocket.of('/chat').to(channel.id).emit('createMessage', messagePayload);
         })
         .then(() => {
@@ -372,7 +383,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     const {
       id,
       accessKey,
-      accountData, // encrypted { passphrase, password, account }
+      accountData,
       userData,
     } = req.user;
 
@@ -385,7 +396,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     }
 
 
-    // logger.sensitive(`userData = ${ JSON.stringify(decryptedAccountData)}`);
     const data = {
       name: channelName,
       date_confirmed: Date.now(),
@@ -412,7 +422,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
           logger.sensitive(`decryptedAccountData=${JSON.stringify(decryptedAccountData)}`);
 
           const {transaction} = channelCreationResponse.accountInfo;
-
+          decryptedAccountData.alias = userData.alias;
           const transactionData = { channelRecord: channelObject, decryptedAccountData, userPublicKey };
 
           const job = jobs.create('channel-creation-confirmation', transactionData)
@@ -455,31 +465,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
           });
 
         })
-        // .then(({accountResponse}) =>
-        //     Promise.all([accountResponse.accountInfo, jupiterFundingService.provideInitialStandardTableFunds({ address: accountResponse.accountInfo.account })])
-        // )
-        // .then(([accountInfo, fundingResponse]) =>
-        //     Promise.all([accountInfo, jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction)])
-        // )
-        // .then(([accountInfo]) => {
-        //   const newMemberParams = {
-        //     channel: accountInfo.account,
-        //     password: accountInfo.password,
-        //     account: userData.account,
-        //     alias: userData.alias,
-        //   };
-        //   return metis.addMemberToChannelIfDoesntExist(
-        //       decryptedAccountData,
-        //       userPublicKey,
-        //       channelObject.record.passphrase,  // from
-        //       channelObject.record.account, // to
-        //       channelObject.record.publicKey,
-        //       channelObject.record.password
-        //   );
-        // })
-        // .then(() => {
-        //
-        // })
         .catch((err) => {
           logger.error(`***********************************************************************************`);
           logger.error(`** channelObject.create(decryptedAccountData).catch(err)`);
