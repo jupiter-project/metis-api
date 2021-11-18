@@ -349,6 +349,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
              res.status(200).send({ successful: true, message: 'Public key was successfully added' })
          )
          .catch(error => {
+           // TODO move 'PUBLIC-KEY_EXIST' to constants file
+           if (error && error.code && error.code === 'PUBLIC-KEY_EXIST'){
+             return res.status(200).send({ successful: true, message: error.message })
+           }
+
            logger.error('Error adding public key');
            console.log(error);
            res.status(500).send({successful: false, message: error})
