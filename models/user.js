@@ -153,8 +153,6 @@ class User extends Model {
     return aliasCheckup;
   }
 
-
-
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
     const record = super.setRecord(this.data);

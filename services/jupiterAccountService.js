@@ -1,4 +1,5 @@
 import gu from "../utils/gravityUtils";
+import {userConfig} from "../config/constants";
 const {FeeManager, feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties, metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const _ = require("lodash");
@@ -644,6 +645,84 @@ class JupiterAccountService {
                     reject(error);
                 })
         })
+    }
+
+    addPublicKey(publicKey, gravityAccountProperties){
+        return this.hasPublicKey(publicKey, gravityAccountProperties)
+            .then(hasPublicKey => {
+                if (hasPublicKey){
+                    throw new Error('Public key already exists');
+                }
+
+                const encryptedMessage = gravityAccountProperties.crypto.encrypt(publicKey);
+                const userPublicKeyPromise = jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
+                    gravityAccountProperties.passphrase,
+                    gravityAccountProperties.address,
+                    encryptedMessage,
+                    userConfig.userPublicKey,
+                    FeeManager.feeTypes.account_record,
+                    gravityAccountProperties.publicKey
+                );
+
+                const userPublicKeyListPromise = jupiterTransactionsService.getBlockChainTransactionsByTag(gravityAccountProperties.address, userConfig.userPublicKeyList)
+                return Promise.all([ userPublicKeyPromise, userPublicKeyListPromise ]);
+            })
+            .then(([ userPublicKey, userPublicKeyList ]) => {
+                const latestPublicKeyList = userPublicKeyList.pop();
+                return Promise.all([
+                    userPublicKey,
+                    jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
+                        latestPublicKeyList.transaction,
+                        gravityAccountProperties.crypto,
+                        gravityAccountProperties.passphrase
+                    )
+                ]);
+            })
+            .then(([ userPublicKey, userPublicKeyList]) => {
+                userPublicKeyList.push(userPublicKey);
+                const encryptedMessage = gravityAccountProperties.crypto.encryptJson(userPublicKeyList);
+                return jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
+                    gravityAccountProperties.passphrase,
+                    gravityAccountProperties.address,
+                    encryptedMessage,
+                    userConfig.userPublicKeyList,
+                    FeeManager.feeTypes.account_record,
+                    gravityAccountProperties.publicKey
+                );
+            });
+    }
+
+    /**
+     *
+     * @param {string} publicKey
+     * @param {GravityAccountProperties} gravityAccountProperties
+     * @returns {*}
+     */
+    hasPublicKey(publicKey, gravityAccountProperties){
+        return jupiterTransactionsService.getBlockChainTransactionsByTag(gravityAccountProperties.address, userConfig.userPublicKeyList)
+            .then(transactions => {
+                const transactionIds = transactions.pop();
+                return jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
+                    transactionIds,
+                    gravityAccountProperties.crypto,
+                    gravityAccountProperties.passphrase
+                )
+            })
+            .then(message => {
+                if (!Array.isArray(message) || message.length === 0){
+                    return false;
+                }
+
+                return jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(
+                    message,
+                    gravityAccountProperties.crypto,
+                    gravityAccountProperties.passphrase
+                );
+            })
+            .then((userPublicKeyArray) =>
+                userPublicKeyArray.some(upk => upk === publicKey)
+            );
+
     }
 
 }

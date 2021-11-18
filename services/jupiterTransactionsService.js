@@ -3,6 +3,8 @@ const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
 const _ = require("lodash");
 const {jupiterAPIService} = require("./jupiterAPIService");
+const {feeManagerSingleton} = require("./FeeManager");
+const JupiterAPIService = require("./jupiterAPIService");
 
 
 class JupiterTransactionsService {
@@ -1134,6 +1136,85 @@ class JupiterTransactionsService {
                 }
                 throw error;
             })
+    }
+
+    /**
+     *
+     * @param address
+     * @param tag
+     * @returns {Promise<[{signature, transactionIndex,type,phased,ecBlockId,
+     * signatureHash,attachment: {
+     *               encryptedMessage: {data, nonce, isText, isCompressed},
+     *               version.MetisMetaData,
+     *               version.EncryptedMessage,
+     *               version.Message,
+     *               version.OrdinaryPayment,
+     *               MessageIsText
+     *               message
+     *               },
+     *               senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
+     * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]>}
+     */
+    getBlockChainTransactionsByTag(address, tag) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getBlockChainTransactionsByTag(channelAccount, tag)`);
+        logger.verbose(`## `);
+        logger.sensitive(`address=${JSON.stringify(address)}`);
+        logger.sensitive(`tag=${JSON.stringify(tag)}`);
+
+        return this.jupiterAPIService.getBlockChainTransactions(address, tag, true)
+            .then( response => {
+                if(!response.hasOwnProperty('data')){ return []}
+                if(!response.data.hasOwnProperty('transactions')){ return []}
+                if(!Array.isArray(response.data.transactions)){return []}
+
+                return response.data.transactions.filter(transaction => {
+                    return transaction.hasOwnProperty('attachment') &&
+                        transaction.attachment.hasOwnProperty('message') &&
+                        transaction.attachment.message === tag;
+                });
+            })
+    }
+
+
+
+    sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable=false ) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
+        logger.verbose(`## `);
+        if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
+        if(!gu.isWellFormedJupiterAddress(toAddress)){throw new Error(`toAddress is not valid: ${toAddress}`)}
+        if(!gu.isWellFormedPublicKey(recipientPublicKey)){throw new Error(`recipientPublicKey is not valid: ${recipientPublicKey}`)}
+
+        const fee = feeManagerSingleton.getFee(feeType);
+        const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
+
+        return this.jupiterAPIService.sendMetisMessageOrMessage(
+            JupiterAPIService.requestTypes.sendMetisMessage,
+            toAddress,
+            recipientPublicKey,
+            fromPassphrase,
+            null,
+            fee,
+            process.env.JUPITER_DEADLINE,
+            null,
+            null,
+            tag,
+            null,
+            null,
+            metisMessage,
+            true,
+            null,
+            null,
+            prunable,
+            true,
+            null,
+            null,
+            null,
+            null,
+            null,
+            subtype
+        )
     }
 
 

@@ -22,6 +22,10 @@ class JupiterAPIService {
         this.appProps = applicationAccountProperties;
     }
 
+    static requestTypes = {
+        sendMetisMessage: 'sendMetisMessage',
+    }
+
     /**
      *
      * @param {object} givenParams

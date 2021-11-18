@@ -1,5 +1,6 @@
 const logger = require('../utils/logger')(module);
 const crypto = require('crypto');
+const gu = require('../utils/gravityUtils');
 
 
 class GravityCrypto {
@@ -99,6 +100,16 @@ class GravityCrypto {
         } catch (error) {
             return data;
         }
+    }
+
+    /**
+     *
+     * @param data
+     * @returns {*}
+     */
+    decryptAndParseOrNull(data){
+        const decryptedValue = this.decryptOrPassThrough(data);
+        return gu.jsonParseOrNull(decryptedValue);
     }
 }
 
