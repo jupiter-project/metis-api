@@ -328,9 +328,13 @@ class JupiterAccountService {
 
     addPublicKey(publicKey, gravityAccountProperties) {
         return this.hasPublicKey(publicKey, gravityAccountProperties)
-            .then((hasPublicKey) => {
-                if (hasPublicKey) {
-                    throw new Error('Public key already exists');
+            .then(hasPublicKey => {
+                if (hasPublicKey){
+                    // TODO create an error business handler
+                    const error = new Error();
+                    error.code = 'PUBLIC-KEY_EXIST';
+                    error.message = 'Public key already exists';
+                    throw error;
                 }
 
                 const encryptedMessage = gravityAccountProperties.crypto.encrypt(publicKey);
