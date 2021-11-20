@@ -307,30 +307,64 @@ class JupiterAccountService {
         });
     }
 
+
+    async getLatestListByTag(accountProperties, tag){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getLatestListByTag(accountProperties, tag)`);
+        logger.verbose(`## `);
+        logger.sensitive(`tag=${JSON.stringify(tag)}`);
+
+        if(! accountProperties instanceof GravityAccountProperties){throw new Error('invalid accountProperties')}
+        if(!tag){throw new Error('empty tag')}
+
+        const transactions = await jupiterTransactionsService.getBlockChainTransactionsByTag(accountProperties.address, tag);
+        if(transactions.length < 1){ return []}
+        const mostRecentTransaction = this.jupiterTransactionsService.getMostRecentTransaction(transactions);
+
+        const transactionMessage = await jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
+            mostRecentTransaction.transaction,
+            accountProperties.crypto,
+            accountProperties.passphrase
+        );
+
+        if(!Array.isArray(transactionMessage)){throw new Error('transaction message is not an array')}
+
+        return transactionMessage;
+    }
+
     /**
      * Retrieves all public keys associated to an address
      * @param {GravityAccountProperties} accountProperties
      * @returns {Promise<unknown>}
      */
     async getPublicKeysFromUserAccount(accountProperties) {
-        try {
-            const transactions = await jupiterTransactionsService.getBlockChainTransactionsByTag(accountProperties.address, userConfig.userPublicKeyList);
-            const [latestTransaction] = transactions;
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getPublicKeysFromUserAccount(accountProperties)`);
+        logger.verbose(`## `);
+        logger.sensitive(`accountProperties=${JSON.stringify(accountProperties)}`);
 
-            const message = await jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
-                latestTransaction.transaction,
-                accountProperties.crypto,
-                accountProperties.passphrase
-            );
+        if(! accountProperties instanceof GravityAccountProperties){throw new Error('invalid accountProperties')}
+
+        try {
+
+            const latestListOfPublicKeyTransactions = await this.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
+
             const publicKeyIds = await jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecryptOrPassThrough(
-                message,
+                latestListOfPublicKeyTransactions,
                 accountProperties.crypto,
                 accountProperties.passphrase
             );
+
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+            console.log('publicKeyIds');
+            console.log(publicKeyIds);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
 
             return publicKeyIds.map((pk) => pk.message);
         } catch (error) {
+            error.message = `getPublicKeysFromUserAccount: ${error.message}`;
             logger.error(error);
+            throw error;
         }
     }
 

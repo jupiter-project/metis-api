@@ -168,6 +168,15 @@ class GravityAccountProperties extends JupiterAccountProperties {
      * @returns {Object}
      */
     static instantiateBasicGravityAccountProperties(passphrase, password){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## instantiateBasicGravityAccountProperties`);
+        logger.verbose(`## `);
+        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+        logger.sensitive(`password=${JSON.stringify(password)}`);
+
+        if(!passphrase){throw new Error('passphrase is empty')}
+        if(!password){throw new Error('password is empty')}
+
         return jupiterTransactionsService.getAccountInformation(passphrase)
             .then(accountInfo => {
                 return GravityAccountProperties.instantiateGravityAccountProperties(
@@ -178,7 +187,13 @@ class GravityAccountProperties extends JupiterAccountProperties {
                     accountInfo.publicKey,
                     gu.generateHash(password)
                 )
-            });
+            }).catch( error => {
+                logger.error(`***********************************************************************************`);
+                logger.error(`** instantiateBasicGravityAccountProperties().catch(error)`);
+                logger.error(`** `);
+                console.log(error);
+                throw error;
+            })
     }
 
     /**

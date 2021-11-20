@@ -9,7 +9,7 @@ module.exports = (app) => {
     const tableData = { account, password, passphrase };
 
     try{
-        const channelProperties = GravityAccountProperties.instantiateBasicGravityAccountProperties(passphrase, password);
+        const channelProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(passphrase, password);
         const channelPublicKeyList =  await jupiterAccountService.getPublicKeysFromChannelAccount(channelProperties);
         const userPublicKeyList = channelPublicKeyList.map(cpkl => cpkl.userPublicKey);
 

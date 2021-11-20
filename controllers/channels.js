@@ -222,8 +222,8 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             alias: userData.alias,
         };
 
-        const channelProperties = GravityAccountProperties.instantiateBasicGravityAccountProperties(channel_record.passphrase, channel_record.password);
-        const memberProperties = GravityAccountProperties.instantiateBasicGravityAccountProperties(decryptedAccountData.passphrase, decryptedAccountData.password);
+        const channelProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(channel_record.passphrase, channel_record.password);
+        const memberProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(decryptedAccountData.passphrase, decryptedAccountData.password);
 
         return metis.addToMemberList(params) //TODO we need to get rid of this
             .then(() => metis.addMemberToChannelIfDoesntExist(memberProperties, channelProperties))

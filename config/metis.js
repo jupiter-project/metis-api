@@ -137,6 +137,11 @@ function Metis() {
     }
 
     async function addToMemberList(params) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## addToMemberList(params)`);
+        logger.verbose(`## `);
+        logger.sensitive(`params=${JSON.stringify(params)}`);
+
         if (!params.alias) {
             return {error: true, message: 'No alias provided'};
         }
@@ -218,14 +223,27 @@ function Metis() {
      */
     async function addMemberToChannelIfDoesntExist(memberProperties, channelProperties) {
         logger.verbose(`###################################################################################`);
-        logger.verbose(`## addMemberToChannelIfDoesntExist(memberAccessData, userPublicKey, from, to, recipientPublicKey, recipientPassword)`);
+        logger.verbose(`## addMemberToChannelIfDoesntExist(memberProperties, channelProperties)`);
         logger.verbose(`## `);
 
+        console.log(1)
+        if(!(memberProperties instanceof GravityAccountProperties)){throw new Error('invalid memberProperties')}
+        if(!(channelProperties instanceof GravityAccountProperties)){throw new Error('invalid channelProperties')}
+
+        console.log(2)
         const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties)
+        console.log(3)
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('memberPublicKeys');
+        console.log(memberPublicKeys);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
 
         memberPublicKeys.map(async (memberKey) => {
+            console.log('--__')
             await jupiterAccountService.addPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
         });
+        console.log(4)
+        logger.debug('addMemberToChannelIfDoesntExist() end.')
     }
 
     return Object.freeze({

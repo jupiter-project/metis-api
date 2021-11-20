@@ -1224,6 +1224,20 @@ class JupiterTransactionsService {
     }
 
 
+    /**
+     *
+     * @param transactions
+     * @returns {*[]|*}
+     */
+    getMostRecentTransaction(transactions){
+        //@TODO still need to implement this!
+        if(!Array.isArray(transactions)){throw new Error('not array')}
+        if(transactions.length === 0) {return []}
+
+        return transactions.shift();
+    }
+
+
 }
 
 module.exports.JupiterTransactionsService = JupiterTransactionsService;

@@ -334,7 +334,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     });
 
 
-    app.put('/v1/api/publicKey', (req, res) => {
+    app.put('/v1/api/publicKey', async (req, res) => {
       const { user } = req;
       const { userPublicKey } = req.body;
 
@@ -342,7 +342,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         return res.status(400).send({ successful: false, message: 'User public key is required' });
       }
 
-      const userProperties = GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
+      const userProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
 
      jupiterAccountService.addPublicKeyToUserAccount(userPublicKey, userProperties)
          .then(() => jupiterAccountService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
