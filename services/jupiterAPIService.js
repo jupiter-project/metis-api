@@ -22,6 +22,10 @@ class JupiterAPIService {
         this.appProps = applicationAccountProperties;
     }
 
+    static requestTypes = {
+        sendMetisMessage: 'sendMetisMessage',
+    }
+
     /**
      *
      * @param {object} givenParams
@@ -228,7 +232,7 @@ class JupiterAPIService {
      * version.EncryptedMessage},senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
-    async getBlockChainTransactions(address, message, withMessage = true, type = 1 , includeExpiredPrunable = true) {
+    async getBlockChainTransactions(address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getBlockChainTransactions(account: ${address})`);
         logger.verbose('##');
@@ -606,32 +610,32 @@ class JupiterAPIService {
 
     /**
      *
-     * @param fromJupiterAccount
-     * @param toJupiterAccount
-     * @param amount
-     * @param feeNQT
+     * @param {GravityAccountProperties} fromAccountProperties
+     * @param {GravityAccountProperties} toAccountProperties
+     * @param {int} amount
+     * @param {number} feeNQT
      * @returns {Promise<unknown>}
      */
-    async transferMoney(fromJupiterAccount, toJupiterAccount, amount, feeNQT = this.appProps.feeNQT) {
+    async transferMoney(fromAccountProperties, toAccountProperties, amount, feeNQT = this.appProps.feeNQT) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## transferMoney(fromProperties, toPropertie, amount, feeNQT)`);
+        logger.verbose(`## transferMoney(fromJupiterAccount, toJupiterAccount, amount, feeNQT)`);
         logger.verbose('## ');
         return new Promise((resolve, reject) => {
             if (!gu.isNumberGreaterThanZero(amount)) {
                 return reject('problem with amount');
             }
-            if(!fromJupiterAccount){
-                return reject('problem with fromProperty');
+            if(!fromAccountProperties){
+                return reject('problem with fromAccountProperties');
             }
 
-            if(!toJupiterAccount){
-                return reject('problem with toProperties');
+            if(!toAccountProperties){
+                return reject('problem with toAccountProperties');
             }
 
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
             logger.info(`++ Transferring Money`);
-            logger.info(`++ from: ${fromJupiterAccount.address}`);
-            logger.info(`++ to: ${toJupiterAccount.address}`);
+            logger.info(`++ from: ${fromAccountProperties.address}`);
+            logger.info(`++ to: ${toAccountProperties.address}`);
             logger.info(`++ amount: ${amount}`);
             logger.info(`++ feeNQT: ${feeNQT}`);
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
@@ -639,13 +643,14 @@ class JupiterAPIService {
 
             this.post( {
                 requestType: 'sendMoney',
-                recipient: toJupiterAccount.address,
-                secretPhrase: fromJupiterAccount.passphrase, //fromAccount
+                recipient: toAccountProperties.address,
+                secretPhrase: fromAccountProperties.passphrase, //fromAccount
                 amountNQT:amount,
                 feeNQT: feeNQT,
                 deadline: this.appProps.deadline //60
             })
                 .then(response =>{
+                    console.log('transferMoney().then()');
                     if (response.data.signatureHash != null) {
                         return resolve(response);
                     }

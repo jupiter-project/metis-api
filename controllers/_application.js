@@ -4,6 +4,8 @@ import { gravity } from '../config/gravity';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
 import {jobScheduleService} from '../services/jobScheduleService';
+import jupiterAccountService from "../services/jupiterAccountService";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 
@@ -330,6 +332,35 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       }
       jobScheduleService.checkJobStatus(jobId, callback);
     });
+
+
+    app.put('/v1/api/publicKey', async (req, res) => {
+      const { user } = req;
+      const { userPublicKey } = req.body;
+
+      if (!userPublicKey){
+        return res.status(400).send({ successful: false, message: 'User public key is required' });
+      }
+
+      const userProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
+
+     jupiterAccountService.addPublicKeyToUserAccount(userPublicKey, userProperties)
+         .then(() => jupiterAccountService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
+         .then(() =>
+             res.status(200).send({ successful: true, message: 'Public key was successfully added' })
+         )
+         .catch(error => {
+           // TODO move 'PUBLIC-KEY_EXIST' to constants file
+           if (error && error.code && error.code === 'PUBLIC-KEY_EXIST'){
+             return res.status(200).send({ successful: true, message: error.message })
+           }
+
+           logger.error('Error adding public key');
+           console.log(error);
+           res.status(500).send({successful: false, message: error})
+         })
+    });
+
 
   /**
    *

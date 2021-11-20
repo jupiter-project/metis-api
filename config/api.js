@@ -251,45 +251,46 @@ module.exports = (app) => {
   /**
    * Update a record, assigned to the current user
    */
-  app.put('/v1/api/:tableName', (req, res, next) => {
-    const params = req.body;
-    const { data } = params;
-    const { tableName } = req.params;
-    const exceptions = ['users'];
-    let model = '';
 
-    // If table in route is in the exception list, then it goes lower in the route list
-    if (exceptions.includes(tableName)) {
-      next();
-    } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
-
-      const file = `../models/${model}.js`;
-
-      const Record = require(file);
-
-      // We verify the user data here
-      const recordObject = new Record(data);
-
-      recordObject.update()
-        .then((response) => {
-          res.send(response);
-        })
-        .catch((err) => {
-          logger.error(err);
-          res.send(err);
-        });
-    }
-  });
+  // app.put('/v1/api/:tableName', (req, res, next) => {
+  //   const params = req.body;
+  //   const { data } = params;
+  //   const { tableName } = req.params;
+  //   const exceptions = ['users'];
+  //   let model = '';
+  //
+  //   // If table in route is in the exception list, then it goes lower in the route list
+  //   if (exceptions.includes(tableName)) {
+  //     next();
+  //   } else {
+  //     find.fileSync(/\.js$/, './models').forEach((file) => {
+  //       const modelName = file.replace('models/', '').replace('.js', '');
+  //       let isIncluded = tableName.includes(modelName);
+  //       if (tableName.includes('_')) {
+  //         if (!modelName.includes('_')) {
+  //           isIncluded = false;
+  //         }
+  //       }
+  //       if (isIncluded) {
+  //         model = modelName;
+  //       }
+  //     });
+  //
+  //     const file = `../models/${model}.js`;
+  //
+  //     const Record = require(file);
+  //
+  //     // We verify the user data here
+  //     const recordObject = new Record(data);
+  //
+  //     recordObject.update()
+  //       .then((response) => {
+  //         res.send(response);
+  //       })
+  //       .catch((err) => {
+  //         logger.error(err);
+  //         res.send(err);
+  //       });
+  //   }
+  // });
 };

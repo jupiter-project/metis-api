@@ -2,6 +2,8 @@ const {jupiterFundingService} = require("./jupiterFundingService");
 const metis = require("../config/metis");
 const {gravity} = require("../config/gravity");
 const {feeManagerSingleton, FeeManager} = require("./FeeManager");
+const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const logger = require('../utils/logger')(module);
 
 const handleChannelCreationError = async (channelRecord) => {
     if (!channelRecord) {
@@ -21,7 +23,15 @@ const handleChannelCreationError = async (channelRecord) => {
 };
 
 module.exports = {
-    channelCreationSetUp: (channelRecord, decryptedAccountData, userPublicKey, done) => {
+
+    /**
+     * Create a new Channel
+     * @param channelRecord
+     * @param decryptedAccountData
+     * @param userPublicKey
+     * @param done
+     */
+    channelCreationSetUp: async (channelRecord, decryptedAccountData, userPublicKey, done) => {
         if (!channelRecord) {
             throw new Error('[channelCreationSetUp]: Channel record is required');
         }
@@ -45,21 +55,31 @@ module.exports = {
             alias: decryptedAccountData.alias,
         };
 
+
+        const memberProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+            decryptedAccountData.passphrase,
+            decryptedAccountData.encryptionPassword);
+
+        const channelProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+            channelRecord.record.passphrase,
+            channelRecord.record.password);
+
         jupiterFundingService.provideInitialStandardTableFunds({address: channelRecord.record.account})
             .then(fundingResponse => jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction))
             .then(() => metis.addMemberToChannelIfDoesntExist(
-                    decryptedAccountData,
-                    userPublicKey,
-                    channelRecord.record.passphrase,  // from
-                    channelRecord.record.account, // to
-                    channelRecord.record.publicKey,
-                    channelRecord.record.password
+                memberProperties,
+                channelProperties
                 )
             )
             .then(() => metis.addToMemberList(params))
+            .then(() => console.log('done'))
             .then(() => done())
             .catch(error => {
-                handleChannelCreationError(channelRecord);
+                logger.error(`***********************************************************************************`);
+                logger.error(`** channelCreationSetUp().catch(error)`);
+                logger.error(`** `);
+                console.log(error);
+                // handleChannelCreationError(channelRecord);
                 done(error);
             });
     }

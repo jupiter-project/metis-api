@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const {GravityCrypto} = require("../services/gravityCrypto");
 const logger = require('../utils/logger')(module);
 
 // ============================
@@ -45,9 +46,15 @@ const tokenVerify = (req, res, next) => {
         err,
       });
     }
-    req.user = decodedUser;
-    req.channel = decodedChannel;
 
+    req.user = decodedUser;
+
+    const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, process.env.ENCRYPT_PASSWORD);
+    const { passphrase, password } = crypto.decryptAndParseOrNull(decodedUser.accountData);
+
+    req.user.passphrase = passphrase;
+    req.user.password = password;
+    req.channel = decodedChannel;
     next();
   });
 };

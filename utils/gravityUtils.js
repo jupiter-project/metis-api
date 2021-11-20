@@ -1,4 +1,3 @@
-
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
@@ -188,6 +187,22 @@ const generateChecksum = (text) => {
     return checksum(text);
 }
 
+/**
+ *
+ * @param stringToParse
+ * @returns {null|*}
+ */
+const jsonParseOrNull = function (stringToParse) {
+    let json = null;
+    try{
+        json = JSON.parse(stringToParse);
+    } catch(error) {
+        return null;
+    }
+
+    return json;
+};
+
 module.exports = {
     isObject,
     jsonPropertyIsNonEmptyArray,
@@ -200,7 +215,8 @@ module.exports = {
     isWellFormedPublicKey,
     jsonParseOrPassThrough,
     generateChecksum,
-    generateHash
+    generateHash,
+    jsonParseOrNull
 };
 
 

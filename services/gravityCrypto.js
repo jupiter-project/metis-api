@@ -1,7 +1,6 @@
 const logger = require('../utils/logger')(module);
 const crypto = require('crypto');
 
-
 class GravityCrypto {
 
     constructor(decryptionAlgorithm, decryptionPassword) {
@@ -99,6 +98,23 @@ class GravityCrypto {
         } catch (error) {
             return data;
         }
+    }
+
+    /**
+     *
+     * @param data
+     * @returns {*}
+     */
+    decryptAndParseOrNull(data){
+        const decryptedValue = this.decryptOrPassThrough(data);
+        let json = null;
+        try{
+            json = JSON.parse(decryptedValue);
+        } catch(error) {
+            return null;
+        }
+
+        return json;
     }
 }
 
