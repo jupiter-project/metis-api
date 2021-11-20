@@ -1,7 +1,5 @@
 const logger = require('../utils/logger')(module);
 const crypto = require('crypto');
-const gu = require('../utils/gravityUtils');
-
 
 class GravityCrypto {
 
@@ -109,7 +107,14 @@ class GravityCrypto {
      */
     decryptAndParseOrNull(data){
         const decryptedValue = this.decryptOrPassThrough(data);
-        return gu.jsonParseOrNull(decryptedValue);
+        let json = null;
+        try{
+            json = JSON.parse(decryptedValue);
+        } catch(error) {
+            return null;
+        }
+
+        return json;
     }
 }
 

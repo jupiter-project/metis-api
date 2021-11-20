@@ -223,13 +223,6 @@ class JupiterTransactionsService {
         if (transactions.length == 0) {
             return []
         }
-        if (!this.areValidTransactions(transactions)) {
-            const errorMessage = `Not valid MessageTransactions`;
-            logger.error(errorMessage);
-            throw new Error(errorMessage);
-        }
-        logger.debug('All transactions have been validated. Now filtering...');
-        // const messageTransactions = transactions.filter(this.isTransactionAMessage, this)
 
         const messageTransactions = transactions.filter(this.isValidMessageTransaction, this)
 
@@ -1072,16 +1065,29 @@ class JupiterTransactionsService {
         })
     }
 
+    getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag)`);
+        logger.verbose(`## `);
+        logger.sensitive(`address=${JSON.stringify(address)}`);
+        logger.sensitive(`tag=${JSON.stringify(tag)}`);
+
+        return this.jupiterAPIService.getAllConfirmedAndUnconfirmedBlockChainTransactions(address)
+            .then( transactionsArray => {
+                return transactionsArray.filter(transaction => {
+                    return transaction.hasOwnProperty('attachment') &&
+                        transaction.attachment.hasOwnProperty('message') &&
+                        transaction.attachment.message === tag;
+                });
+            })
+    }
+
     async getAllConfirmedAndUnconfirmedBlockChainTransactions(address) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getAllBlockChainTransactions(account=${address})`);
         logger.verbose('#####################################################################################');
         return new Promise((resolve, reject) => {
-            const message = '';
-            const withMessage = true; //@TODO what does this value do?
-            const includeExpiredPrunable = true;  //@TODO make sure to include prunables.
-            const type = 1;
-            const confirmedTransactions = this.jupiterAPIService.getBlockChainTransactions(address, message, withMessage, type, includeExpiredPrunable);
+            const confirmedTransactions = this.jupiterAPIService.getBlockChainTransactions(address);
             const unconfirmedTransactions = this.jupiterAPIService.getUnconfirmedBlockChainTransactions(address);
 
             Promise.all([confirmedTransactions, unconfirmedTransactions])

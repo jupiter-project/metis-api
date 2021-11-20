@@ -344,7 +344,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
       const userProperties = GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
 
-     jupiterAccountService.addPublicKey(userPublicKey, userProperties)
+     jupiterAccountService.addPublicKeyToUserAccount(userPublicKey, userProperties)
+         .then(() => jupiterAccountService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
          .then(() =>
              res.status(200).send({ successful: true, message: 'Public key was successfully added' })
          )

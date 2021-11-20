@@ -770,7 +770,7 @@ class Gravity {
         eventEmitter.emit('records_retrieved');
       });
 
-      axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${address}&withMessage=true&type=1`)
+      axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${address}&type=1`)
         .then((response) => {
           database = response.data.transactions;
           eventEmitter.emit('database_retrieved');
@@ -1165,7 +1165,7 @@ class Gravity {
       const port = process.env.JUPITER_PORT ? `:${process.env.JUPITER_PORT}` : '';
 
       const includeExpiredPrunable = 'includeExpiredPrunable=true'; // This is done because metis was sending prunable user_record messages which cause the user to not be able to log in.
-      const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${ownerAddress}&withMessage=true&type=1&${includeExpiredPrunable}`;
+      const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${ownerAddress}&type=1&${includeExpiredPrunable}`;
       // logger.verbose(url);
       logger.debug(`getRecords().axios.get(url)`);
       logger.sensitive(`url=${url}`);
@@ -1254,7 +1254,7 @@ class Gravity {
         eventEmitter.emit('records_retrieved');
       });
 
-      axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${appAddress}&withMessage=true&type=1`)
+      axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${appAddress}&type=1`)
         .then((response) => {
           database = response.data.transactions;
           eventEmitter.emit('database_retrieved');
@@ -1420,7 +1420,7 @@ class Gravity {
       });
 
       eventEmitter.on('table_access_retrieved', () => {
-        axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${recordTable.address}&withMessage=true&type=1`)
+        axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${recordTable.address}&type=1`)
           .then((response) => {
             tableData = response.data.transactions;
             eventEmitter.emit('table_retrieved');
@@ -1825,7 +1825,7 @@ class Gravity {
         logger.debug(`retrieveUserFromApp().on(table_access_retrieved)`);
         logger.sensitive(`getting transactions from applicationAccountUserTable: ${applicationAccountUserTable.address}`);
         const includeExpiredPrunable = '&includeExpiredPrunable=true';
-        axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${applicationAccountUserTable.address}&withMessage=true&type=1${includeExpiredPrunable}`)
+        axios.get(`${self.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${applicationAccountUserTable.address}&type=1${includeExpiredPrunable}`)
           .then((response) => {
             logger.debug(`retrieveUserFromaApp().axiosGet().then()`)
             // applicationAccountUserTableTransactions =
@@ -2773,7 +2773,7 @@ class Gravity {
         const numberOfRecords = filter.numberOfRecords || 10;
         const firstIndex = filter.firstIndex || 0;
         const lastIndex = parseInt(firstIndex, 10) + parseInt(numberOfRecords, 10);
-        const urlCall = `${this.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${address}&withMessage=true&type=1&firstIndex=${firstIndex}&lastIndex=${lastIndex}`;
+        const urlCall = `${this.jupiter_data.server}/nxt?requestType=getBlockchainTransactions&account=${address}&type=1&firstIndex=${firstIndex}&lastIndex=${lastIndex}`;
         rawTransactions = (await axios.get(urlCall)).data;
       } catch (e) {
         logger.error('Error in gravity.js, line 1671, could not retrieve unconfirmed transactions');

@@ -945,31 +945,29 @@ class TableService {
         logger.verbose('## extractRecordsFromMessages(messages)');
         logger.verbose('##');
         // logger.debug(`  messages= ${JSON.stringify(messages)}`);
-        const records = messages.reduce( (reduced, message) => {
-                const keys = (Object.keys(message))
-                for(let i = 0; i<keys.length; i++){
-                    const re = /\w+_record/;
-                    if(re.test(keys[i])){
-                        // console.log('FOUND the key: ', keys[i]);
-                        let record = message[keys[i]];
-                        try {
-                            record = JSON.parse(message[keys[i]])
-                        } catch (error) {
-                            // do nothing
-                        }
-                        logger.insane(`record= ${JSON.stringify(record)}`);
-                        record.name = keys[i];
-                        record.date = message.date
-                        reduced.push(record);
-                        return reduced;
-                    }
-                }
-
-                return reduced;
-            }, [] )
-
         // logger.sensitive(`extractedRecordsFromMessages= ${JSON.stringify(records)}`);
-        return records;
+        return messages.reduce((reduced, message) => {
+            const keys = (Object.keys(message));
+            for (let i = 0; i < keys.length; i++) {
+                const re = /\w+_record/;
+                if (re.test(keys[i])) {
+                    // console.log('FOUND the key: ', keys[i]);
+                    let record = message[keys[i]];
+                    try {
+                        record = JSON.parse(message[keys[i]]);
+                    } catch (error) {
+                        // do nothing
+                    }
+                    logger.insane(`record= ${JSON.stringify(record)}`);
+                    record.name = keys[i];
+                    record.date = message.date
+                    reduced.push(record);
+                    return reduced;
+                }
+            }
+
+            return reduced;
+        }, []);
     }
 
 

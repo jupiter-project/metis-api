@@ -178,7 +178,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
                     accountInfo.publicKey,
                     gu.generateHash(password)
                 )
-            })
+            });
     }
 
     /**

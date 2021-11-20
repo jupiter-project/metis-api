@@ -232,7 +232,7 @@ class JupiterAPIService {
      * version.EncryptedMessage},senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
-    async getBlockChainTransactions(address, message, withMessage = true, type = 1 , includeExpiredPrunable = true) {
+    async getBlockChainTransactions(address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
         logger.verbose('#####################################################################################');
         logger.verbose(`## getBlockChainTransactions(account: ${address})`);
         logger.verbose('##');

@@ -1,4 +1,3 @@
-
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
