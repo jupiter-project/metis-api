@@ -146,6 +146,10 @@ const socketOptions = {
   serveClient: true,
   pingTimeout, // pingTimeout value to consider the connection closed
   pingInterval, // how many ms before sending a new ping packet
+  cors: {
+    origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE"
+  }
 };
 const io = socketIO(server, socketOptions);
 // messages socket
