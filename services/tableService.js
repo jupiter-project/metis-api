@@ -766,10 +766,7 @@ class TableService {
 
 
     extractLatestTableNamesFromMessages(messages){
-        if(messages.length === 0 ) {
-            return []
-        }
-
+        if(messages.length === 0 ) {return []}
         const reducedMessages =  messages.reduce( (reduced, message) => {
             if(message.tables){
                 reduced.push(message)
@@ -781,13 +778,10 @@ class TableService {
         reducedMessages.sort(function(a, b){return b.date -a.date}); // decending by date
         logger.debug(`reducedMessage= ${JSON.stringify(reducedMessages)}`);
 
-        if(reducedMessages.length < 1){
-            return []
-        }
+        if(reducedMessages.length < 1){return []}
 
         return reducedMessages[0].tables;
     }
-
 
     // messages= [{"id":"2376166064047524148","user_record":"{\"id\":\"2376166064047524148\",\"account\":\"JUP-KMRG-9PMP-87UD-3EXSF\",\"accounthash\":\"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW\",\"alias\":\"sprtz\",\"secret_key\":null,\"twofa_enabled\":false,\"twofa_completed\":false,\"api_key\":\"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO\",\"encryption_password\":\"sprtz\"}","date":1625269463920},{"tables":["users","channels","invites","users"],"date":1625269444963},[{"users":{"address":"JUP-7WMJ-S9N6-3LQV-A3VCK","passphrase":"scratch neck before bullet glass hallway like sway very crush itself leg"}}],{"tables":["users","channels","invites"],"date":1625269431846},{"invites":{"address":"JUP-3GKU-CKKB-N5F5-FSTYJ","passphrase":"single commit gun screw beauty slice teeth six dad friendship paint autumn"}},{"tables":["users","channels"],"date":1625269431464},{"channels":{"address":"JUP-X5E2-MWPE-3FLC-GU3KU","passphrase":"look crimson some toward grand ask block holy tightly hello anyone lovely"}}]
 
@@ -1018,12 +1012,8 @@ class TableService {
         logger.verbose(`## extractTablesFromMessages(messages.length= ${messages.length})`);
         logger.verbose('##');
 
-        if (messages.length === 0) {
-            return [];
-        }
-
+        if (messages.length === 0) {return []};
         logger.debug(`messages.length= ${messages.length}`);
-
         const tableNames = this.extractLatestTableNamesFromMessages(messages);
 
         const unique = (value, index, self) => {

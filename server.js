@@ -211,6 +211,8 @@ const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
 const {jupiterFundingService} = require("./services/jupiterFundingService");
 const {channelCreationSetUp} = require("./services/channelService");
+const {chanService} = require("./services/chanService");
+const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
 
 jobScheduleService.init(kue);
 
@@ -273,19 +275,31 @@ jobs.process('user-registration', WORKERS, (job,done) => {
       })
 })
 
-
-
-jobs.process('channel-creation-confirmation', WORKERS, ( job, done ) => {
+jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
   logger.verbose(`###########################################`)
   logger.verbose(`## JobQueue: channel-creation-confirmation`)
   logger.verbose(`##`)
-  const {channelRecord, decryptedAccountData, userPublicKey } = job.data;
-  channelCreationSetUp(channelRecord, decryptedAccountData, userPublicKey, (error) => {
-    if(error){
-      return done(error)
-    }
-    return done();
+
+  const {channelName, memberAccountProperties} = job.data;
+
+  //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
+  const memberProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+      memberAccountProperties.passphrase,
+      memberAccountProperties.password);
+
+  const createNewChannelResults = await chanService.createNewChannel(channelName, memberProperties);
+
+  return done(null, {
+    channelName: createNewChannelResults.channelName ,
+    channelAccountProperties: createNewChannelResults.channelAccountProperties
   });
+
+  // channelCreationSetUp(channelRecord, decryptedAccountData, userPublicKey, (error) => {
+  //   if(error){
+  //     return done(error)
+  //   }
+  //   return done();
+  // });
 })
 
 /* jobs.process('fundAccount', (job, done) => {

@@ -16,14 +16,14 @@ class JupiterAPIService {
      */
     constructor(jupiterHost, applicationAccountProperties) {
         if(!jupiterHost){throw new Error('missing jupiterHost')}
-        if(!applicationAccountProperties){throw new Error('missing applicationAccountProperties')}
+        if(!applicationAccountProperties){throw new Error('missing appAccountProperties')}
 
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
     }
 
-    static requestTypes = {
-        sendMetisMessage: 'sendMetisMessage',
+    static get requestTypes() {
+        return {sendMetisMessage: 'sendMetisMessage'}
     }
 
     /**
@@ -31,13 +31,13 @@ class JupiterAPIService {
      * @param {object} givenParams
      * @returns {string}
      */
-  jupiterUrl(givenParams) {
-    const params = givenParams;
-    const url = `${this.jupiterHost}/nxt?`;
-    const query = params ? queryString.stringify(params) : '';
+      jupiterUrl(givenParams) {
+        const params = givenParams;
+        const url = `${this.jupiterHost}/nxt?`;
+        const query = params ? queryString.stringify(params) : '';
 
-    return url + query;
-    }
+        return url + query;
+        }
 
     /**
      *
@@ -234,8 +234,10 @@ class JupiterAPIService {
      */
     async getBlockChainTransactions(address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## getBlockChainTransactions(account: ${address})`);
+        logger.verbose(`## getBlockChainTransactions(account: ${address}, message, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
         logger.verbose('##');
+        logger.sensitive(`address=${address}`);
+        logger.sensitive(`message=${JSON.stringify(message)}`);
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         }
@@ -255,6 +257,37 @@ class JupiterAPIService {
         return this.get( params);
     }
 
+
+    /**
+     * Currently the getUnconfirmedTransactions doesnt handle withMessage+Message.
+     *
+     * @param address
+     * @param message
+     * @param withMessage
+     * @param type
+     * @param includeExpiredPrunable
+     * @returns {Promise<*>}
+     */
+    async getUnconfirmedBlockChainTransactions(address, message = null, withMessage = false, type = 1, includeExpiredPrunable = true) {
+        logger.verbose('----------------------------------------');
+        logger.verbose(`getUnconfirmedBlockChainTransactions(address, message, withMessage, type, includeExpiredPrunable)`);
+        logger.verbose('--');
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error(`Jupiter address not valid: ${address}`);
+        }
+
+        let params = {
+            requestType: 'getUnconfirmedTransactions',
+            account: address,
+            type,
+            withMessage,
+            includeExpiredPrunable
+        };
+
+        if(withMessage && message){ params = {...params, message}}
+
+        return this.get( params);
+    }
 
     /**
      *
@@ -739,15 +772,15 @@ class JupiterAPIService {
         return this.post(newParams)
     }
 
-    async getUnconfirmedBlockChainTransactions(address) {
-        logger.verbose('----------------------------------------');
-        logger.verbose(`fetchUnconfirmedBlockChainTransactions(address)`);
-        logger.verbose('--');
-        return this.jupiterRequest('get', {
-            requestType: 'getUnconfirmedTransactions',
-            account: address,
-        });
-    }
+    // async getUnconfirmedBlockChainTransactions(address) {
+    //     logger.verbose('----------------------------------------');
+    //     logger.verbose(`fetchUnconfirmedBlockChainTransactions(address)`);
+    //     logger.verbose('--');
+    //     return this.jupiterRequest('get', {
+    //         requestType: 'getUnconfirmedTransactions',
+    //         account: address,
+    //     });
+    // }
 
 }
 

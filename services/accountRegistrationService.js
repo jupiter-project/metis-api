@@ -208,6 +208,7 @@ class AccountRegistration {
             logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${tableOwnerProperties.address}`)
             tablesToAttach.push(this.attachTable(listOfMissingTableNames[i], tableOwnerProperties)); //{name, address, passphrase, publicKey, sendMoneyTransactionId}
         }
+
         return Promise.all(tablesToAttach)
             .then( tablesToAttachResults => { // [{name, address, passphrase, publicKey, sendMoneyTransactionId}]
                 return this.tableService.createTableListRecord(tableOwnerProperties, this.defaultTableNames())

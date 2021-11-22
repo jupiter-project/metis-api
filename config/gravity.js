@@ -8,7 +8,10 @@ const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
 import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
+import {tableConfig} from "./constants";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
+const {jupiterAccountService} = require("../services/jupiterAccountService");
+const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 
 class Gravity {
   constructor() {
@@ -2402,6 +2405,7 @@ class Gravity {
     // let app;
     let newTableAddress;
     let newPassphrase;
+    let newPassword;
     let newPublicKey;
     // let current_tables;
     let record;
@@ -2489,58 +2493,92 @@ class Gravity {
 
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
-        let response;
-        try {
-          logger.debug(`Sending a jupiter message`);
-          response = await axios.post(callUrl);
-        } catch (e) {
-          logger.error('********************');
-          logger.error('ERROR ATTACHING TABLE!')
-          console.log(e)
-          response = { error: true, fullError: e };
+
+        let tag = null;
+        switch (tableName){
+          case 'channels': tag = tableConfig.channelsTable;break;
+          case 'invites': tag = tableConfig.invitesTable;break;
+          case 'storage': tag = tableConfig.storageTable;break;
+          case 'users': tag = tableConfig.usersTable;break;
         }
 
-        if (response.data.broadcasted && !response.error) {
-          logger.info(`Table ${tableName} pushed to the blockchain and linked to your account...`);
-          // const recipientPublicKey = (database.publicKey | database.publicKey == 'undefined')? `&recipientPublicKey=${database.publicKey}`:''
-          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
-          logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
-          try {
-            response = await axios.post(tableListUpdateUrl);
-          } catch (e) {
-            logger.error('********************');
-            logger.error('ERROR ATTACHING TABLE!')
-            console.log(e)
-            logger.error('********************');
-            response = { error: true, fullError: e };
-          }
+        if(!tag){throw new Error(`theres a problem with attaching the table: ${tableName}`)}
 
-          if (response.data && response.data.broadcasted && response.data.broadcasted === true) {
+
+        logger.sensitive(`tableName= ${JSON.stringify(tableName)}`);
+        logger.sensitive(`tag= ${JSON.stringify(tag)}`);
+
+
+        const sendRecordResponse = await jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
+            accountCredentials.passphrase,
+            accountCredentials.account,
+            encryptedData,
+            tag,
+            FeeManager.feeTypes.account_record,
+            accountCredentials.publicKey
+        )
+
+
+        // const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+        // let response;
+        // try {
+        //   logger.debug(`Sending a jupiter message`);
+        //   response = await axios.post(callUrl);
+        // } catch (e) {
+        //   logger.error('********************');
+        //   logger.error('ERROR ATTACHING TABLE!')
+        //   console.log(e)
+        //   response = { error: true, fullError: e };
+        // }
+
+        if (sendRecordResponse.data.broadcasted && !sendRecordResponse.error) {
+          const sendTableListResponse = await jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
+              accountCredentials.passphrase,
+              accountCredentials.account,
+              encryptedTableData,
+              tableConfig.tableList,
+              FeeManager.feeTypes.account_record,
+              accountCredentials.publicKey
+          )
+
+
+          // const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+          // logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
+          // try {
+          //   sendRecordResponse = await axios.post(tableListUpdateUrl);
+          // } catch (e) {
+          //   logger.error('********************');
+          //   logger.error('ERROR ATTACHING TABLE!')
+          //   console.log(e)
+          //   logger.error('********************');
+          //   sendRecordResponse = { error: true, fullError: e };
+          // }
+
+          if (sendTableListResponse.data && sendTableListResponse.data.broadcasted) {
             eventEmitter.emit('table_created');
-          } else if (response.data && response.data.errorDescription != null) {
+          } else if (sendRecordResponse.data && sendRecordResponse.data.errorDescription != null) {
             reject({
               success: false,
-              message: response.data.errorDescription,
-              jupiter_response: response.data,
+              message: sendRecordResponse.data.errorDescription,
+              jupiter_response: sendRecordResponse.data,
             });
           } else {
             reject({
               success: false,
               message: 'There was an error',
-              fullError: response,
+              fullError: sendRecordResponse,
             });
           }
-        } else if (response.data.errorDescription != null) {
-          logger.error(`Error: ${JSON.stringify(response.data)}`);
+        } else if (sendRecordResponse.data.errorDescription != null) {
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
           reject({
             success: false,
-            message: response.data.errorDescription,
-            jupiter_response: response.data,
+            message: sendRecordResponse.data.errorDescription,
+            jupiter_response: sendRecordResponse.data,
           });
         } else {
-          logger.error(`Error: ${JSON.stringify(response.data)}`);
-          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: response.data });
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
+          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: sendRecordResponse.data });
         }
       });
 
@@ -2566,6 +2604,7 @@ class Gravity {
           reject(`Error: Unable to save table. ${tableName} is already in the database`);
         } else {
           newPassphrase = this.generate_passphrase();
+          newPassword = gu.generateRandomPassword();
           logger.debug(`CreateNewAddress()`)
           this.createNewJupiterAccount(newPassphrase)
             .then((newJupiterAccountResponse) => { //{address, publicKey, success}
@@ -2584,6 +2623,7 @@ class Gravity {
                     address: newTableAddress,
                     passphrase: newPassphrase,
                     public_key: newJupiterAccountResponse.publicKey,
+                    password: newPassword,
                   },
                 };
                 listOfTableNames.push(tableName);

@@ -11,11 +11,14 @@ import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {JupiterAPIService} from "../services/jupiterAPIService";
-import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {jupiterTransactionsService, JupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {GravityCrypto} from "../services/gravityCrypto";
 import channelRecord from "../models/channel.js";
 import {jupiterFundingService} from "../services/jupiterFundingService";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {jupiterAccountService} from "../services/jupiterAccountService";
+import {chanService} from "../services/chanService";
+const jwt = require('jsonwebtoken');
 
 const {
     v1: uuidv1,
@@ -29,150 +32,81 @@ const {getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification} 
 
 module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     app.use(device.capture());
-    /**
-     * Render Channels page
-     */
-    app.get('/channels', controller.isLoggedIn, (req, res) => {
-        const messages = req.session.flash;
-        req.session.flash = null;
-
-        const PageFile = require('../views/channels.jsx');
-
-        const page = ReactDOMServer.renderToString(
-            React.createElement(PageFile, {
-                connection,
-                messages,
-                name: 'Metis - Chats',
-                user: req.user,
-                dashboard: true,
-                public_key: req.session.public_key,
-                validation: req.session.jup_key,
-                accessData: req.session.accessData,
-            }),
-        );
-
-        res.send(page);
-    });
-
-    app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
-        const transporter = mailer.createTransport({
-            service: 'gmail',
-            auth: {
-                type: 'OAuth2',
-                user: process.env.EMAIL,
-                clientId: process.env.CLIENT_ID,
-                clientSecret: process.env.CLIENT_SECRET,
-                refreshToken: process.env.REFRESH_TOKEN,
-            },
-        });
-
-        const data = req.body.data;
-
-        const body = `
-      User Report: <br />
-      The user <b>${data.reporter}</b> wants to report the following message: <br />
-      ${JSON.stringify(data.message)}
-      <br />
-      Description:
-      ${data.description}
-    `;
-        transporter.sendMail({
-            subject: `Report user: ${data.message.sender}`,
-            html: body,
-            to: 'info+report-a-user@sigwo.com',
-            from: process.env.EMAIL,
-        }, (err, data) => {
-            if (err != null) {
-                res.send({success: true});
-                return;
-            }
-
-            res.send({success: true, data});
-        });
-    });
 
     /**
-     * Render invites page
+     * Get List of Channels
      */
-    app.get('/invites', controller.isLoggedIn, (req, res) => {
-        const messages = req.session.flash;
-        req.session.flash = null;
+    app.get('/v1/api/channels', async (req,res) => {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## Get member channels`);
+        logger.verbose(`## GET: /v1/api/channels`);
+        logger.verbose(`## `);
 
-        const PageFile = require('../views/invites.jsx');
+        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+            req.user.passphrase,
+            req.user.password
+        )
 
-        const page = ReactDOMServer.renderToString(
-            React.createElement(PageFile, {
-                connection,
-                messages,
-                name: 'Metis - Invites',
-                user: req.user,
-                dashboard: true,
-                public_key: req.session.public_key,
-                validation: req.session.jup_key,
-                accessData: req.session.accessData,
-            }),
-        );
+        console.log('------')
+        const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
+        // const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
 
-        res.send(page);
-    });
+        console.log(allMemberChannels);
 
-    /**
-     * Get a user's invites
-     */
-    app.get('/v1/api/channels/invites', async (req, res) => {
-        logger.info('/n/n/nChannel Invites/n/n');
-        const {accountData} = req.user;
-        const invite = new Invite();
-        const userData = JSON.parse(gravity.decrypt(accountData));
-        logger.sensitive(JSON.stringify(userData));
-        invite.user = userData;
+        const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
+             reduced.push({
+                 channelAddress: channelAccountProperties.address,
+                 channelName: 'rene'});
+             return reduced;
+        }, [])
 
-        invite.get()
-            .then(response => res.send(response))
-            .catch(error => {
-                logger.verbose(`*********************************************`)
-                logger.error(`** invite.get.catch(error)`)
-                logger.error(`Error getting invites: ${JSON.stringify(error)}`);
-                res.status(500).send({success: false, error});
-            })
-    });
+        res.send(listOfChannels);
+    })
 
-    /**
-     * Send an invite
-     */
-    app.post('/v1/api/channels/invite', async (req, res) => {
-        const {data} = req.body;
-        const {user} = req;
 
-        data.sender = user.userData.account;
-        const invite = new Invite(data);
-        invite.user = JSON.parse(gravity.decrypt(user.accountData));
+    // app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
+    //     const transporter = mailer.createTransport({
+    //         service: 'gmail',
+    //         auth: {
+    //             type: 'OAuth2',
+    //             user: process.env.EMAIL,
+    //             clientId: process.env.CLIENT_ID,
+    //             clientSecret: process.env.CLIENT_SECRET,
+    //             refreshToken: process.env.REFRESH_TOKEN,
+    //         },
+    //     });
+    //
+    //     const data = req.body.data;
+    //
+    //     const body = `
+    //   User Report: <br />
+    //   The user <b>${data.reporter}</b> wants to report the following message: <br />
+    //   ${JSON.stringify(data.message)}
+    //   <br />
+    //   Description:
+    //   ${data.description}
+    // `;
+    //     transporter.sendMail({
+    //         subject: `Report user: ${data.message.sender}`,
+    //         html: body,
+    //         to: 'info+report-a-user@sigwo.com',
+    //         from: process.env.EMAIL,
+    //     }, (err, data) => {
+    //         if (err != null) {
+    //             res.send({success: true});
+    //             return;
+    //         }
+    //
+    //         res.send({success: true, data});
+    //     });
+    // });
 
-        try {
-            await invite.send();
-            const sender = user.userData.alias;
-            let recipient = _.get(data, 'recipient', '');
-
-            if (!recipient.toLowerCase().includes('jup-')) {
-                const aliasResponse = await gravity.getAlias(recipient);
-                recipient = aliasResponse.accountRS;
-            }
-
-            const message = `${sender} invited you to join a channel`;
-            const metadata = {isInvitation: 'true'};
-            getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
-            res.send({success: true});
-        } catch (e) {
-            logger.error(e);
-            res.status(500).send(e);
-        }
-    });
 
 
     /**
-     * Send an invite
+     * Video Conference
      */
-    app.post('/v1/api/channels/call', async (req, res) => {
+    app.post('/v1/api/channels/call', async (req, res) => {  //@TODO what is this used for?
         const {data} = req.body;
         const {user} = req;
         try {
@@ -370,107 +304,135 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     });
 
     /**
-     * Create a record, assigned to the current user
+     * Get a user's invites
      */
-    app.post('/v1/api/create/channels', (req, res, next) => {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## app.post('/v1/api/create/channels')(req,res,next)`);
-        logger.verbose(`## `);
-        const {channelName, userPublicKey} = req.body;
-        const {
-            id,
-            accessKey,
-            accountData,
-            userData,
-        } = req.user;
+    app.get('/v1/api/channel/invites', async (req, res) => {
+        logger.info('Get Channel Invites');
+        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+            req.user.passphrase,
+            req.user.password
+        )
+        chanService.getChannelInvitations(memberAccountProperties)
+            .then(channelInvitations => {
+                console.log(channelInvitations);
+                res.send(channelInvitations);
+            })
+    });
 
-        let decryptedAccountData = null;
+    /**
+     * Send an invite
+     */
+    app.put('/v1/api/channel/invite', async (req, res) => {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## Send an Invite`);
+        logger.verbose(`## /v1/api/channel/invite`);
+        logger.verbose(`## `);
+        const {data} = req.body;
+        const {user} = req;
+
+        console.log('@1@1@1@1@1');
+        console.log(req.body);
+        res.status(500).send(error);
+        return;
 
         try {
-            decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
+            const inviterAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
+            const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(data.channel, inviterAccountProperties);
+            const inviteeAddress = data.recipient;
+
+            return chanService.createNewInvitation(
+                channelAccountProperties,
+                inviterAccountProperties,
+                inviteeAddress)
+                .then(response => {
+                    const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
+                    const message = `${inviterAlias} invited you to join a channel`;
+                    const metadata = {isInvitation: 'true'};
+                    getPNTokensAndSendPushNotification([inviteeAddress], inviterAccountProperties.address, {}, message, 'Invitation', metadata);
+                })
+
+            res.send({success: true});
         } catch (error) {
-            return res.status(500).send({success: false, message: 'Error while decrypting the user information'});
+            logger.error(error);
+            res.status(500).send(error);
+        }
+    });
+
+
+    /**
+     * Create a Channel, assigned to the current user
+     */
+    app.post('/v1/api/channel', async (req, res, next) => {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## Create a Channel, assigned to the current user`)
+        logger.verbose(`## app.post('/v1/api/channel')(req,res,next)`);
+        logger.verbose(`## `);
+        const {channelName} = req.body;
+        if (!channelName) {
+            return res.status(400).send({errorMessage: 'need channelName in body'})
         }
 
+        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+            req.user.passphrase,
+            req.user.password);
 
-        const data = {
-            name: channelName,
-            date_confirmed: Date.now(),
-            address: decryptedAccountData.account,
-            passphrase: '',
-            password: '',
-            public_key: decryptedAccountData.publicKey,
-            user_address: decryptedAccountData.account,
-            user_api_key: accessKey,
-            user_id: id,
-            sender: userData.account,
-            createdBy: userData.account,
-        };
 
-        logger.sensitive(`data=${JSON.stringify(data)}`);
-        const channelRecord = require('../models/channel.js');
-        const channelObject = new channelRecord(data);
-        channelObject.create(decryptedAccountData)
-            .then(channelCreationResponse => {
+
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('memberAccountProperties.address');
+        console.log(memberAccountProperties.address);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+
+        const job = jobs.create('channel-creation-confirmation', {channelName, memberAccountProperties})
+            .priority('high')
+            .removeOnComplete(false)
+            .save(error => {
                 logger.verbose(`-----------------------------------------------------------------------------------`);
-                logger.verbose(`-- channelObject.then(response)`);
+                logger.verbose(`-- JobQueue: channel-creation-confirmation.save(error)`);
                 logger.verbose(`-- `);
-                logger.sensitive(`response=${JSON.stringify(channelCreationResponse)}`);
-                logger.sensitive(`decryptedAccountData=${JSON.stringify(decryptedAccountData)}`);
+                logger.sensitive(`error= ${JSON.stringify(error)}`);
+                if (error) {
+                    websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+                    throw new Error('channel-creation-confirmation');
+                }
 
-                const {transaction} = channelCreationResponse.accountInfo;
-                decryptedAccountData.alias = userData.alias;
-                const transactionData = {channelRecord: channelObject, decryptedAccountData, userPublicKey};
-
-                const job = jobs.create('channel-creation-confirmation', transactionData)
-                    .priority('high')
-                    .removeOnComplete(false)
-                    .save(err => {
-                        if (err) {
-                            logger.error(`there is a problem saving to redis`);
-                            logger.error(JSON.stringify(err));
-                            console.log('Socket on failed');
-                            websocket.of('/channels').to(userData.account).emit('channelCreationFailed', job.id);
-                        }
-                        logger.verbose(`jobQueue.save() id= ${job.id}`);
-                        const channel = {
-                            account: channelObject.record.account,
-                            name: channelObject.record.name,
-                            status: 'inProgress'
-                        };
-                        websocket.of('/channels').to(userData.account).emit('channelCreated', {jobId: job.id, channel});
-                        res.status(200).send({jobId: job.id, paymentTransaction: transaction});
-                    });
-
-                job.on('complete', function (result) {
-                    console.log('Socket on completed');
-                    const channel = {
-                        account: channelObject.record.account,
-                        name: channelObject.record.name
-                    }
-                    websocket.of('/channels').to(userData.account).emit('channelSuccessful', {jobId: job.id, channel});
-                });
-
-                job.on('failed attempt', function (errorMessage, doneAttempts) {
-                    console.log('Socket on failed attempt');
-                    websocket.of('/channels').to(userData.account).emit('channelCreationFailed', job.id);
-                });
-
-                job.on('failed', function (errorMessage) {
-                    console.log('Socket on failed');
-                    websocket.of('/channels').to(userData.account).emit('channelCreationFailed', job.id);
-                });
-
-            })
-            .catch((err) => {
-                logger.error(`***********************************************************************************`);
-                logger.error(`** channelObject.create(decryptedAccountData).catch(err)`);
-                logger.error(`** `);
-                logger.sensitive(`err=${JSON.stringify(err)}`);
-                res.status(500).send({
-                    success: false,
-                    errors: err.errors
-                });
+                logger.verbose(`job.id= ${job.id}`);
+                res.status(200).send({jobId: job.id});
+                websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated', {jobId: job.id});
             });
-    });
+
+        job.on('complete', function (result) {
+            logger.verbose(`-----------------------------------------------------------------------------------`);
+            logger.verbose(`-- JobQueue: channel-creation-confirmation.on(complete)`);
+            logger.verbose(`-- `);
+            logger.sensitive(`result=${JSON.stringify(result)}`);
+            const payload = {channelName: result.channelName, account: result.channelAccountProperties.address}
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelSuccessful', {
+                jobId: job.id,
+                channelName: result.channelName,
+                channelAddress: result.channelAccountProperties.address
+            });
+        });
+
+        job.on('failed attempt', function (errorMessage, doneAttempts) {
+            logger.verbose(`-----------------------------------------------------------------------------------`);
+            logger.verbose(`-- JobQueue: channel-creation-confirmation.on(failed attempt)`);
+            logger.verbose(`-- `);
+            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
+            logger.error(`doneAttempts= ${JSON.stringify(doneAttempts)}`);
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+        });
+
+        job.on('failed', function (errorMessage) {
+            logger.verbose(`-----------------------------------------------------------------------------------`);
+            logger.verbose(`-- JobQueue: channel-creation-confirmation.on(failed)`);
+            logger.verbose(`-- `);
+            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+        });
+
+
+    })
+
 };

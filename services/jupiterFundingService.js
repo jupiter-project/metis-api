@@ -4,7 +4,7 @@ const {reject} = require("lodash");
 const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {applicationAccountProperties} = require("../gravity/applicationAccountProperties");
-const {metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -93,15 +93,19 @@ class JupiterFundingService {
 
     /**
      *
-     * @param recipientProperties
+     * @param {GravityAccountProperties} recipientProperties
      * @returns {Promise<*>}
      */
     async provideInitialStandardTableFunds(recipientProperties){
         logger.verbose('#####################################################################################');
         logger.verbose(`## provideInitialStandardApplicationFunds( recipientProperties= ${!!recipientProperties})`);
         logger.verbose('##');
+
+        if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('invalid recipientProperties')};
+
         const initialAmount = this.defaultNewTableTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 

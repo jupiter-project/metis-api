@@ -179,6 +179,12 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
         return jupiterTransactionsService.getAccountInformation(passphrase)
             .then(accountInfo => {
+
+                console.log(accountInfo);
+
+                if(typeof accountInfo.publicKey === 'undefined'){throw new Error('publicKey is undefined!')}
+                if(typeof accountInfo.accountId === 'undefined'){throw new Error('accountId is undefined!')}
+
                 return GravityAccountProperties.instantiateGravityAccountProperties(
                     accountInfo.address,
                     passphrase,

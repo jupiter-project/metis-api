@@ -5,6 +5,7 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {channelConfig} from "../config/constants";
 const logger = require('../utils/logger')(module);
 
 class Invite extends Model {
@@ -36,7 +37,7 @@ class Invite extends Model {
 
   /**
    *
-   * @returns {Promise<string>}
+   * @returns {Promise<[]>}
    */
   async get() {
     logger.verbose(`###################################################################################`);
@@ -69,6 +70,10 @@ class Invite extends Model {
 
   //@TODO rename to sendInvitation
   async send() {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## send()`);
+    logger.verbose(`## `);
+
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
@@ -99,7 +104,7 @@ class Invite extends Model {
         null,
         null,
         false,
-        JSON.stringify(messageData),
+        JSON.stringify(messageData), //not being encrypted?
         null,
         null,
         null,

@@ -181,10 +181,18 @@ class Channel extends Model {
 
   async create(accessLink) {
       logger.verbose('#########################################################');
-      logger.verbose(`## Channel.create(accessLink)`);
+      logger.verbose(`## Channel.create(accessLink:${!!accessLink})`);
       logger.verbose('##');
+      logger.sensitive(`accessLink= ${JSON.stringify(accessLink)}`);
 
     if (!this.record.passphrase || this.record.password) {
+      console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+      console.log('this.record.passphrase');
+      console.log(this.record.passphrase);
+      console.log('this.record.password');
+      console.log(this.record.password);
+      console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();
       this.data.passphrase = this.record.passphrase;

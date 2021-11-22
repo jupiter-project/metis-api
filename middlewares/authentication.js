@@ -50,11 +50,16 @@ const tokenVerify = (req, res, next) => {
     req.user = decodedUser;
 
     const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, process.env.ENCRYPT_PASSWORD);
-    const { passphrase, password } = crypto.decryptAndParseOrNull(decodedUser.accountData);
+    const decryptedAccountData = crypto.decryptAndParse(decodedUser.accountData);
+    // const { passphrase, password, account, publicKey } = crypto.decryptAndParse(decodedUser.accountData);
 
-    req.user.passphrase = passphrase;
-    req.user.password = password;
+    req.user.passphrase = decryptedAccountData.passphrase;
+    req.user.password = decryptedAccountData.encryptionPassword;
+    req.user.address = decryptedAccountData.account;
+    req.user.publicKey = decryptedAccountData.publicKey;
+    req.user.decryptedAccountData = decryptedAccountData
     req.channel = decodedChannel;
+
     next();
   });
 };

@@ -179,6 +179,12 @@ const generatePassphrase = function() {
     return wordsString.trim();
 }
 
+const generateRandomPassword = function () {
+    return Math.random()// Generate random number, eg: 0.123456
+        .toString(36) // Convert  to base-36 : "0.4fzyo82mvyr"
+        .substr(2, 8)
+}
+
 const generateChecksum = (text) => {
     if(typeof text !== 'string'){
         throw new Error('text must be string');
@@ -216,7 +222,8 @@ module.exports = {
     jsonParseOrPassThrough,
     generateChecksum,
     generateHash,
-    jsonParseOrNull
+    jsonParseOrNull,
+    generateRandomPassword
 };
 
 

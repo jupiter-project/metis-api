@@ -1,5 +1,5 @@
 import gu from '../utils/gravityUtils';
-import {channelConfig, userConfig} from '../config/constants';
+import {channelConfig, tableConfig, userConfig} from '../config/constants';
 
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
@@ -159,12 +159,12 @@ class JupiterAccountService {
                 password
             );
 
-            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllBlockChainTransactions(accountInfo.address);
+            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(accountInfo.address);
             const promises = [];
             promises.push(this.getAccountOrNull(accountInfo.address));
             promises.push(this.getAccountId(passphrase));
             promises.push(
-                this.jupiterTransactionsService.getAllMessagesFromBlockChainAndReturnMessageContainers(properties, allBlockChainTransactions)
+                this.jupiterTransactionsService.extractMessagesBySender(properties, allBlockChainTransactions)
             );
             promises.push(this.jupiterAPIService.getAliases(accountInfo.address));
 
@@ -174,8 +174,8 @@ class JupiterAccountService {
                     logger.verbose(`-- fetchAccountStatement().promise.all().then()`);
                     logger.verbose('--');
 
-                    const [account, getAccountIdResponse, transactionMessagesContainer, aliases] = results;
-                    const transactionMessages = transactionMessagesContainer.map((message) => message.message);
+                    const [account, getAccountIdResponse, _transactionMessages, aliases] = results;
+                    const transactionMessages = _transactionMessages.map((message) => message.message);
                     properties.publicKey = getAccountIdResponse.publicKey;
                     let accountBalance = null;
                     let accountUnconfirmedBalance = null;
@@ -212,7 +212,7 @@ class JupiterAccountService {
                             balance: accountBalance,
                             unconfirmedBalance: accountUnconfirmedBalance,
                             records: records,
-                            messages: transactionMessagesContainer,
+                            messages: transactionMessages,
                             attachedTables: attachedTablesStatements,
                             blockchainTransactionCount: allBlockChainTransactions.length,
                             transactions: allBlockChainTransactions,
@@ -370,7 +370,7 @@ class JupiterAccountService {
 
     async getPublicKeysFromChannelAccount(accountProperties) {
         try {
-            const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(accountProperties.address, channelConfig.channel_user_list);
+            const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(accountProperties.address, channelConfig.channelUserList);
             const [latestTransaction] = transactions;
 
             const message = await jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
@@ -394,7 +394,7 @@ class JupiterAccountService {
 
     async updateAllMemberChannelsWithNewPublicKey(memberProperties, publicKey) {
         try {
-            const memberChannels = await this.getAllMemberChannels(memberProperties);
+            const memberChannels = await this.getMemberChannels(memberProperties);
 
             memberChannels.map(async ({passphrase, password}) => {
                 const properties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(passphrase, password);
@@ -408,27 +408,52 @@ class JupiterAccountService {
     }
 
     /**
-     *
+     * getMemberChannels
      * @param {GravityAccountProperties} memberProperties
+     * @returns {Promise<*[]|{address,passphrase,password}>}
      */
-    async getAllMemberChannels(memberProperties) {
+    async getMemberChannels(memberProperties) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAllMemberChannels(memberProperties)`);
+        logger.verbose(`## `);
+
         try {
+            if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
             const memberStatement = await this.fetchAccountStatement(memberProperties.passphrase, memberProperties.password);
             const [channelStatement] = memberStatement.attachedTables.filter(attachedTable => attachedTable.statementId === 'table-channels');
 
             if (channelStatement) {
-                //TODO fix this
+                // [{
+                //  id: '659817772330966059',
+                //  passphrase:'poison probably forget climb somebody leaf once scene amaze grew place constant',
+                //  account: 'JUP-YDQS-EDYK-XAKE-9QACU',
+                //  password: 'crimson rest confuse out',
+                //  name: 'channel_record',
+                //  publicKey:'307ece26bd302af04efc1d3593d3f370266fc2b8d34e1947cd2c3ab91f709b7c',
+                //  sender: 'JUP-6Y7T-YQF7-NRF8-367GZ',
+                //  createdBy: 'JUP-6Y7T-YQF7-NRF8-367GZ',
+                //  date: 1637441682098
+                //  }]
                 const channelRecords = channelStatement.records.filter(record => record.name === 'channel_record');
 
-                return channelRecords.map(channelRecord => {
-                    const {account: address, passphrase, password} = channelRecord['channel_record'];
-                    return {address, passphrase, password};
+                console.log(channelRecords);
+
+
+                const mappedChannelRecords =  channelRecords.map( channelRecord => {
+                    const  {account, passphrase, password} = channelRecord;
+                    return {address: account, passphrase, password};
                 });
+
+                return mappedChannelRecords;
             }
 
             return [];
         } catch (error) {
-
+            logger.error(`***********************************************************************************`);
+            logger.error(`** getAllMemberChannels().catch(error)`);
+            logger.error(`** `);
+            console.log(error);
+            throw error;
         }
     }
 
@@ -488,7 +513,7 @@ class JupiterAccountService {
 
             const encryptedMessage = channelAccountProperties.crypto.encrypt(JSON.stringify(newUserChannel));
             const checksumPublicKey = gu.generateChecksum(userPublicKey);
-            const channelUserTag = `${channelConfig.channel_users}.${userAddress}.${checksumPublicKey}`;
+            const channelUserTag = `${channelConfig.channelUsers}.${userAddress}.${checksumPublicKey}`;
             const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
             const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
 
@@ -503,7 +528,7 @@ class JupiterAccountService {
                 channelAccountProperties.publicKey
             );
 
-            const latestPublicKeyTransactionsList = await this.getPublicKeyTransactionsList(channelAccountProperties, channelConfig.channel_user_list);
+            const latestPublicKeyTransactionsList = await this.getPublicKeyTransactionsList(channelAccountProperties, channelConfig.channelUserList);
             latestPublicKeyTransactionsList.push(newUserPromise.transaction);
             const encryptedPublicKeyTransactionList = channelAccountProperties.crypto.encryptJson(latestPublicKeyTransactionsList);
 
@@ -511,7 +536,7 @@ class JupiterAccountService {
                 channelAccountProperties.passphrase,
                 channelAccountProperties.address,
                 encryptedPublicKeyTransactionList,
-                channelConfig.channel_user_list,
+                channelConfig.channelUserList,
                 fee,
                 subtype,
                 false,
@@ -613,13 +638,71 @@ class JupiterAccountService {
     }
 
     hasPublicKeyInChannelAccount(publicKey, gravityAccountProperties) {
-        return this.publicKeyMessages(publicKey, gravityAccountProperties, channelConfig.channel_user_list)
+        return this.publicKeyMessages(publicKey, gravityAccountProperties, channelConfig.channelUserList)
     }
 
     hasPublicKeyInUserAccount(publicKey, gravityAccountProperties) {
         return this.publicKeyMessages(publicKey, gravityAccountProperties, userConfig.userPublicKeyList)
             .then((userPublicKeyArray) => userPublicKeyArray.some((upk) => upk === publicKey));
     }
+
+    /**
+     *
+     * @param channelAddress
+     * @param memberAccountProperties
+     */
+    async getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties ){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
+        logger.verbose(`## `);
+        logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
+        const allMemberChannels = await this.jupiterTransactionsService.getAllMemberChannels(memberAccountProperties);
+
+        console.log(allMemberChannels);
+    }
+
+
+    async getTableAccountProperties( tag, userAccountProperties){ //tableConfig.channelsTable
+
+        // const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(userAccountProperties.address);
+        // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
+        // const transactionMessages = messagesBySender.map((message) => message.message);
+        // const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
+
+        const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAccountProperties.address, tag)
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('transactions.length');
+        console.log(transactions.length);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+
+        const transactionIds = transactions.map(transaction=> transaction.transaction);
+        const [message] = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,userAccountProperties.crypto, userAccountProperties.passphrase)
+
+    // ] [{"message":{"channels":{"address":"JUP-GBN3-DL5H-GU9G-DB5H5","passphrase":"break felicity knee any distance replace witch twenty pen problem diamond surprise","public_key":"8b4a47a687a7061c540d17030489279721371600e2cf766da6d9b46bc7ad3547"}},"transactionId":"17261131886870606461"}]
+
+        let tableName = null;
+        switch(tag){
+            case tableConfig.channelsTable: tableName='channels';break;
+        }
+
+
+
+        const properties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message[tableName].passphrase, message.message[tableName].password);
+
+
+        return properties;
+        // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
+
+
+        // const firstMemberAccountStatement = await this.fetchAccountStatement(userAccountProperties.passphrase, userAccountProperties.password);
+        // const  channelStatement = transactions.find(transaction => statement.statementId === 'table-channels');
+
+
+
+        // return channelStatement.properties;
+    }
+
 
 
 }

@@ -578,6 +578,13 @@ class Model {
           }
         });
 
+
+
+
+
+
+
+
         if (self.model === 'user') {
           logger.debug(`USER --> emit eventEmitter(request_authenticated)`);
           eventEmitter.emit('request_authenticated');
