@@ -28,6 +28,17 @@ const jsonParseOrPassThrough = function (stringToParse)
 
 
 
+const isNonEmptyString = function(value) {
+    if(!isString(value)){return false}
+    if (value === "") {return false}
+    return true;
+}
+
+const isString = function(value){
+    if((typeof value === 'string')){return true}
+    return false;
+}
+
 /**
  * Helper Function
  * @param obj
@@ -223,7 +234,9 @@ module.exports = {
     generateChecksum,
     generateHash,
     jsonParseOrNull,
-    generateRandomPassword
+    generateRandomPassword,
+    isNonEmptyString,
+    isString
 };
 
 

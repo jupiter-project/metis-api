@@ -1,3 +1,4 @@
+import gu from '../utils/gravityUtils';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
 require('dotenv').config();

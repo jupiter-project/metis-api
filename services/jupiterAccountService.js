@@ -1,6 +1,5 @@
 import gu from '../utils/gravityUtils';
 import {channelConfig, tableConfig, userConfig} from '../config/constants';
-
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
 const _ = require('lodash');
@@ -416,38 +415,18 @@ class JupiterAccountService {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## getAllMemberChannels(memberProperties)`);
         logger.verbose(`## `);
-
         try {
             if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
-            const memberStatement = await this.fetchAccountStatement(memberProperties.passphrase, memberProperties.password);
-            const [channelStatement] = memberStatement.attachedTables.filter(attachedTable => attachedTable.statementId === 'table-channels');
+            const channelTableAccountProperties = await this.getTableAccountProperties( tableConfig.channelsTable, memberProperties);
+            const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(memberProperties.address, channelConfig.channelRecord);
+            const transactions2 = await this.jupiterTransactionsService.filterMessageTransactionsBySender(transactions, channelTableAccountProperties.address);
+            const transactionIds = transactions2.map(transaction => transaction.transaction);
+            const messages = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,memberProperties.crypto, memberProperties.passphrase);
+            const listOfChannelsAndTheirProperties = messages.map( message => {
+                return GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message.channel_record.passphrase, message.message.channel_record.password);
+            })
 
-            if (channelStatement) {
-                // [{
-                //  id: '659817772330966059',
-                //  passphrase:'poison probably forget climb somebody leaf once scene amaze grew place constant',
-                //  account: 'JUP-YDQS-EDYK-XAKE-9QACU',
-                //  password: 'crimson rest confuse out',
-                //  name: 'channel_record',
-                //  publicKey:'307ece26bd302af04efc1d3593d3f370266fc2b8d34e1947cd2c3ab91f709b7c',
-                //  sender: 'JUP-6Y7T-YQF7-NRF8-367GZ',
-                //  createdBy: 'JUP-6Y7T-YQF7-NRF8-367GZ',
-                //  date: 1637441682098
-                //  }]
-                const channelRecords = channelStatement.records.filter(record => record.name === 'channel_record');
-
-                console.log(channelRecords);
-
-
-                const mappedChannelRecords =  channelRecords.map( channelRecord => {
-                    const  {account, passphrase, password} = channelRecord;
-                    return {address: account, passphrase, password};
-                });
-
-                return mappedChannelRecords;
-            }
-
-            return [];
+            return await Promise.all(listOfChannelsAndTheirProperties);
         } catch (error) {
             logger.error(`***********************************************************************************`);
             logger.error(`** getAllMemberChannels().catch(error)`);
@@ -663,6 +642,10 @@ class JupiterAccountService {
 
 
     async getTableAccountProperties( tag, userAccountProperties){ //tableConfig.channelsTable
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getTableAccountProperties( tag, userAccountProperties)`);
+        logger.verbose(`## `);
+        logger.sensitive(`tag=${JSON.stringify(tag)}`);
 
         // const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(userAccountProperties.address);
         // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
@@ -677,6 +660,13 @@ class JupiterAccountService {
 
 
         const transactionIds = transactions.map(transaction=> transaction.transaction);
+
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('transactionIds');
+        console.log(transactionIds);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+
         const [message] = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,userAccountProperties.crypto, userAccountProperties.passphrase)
 
     // ] [{"message":{"channels":{"address":"JUP-GBN3-DL5H-GU9G-DB5H5","passphrase":"break felicity knee any distance replace witch twenty pen problem diamond surprise","public_key":"8b4a47a687a7061c540d17030489279721371600e2cf766da6d9b46bc7ad3547"}},"transactionId":"17261131886870606461"}]

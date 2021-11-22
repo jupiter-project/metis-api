@@ -261,15 +261,16 @@ class JupiterTransactionsService {
         logger.verbose('#####################################################################################');
         logger.verbose(`transactions.length = ${transactions.length}`);
         logger.verbose(`senderAddress = ${senderAddress}`);
-
-        if (transactions.length == 0) {
+        if(!gu.isNonEmptyString(senderAddress)){throw new Error('senderAddress is empty')};
+        if (transactions.length === 0) {
             logger.warn(`Empty transactions array passed in`)
             return []
         }
-        // console.debug(`Total Transactions: ${transactions.length}`);
         const messageTransactions = this.filterMessageTransactions(transactions);
         logger.debug(`Total filtered transactions: ${messageTransactions.length}`);
-        const messageTransactionsWithSenderRs = messageTransactions.filter(messageTransaction => messageTransaction.senderRS === senderAddress);
+        const messageTransactionsWithSenderRs = messageTransactions.filter(messageTransaction => {
+            return messageTransaction.senderRS === senderAddress
+        });
         logger.debug(`Total filtered transactions with senderRS: ${messageTransactionsWithSenderRs.length}`);
         return messageTransactionsWithSenderRs;
     }
@@ -650,9 +651,6 @@ class JupiterTransactionsService {
                 results = results.concat(await this.allMessagePromises(metisMessagePromises));
                 // console.log('END AWAIT -----------------------++++++++++++++++++++++++++++++++++++----------------------------------')
             }
-
-            logger.debug(`messageTransactionIds.length=${messageTransactionIds.length}`);
-            logger.debug(`metisMessagePromises.length=${metisMessagePromises.length}`);
 
             return  resolve(results);
         })
@@ -1081,29 +1079,15 @@ class JupiterTransactionsService {
         logger.verbose(`## `);
         logger.sensitive(`address=${JSON.stringify(address)}`);
         logger.sensitive(`tag=${JSON.stringify(tag)}`);
+        if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
+        if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
 
         const confirmedTransactionsPromise = this.getBlockChainTransactionsByTag(address,tag);
         const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag);
         const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise])
-
-        // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        // logger.info(`++ confirmedTransactionsResponse`);
-        // console.log(confirmedTransactionsResponse);
-        // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        //
-        //
-        // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        // logger.info(`++ unconfirmendTransactionsResponse`);
-        // console.log(unconfirmendTransactionsResponse);
-        // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-
-
         const confirmedTransactions = confirmedTransactionsResponse;
         const unconfirmendTransactions = unconfirmendTransactionsResponse;
         const combinedTransactions = [ ...confirmedTransactions, ...unconfirmendTransactions ];
-
-        // console.log(combinedTransactions);
-
 
         return combinedTransactions.filter(transaction => {
             return transaction.hasOwnProperty('attachment') &&
@@ -1124,8 +1108,8 @@ class JupiterTransactionsService {
         logger.verbose(`## `);
         logger.sensitive(`address=${JSON.stringify(address)}`);
         logger.sensitive(`tag=${JSON.stringify(tag)}`);
-        if(!address){throw new Error('address is empty')}
-        if(!tag){throw new Error('tag is empty')}
+        if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
+        if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
 
         return this.jupiterAPIService.getUnconfirmedBlockChainTransactions(address, tag, true)
             .then( response => {

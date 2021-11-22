@@ -47,11 +47,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             req.user.password
         )
 
-        console.log('------')
         const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
-        // const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
-
-        console.log(allMemberChannels);
 
         const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
              reduced.push({
@@ -62,46 +58,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
 
         res.send(listOfChannels);
     })
-
-
-    // app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
-    //     const transporter = mailer.createTransport({
-    //         service: 'gmail',
-    //         auth: {
-    //             type: 'OAuth2',
-    //             user: process.env.EMAIL,
-    //             clientId: process.env.CLIENT_ID,
-    //             clientSecret: process.env.CLIENT_SECRET,
-    //             refreshToken: process.env.REFRESH_TOKEN,
-    //         },
-    //     });
-    //
-    //     const data = req.body.data;
-    //
-    //     const body = `
-    //   User Report: <br />
-    //   The user <b>${data.reporter}</b> wants to report the following message: <br />
-    //   ${JSON.stringify(data.message)}
-    //   <br />
-    //   Description:
-    //   ${data.description}
-    // `;
-    //     transporter.sendMail({
-    //         subject: `Report user: ${data.message.sender}`,
-    //         html: body,
-    //         to: 'info+report-a-user@sigwo.com',
-    //         from: process.env.EMAIL,
-    //     }, (err, data) => {
-    //         if (err != null) {
-    //             res.send({success: true});
-    //             return;
-    //         }
-    //
-    //         res.send({success: true, data});
-    //     });
-    // });
-
-
 
     /**
      * Video Conference

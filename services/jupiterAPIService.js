@@ -269,9 +269,12 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async getUnconfirmedBlockChainTransactions(address, message = null, withMessage = false, type = 1, includeExpiredPrunable = true) {
-        logger.verbose('----------------------------------------');
-        logger.verbose(`getUnconfirmedBlockChainTransactions(address, message, withMessage, type, includeExpiredPrunable)`);
-        logger.verbose('--');
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getUnconfirmedBlockChainTransactions(address, message, withMessage, type, includeExpiredPrunable)`);
+        logger.verbose(`## `);
+        logger.sensitive(`address=${JSON.stringify(address)}`);
+
+        if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         }
