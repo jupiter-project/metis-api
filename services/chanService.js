@@ -145,14 +145,11 @@ class ChanService {
 
         const date = Date.now();
         const channelRecordJson = this.generateChannelRecordJson(channelName, channelAccountProperties, inviterAccountProperties.address);
-        // channel.name = channel.channel_record.name;
         const inviteRecord = {
             recordType: 'channelInvite',
-            invite_record: {
-                recipient: inviteeAddress, //its usually the alias
-                sender: inviterAccountProperties.address,
-                channel_record: channelRecordJson,
-            },
+            inviteeAddress: inviteeAddress,
+            inviterAddress: inviterAccountProperties.address,
+            channelRecord: channelRecordJson,
             date: date
         }
 
@@ -205,29 +202,22 @@ class ChanService {
         logger.verbose(`## getChannelInvitations(memberAccountProperties)`);
         logger.verbose(`## `);
 
-        const transactionList = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
+        if(!(memberAccountProperties instanceof GravityAccountProperties)) {throw new Error('memberAccountProperties is not well formed')};
+
+        const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
             memberAccountProperties.address,
             channelConfig.channelInviteRecord
         )
         const messages = await jupiterTransactionsService.getAllMessagesFromBlockChainAndIncludeTransactionInformation(
             memberAccountProperties,
-            transactionList
+            transactions
         );
-        logger.sensitive(`Decrypted invites: ${JSON.stringify(messages)}`);
+        logger.sensitive(`messages= ${JSON.stringify(messages)}`);
 
         const  filteredMessages = messages.reduce((reduced, message) => {
-            // if (message.message.dataType === 'channelInvite'){
-                return reduced.push(message.message);
-            // }
-            // return reduced;
+            reduced.push(message.message);
+            return reduced;
         }, []);
-
-        // const  filteredMessages = messages.reduce((reduced, message) => {
-        //     if (message.message.dataType === 'channelInvite'){
-        //         reduced.push(message.message);
-        //     }
-        //     return reduced;
-        // }, []);
 
         return filteredMessages;
     }

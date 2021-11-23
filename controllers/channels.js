@@ -271,7 +271,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         )
         chanService.getChannelInvitations(memberAccountProperties)
             .then(channelInvitations => {
-                console.log(channelInvitations);
                 res.send(channelInvitations);
             })
     });
