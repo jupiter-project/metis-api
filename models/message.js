@@ -80,7 +80,7 @@ class Message extends Model {
           }
         })
         .catch((error) => {
-          reject({ success: false, errors: error });
+          reject({ success: false, errors: `${error}` });
         });
     });
   }

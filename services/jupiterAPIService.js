@@ -212,7 +212,7 @@ class JupiterAPIService {
                     logger.error(`********************************************`)
                     logger.error('** getAccountInformation().getAccountId().catch(error)')
                     logger.error('**')
-                    logger.error(error);
+                    logger.error(`${error}`);
 
                     reject({ success: false, message: 'There was an error in getting accountId information' });
                 })
@@ -638,7 +638,7 @@ class JupiterAPIService {
                 .catch( error  => {
                     logger.error(`error()`);
                     console.log(error)
-                    return reject({errorType: 'requestError', message: error});
+                    return reject({errorType: 'requestError', message: `${error}`});
                 });
         })
     }

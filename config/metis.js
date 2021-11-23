@@ -212,7 +212,7 @@ function Metis() {
                 return {
                     success: false,
                     message: 'Error saving the member',
-                    fullResponse: error,
+                    fullResponse: `${error}`,
                 };
             });
     }

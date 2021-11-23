@@ -84,8 +84,8 @@ module.exports = (app) => {
         })
         .catch((error) => {
           logger.error('[loadRecords]:');
-          logger.error(error);
-          res.send({ success: false, errors: error });
+          logger.error(`${error}`);
+          res.send({ success: false, errors: `${error}` });
         });
     }
   });
@@ -133,10 +133,10 @@ module.exports = (app) => {
         })
         .catch((error) => {
           logger.error('[loadRecords]:');
-          logger.error(error);
+          logger.error(`${error}`);
           res.status(500).send({
             success: false,
-            errors: error
+            errors: `${error}`
           });
         });
     }
@@ -166,7 +166,7 @@ module.exports = (app) => {
         .then(channel => res.status(200).send({ success: true, channel }))
         .catch((error) => {
           logger.error('[Channel id]->[loadRecords]:');
-          logger.error(error);
+          logger.error(`${error}`);
           res.status(500).send({ success: false, error });
         });
   });

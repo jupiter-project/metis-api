@@ -49,7 +49,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         res.send(version);
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.send({
           success: false,
           message: 'There was an error getting jupiter version',
@@ -70,7 +70,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         res.send(response.data);
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.send({
           success: false,
           message: 'There was an error getting aliases from jupiter',
@@ -234,7 +234,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         });
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.send({
           success: false,
           message: 'There was an error in verifying the passphrase with the Blockchain',
@@ -286,7 +286,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         }
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.send({ success: false, message: 'There was an error', error: error.response });
       });
   });
@@ -357,7 +357,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
            logger.error('Error adding public key');
            console.log(error);
-           res.status(500).send({successful: false, message: error})
+           res.status(500).send({successful: false, message: `${error}`})
          })
     });
 

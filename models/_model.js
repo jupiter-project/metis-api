@@ -185,7 +185,7 @@ class Model {
         })
         .catch((error) => {
           logger.error(`loadTable().loadUserAndAppData(accessLink=${!!accountCredentials}).error()`);
-          logger.error(error);
+          logger.error(`${error}`);
           reject(error);
         });
     });
@@ -224,7 +224,7 @@ class Model {
           });
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           reject(error);
         });
     });
@@ -511,7 +511,7 @@ class Model {
               }
             })
             .catch((error) => {
-              reject({ success: false, errors: error });
+              reject({ success: false, errors: `${error}` });
             });
         });
 
@@ -717,7 +717,7 @@ class Model {
               }
             })
             .catch((error) => {
-              logger.error(error);
+              logger.error(`${error}`);
               reject({ success: false, errors: error.response });
             });
         });
@@ -839,8 +839,8 @@ class Model {
           resolve({ success: true, records: collectionList, params: self.model_params });
         })
         .catch((error) => {
-          logger.error(error);
-          reject({ success: false, errors: error });
+          logger.error(`${error}`);
+          reject({ success: false, errors: `${error}` });
         });
     });
   }

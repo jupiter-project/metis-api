@@ -51,40 +51,36 @@ class ChanService {
      */
     async acceptInvitation(memberAccountProperties, channelAddress){
 
-        throw new Error('RENE');
-
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')};
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
 
         // getInvitation
-        const invitation = await this.getChannelInvite(memberAccountProperties, channelAddress);
-
-
-
+        const invitationRecord = await this.getChannelInvite(memberAccountProperties, channelAddress);
 
 
         const ExistingChannelAccountProperties = await this.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
         if(ExistingChannelAccountProperties){ return }
 
+
         const channelAccountPropertiesInvitedTo = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
-            invitation.channelRecord.passphrase,
-            invitation.channelRecord.password
+            invitationRecord.channelRecord.channel_record.passphrase,
+            invitationRecord.channelRecord.channel_record.password
         )
 
         // Accept the invitation
 
         const params = {
             channel:  channelAddress,  //channel_record.account,
-            password: invitation.channelRecord.password,  //channel_record.password,
+            password: invitationRecord.channelRecord.password,  //channel_record.password,
             account: memberAccountProperties.address,//decryptedAccountData.account,
             alias: memberAccountProperties.getCurrentAliasNameOrNull()
         };
 
 
         const channelRecord =  this.generateChannelRecordJson(
-            invitation.channelRecord.channel_record.channelName,
+            invitationRecord.channelRecord.channel_record.channelName,
             channelAccountPropertiesInvitedTo,
             memberAccountProperties.address
         )

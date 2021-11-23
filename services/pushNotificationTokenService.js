@@ -18,7 +18,7 @@ module.exports = {
         success: false,
         message: 'Token, Provider and JupId are required',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 
@@ -40,7 +40,7 @@ module.exports = {
     findNotificationAndUpdate(filter, update, token, provider)
         .then(notificationInfo => res.json({success: true, notificationInfo}))
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           res.status(400).json({ ok: false, error });
         });
   },
@@ -52,7 +52,7 @@ module.exports = {
         success: false,
         message: 'Token, Provider and JupId are required',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 
@@ -61,7 +61,7 @@ module.exports = {
     findOneNotificationAndRemovePNToken(filter, provider, token)
         .then(() => res.json({success: true}))
         .catch(error => {
-          logger.error(error);
+          logger.error(`${error}`);
           res.status(500).json({ ok: false, error });
         })
   },
@@ -74,7 +74,7 @@ module.exports = {
         error: 'bad request',
         message: 'Alias and Channel id are required.',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 
@@ -86,7 +86,7 @@ module.exports = {
     findOneNotificationAndUpdate(filter, update)
       .then(notification => res.json({ success: true, notification }))
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.status(400).json({ ok: false, error });
       });
   },
@@ -99,7 +99,7 @@ module.exports = {
         error: 'bad request',
         message: 'Alias is required.',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 
@@ -112,7 +112,7 @@ module.exports = {
         });
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.status(500).json({ ok: false, error });
       });
   },
@@ -125,7 +125,7 @@ module.exports = {
         error: 'bad request',
         message: 'userAddress id are required.',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 

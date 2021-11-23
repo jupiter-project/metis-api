@@ -140,7 +140,7 @@ class GravityTablesService {
     //                             })
     //                     })
     //                     .catch( error =>{
-    //                         logger.error(error);
+    //                         logger.error(`${error}`);
     //                         reject(error);
     //                     })
     //             })
@@ -327,12 +327,12 @@ class GravityTablesService {
     //                         resolve(response);
     //                     })
     //                     .catch(error =>{
-    //                         logger.error(error);
+    //                         logger.error(`${error}`);
     //                         reject(error)
     //                     })
     //             })
     //             .catch((error) => {
-    //                 logger.error(error);
+    //                 logger.error(`${error}`);
     //                 reject(error);
     //             })
     //     })
@@ -474,7 +474,7 @@ class GravityTablesService {
                                 })
                         })
                         .catch( error =>{
-                            logger.error(error);
+                            logger.error(`${error}`);
                             reject(error);
                         })
                 })
@@ -1083,7 +1083,7 @@ module.exports.tableService = new TableService( jupiterTransactionsService, jupi
 //                     })
 //             })
 //             .catch( error =>{
-//                 logger.error(error);
+//                 logger.error(`${error}`);
 //                 reject(error);
 //             })
 //     });

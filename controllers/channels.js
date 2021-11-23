@@ -83,7 +83,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             res.send({success: true, url: url});
         } catch (e) {
             logger.error(e);
-            res.status(500).send(e);
+            res.status(500).send(`${e}`);
         }
     });
 
@@ -91,6 +91,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Accept channel invite
      */
     app.post('/v1/api/channel/invite/accept', async (req, res) => {
+
         const {channelAddress} = req.body
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
         const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
@@ -103,11 +104,10 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                     return res.send({success: true, message: 'Invite accepted'});
                 })
                 .catch(error => {
-                    logger.verbose(`*********************************************`)
+                    logger.error(`*********************************************`)
                     logger.error(`** channel/invite/accept ERROR`)
-                    logger.error(`Error accepting invite: ${JSON.stringify(error)}`);
-                    console.log(error);
-                    return res.status(500).send({error: true, fullError: error});
+                    logger.error(`${error}`);
+                    return res.status(500).send({error: true, fullError: `${error}`});
                 });
 
     });
@@ -232,8 +232,8 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             })
             .then(() => res.send({success: true, message: 'Message successfully sent'}))
             .catch(error => {
-                logger.error('[/data/messages]', JSON.stringify(error));
-                res.status(500).send({success: false, fullError: error});
+                logger.error('[/data/messages]',`${error}`);
+                res.status(500).send({success: false, fullError: `${error}`});
             });
     });
 
@@ -290,11 +290,11 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                     res.send({success: true});
                 })
                 .catch(error => {
-                    logger.error(error);
+                    logger.error(`${error}`);
                     res.sendStatus(500);
                 })
         } catch (error) {
-            logger.error(error);
+            logger.error(`${error}`);
             res.sendStatus(500);
         }
     });

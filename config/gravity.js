@@ -104,7 +104,7 @@ class Gravity {
           resolve(response.tables);
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           reject(error);
         });
     });
@@ -138,7 +138,7 @@ class Gravity {
           resolve(tables);
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           reject(error);
         });
     });
@@ -615,7 +615,7 @@ class Gravity {
         })
         .catch((error) => {
           logger.error('Theres an error!');
-          logger.error(error);
+          logger.error(`${error}`);
           reject({ success: false, error: 'There was an error loading records' });
         });
     });
@@ -754,7 +754,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 reject(error);
               });
           });
@@ -780,8 +780,8 @@ class Gravity {
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
-          logger.error(error);
-          resolve({ success: false, errors: error });
+          logger.error(`${error}`);
+          resolve({ success: false, errors: `${error}` });
         });
     });
   }
@@ -926,8 +926,8 @@ class Gravity {
               })
               .catch((error) => {
                 logger.error('ERROR!!!')
-                logger.error(error);
-                return reject({ success: false, errors: error });
+                logger.error(`${error}`);
+                return reject({ success: false, errors: `${error}` });
               });
           });
         } else {
@@ -973,7 +973,7 @@ class Gravity {
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
                     // logger.error(JSON.stringify(error));
-                    return resolve({error: true, message: error});
+                    return resolve({error: true, message: `${error}`});
                   });
             })
             messageResponses.push(messageResponse);
@@ -1186,8 +1186,8 @@ class Gravity {
         })
         .catch((error) => {
           logger.error('Error getting transactions');
-          logger.error(error);
-          return resolve({ success: false, errors: error });
+          logger.error(`${error}`);
+          return resolve({ success: false, errors: `${error}` });
         });
     });
   }
@@ -1240,7 +1240,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 reject({ success: false, error: error.response });
               });
           });
@@ -1264,8 +1264,8 @@ class Gravity {
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
-          logger.error(error);
-          resolve({ success: false, errors: error });
+          logger.error(`${error}`);
+          resolve({ success: false, errors: `${error}` });
         });
     });
   }
@@ -1378,7 +1378,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 reject(error);
               });
           });
@@ -1430,8 +1430,8 @@ class Gravity {
             eventEmitter.emit('table_retrieved');
           })
           .catch((error) => {
-            logger.error(error);
-            reject({ success: false, errors: error });
+            logger.error(`${error}`);
+            reject({ success: false, errors: `${error}` });
           });
       });
 
@@ -1674,8 +1674,8 @@ class Gravity {
           })
         })
           .catch((error) => {
-            logger.error(error);
-            reject({ success: false, errors: error });
+            logger.error(`${error}`);
+            reject({ success: false, errors: `${error}` });
           });
 
         })
@@ -1765,14 +1765,14 @@ class Gravity {
                       decrypted.confirmed = true;
                       return resolve(decrypted);
                     } catch ( error ) {
-                      logger.error(error);
-                      return resolve({error:true, message: error})
+                      logger.error(`${error}`);
+                      return resolve({error:true, message: `${error}`})
                     }
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
                     logger.error(JSON.stringify(error));
-                    return resolve({error:true, message: error});
+                    return resolve({error:true, message: `${error}`});
                   });
             })
 
@@ -1842,8 +1842,8 @@ class Gravity {
             eventEmitter.emit('table_retrieved');
           })
           .catch((error) => {
-            logger.error(error);
-            reject({ success: false, errors: error });
+            logger.error(`${error}`);
+            reject({ success: false, errors: `${error}` });
           });
       });
 
@@ -1905,8 +1905,8 @@ class Gravity {
           eventEmitter.emit('records_retrieved');
         })
         .catch((error) => {
-          logger.error(error);
-          reject({ success: false, errors: error });
+          logger.error(`${error}`);
+          reject({ success: false, errors: `${error}` });
         });
     });
   }
@@ -1953,7 +1953,7 @@ class Gravity {
             }
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, message: 'There was an error obtaining account Jupiter balance' });
           });
       });
@@ -1965,7 +1965,7 @@ class Gravity {
             eventEmitter.emit('account_retrieved');
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, message: 'There was an error obtaining account Jupiter balance' });
           });
       } else {
@@ -2033,7 +2033,7 @@ class Gravity {
           logger.error(JSON.stringify(response.data));
           return reject({ error: true, data: response.data });
         })
-        .catch(error => reject({ error: true, fullError: error }));
+        .catch(error => reject({ error: true, fullError: `${error}` }));
     });
   }
 
@@ -2057,7 +2057,7 @@ class Gravity {
       .catch(error => ({
         error: true,
         message: 'There was an error making axios request',
-        fullError: error,
+        fullError: `${error}`,
       }));
   }
 
@@ -2348,7 +2348,7 @@ class Gravity {
           resolve({ address, publicKey: response.data.publicKey, success: true });
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           logger.info('There was an error in address creation');
           reject({ success: false, message: 'There was an error creating a new Jupiter address' });
         });
@@ -2661,7 +2661,7 @@ class Gravity {
             eventEmitter.emit('tableName_obtained');
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject('Error in creating table');
           });
       });
@@ -3007,7 +3007,7 @@ class Gravity {
               transaction,
               error: true,
               message: 'Error in retrieving first layer of decryption',
-              fullError: error,
+              fullError: `${error}`,
             });
           });
       } else {
@@ -3115,7 +3115,7 @@ class Gravity {
             }
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, message: 'There was an error', error: error.response });
           });
 
@@ -3136,7 +3136,7 @@ class Gravity {
           })
           .catch((error) => {
             logger.info('There was an error in updating table list');
-            logger.error(error);
+            logger.error(`${error}`);
             logger.info(encryptedTableData);
           });
       });
@@ -3171,7 +3171,7 @@ class Gravity {
               }
             })
             .catch((error) => {
-              logger.error(error);
+              logger.error(`${error}`);
               reject('Error creating Jupiter address for your table.');
             });
         }
@@ -3208,7 +3208,7 @@ class Gravity {
               }
             })
             .catch((error) => {
-              logger.error(error);
+              logger.error(`${error}`);
               reject('Error in creating table');
             });
         }
@@ -3226,7 +3226,7 @@ class Gravity {
         })
         .catch((error) => {
           logger.error('There was an error trying to create a new table in Jupiter.');
-          logger.error(error);
+          logger.error(`${error}`);
           eventEmitter.emit('insufficient_balance');
         });
     });
@@ -3292,7 +3292,7 @@ class Gravity {
 
                   fs.writeFile('.env', envVariablesInString, (error) => {
                     if (error) {
-                      return logger.error(error);
+                      return logger.error(`${error}`);
                     }
                     logger.info('\nSuccess! .env file generated!');
                     logger.info('\nPlease write down the 12-word passphrase and account address assigned to your app as well as the password assigned for encryption (See .env or .gravity.js files). If you lose your passphrase or your encryption password, you will lose access to all saved data.');
@@ -3306,7 +3306,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 logger.error('There was an error in database creation');
                 rl.close();
               });

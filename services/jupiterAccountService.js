@@ -300,7 +300,7 @@ class JupiterAccountService {
                     return resolve(accountStatement);
                 })
                 .catch((error) => {
-                    logger.error(error);
+                    logger.error(`${error}`);
                     reject(error);
                 });
         });
@@ -362,7 +362,7 @@ class JupiterAccountService {
             return publicKeyIds.map((pk) => pk.message);
         } catch (error) {
             error.message = `getPublicKeysFromUserAccount: ${error.message}`;
-            logger.error(error);
+            logger.error(`${error}`);
             throw error;
         }
     }
@@ -385,7 +385,7 @@ class JupiterAccountService {
 
             return publicKeyIds.map((pk) => pk.message);
         } catch (error) {
-            logger.error(error);
+            logger.error(`${error}`);
         }
     }
 

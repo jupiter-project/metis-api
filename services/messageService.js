@@ -87,7 +87,7 @@ module.exports = {
         }
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
       });
   },
   errorMessageHandler: (error) => {

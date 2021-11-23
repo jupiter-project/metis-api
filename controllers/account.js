@@ -42,8 +42,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           return res.status(500).send({message: 'Balance not available'});
         })
         .catch(error => {
-          logger.error(JSON.stringify(error));
-          return res.status(500).send({message: 'Something went wrong', error});
+          logger.error(`${error}`);
+          return res.status(500).send({message: 'Something went wrong', error: `${error}` });
         });
   });
 
@@ -81,8 +81,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           return res.status(200).send({transactions: response.data.transactions});
         })
         .catch(error => {
-          logger.error(JSON.stringify(error));
-          return res.status(500).send({message: 'Something went wrong', error});
+          logger.error(`${error}`);
+          return res.status(500).send({message: 'Something went wrong', error: `${error}`});
         });
   });
 
@@ -116,8 +116,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     jupiterAPIService.transferMoney(fromJupAccount, toJupiterAccount, +amount, fee)
         .then(() => res.status(200).send({message: 'Transfer successfully executed'}))
         .catch(error => {
-          logger.error('Error with the transfer ->' + JSON.stringify(error));
-          res.status(500).send({message: 'Transfer failed', error})
+          logger.error('Error with the transfer ->' + `${error}`);
+          res.status(500).send({message: 'Transfer failed', error: `${error}`});
         });
   });
 
@@ -150,8 +150,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         res.send({ success: true, account_info: userInfo, message: 'Retrieved account info' });
       })
       .catch((error) => {
-        logger.error(error);
-        res.send({ success: false, errors: error });
+        logger.error(`${error}`);
+        res.send({ success: false, errors: `${error}` });
       });
   });
 
@@ -182,9 +182,9 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       .then(() => {
         res.send({ success: true, message: 'Account info saved to blockchain', record: user.record });
       })
-      .catch((err) => {
-        logger.error(err);
-        res.send(err);
+      .catch(err => {
+        logger.error(`${err}`);
+        res.send(`${err}`);
       });
   });
 
@@ -211,7 +211,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         }
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.send({ success: false, message: 'There was an error', error: error.response });
       });
   });
@@ -237,7 +237,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           });
         })
         .catch((err) => {
-          logger.error(err);
+          logger.error(`${err}`);
           res.send({ success: false, message: 'There was an error updating api key' });
         });
     } else {
@@ -246,8 +246,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         status: 'error',
         error: 'Api key provided in request is incorrect',
       };
-      logger.error(error);
-      res.send(error);
+      logger.error(`${error}`);
+      res.send(`${error}`);
     }
   });
 
@@ -335,7 +335,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       res.send({ status: 'success', message: 'Verification code is correct!' });
     } else {
       const error = { status: 'error', message: 'Verification code is incorrect!' };
-      logger.error(error);
+      logger.error(`${error}`);
       res.send(error);
     }
   });
@@ -373,7 +373,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         });
     } else {
       const error = { status: 'error', message: 'Verification code is incorrect!' };
-      logger.error(error);
+      logger.error(`${error}`);
       res.send(error);
     }
   });

@@ -21,8 +21,8 @@ module.exports = (app) => {
 
         res.send({ ...memberList, channelUserList: userPublicKeyList })
     }catch (error){
-        logger.error(`Error getting members: ${JSON.stringify(error)}`);
-        res.status(500).send({success: false, error})
+        logger.error(`Error getting members: ${error}`);
+        res.status(500).send({success: false, error: `${error}`})
     }
   });
 };

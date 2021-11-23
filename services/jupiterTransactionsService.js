@@ -209,7 +209,7 @@ class JupiterTransactionsService {
             return true;
         } catch (error) {
             logger.error('Problem with isValidBaseTransaction()');
-            logger.error(error);
+            logger.error(`${error}`);
             return false;
         }
     }
@@ -374,7 +374,7 @@ class JupiterTransactionsService {
                     resolve(messageTransactions);
                 })
                 .catch((error) => {
-                    logger.error(error);
+                    logger.error(`${error}`);
                     reject(error);
                 });
         });
@@ -555,7 +555,7 @@ class JupiterTransactionsService {
                     resolve(transactions);
                 })
                 .catch(error => {
-                    reject({status: 'error', message: error});
+                    reject({status: 'error', message: `${error}`});
                 })
 
             // const dataToDecipher = transaction.attachment.encryptedMessage.data;
@@ -578,7 +578,7 @@ class JupiterTransactionsService {
             //     })
             //     .catch((error) => {
             //         logger.debug('PROMISE ERROR');
-            //         logger.error(error);
+            //         logger.error(`${error}`);
             //     })
         })
     }
@@ -607,7 +607,7 @@ class JupiterTransactionsService {
                     return resolve(accountStatement);
                 })
                 .catch(error => {
-                    logger.error(error);
+                    logger.error(`${error}`);
                     reject(error);
                 })
 
@@ -803,7 +803,7 @@ class JupiterTransactionsService {
                 })
                 .catch((error) => {
                     logger.error('PROMISE ERROR');
-                    logger.error(error);
+                    logger.error(`${error}`);
                     return reject({status: 'error', message: error});
                 })
 
@@ -964,7 +964,9 @@ class JupiterTransactionsService {
             //getMessage() = {data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}
             this.jupiterAPIService.getMessage(messageTransactionId, passphrase)
                 .then((response) => {
-                    return resolve(response.data.decryptedMessage);
+                    const message = gu.jsonParseOrPassThrough(response.data.decryptedMessage);
+
+                    return resolve(message);
                 })
                 .catch((error) => {
                     logger.error(`********************`)
@@ -1051,7 +1053,7 @@ class JupiterTransactionsService {
                 .catch(error => {
                     logger.error(`********************`)
                     logger.error(`fetchUnconfirmedMessages().catch()`)
-                    logger.error(error)
+                    logger.error(`${error}`)
                     logger.error(`********************`)
                     reject(error);
                 })
