@@ -365,7 +365,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    *
    */
-  app.post('/v1/api/appLogin', (req, res, next) => {
+  app.get('/v1/api/appLogin', (req, res, next) => {
     gravityCLIReporter.setTitle(' METIS LOGIN ');
     logger.verbose('appLogin()');
     logger.debug('--headers--');

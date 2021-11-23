@@ -1,4 +1,5 @@
 import _ from 'lodash';
+const gu = require('../utils/gravityUtils');
 import mailer from 'nodemailer';
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
@@ -52,7 +53,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
              reduced.push({
                  channelAddress: channelAccountProperties.address,
-                 channelName: 'rene'});
+                 channelName: channelAccountProperties.channelName});
              return reduced;
         }, [])
 
@@ -278,24 +279,29 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     /**
      * Send an invite
      */
-    app.put('/v1/api/channel/invite', async (req, res) => {
+    app.post('/v1/api/channel/invite', async (req, res) => {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## Send an Invite`);
         logger.verbose(`## /v1/api/channel/invite`);
         logger.verbose(`## `);
-        const {data} = req.body;
+        const {channelAddress, inviteeAddress} = req.body;
         const {user} = req;
 
-        console.log('@1@1@1@1@1');
-        console.log(req.body);
-        res.status(500).send(error);
-        return;
-
         try {
-            const inviterAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
-            const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(data.channel, inviterAccountProperties);
-            const inviteeAddress = data.recipient;
+            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
+            if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
 
+            const inviterAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
+            const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
+
+
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+            console.log('channelAccountProperties');
+            console.log(channelAccountProperties);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+
+            //@TODO invite only once!!!!
             return chanService.createNewInvitation(
                 channelAccountProperties,
                 inviterAccountProperties,
@@ -305,12 +311,15 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                     const message = `${inviterAlias} invited you to join a channel`;
                     const metadata = {isInvitation: 'true'};
                     getPNTokensAndSendPushNotification([inviteeAddress], inviterAccountProperties.address, {}, message, 'Invitation', metadata);
+                    res.send({success: true});
                 })
-
-            res.send({success: true});
+                .catch(error => {
+                    logger.error(error);
+                    res.sendStatus(500);
+                })
         } catch (error) {
             logger.error(error);
-            res.status(500).send(error);
+            res.sendStatus(500);
         }
     });
 

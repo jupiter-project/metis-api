@@ -413,17 +413,29 @@ class JupiterAccountService {
      */
     async getMemberChannels(memberProperties) {
         logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAllMemberChannels(memberProperties)`);
+        logger.verbose(`## getMemberChannels(memberProperties)`);
         logger.verbose(`## `);
         try {
             if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
             const channelTableAccountProperties = await this.getTableAccountProperties( tableConfig.channelsTable, memberProperties);
             const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(memberProperties.address, channelConfig.channelRecord);
             const transactions2 = await this.jupiterTransactionsService.filterMessageTransactionsBySender(transactions, channelTableAccountProperties.address);
-            const transactionIds = transactions2.map(transaction => transaction.transaction);
-            const messages = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,memberProperties.crypto, memberProperties.passphrase);
-            const listOfChannelsAndTheirProperties = messages.map( message => {
-                return GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message.channel_record.passphrase, message.message.channel_record.password);
+
+
+            const transactionIds = transactions2.reduce((reduced, transaction) => {
+                if(transaction.transaction) {
+                    reduced.push(transaction.transaction);
+                }
+                return reduced;
+            }, []);
+
+            if(transactionIds.length === 0) { return [] }
+
+            const channelRecords = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,memberProperties.crypto, memberProperties.passphrase);
+            const listOfChannelsAndTheirProperties = channelRecords.map( async message => {
+                    const properties = await  GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message.channel_record.passphrase, message.message.channel_record.password);
+                     properties.channelName = message.message.channel_record.channelName;
+                     return properties;
             })
 
             return await Promise.all(listOfChannelsAndTheirProperties);
@@ -635,9 +647,22 @@ class JupiterAccountService {
         logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
         logger.verbose(`## `);
         logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
-        const allMemberChannels = await this.jupiterTransactionsService.getAllMemberChannels(memberAccountProperties);
-
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')};
+        if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
+        const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
+        console.log('#########################################')
         console.log(allMemberChannels);
+        const channelAccountPropertiesArray = allMemberChannels.filter( channelAccountProperties => channelAccountProperties.address === channelAddress );
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('channelAccountProperties');
+        console.log(channelAccountPropertiesArray);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+        if(channelAccountPropertiesArray.length > 0){
+            return channelAccountPropertiesArray[0];
+        }
+
+        throw new Error('doesnt exist!')
     }
 
 

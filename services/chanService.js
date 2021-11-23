@@ -185,9 +185,12 @@ class ChanService {
                 sender: createdByAddress,
                 createdBy: createdByAddress
             },
-            date: date,
-
+            // status: 'archived', @TODO add a status.
+            date: date
         }
+
+        // tag = '#v1.metis.channel.channelRecord#'
+
 
         return channelRecord;
     }
