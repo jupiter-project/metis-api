@@ -50,6 +50,9 @@ class ChanService {
      * @returns {Promise<void>}
      */
     async acceptInvitation(memberAccountProperties, channelAddress){
+
+        throw new Error('RENE');
+
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')};
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
@@ -57,6 +60,11 @@ class ChanService {
 
         // getInvitation
         const invitation = await this.getChannelInvite(memberAccountProperties, channelAddress);
+
+
+
+
+
         const ExistingChannelAccountProperties = await this.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
         if(ExistingChannelAccountProperties){ return }
 
@@ -104,27 +112,33 @@ class ChanService {
 
     /**
      *
-     * @param memberAccountProperties
+     * @param getChannelAccountPropertiesOrNull
      * @param channelAddress
      * @returns {Promise<string>}
      */
     async getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress)`);
+        logger.verbose(`## `);
+        logger.sensitive(`channelAddress=${channelAddress}`);
+        logger.sensitive(`memberAccountProperties.address=${memberAccountProperties.address}`);
+
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')};
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
         const tag = `${channelConfig.channelRecord}.${channelAddress}`;
-
         const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
             memberAccountProperties.address,
             tag
         )
-        if (!gu.isNonEmptyArray(transactions)) {
+        const transactionsBySelf = this.jupiterTransactionsService.filterMessageTransactionsBySender(transactions, memberAccountProperties.address);
+        if (!gu.isNonEmptyArray(transactionsBySelf)) {
             return null;
         }
-        const transaction = transactions[0];
+        const transaction = transactionsBySelf[0];
         const transactionId = this.jupiterTransactionsService.extractTransactionId(transaction);
-        const message = await this.jupiterTransactionsService.getReadableMessageFromMessageTransactionId(
+        const message = await this.jupiterTransactionsService.getReadableMessageFromMessageTransactionIdOrNull(
             transactionId,
             memberAccountProperties.passphrase
         )
@@ -194,17 +208,16 @@ class ChanService {
         logger.verbose(`## `);
         logger.sensitive(`channelName=${JSON.stringify(channelName)}`);
         if(!(firstMemberProperties instanceof GravityAccountProperties)){throw new Error('firstMemberProperties is invalid')};
-        if(!channelName){throw new Error('channelName is empty')};
+        if(!gu.isWellFormedJupiterAddress(channelName)){'channelName is malformed'}
 
-        const channelsTableAccountProperties = await  this.jupiterAccountService.getTableAccountProperties(tableConfig.channelsTable ,firstMemberProperties);
-        console.log(channelsTableAccountProperties);
+        const channelsTableAccountProperties = await this.jupiterAccountService.getTableAccountProperties(
+            tableConfig.channelsTable,
+            firstMemberProperties
+        );
+
         const channelPassphrase = gu.generatePassphrase();
         const channelPassword = gu.generateRandomPassword();
         const channelAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(channelPassphrase, channelPassword);
-        sdf
-        sdf
-        sfd
-
         const channelRecordJson = this.generateChannelRecordJson(channelName, channelAccountProperties, firstMemberProperties.address);
         const encryptedChannelRecordJson = firstMemberProperties.crypto.encryptJson(channelRecordJson);
         const feeType =   FeeManager.feeTypes.account_record;
@@ -212,7 +225,7 @@ class ChanService {
         const fundingResponse = await jupiterFundingService.provideInitialStandardTableFunds(channelAccountProperties);
         const transactionWaitResponse = await jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction);  //need to wait for confirmation in order for account to send transactions.
         const sendTaggedAndEncipheredMetisMessageResponse = await this.jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
-            channelsTableAccountProperties.passphrase,
+            firstMemberProperties.passphrase,  // used to be from chanTable to user. now its user to user
             firstMemberProperties.address,
             encryptedChannelRecordJson,
             tag,
@@ -220,7 +233,6 @@ class ChanService {
             firstMemberProperties.publicKey
         )
 
-        // send self-trans to member with chan info.
         await metis.addMemberToChannelIfDoesntExist(firstMemberProperties, channelAccountProperties);
         await metis.addToMemberList({
             channel: channelAccountProperties.address ,
@@ -366,18 +378,22 @@ class ChanService {
             memberAccountProperties.address,
             tag
         )
+
         if (!gu.isNonEmptyArray(transactions)) {
             throw new Error('Invite doesnt exist')
         }
         const transaction = transactions[0];
         const transactionId = this.jupiterTransactionsService.extractTransactionId(transaction);
+
         const message = await this.jupiterTransactionsService.getReadableMessageFromMessageTransactionId(
             transactionId,
             memberAccountProperties.passphrase
         )
-        if (message.recordType !== 'ChannelInvite') {
+
+        if (message.recordType !== 'channelInvite') {
             throw new Error('invalid invitation')
         }
+
         return message;
     }
 }

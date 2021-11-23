@@ -64,6 +64,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Video Conference
      */
     app.post('/v1/api/channels/call', async (req, res) => {  //@TODO what is this used for?
+
         const {data} = req.body;
         const {user} = req;
         try {
@@ -90,24 +91,24 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Accept channel invite
      */
     app.post('/v1/api/channel/invite/accept', async (req, res) => {
-        const {channelAddress: channelAddressInvitedTo} = req.data;
-
-        if(!gu.isWellFormedJupiterAddress(channelAddressInvitedTo)){throw new Error('channelAddress is incorrect')};
+        const {channelAddress} = req.body
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
         const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
             req.user.passphrase,
             req.user.password
         );
 
-        chanService.acceptInvitation(memberAccountProperties, channelAddressInvitedTo)
-            .then(() => {
-                return res.send({success: true, message: 'Invite accepted'});
-            })
-            .catch(error => {
-                logger.verbose(`*********************************************`)
-                logger.error(`** channel.import.catch(error)`)
-                logger.error(`Error accepting invite: ${JSON.stringify(error)}`);
-                return res.status(500).send({error: true, fullError: error});
-            });
+            chanService.acceptInvitation(memberAccountProperties, channelAddress)
+                .then(() => {
+                    return res.send({success: true, message: 'Invite accepted'});
+                })
+                .catch(error => {
+                    logger.verbose(`*********************************************`)
+                    logger.error(`** channel/invite/accept ERROR`)
+                    logger.error(`Error accepting invite: ${JSON.stringify(error)}`);
+                    console.log(error);
+                    return res.status(500).send({error: true, fullError: error});
+                });
 
     });
 

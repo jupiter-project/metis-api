@@ -417,20 +417,10 @@ class JupiterAccountService {
         logger.verbose(`## `);
         try {
             if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
-            const channelTableAccountProperties = await this.getTableAccountProperties( tableConfig.channelsTable, memberProperties);
+            // const channelTableAccountProperties = await this.getTableAccountProperties( tableConfig.channelsTable, memberProperties);
             const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(memberProperties.address, channelConfig.channelRecord);
-            const transactions2 = await this.jupiterTransactionsService.filterMessageTransactionsBySender(transactions, channelTableAccountProperties.address);
-
-
-            const transactionIds = transactions2.reduce((reduced, transaction) => {
-                if(transaction.transaction) {
-                    reduced.push(transaction.transaction);
-                }
-                return reduced;
-            }, []);
-
-            if(transactionIds.length === 0) { return [] }
-
+            const transactions2 = await this.jupiterTransactionsService.filterMessageTransactionsBySender(transactions, memberProperties.address); //used to be by TableChannel. we are removing the table channel.
+            const transactionIds = this.jupiterTransactionsService.extractTransactionIds(transactions2);
             const channelRecords = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,memberProperties.crypto, memberProperties.passphrase);
             const listOfChannelsAndTheirProperties = channelRecords.map( async message => {
                     const properties = await  GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message.channel_record.passphrase, message.message.channel_record.password);

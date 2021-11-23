@@ -940,6 +940,12 @@ class JupiterTransactionsService {
     }
 
 
+
+    getReadableMessageFromMessageTransactionIdOrNull(messageTransactionId, passphrase) {
+        return this.getReadableMessageFromMessageTransactionId(messageTransactionId,passphrase)
+            .catch( error => null);
+    }
+
     /**
      *
      * @param {string} messageTransactionId
@@ -958,12 +964,11 @@ class JupiterTransactionsService {
             //getMessage() = {data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}
             this.jupiterAPIService.getMessage(messageTransactionId, passphrase)
                 .then((response) => {
-                    // logger.sensitive(response);
                     return resolve(response.data.decryptedMessage);
                 })
                 .catch((error) => {
                     logger.error(`********************`)
-                    logger.error('** getReadableMessageFromMessageTransactionId().apiService.getMessage().catch()');
+                    logger.error('** getReadableMessageFromMessageTransactionId().getMessage().catch()');
                     const errorMessage = `readMessagesFromMessageTransactionIds().readMessage().then(): ${error}`;
                     logger.error(errorMessage);
 
@@ -1189,8 +1194,8 @@ class JupiterTransactionsService {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag)`);
         logger.verbose(`## `);
-        logger.sensitive(`address=${JSON.stringify(address)}`);
-        logger.sensitive(`tag=${JSON.stringify(tag)}`);
+        logger.sensitive(`address= ${JSON.stringify(address)}`);
+        logger.sensitive(`tag= ${JSON.stringify(tag)}`);
         if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
 
@@ -1201,10 +1206,19 @@ class JupiterTransactionsService {
         const unconfirmendTransactions = unconfirmendTransactionsResponse;
         const combinedTransactions = [ ...confirmedTransactions, ...unconfirmendTransactions ];
 
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        logger.info(`++ combinedTransactions.length`);
+        logger.verbose(combinedTransactions.length);
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+
+        // console.log(combinedTransactions);
+        // console.log(combinedTransactions[0].attachment.message);
+
+
         return combinedTransactions.filter(transaction => {
             return transaction.hasOwnProperty('attachment') &&
                 transaction.attachment.hasOwnProperty('message') &&
-                transaction.attachment.message === tag;
+                transaction.attachment.message.includes(tag)
         });
     }
 
@@ -1232,7 +1246,7 @@ class JupiterTransactionsService {
                 return response.data.transactions.filter(transaction => {
                     return transaction.hasOwnProperty('attachment') &&
                         transaction.attachment.hasOwnProperty('message') &&
-                        transaction.attachment.message === tag;
+                        transaction.attachment.message.includes(tag)
                 });
             })
     }
@@ -1344,7 +1358,7 @@ class JupiterTransactionsService {
                 return response.data.transactions.filter(transaction => {
                     return transaction.hasOwnProperty('attachment') &&
                         transaction.attachment.hasOwnProperty('message') &&
-                        transaction.attachment.message === tag;
+                        transaction.attachment.message.includes(tag)
                 });
             })
     }

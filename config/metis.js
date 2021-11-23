@@ -130,7 +130,9 @@ function Metis() {
         return jupiterAPIService.getBlockChainTransactions(channelAccount, tag, true)
             .then(({data: transactions}) => {
                 if (transactions && Array.isArray(transactions.transactions)) {
-                    return transactions.transactions.filter(t => t.attachment.message && t.attachment.message === tag);
+                    return transactions.transactions.filter(t => t.attachment.message &&  t.attachment.message.includes(tag));
+                    // return transactions.transactions.filter(t => t.attachment.message &&  (tag.indexOf(t.attachment.message) !== -1));
+                    // return transactions.transactions.filter(t => t.attachment.message && t.attachment.message === tag);
                 }
                 return [];
             })
