@@ -4,7 +4,7 @@ import { gravity } from '../config/gravity';
 import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
 import {jobScheduleService} from '../services/jobScheduleService';
-import jupiterAccountService from "../services/jupiterAccountService";
+import {jupiterAccountService} from "../services/jupiterAccountService";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
@@ -365,7 +365,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   /**
    *
    */
-  app.get('/v1/api/appLogin', (req, res, next) => {
+  app.post('/v1/api/appLogin', (req, res, next) => {
     gravityCLIReporter.setTitle(' METIS LOGIN ');
     logger.verbose('appLogin()');
     logger.debug('--headers--');

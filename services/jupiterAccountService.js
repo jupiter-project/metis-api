@@ -562,19 +562,18 @@ class JupiterAccountService {
                 );
                 return Promise.all([userPublicKeyPromise, userPublicKeyListPromise]);
             })
-            .then(([userPublicKey, userPublicKeyList]) => {
+            .then(([_, userPublicKeyList]) => {
                 const latestPublicKeyList = userPublicKeyList.pop();
-                return Promise.all([
-                    userPublicKey,
-                    jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
+                return latestPublicKeyList
+                    ? jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
                         latestPublicKeyList.transaction,
                         gravityAccountProperties.crypto,
                         gravityAccountProperties.passphrase
-                    ),
-                ]);
+                    )
+                    : [];
             })
-            .then(([userPublicKey, userPublicKeyList]) => {
-                userPublicKeyList.push(userPublicKey);
+            .then((userPublicKeyList) => {
+                userPublicKeyList.push(publicKey);
                 const encryptedMessage = gravityAccountProperties.crypto.encryptJson(userPublicKeyList);
                 return jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
