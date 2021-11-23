@@ -711,19 +711,13 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     async getDecipheredData(dataToDecipher, address, passphrase, nonce){
-        logger.verbose('getDecipheredData()')
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getDecipheredData(dataToDecipher, address, passphrase, nonce)`);
+        logger.verbose(`## `);
+        logger.sensitive(`=${JSON.stringify()}`);
 
-        // @TODO we need to create Custom Errors. for example: FundingNotConfirmedError
-
-        if(!gu.isWellFormedPassphrase(passphrase)) {
-            // @TODO we need to create Custom Errors
-            throw new Error('Please provide a valid passphrase');
-        }
-
-        if(!gu.isWellFormedJupiterAddress(address)) {
-            // @TODO we need to create Custom Errors. for example: FundingNotConfirmedError
-            throw new Error('Please provide a valid address');
-        }
+        if(!gu.isWellFormedPassphrase(passphrase)) {throw new Error('Please provide a valid passphrase')}
+        if(!gu.isWellFormedJupiterAddress(address)) {throw new Error('Please provide a valid address');}
 
         return this.get( {
             requestType: 'decryptFrom',
@@ -732,7 +726,6 @@ class JupiterAPIService {
             data: dataToDecipher,
             nonce: nonce
         });
-
     }
 
 

@@ -89,42 +89,17 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     /**
      * Accept channel invite
      */
-    app.post('/v1/api/channels/import', async (req, res) => {
-        const {accountData, userData} = req.user;
-        const {channel_record} = req.channel;
+    app.post('/v1/api/channel/invite/accept', async (req, res) => {
+        const {channelAddress: channelAddressInvitedTo} = req.data;
 
-        channel_record.invited = true;
-        channel_record.sender = userData.account;
-        const channel = new Channel(channel_record);
-        channel.user = JSON.parse(gravity.decrypt(accountData));
+        if(!gu.isWellFormedJupiterAddress(channelAddressInvitedTo)){throw new Error('channelAddress is incorrect')};
+        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+            req.user.passphrase,
+            req.user.password
+        );
 
-        let decryptedAccountData = null;
-
-        try {
-            decryptedAccountData = JSON.parse(gravity.decrypt(accountData));
-        } catch (error) {
-            return res.status(500).send({success: false, message: 'Error while decrypting the user information'});
-        }
-
-        const params = {
-            channel: channel_record.account,
-            password: channel_record.password,
-            account: decryptedAccountData.account,
-            alias: userData.alias,
-        };
-
-        const channelProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(channel_record.passphrase, channel_record.password);
-        const memberProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(decryptedAccountData.passphrase, decryptedAccountData.password);
-
-        return metis.addToMemberList(params) //TODO we need to get rid of this
-            .then(() => metis.addMemberToChannelIfDoesntExist(memberProperties, channelProperties))
+        chanService.acceptInvitation(memberAccountProperties, channelAddressInvitedTo)
             .then(() => {
-                logger.verbose(`------------------------------------------`)
-                logger.verbose(`-- channel.import.then()`)
-                return channel.import(channel.user);
-            })
-            .then(() => {
-                // websocket.of('/channels').to(`channel-creation`).emit('channelMemberAdded', { channelToken: req.channel.token });
                 return res.send({success: true, message: 'Invite accepted'});
             })
             .catch(error => {
@@ -133,6 +108,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                 logger.error(`Error accepting invite: ${JSON.stringify(error)}`);
                 return res.status(500).send({error: true, fullError: error});
             });
+
     });
 
     /**

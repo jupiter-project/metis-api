@@ -226,23 +226,14 @@ function Metis() {
         logger.verbose(`## addMemberToChannelIfDoesntExist(memberProperties, channelProperties)`);
         logger.verbose(`## `);
 
-        console.log(1)
         if(!(memberProperties instanceof GravityAccountProperties)){throw new Error('invalid memberProperties')}
         if(!(channelProperties instanceof GravityAccountProperties)){throw new Error('invalid channelProperties')}
 
-        console.log(2)
-        const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties)
-        console.log(3)
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        console.log('memberPublicKeys');
-        console.log(memberPublicKeys);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
 
+        const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties)
         memberPublicKeys.map(async (memberKey) => {
-            console.log('--__')
             await jupiterAccountService.addPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
         });
-        console.log(4)
         logger.debug('addMemberToChannelIfDoesntExist() end.')
     }
 

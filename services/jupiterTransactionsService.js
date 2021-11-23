@@ -5,6 +5,7 @@ const _ = require("lodash");
 const {jupiterAPIService, JupiterAPIService} = require("./jupiterAPIService");
 const {feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {channelConfig} = require("../config/constants");
 
 
 class JupiterTransactionsService {
@@ -18,19 +19,26 @@ class JupiterTransactionsService {
         this.jupiterAPIService = jupiterAPIService;
     }
 
-    /**
-     *
-     * @param transaction
-     * @returns {boolean}
-     */
-    // isTransactionAMessage(transaction) {
-    //     // logger.verbose(`isTransactionAMessage()`);
-    //     if (!this.isValidBaseTransaction(transaction)) {
-    //         return false;
-    //     }
-    //
-    //     return this.isValidMessageTransaction(transaction)
-    // }
+    isWellFormedJupiterTransactionId(transactionId){
+        const re = /^[0-9]{15,25}$/
+        if(re.test(transactionId)){
+            return true;
+        }
+
+        return false;
+    }
+
+    extractTransactionId(transaction){
+        if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')};
+        const transactionId =  transaction.transaction;
+        if(!this.isWellFormedJupiterTransactionId(transactionId)){throw new Error('transactionId is not well formed')};
+        return transactionId;
+    }
+
+    extractTransactionIdsFromTransactions(transactions){
+        if(!this.areValidTransactions(transactions)){throw new Error('not all are valid transactions')};
+        return transactions.map(transaction => transaction.transaction);
+    }
 
     /**
      *
@@ -86,18 +94,11 @@ class JupiterTransactionsService {
         logger.verbose('## areValidTransactions(transactions)');
         logger.verbose('##');
         logger.error('use ajv!!!')
-        if (!Array.isArray(transactions)) {
-            logger.error('-- not Array');
+
+        if(!gu.isNonEmptyArray(transactions)){
+            logger.warn('not valid array');
             return false;
         }
-        logger.verbose(`transactions.length=${transactions.length}`);
-
-        if (transactions.length <= 0) {
-            logger.error('-- empty array passed in');
-            return false
-        }
-
-        // logger.debug(`-- Total transactions to validate: ${transactions.length}`)
 
         for (let i = 0; i < transactions.length; i++) {
             if (!this.isValidBaseTransaction(transactions[i])) {
@@ -106,7 +107,7 @@ class JupiterTransactionsService {
                 return false;
             }
         }
-        // logger.verbose(` -- Transactions are valid.`);
+
         return true;
     }
 
@@ -160,7 +161,9 @@ class JupiterTransactionsService {
      *
      */
     isValidBaseTransaction(transaction) {
-        // logger.verbose(`isValidBaseTransaction(transaction)`)
+
+        return true; //@TODO FIX!!!
+
         if(!transaction){
             logger.error('not an object')
             return false
@@ -614,42 +617,109 @@ class JupiterTransactionsService {
 
     /**
      *
+     * @param messageTransactionIds
+     * @param crypto
+     * @param passphrase
+     * @returns {Promise<Array>}
+     */
+    readMessagesFromMessageTransactionIdsAndDecryptOrNull(messageTransactionIds, crypto, passphrase) {
+        return this.readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)
+            .then(messages => messages)
+            .catch(error => null);
+    }
+
+    /**
+     *
      * @param {array} messageTransactionIds
      * @param {GravityCrypto} crypto
      * @param {string} passphrase
      * @returns {Promise<array>}
      */
-    async readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase) {
+    readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase) {
         logger.verbose('##############################################################################################');
         logger.verbose('## readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)');
+        logger.verbose('##');
+        logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
+
+
+
+        return this.readMessagesFromMessageTransactionIdsAndApplyCallback(
+            messageTransactionIds,
+            (transactionId) => this.getReadableMessageFromMessageTransactionIdAndDecrypt(transactionId, crypto, passphrase)
+        )
+
+        // const groupMaxSize = 50;
+        //
+        // return new Promise(async (resolve, reject) => {
+        //     if (!(messageTransactionIds.length > 0)) {
+        //         logger.warn(`Empty messageTransactionIds array`);
+        //         return resolve([]); // return reject({status: '', message: ''});
+        //     }
+        //
+        //     let metisMessagePromises = [];
+        //     let transactionGroupCount = Math.ceil((messageTransactionIds.length)/groupMaxSize);
+        //     // console.log(`Total transactions: ${messageTransactionIds.length}`);
+        //     // console.log(`transactionGroupCount=${transactionGroupCount}`);
+        //     let results = [];
+        //     for(let currentGroup = 0; currentGroup < transactionGroupCount; currentGroup++) {
+        //         // console.log(`-- Current Group: ${currentGroup} --`);
+        //         let transactionsCount = Math.min(messageTransactionIds.length, groupMaxSize);
+        //         for(let j = 0; j < transactionsCount; j++){
+
+        //metisMessagePromises.push(promiseResult)
+
+        //                 this.getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionIds.pop(), crypto, passphrase)
+        //             )
+        //             metisMessagePromises.push(
+
+        //                 this.getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionIds.pop(), crypto, passphrase)
+        //             )
+        //         }
+        //
+        //         // console.log('START AWAIT ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        //         results = results.concat(await this.allMessagePromises(metisMessagePromises));
+        //         // console.log('END AWAIT -----------------------++++++++++++++++++++++++++++++++++++----------------------------------')
+        //     }
+        //
+        //     return  resolve(results);
+        // })
+    }
+
+
+    /**
+     * Throughling
+     * @param messageTransactionIds
+     * @param callback
+     * @returns {Promise<unknown>}
+     */
+    async readMessagesFromMessageTransactionIdsAndApplyCallback(messageTransactionIds, callback) {
+        logger.verbose('##############################################################################################');
+        logger.verbose('## readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, callback)');
         logger.verbose('##');
         logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
 
         const groupMaxSize = 50;
 
         return new Promise(async (resolve, reject) => {
-            if (!(messageTransactionIds.length > 0)) {
-                logger.warn(`Empty messageTransactionIds array`);
+
+            if(!this.areValidTransactions(messageTransactionIds)){
+                logger.warn(`problem with messageTransactionIds`);
                 return resolve([]); // return reject({status: '', message: ''});
             }
 
+            // if (!(messageTransactionIds.length > 0)) {
+            //     logger.warn(`Empty messageTransactionIds array`);
+            //     return resolve([]); // return reject({status: '', message: ''});
+            // }
             let metisMessagePromises = [];
             let transactionGroupCount = Math.ceil((messageTransactionIds.length)/groupMaxSize);
-            // console.log(`Total transactions: ${messageTransactionIds.length}`);
-            // console.log(`transactionGroupCount=${transactionGroupCount}`);
             let results = [];
             for(let currentGroup = 0; currentGroup < transactionGroupCount; currentGroup++) {
-                // console.log(`-- Current Group: ${currentGroup} --`);
                 let transactionsCount = Math.min(messageTransactionIds.length, groupMaxSize);
                 for(let j = 0; j < transactionsCount; j++){
-                    metisMessagePromises.push(
-                        this.getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionIds.pop(), crypto, passphrase)
-                    )
+                    metisMessagePromises.push(callback(messageTransactionIds.shift()))
                 }
-
-                // console.log('START AWAIT ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
                 results = results.concat(await this.allMessagePromises(metisMessagePromises));
-                // console.log('END AWAIT -----------------------++++++++++++++++++++++++++++++++++++----------------------------------')
             }
 
             return  resolve(results);
@@ -657,44 +727,50 @@ class JupiterTransactionsService {
     }
 
 
+
+    readMessagesFromMessageTransactionIdsOrNull(messageTransactionIds, passphrase) {
+        return this.readMessagesFromMessageTransactionIds(messageTransactionIds, passphrase)
+            .then(messages => messages)
+            .catch(error => null);
+    }
+
+    /**
+     *
+     * @param messageTransactionIds
+     * @param passphrase
+     * @param password
+     * @returns {Promise<unknown>}
+     */
+    readMessagesFromMessageTransactionIds(messageTransactionIds, passphrase) {
+        logger.verbose('##############################################################################################');
+        logger.verbose('## readMessagesFromMessageTransactionIds(messageTransactionIds, crypto)');
+        logger.verbose('##');
+        logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
+
+        return this.readMessagesFromMessageTransactionIdsAndApplyCallback(
+            messageTransactionIds,
+            (transactionId) => this.getReadableMessageFromMessageTransactionId(transactionId, passphrase)
+        )
+    }
+
+
+    /**
+     *
+     * @param messageTransactionIds
+     * @param crypto
+     * @param passphrase
+     * @returns {Promise<unknown>}
+     */
     async readMessagesFromMessageTransactionIdsAndDecryptOrPassThrough(messageTransactionIds, crypto, passphrase) {
         logger.verbose('##############################################################################################');
         logger.verbose('## readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)');
         logger.verbose('##');
         logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
 
-        const groupMaxSize = 50;
-
-        return new Promise(async (resolve, reject) => {
-            if (!(messageTransactionIds.length > 0)) {
-                logger.warn(`Empty messageTransactionIds array`);
-                return resolve([]); // return reject({status: '', message: ''});
-            }
-
-            let metisMessagePromises = [];
-            let transactionGroupCount = Math.ceil((messageTransactionIds.length)/groupMaxSize);
-            // console.log(`Total transactions: ${messageTransactionIds.length}`);
-            // console.log(`transactionGroupCount=${transactionGroupCount}`);
-            let results = [];
-            for(let currentGroup = 0; currentGroup < transactionGroupCount; currentGroup++) {
-                // console.log(`-- Current Group: ${currentGroup} --`);
-                let transactionsCount = Math.min(messageTransactionIds.length, groupMaxSize);
-                for(let j = 0; j < transactionsCount; j++){
-                    metisMessagePromises.push(
-                        this.getReadableMessageFromMessageTransactionIdAndDecryptOrPassThrough(messageTransactionIds.pop(), crypto, passphrase)
-                    )
-                }
-
-                // console.log('START AWAIT ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-                results = results.concat(await this.allMessagePromises(metisMessagePromises));
-                // console.log('END AWAIT -----------------------++++++++++++++++++++++++++++++++++++----------------------------------')
-            }
-
-            logger.debug(`messageTransactionIds.length=${messageTransactionIds.length}`);
-            logger.debug(`metisMessagePromises.length=${metisMessagePromises.length}`);
-
-            return  resolve(results);
-        })
+        return await this.readMessagesFromMessageTransactionIdsAndApplyCallback(
+            messageTransactionIds,
+            (transactionId) => this.getReadableMessageFromMessageTransactionIdAndDecryptOrPassThrough(transactionId, crypto, passphrase)
+        )
     }
 
     allMessagePromises(promises){
@@ -732,6 +808,35 @@ class JupiterTransactionsService {
                 })
 
         })
+    }
+
+
+    /**
+     *
+     * @param gravityAccountProperties
+     * @param tag
+     * @param isMetisEncrypted
+     * @returns {Promise<*>}
+     */
+    async getReadableMessagesFromTaggedTransactionsOrNull(gravityAccountProperties, tag, isMetisEncrypted = true){
+        if (!(gravityAccountProperties instanceof GravityAccountProperties)) {
+            throw new Error('memberAccountProperties incorrect')
+        }
+        if(!tag){throw new Error('tag is invalid')};
+
+        const transactions = await this.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
+            gravityAccountProperties.address,
+            tag
+        )
+
+        const transactionIds = this.extractTransactionIds(transactions);
+        if(!gu.isNonEmptyArray(transactionIds)){return null}
+
+        const messages = isMetisEncrypted ?
+            await this.readMessagesFromMessageTransactionIdsAndDecryptOrNull(transactionIds, gravityAccountProperties.crypto, gravityAccountProperties.passphrase) :
+            await this.readMessagesFromMessageTransactionIds(transactionIds, gravityAccountProperties.passphrase)
+
+        return messages;
     }
 
     /**
@@ -785,6 +890,13 @@ class JupiterTransactionsService {
     }
 
 
+    /**
+     *
+     * @param messageTransactionId
+     * @param crypto
+     * @param passphrase
+     * @returns {Promise<unknown>}
+     */
     async getReadableMessageFromMessageTransactionIdAndDecryptOrPassThrough(messageTransactionId, crypto, passphrase) {
         // logger.verbose('#####################################################################################');
         // logger.verbose('## getReadableMessageFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)');

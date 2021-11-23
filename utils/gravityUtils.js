@@ -56,19 +56,15 @@ const isObject = function (obj)
  */
 const isNonEmptyArray = function(array)
 {
-    try {
-        if (!Array.isArray(array)) {
-            return false
-        }
-
-        if (array.length > 0) {
-            return true
-        }
-
-        return false
-    } catch(error){
+    if (!Array.isArray(array)) {
         return false
     }
+
+    if (array.length > 0) {
+        return true
+    }
+
+    return false
 }
 
 /**
@@ -79,9 +75,10 @@ const isNonEmptyArray = function(array)
  */
 const isWellFormedJupiterAddress = function(address){
 
-    return true;
+    if(!isNonEmptyString(address)){return false};
 
-    const re = /JUP-\w\w\w\w-\w\w\w\w-\w\w\w\w-\w\w\w\w\w/;
+    return true; //@TODO complete the implementation!!!
+    const re = /^JUP-\w\w\w\w-\w\w\w\w-\w\w\w\w-\w\w\w\w\w$/;
     if(re.test(address)){
         return true;
     }
@@ -236,7 +233,8 @@ module.exports = {
     jsonParseOrNull,
     generateRandomPassword,
     isNonEmptyString,
-    isString
+    isString,
+    isNonEmptyArray
 };
 
 
