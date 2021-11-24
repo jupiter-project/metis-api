@@ -144,6 +144,11 @@ class ChanService {
             message.channelRecord.password
         )
 
+        // console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2')
+        // console.log(message);
+        // gravityAccountProperties.channelName = message.channel_record.channelName;
+
+
         return gravityAccountProperties;
     }
 
@@ -164,7 +169,7 @@ class ChanService {
 
 
 //fix this!!!
-        const channelName = '?'; //get from channel properties?
+        const channelName = channelAccountProperties.channelName; //get from channel properties?
 //fix this!!!
 
 

@@ -424,7 +424,7 @@ class JupiterAccountService {
             const channelRecords = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,memberProperties.crypto, memberProperties.passphrase);
             const listOfChannelsAndTheirProperties = channelRecords.map( async message => {
                     const properties = await  GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message.channel_record.passphrase, message.message.channel_record.password);
-                     properties.channelName = message.message.channel_record.channelName;
+                     properties.channelName = message.message.channel_record.channelName; //@TODO make this more robust.
                      return properties;
             })
 
