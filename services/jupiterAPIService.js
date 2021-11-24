@@ -729,6 +729,11 @@ class JupiterAPIService {
     }
 
 
+    /**
+     *
+     * @param aliasName
+     * @returns {Promise<*>}
+     */
     async getAlias(aliasName) {
         logger.verbose('#################################################')
         logger.verbose(`## getAlias(aliasName= ${aliasName})`);

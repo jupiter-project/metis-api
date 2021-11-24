@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt-nodejs");
 const gu = require("../utils/gravityUtils");
 const {applicationAccountProperties} = require("./applicationAccountProperties");
 const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
+const jupiterAPIService = require("../services/jupiterAPIService");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 
@@ -106,8 +107,10 @@ class GravityAccountProperties extends JupiterAccountProperties {
     }
 
 
+
+    //@TODO generateUserRecord should be removed.
     /**
-     *
+     * OBSOLETE!
      * @param generatingTransactionId
      * @returns {{date: number, user_record: {firstname: string, twofa_enabled: boolean, publicKey: string, lastname: string, secret_key: null, accounthash: string, twofa_completed: boolean, api_key: *, alias: *, encryption_password: string, id, account: string, email: string}, id}}
      */
@@ -162,68 +165,113 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
     }
 
+
+    /**
+     *
+     * @param passphrase
+     * @param password
+     */
+    static instantiateBasicGravityAccountProperties(passphrase, password) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## GravityAccountProperties.instantiateBasicGravityAccountProperties(passphrase, password)`);
+        logger.verbose(`## `);
+        logger.sensitive(`passphrase= ${JSON.stringify(passphrase)}`);
+        logger.sensitive(`password= ${JSON.stringify(password)}`);
+
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('problem with passphrase')};
+        if(!password){throw new Error('password empty')};
+
+        return jupiterTransactionsService.getAccountInformationUsingPassphrase(passphrase)
+            .then( accountInfo => {
+                logger.sensitive(`accountInfo= ${JSON.stringify(accountInfo)}`);
+                if(typeof accountInfo.publicKey === 'undefined'){throw new Error('publicKey is undefined!')}
+                if(typeof accountInfo.accountId === 'undefined'){throw new Error('accountId is undefined!')}
+                if(typeof accountInfo.address === 'undefined'){throw new Error('address is undefined!')}
+                const properties = new GravityAccountProperties(
+                    accountInfo.address,
+                    accountInfo.accountId,
+                    accountInfo.publicKey,
+                    passphrase,
+                    gu.generateHash(password),
+                    password
+                )
+
+                properties.accountCreationFeeNQT = accountInfo.accountCreationFeeNQT;
+                properties.unconfirmedBalanceNqt = accountInfo.unconfirmedBalanceNqt;
+                properties.forgedBalanceNqt = accountInfo.forgedBalanceNqt;
+                properties.balanceNqt = accountInfo.balanceNqt;
+
+                return jupiterTransactionsService.getAliasesOrEmptyArray(properties.address)
+                    .then(aliases => {
+                        aliases.forEach( alias => properties.addAlias(alias));
+                        return properties;
+                    })
+            })
+    }
+
+
     /**
      *
      * @param jwtAccountData
      * @returns {Object}
      */
-    static instantiateBasicGravityAccountProperties(passphrase, password){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## instantiateBasicGravityAccountProperties`);
-        logger.verbose(`## `);
-        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
-        logger.sensitive(`password=${JSON.stringify(password)}`);
+    // static instantiateBasicGravityAccountProperties(passphrase, password){
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## instantiateBasicGravityAccountProperties`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+    //     logger.sensitive(`password=${JSON.stringify(password)}`);
+    //
+    //     if(!passphrase){throw new Error('passphrase is empty')}
+    //     if(!password){throw new Error('password is empty')}
+    //
+    //     return jupiterTransactionsService.getAccountInformation(passphrase)
+    //         .then(accountInfo => {
+    //
+    //             console.log(accountInfo);
+    //
+    //             if(typeof accountInfo.publicKey === 'undefined'){throw new Error('publicKey is undefined!')}
+    //             if(typeof accountInfo.accountId === 'undefined'){throw new Error('accountId is undefined!')}
+    //
+    //             return GravityAccountProperties.instantiateGravityAccountProperties(
+    //                 accountInfo.address,
+    //                 passphrase,
+    //                 password,
+    //                 accountInfo.accountId,
+    //                 accountInfo.publicKey,
+    //                 gu.generateHash(password)
+    //             )
+    //         }).catch( error => {
+    //             logger.error(`***********************************************************************************`);
+    //             logger.error(`** instantiateBasicGravityAccountProperties().catch(error)`);
+    //             logger.error(`** `);
+    //             console.log(error);
+    //             throw error;
+    //         })
+    // }
 
-        if(!passphrase){throw new Error('passphrase is empty')}
-        if(!password){throw new Error('password is empty')}
-
-        return jupiterTransactionsService.getAccountInformation(passphrase)
-            .then(accountInfo => {
-
-                console.log(accountInfo);
-
-                if(typeof accountInfo.publicKey === 'undefined'){throw new Error('publicKey is undefined!')}
-                if(typeof accountInfo.accountId === 'undefined'){throw new Error('accountId is undefined!')}
-
-                return GravityAccountProperties.instantiateGravityAccountProperties(
-                    accountInfo.address,
-                    passphrase,
-                    password,
-                    accountInfo.accountId,
-                    accountInfo.publicKey,
-                    gu.generateHash(password)
-                )
-            }).catch( error => {
-                logger.error(`***********************************************************************************`);
-                logger.error(`** instantiateBasicGravityAccountProperties().catch(error)`);
-                logger.error(`** `);
-                console.log(error);
-                throw error;
-            })
-    }
-
-    /**
-     *
-     * @param address
-     * @param passphrase
-     * @param password
-     * @param accountId
-     * @param publicKey
-     * @param accountHash
-     * @param algorithm
-     * @returns {GravityAccountProperties}
-     */
-    static instantiateGravityAccountProperties(address, passphrase, password, accountId, publicKey, accountHash, algorithm = encryptAlgorithm){
-        return new GravityAccountProperties(
-            address,
-            accountId,
-            publicKey,
-            passphrase,
-            accountHash,
-            password,
-            algorithm
-        );
-    }
+    // /**
+    //  *
+    //  * @param address
+    //  * @param passphrase
+    //  * @param password
+    //  * @param accountId
+    //  * @param publicKey
+    //  * @param accountHash
+    //  * @param algorithm
+    //  * @returns {GravityAccountProperties}
+    //  */
+    // static instantiateGravityAccountProperties(address, passphrase, password, accountId, publicKey, accountHash, algorithm = encryptAlgorithm){
+    //     return new GravityAccountProperties(
+    //         address,
+    //         accountId,
+    //         publicKey,
+    //         passphrase,
+    //         accountHash,
+    //         password,
+    //         algorithm
+    //     );
+    // }
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;

@@ -655,57 +655,58 @@ class JupiterAccountService {
     }
 
 
-    async getTableAccountProperties( tag, userAccountProperties){ //tableConfig.channelsTable
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getTableAccountProperties( tag, userAccountProperties)`);
-        logger.verbose(`## `);
-        logger.sensitive(`tag=${JSON.stringify(tag)}`);
-
-        // const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(userAccountProperties.address);
-        // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
-        // const transactionMessages = messagesBySender.map((message) => message.message);
-        // const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
-
-        const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAccountProperties.address, tag)
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        console.log('transactions.length');
-        console.log(transactions.length);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
-
-        const transactionIds = transactions.map(transaction=> transaction.transaction);
-
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        console.log('transactionIds');
-        console.log(transactionIds);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
-
-        const [message] = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,userAccountProperties.crypto, userAccountProperties.passphrase)
-
-    // ] [{"message":{"channels":{"address":"JUP-GBN3-DL5H-GU9G-DB5H5","passphrase":"break felicity knee any distance replace witch twenty pen problem diamond surprise","public_key":"8b4a47a687a7061c540d17030489279721371600e2cf766da6d9b46bc7ad3547"}},"transactionId":"17261131886870606461"}]
-
-        let tableName = null;
-        switch(tag){
-            case tableConfig.channelsTable: tableName='channels';break;
-        }
-
-
-
-        const properties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message[tableName].passphrase, message.message[tableName].password);
-
-
-        return properties;
-        // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
-
-
-        // const firstMemberAccountStatement = await this.fetchAccountStatement(userAccountProperties.passphrase, userAccountProperties.password);
-        // const  channelStatement = transactions.find(transaction => statement.statementId === 'table-channels');
-
-
-
-        // return channelStatement.properties;
-    }
+    // async getTableAccountProperties( tag, userAccountProperties){ //tableConfig.channelsTable
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getTableAccountProperties( tag, userAccountProperties)`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`tag=${JSON.stringify(tag)}`);
+    //
+    //     // const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(userAccountProperties.address);
+    //     // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
+    //     // const transactionMessages = messagesBySender.map((message) => message.message);
+    //     // const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
+    //
+    //     const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAccountProperties.address, tag)
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //     console.log('transactions.length');
+    //     console.log(transactions.length);
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //
+    //     if(transactions.length === 0){ throw new Error('No Transactions/ValidMessages Found')}
+    //
+    //     const transactionIds = transactions.map(transaction=> transaction.transaction);
+    //
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //     console.log('transactionIds');
+    //     console.log(transactionIds);
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //
+    //
+    //     //[{"message":{"channels":{"address":"JUP-GBN3-DL5H-GU9G-DB5H5","passphrase":"break felicity knee any distance replace witch twenty pen problem diamond surprise","public_key":"8b4a47a687a7061c540d17030489279721371600e2cf766da6d9b46bc7ad3547"}},"transactionId":"17261131886870606461"}]
+    //     const [message] = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecrypt(transactionIds,userAccountProperties.crypto, userAccountProperties.passphrase)
+    //     if(!message){ throw new Error('No Transactions/ValidMessages Found')}
+    //
+    //     let tableName = null;
+    //     switch(tag){
+    //         case tableConfig.channelsTable: tableName='channels';break;
+    //     }
+    //
+    //
+    //
+    //     const properties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message[tableName].passphrase, message.message[tableName].password);
+    //
+    //
+    //     return properties;
+    //     // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
+    //
+    //
+    //     // const firstMemberAccountStatement = await this.fetchAccountStatement(userAccountProperties.passphrase, userAccountProperties.password);
+    //     // const  channelStatement = transactions.find(transaction => statement.statementId === 'table-channels');
+    //
+    //
+    //
+    //     // return channelStatement.properties;
+    // }
 
 
 

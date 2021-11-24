@@ -698,6 +698,9 @@ class JupiterTransactionsService {
         logger.verbose('##');
         logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
 
+
+        if(!gu.isNonEmptyArray(messageTransactionIds)){return []}
+
         const groupMaxSize = 50;
 
         return new Promise(async (resolve, reject) => {
@@ -1224,6 +1227,10 @@ class JupiterTransactionsService {
         });
     }
 
+
+
+
+
     /**
      *
      * @param address
@@ -1276,6 +1283,58 @@ class JupiterTransactionsService {
         });
     }
 
+    /**
+     * example: {address, accountId, publicKey, passphrase}
+     * @param passphrase
+     * @returns {Promise<{address, accountId, publicKey, passphrase}>}
+     */
+    getAccountIdOrNewAccount(passphrase) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAccountIdOrNewAccount(passphrase)`);
+        logger.verbose(`## `);
+        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+
+        return jupiterAPIService.getAccountId(passphrase)
+            .then(accountIdResponse => {
+
+                if( !(accountIdResponse.hasOwnProperty('accountRS') &&  gu.isWellFormedJupiterAddress(accountIdResponse.accountRS))){
+                    throw new Error('theres a problem with getAccountId.accountRS')
+                }
+
+                if( !(accountIdResponse.hasOwnProperty('account') &&  gu.isWellFormedJupiterTransactionId(accountIdResponse.account))){
+                    throw new Error('theres a problem with getAccountId.account')
+                }
+
+                if( !(accountIdResponse.hasOwnProperty('publicKey') &&  gu.isWellFormedPublicKey(accountIdResponse.publicKey))){
+                    throw new Error('theres a problem with getAccountId.publicKey')
+                }
+
+
+                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+                console.log('accountIdResponse');
+                console.log(accountIdResponse);
+                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+
+                const accountInformation =  {
+                    address: accountIdResponse.accountRS,
+                    accountId: accountIdResponse.account,
+                    publicKey: accountIdResponse.publicKey,
+                    passphrase: passphrase
+                }
+                logger.sensitive(`accountInformation= ${JSON.stringify(accountInformation)}`);
+
+                return accountInformation
+            })
+            .catch( error => {
+                logger.error(`***********************************************************************************`);
+                logger.error(`** getAccountIdOrNewAccount().getAccountId()catch(error)`);
+                logger.error(`** `);
+                console.log(error);
+                throw error;
+            })
+    }
 
     /**
      *
@@ -1304,6 +1363,62 @@ class JupiterTransactionsService {
             })
     }
 
+
+    /**
+     *
+     * @param passphrase
+     * @returns {passphrase, unconfirmedBalanceNqt, accountId, address, forgedBalanceNqt, publicKey, balanceNqt}
+     */
+    getAccountInformationUsingPassphrase(passphrase){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAccountInformationUsingPassphrase(passphrase)`);
+        logger.verbose(`## `);
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+        return this.getAccountIdOrNewAccount(passphrase)
+            .then(account => {
+                console.log('** $$ ** $$ ** $$');
+                return this.getAccountInformation(account.address)
+                    .then(accountInfo => {
+                        const accountInformationUsingPassphrase = {
+                            ...accountInfo,
+                            passphrase
+                        }
+                        logger.sensitive(JSON.stringify(accountInformationUsingPassphrase));
+                        return accountInformationUsingPassphrase;
+                    })
+            })
+    }
+
+    /**
+     *
+     * @param {string} address
+     */
+    getAliasesOrEmptyArray(address){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAliasesOrEmptyArray(address)`);
+        logger.verbose(`## `);
+        logger.sensitive(`address=${JSON.stringify(address)}`);
+        if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}
+
+        return this.jupiterAPIService.getAliases(address)
+            .then(getAliasesResponse => {
+                logger.verbose(`-----------------------------------------------------------------------------------`);
+                logger.verbose(`-- getAliasesOrEmptyArray(address).jupiterAPI().getAliases().then()`);
+                logger.verbose(`-- `);
+                if(getAliasesResponse.hasOwnProperty('data') && getAliasesResponse.data.hasOwnProperty('aliases')){
+                    return getAliasesResponse.data.aliases;
+                }
+                return [];
+            })
+            .catch( error => {
+                logger.error(`***********************************************************************************`);
+                logger.error(`** getAliasesOrEmptyArray(address=${address}).catch(error)`);
+                logger.error(`** `);
+                console.log(error);
+                return [];
+            })
+    }
+
     /**
      *
      * @param aliasName
@@ -1318,12 +1433,19 @@ class JupiterTransactionsService {
                 return false;
             })
             .catch( error => {
+                logger.error(`***********************************************************************************`);
+                logger.error(`** isAliasAvailable(aliasName).catch(error)`);
+                logger.error(`** `);
+                logger.sensitive(`error=${error}`);
                 if(error === 'Unknown alias'){
                     return true;
                 }
+
+                console.log(error);
                 throw error;
             })
     }
+
 
     /**
      *

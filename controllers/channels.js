@@ -301,14 +301,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
 
 
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('channelAccountProperties');
-            console.log(channelAccountProperties);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
-
-            //@TODO invite only once!!!!
-            return chanService.createNewInvitation(
+            return chanService.createInvitation(
                 channelAccountProperties,
                 inviterAccountProperties,
                 inviteeAddress)
@@ -349,7 +342,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
             req.user.passphrase,
             req.user.password);
-
 
 
         console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
