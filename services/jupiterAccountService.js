@@ -326,9 +326,9 @@ class JupiterAccountService {
             accountProperties.passphrase
         );
 
-        if(!Array.isArray(transactionMessage)){throw new Error('transaction message is not an array')}
+        if(!Array.isArray(transactionMessage.message)){throw new Error('transaction message is not an array')}
 
-        return transactionMessage;
+        return transactionMessage.message;
     }
 
     /**
@@ -342,7 +342,7 @@ class JupiterAccountService {
         logger.verbose(`## `);
         logger.sensitive(`accountProperties=${JSON.stringify(accountProperties)}`);
 
-        if(! accountProperties instanceof GravityAccountProperties){throw new Error('invalid accountProperties')}
+        if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
 
         try {
 
@@ -372,6 +372,10 @@ class JupiterAccountService {
             const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(accountProperties.address, channelConfig.channelUserList);
             const [latestTransaction] = transactions;
 
+            if(!latestTransaction){
+                return [];
+            }
+
             const message = await jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
                 latestTransaction.transaction,
                 accountProperties.crypto,
@@ -385,6 +389,7 @@ class JupiterAccountService {
 
             return publicKeyIds.map((pk) => pk.message);
         } catch (error) {
+            logger.error('######### getPublicKeysFromChannelAccount ########')
             logger.error(`${error}`);
         }
     }

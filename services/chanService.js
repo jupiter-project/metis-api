@@ -120,7 +120,7 @@ class ChanService {
         logger.sensitive(`channelAddress=${channelAddress}`);
         logger.sensitive(`memberAccountProperties.address=${memberAccountProperties.address}`);
 
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')};
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
@@ -133,16 +133,19 @@ class ChanService {
         if (!gu.isNonEmptyArray(transactionsBySelf)) {
             return null;
         }
-        const transaction = transactionsBySelf[0];
+        const [transaction] = transactionsBySelf;
         const transactionId = this.jupiterTransactionsService.extractTransactionId(transaction);
-        const message = await this.jupiterTransactionsService.getReadableMessageFromMessageTransactionIdOrNull(
+        const message = await this.jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
             transactionId,
+            memberAccountProperties.crypto,
             memberAccountProperties.passphrase
-        )
+        );
+
+        console.log('Message --->', message);
 
         const gravityAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
-            message.channelRecord.passphrase,
-            message.channelRecord.password
+            message.message.channel_record.passphrase,
+            message.message.channel_record.password
         )
 
         return gravityAccountProperties;
@@ -200,8 +203,8 @@ class ChanService {
         logger.verbose(`## createNewChannel(channelName,firstMemberProperties)`);
         logger.verbose(`## `);
         logger.sensitive(`channelName=${JSON.stringify(channelName)}`);
-        if(!(firstMemberProperties instanceof GravityAccountProperties)){throw new Error('firstMemberProperties is invalid')};
-        if(!gu.isWellFormedJupiterAddress(channelName)){'channelName is malformed'}
+        if(!(firstMemberProperties instanceof GravityAccountProperties)){throw new Error('firstMemberProperties is invalid')}
+        if(!channelName){ throw new Error('channelName is empty');}
 
         // const channelsTableAccountProperties = await this.jupiterAccountService.getTableAccountProperties(
         //     tableConfig.channelsTable,
@@ -224,7 +227,7 @@ class ChanService {
             tag,
             feeType,
             firstMemberProperties.publicKey
-        )
+        );
 
         await metis.addMemberToChannelIfDoesntExist(firstMemberProperties, channelAccountProperties);
         await metis.addToMemberList({
@@ -233,6 +236,8 @@ class ChanService {
             account: firstMemberProperties.address,
             alias: firstMemberProperties.getCurrentAliasNameOrNull()
         });
+
+        logger.info('############## createNewChannel END #################');
 
         return {channelName, channelAccountProperties};
     }

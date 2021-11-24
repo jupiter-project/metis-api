@@ -61,6 +61,7 @@ class Channel extends Model {
     // @TODO figure out how to get a single channel
     const { records } = await super.loadRecords(accessData);
     if (records && Array.isArray(records)) {
+      console.log('Channel records ------>'. records);
       return records.find(record => record.channel_record.account === account);
     }
 

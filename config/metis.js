@@ -232,7 +232,7 @@ function Metis() {
         if(!(channelProperties instanceof GravityAccountProperties)){throw new Error('invalid channelProperties')}
 
 
-        const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties)
+        const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties);
         memberPublicKeys.map(async (memberKey) => {
             await jupiterAccountService.addPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
         });

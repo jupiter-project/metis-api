@@ -959,11 +959,17 @@ class JupiterTransactionsService {
         // logger.verbose('#####################################################################################');
         // logger.verbose('## getReadableMessageFromMessageTransactionId(messageTransactionId,passphrase)');
         // logger.verbose('####');
+        if(!messageTransactionId){
+            throw  new Error('Transaction is empty')
+        }
+        if(!passphrase){
+            throw  new Error('Passphrase is empty')
+        }
         return new Promise((resolve, reject) => {
-            if (!gu.isWellFormedJupiterTransactionId(messageTransactionId)) {
-                logger.warn(`invalid messageTransactionId`);
-                return reject({status: 'Error', message: `Transaction ID is not valid : ${messageTransactionId}`});
-            }
+            // if (!gu.isWellFormedJupiterTransactionId(messageTransactionId)) {
+            //     logger.warn(`invalid messageTransactionId`);
+            //     return reject({status: 'Error', message: `Transaction ID is not valid : ${messageTransactionId}`});
+            // }
             //getMessage() = {data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}
             this.jupiterAPIService.getMessage(messageTransactionId, passphrase)
                 .then((response) => {
@@ -1377,15 +1383,15 @@ class JupiterTransactionsService {
         return this.getAccountIdOrNewAccount(passphrase)
             .then(account => {
                 console.log('** $$ ** $$ ** $$');
-                return this.getAccountInformation(account.address)
-                    .then(accountInfo => {
-                        const accountInformationUsingPassphrase = {
-                            ...accountInfo,
-                            passphrase
-                        }
-                        logger.sensitive(JSON.stringify(accountInformationUsingPassphrase));
-                        return accountInformationUsingPassphrase;
-                    })
+                return this.getAccountInformation(account.address);
+            })
+            .then(accountInfo => {
+                const accountInformationUsingPassphrase = {
+                    ...accountInfo,
+                    passphrase
+                }
+                logger.sensitive(JSON.stringify(accountInformationUsingPassphrase));
+                return accountInformationUsingPassphrase;
             })
     }
 

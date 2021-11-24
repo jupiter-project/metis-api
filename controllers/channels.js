@@ -8,6 +8,8 @@ import metis from '../config/metis';
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
+import ChannelRecord from "../models/channel";
+const jwt = require('jsonwebtoken');
 
 const {
     v1: uuidv1,
@@ -16,7 +18,6 @@ const {
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
 const logger = require('../utils/logger')(module);
-const {hasJsonStructure} = require('../utils/utils');
 const {getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification} = require('../services/messageService');
 
 module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
@@ -46,6 +47,8 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                  channelName: channelAccountProperties.channelName});
              return reduced;
         }, [])
+
+        console.log('ChannelList ----->', listOfChannels);
 
         res.send(listOfChannels);
     })
@@ -159,8 +162,20 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         logger.info('== GET: /v1/api/data/messages/:scope/:firstIndex');
         logger.info('======================================================================================');
         console.log('');
+        const { user } = req;
+        const { channelAddress } = req.query
 
-        const {user, channel} = req;
+        if (!channelAddress) {
+            return res.status(400).send({success: false, message: 'Channel account is required'});
+        }
+
+
+        const channelRecord = new ChannelRecord({ user_id: user.id, public_key: user.publicKey, user_api_key: user.publicKey });
+        const userData = JSON.parse(gravity.decrypt(user.accountData));
+        const channel = await channelRecord.loadChannelByAddress(channelAddress, userData);
+
+        console.log('Current channel ---->', channel);
+
         const tableData = {
             passphrase: channel.channel_record.passphrase,
             account: channel.channel_record.account,
@@ -169,8 +184,6 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         const channelModel = new Channel(tableData);
         channelModel.user = user;
 
-        const order = _.get(req, 'headers.order', 'desc');
-        const limit = _.get(req, 'headers.limit', 10); //TODO we need to get rid of this
         channelModel.loadMessages(req.params.scope, req.params.firstIndex, order, limit)
             .then(response => res.send(response))
             .catch(error => {
@@ -335,13 +348,21 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         console.log('');
 
         const {channelName} = req.body;
+        const { userData: { alias, account } } = req.user;
         if (!channelName) {
             return res.status(400).send({errorMessage: 'need channelName in body'})
         }
-
         const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
             req.user.passphrase,
             req.user.password);
+
+        const aliasInfo = {
+            aliasName: alias,
+            aliasURI: '--',
+            accountRS: account,
+        };
+
+        memberAccountProperties.addAlias(aliasInfo); //TODO remove this
 
 
         console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')

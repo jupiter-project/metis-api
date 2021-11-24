@@ -298,7 +298,10 @@ jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
       memberAccountProperties.passphrase,
       memberAccountProperties.password);
 
+  memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
   const createNewChannelResults = await chanService.createNewChannel(channelName, memberProperties);
+
+  console.log('RESULTS -------->', createNewChannelResults);
 
   return done(null, {
     channelName: createNewChannelResults.channelName ,
