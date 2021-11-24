@@ -3,11 +3,8 @@ const gu = require('../utils/gravityUtils');
 const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {jupiterAccountService} = require("./jupiterAccountService");
 const {tableService} = require("./tableService");
-const {FeeManager, feeManagerSingleton} = require("./FeeManager");
+const {FeeManager} = require("./FeeManager");
 
-/**
- *
- */
 class ChanService {
     /**
      *
@@ -42,6 +39,10 @@ class ChanService {
         this.tableService = tableService;
         this.gravity = gravity;
     }
+
+
+
+
 
     /**
      *
@@ -143,11 +144,6 @@ class ChanService {
             message.channelRecord.passphrase,
             message.channelRecord.password
         )
-
-        // console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2')
-        // console.log(message);
-        // gravityAccountProperties.channelName = message.channel_record.channelName;
-
 
         return gravityAccountProperties;
     }
@@ -348,7 +344,7 @@ class ChanService {
         logger.sensitive(`messages= ${JSON.stringify(messages)}`);
 
         const  filteredMessages = messages.reduce((reduced, message) => {
-            reduced.push(message.message);
+            reduced.push(message.message.channelRecord.channel_record);
             return reduced;
         }, []);
 

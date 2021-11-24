@@ -205,8 +205,16 @@ find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
 
 // Route any invalid routes black to the root page
 app.get('/*', (req, res) => {
-  req.flash('errorMessage', 'Invalid route');
-  res.redirect('/');
+  console.log('');
+  logger.info('======================================================================================');
+  logger.info('==');
+  logger.info('== Invalid Route');
+  logger.info('== GET: ');
+  logger.info('==');
+  logger.info('======================================================================================');
+  console.log('');
+
+  res.status(500).send({message: `Invalid Route`, errorCode: '1101'});
 });
 
 // Gravity call to check app account properties
@@ -214,7 +222,6 @@ const { gravity } = require('./config/gravity');
 const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
 const {jupiterFundingService} = require("./services/jupiterFundingService");
-const {channelCreationSetUp} = require("./services/channelService");
 const {chanService} = require("./services/chanService");
 const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
 
@@ -298,12 +305,6 @@ jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
     channelAccountProperties: createNewChannelResults.channelAccountProperties
   });
 
-  // channelCreationSetUp(channelRecord, decryptedAccountData, userPublicKey, (error) => {
-  //   if(error){
-  //     return done(error)
-  //   }
-  //   return done();
-  // });
 })
 
 /* jobs.process('fundAccount', (job, done) => {

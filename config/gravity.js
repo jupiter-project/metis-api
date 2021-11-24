@@ -8,7 +8,7 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
-import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
+// import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 import {tableConfig} from "./constants";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 const {jupiterAccountService} = require("../services/jupiterAccountService");
@@ -318,13 +318,13 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   loadAccountData(accountCredentials ) { // -> getREcords
-    logger.verbose(`###################################################################################`);
+    logger.info(`###################################################################################`);
     logger.verbose(`## loadAccountData(accountCredentials)`);
     logger.verbose(`## `);
     logger.sensitive(`accountCredentials=${JSON.stringify(accountCredentials)}`);
     return new Promise((resolve, reject) => {
 
-      logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
+      // logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
       this.getRecords(
           accountCredentials.address,
           accountCredentials.address,
@@ -332,9 +332,9 @@ class Gravity {
           { size: 'all', show_pending: null, show_unconfirmed: false },
           accountCredentials.password )
           .then((recordsContainer) => { //{records,last_record,pending}
-            logger.verbose(`-----------------------------------------------------------------------------------`);
-            logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
-            logger.verbose(`-- `);
+            // logger.verbose(`-----------------------------------------------------------------------------------`);
+            // logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
+            // logger.verbose(`-- `);
             logger.sensitive(`recordsContainer=${JSON.stringify(recordsContainer)}`);
             const allRecords = recordsContainer.records;
             if (Array.isArray(allRecords) && !allRecords.length ){
@@ -440,7 +440,7 @@ class Gravity {
       const accountPropertiesHolder = account;
       const accountPropertiesHolderPassphrase = passphrase;
 
-      logger.debug(`loadUserAndAppData(containedDatabase=${!!containedDatabase}).getRecords(ownerAddress=${ownerAddress}, transactionSender=${accountPropertiesHolder}, passphrase)`);
+      // logger.debug(`loadUserAndAppData(containedDatabase=${!!containedDatabase}).getRecords(ownerAddress=${ownerAddress}, transactionSender=${accountPropertiesHolder}, passphrase)`);
       self.getRecords(
           ownerAddress,
           accountPropertiesHolder,
@@ -808,15 +808,11 @@ class Gravity {
       ownerPassword = this.password)
   {
     logger.verbose('############################################################################################################################')
-    logger.verbose(`                       getRecords(ownerAddress= ${ownerAddress}, transactionSender= ${transactionSender}, transactionSenderPassphrase, scope, ownerPass)`)
-    logger.verbose('############################################################################################################################')
+    logger.verbose(`## getRecords(ownerAddress, transactionSender, transactionSenderPassphrase, scope, ownerPass)`)
+    logger.verbose('##')
 
-    logger.debug(`ownerAddress = ${ownerAddress}`);
-    logger.debug(`transactionSender = ${transactionSender}`);
-
-    const reportSection = `Information used for retrieving Account Properties for - ${ownerAddress}`
-    gravityCLIReporter.addItem('Owner Account Address', ownerAddress, reportSection )
-    gravityCLIReporter.addItem('Account Properties Holder', transactionSender,reportSection )
+    logger.verbose(`ownerAddress= ${ownerAddress}`);
+    logger.verbose(`transactionSender= ${transactionSender}`);
 
     const eventEmitter = new events.EventEmitter();
     const self = this;
@@ -865,7 +861,7 @@ class Gravity {
         }
         // logger.debug('getRecords().return()')
         // logger.sensitive(JSON.stringify(responseData));
-        gravityCLIReporter.addItemsInJson('Records', responseData.records, reportSection);
+        // gravityCLIReporter.addItemsInJson('Records', responseData.records, reportSection);
         return resolve(responseData);
       });
 
@@ -915,7 +911,7 @@ class Gravity {
                   decryptedPendings.push(decriptedPending);
                   logger.debug(`decryptedPendings count: ${decriptedPending.length}`);
                 } catch (e) {
-                  logger.error(JSON.stringify(e));
+                  logger.error(`${e}`);
                 }
 
                 recordCounter += 1;
@@ -925,7 +921,6 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error('ERROR!!!')
                 logger.error(`${error}`);
                 return reject({ success: false, errors: `${error}` });
               });
@@ -936,9 +931,7 @@ class Gravity {
       });
 
       eventEmitter.on('records_retrieved', () => {
-
         logger.debug(`getRecords().on(records_retrieved)`);
-        logger.debug('  Calling readMessage for each MessageTransaction received from the Table Account')
         logger.debug(`Message Transaction count: ${records.length}`);
 
         if (records.length <= 0) {
@@ -1043,13 +1036,13 @@ class Gravity {
                   decryptedRecords.push(...decryptedMessages);
                 }
 
-                gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
-                  'Total requests': messageResponses.length,
-                  'Total successful requests': totalSuccessfulMessageRequests,
-                  'Total failed requests': totalUnsuccessfulMessageRequests,
-                  'Total decrypted Message Transactions': decryptedMessages.length,
-                  'Total messages not able to be decrypted': notAbleToDecrypt
-                }, reportSection);
+                // gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
+                //   'Total requests': messageResponses.length,
+                //   'Total successful requests': totalSuccessfulMessageRequests,
+                //   'Total failed requests': totalUnsuccessfulMessageRequests,
+                //   'Total decrypted Message Transactions': decryptedMessages.length,
+                //   'Total messages not able to be decrypted': notAbleToDecrypt
+                // }, reportSection);
 
                 eventEmitter.emit('check_on_pending');
               })
@@ -1141,10 +1134,10 @@ class Gravity {
             } else {
               // console.log(9)
               logger.warn(`${arrayIndex} : Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
-              gravityCLIReporter.addItem(
-                  `Transaction Info for `,
-                  ` # Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`,
-                  reportSection );
+              // gravityCLIReporter.addItem(
+              //     `Transaction Info for `,
+              //     ` # Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`,
+              //     reportSection );
             }
             // console.log(10)
           } else {
@@ -2177,7 +2170,7 @@ class Gravity {
       interval: 10,
     }
 
-    gravityCLIReporter.addItemsInJson('Funding Properties', postParams,'Funding')
+    // gravityCLIReporter.addItemsInJson('Funding Properties', postParams,'Funding')
 
     return this.jupiterRequest('post', postParams);
   }

@@ -34,18 +34,29 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===========================================================
   // Loads versions
   app.get('/v1/api/version', (req, res) => {
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== Get Version');
+    logger.info('== GET: /v1/api/version');
+    logger.info('==');
+    logger.info('======================================================================================');
+    console.log('');
+
     const os = require('os');
     const hostname = os.hostname();
     const jupiInfoUrl = `${process.env.JUPITERSERVER}/nxt?=%2Fnxt&requestType=getBlockchainStatus`;
     axios.get(jupiInfoUrl)
       .then((response) => {
-        console.log(response);
+
         const version = [
           { name: 'Metis App Version', version: '1.1.2' },
           { name: 'Metis Server Version', version: process.env.VERSION },
           { name: 'Jupiter Network', version: response.data.isTestnet ? 'testnet' : 'prod' },
           { name: 'Jupiter Version', version: response.data.version },
         ];
+
+        console.log(version);
         res.send(version);
       })
       .catch((error) => {
@@ -62,6 +73,15 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===========================================================
   // Loads aliases
   app.get('/v1/api/aliases', (req, res) => {
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== Loads Aliases');
+    logger.info('== GET: /v1/api/aliases ');
+    logger.info('==');
+    logger.info('======================================================================================');
+    console.log('');
+
     const {account} = req.query
     const aliases = `${process.env.JUPITERSERVER}/nxt?requestType=getAliases&account=${account}`;
     res.setHeader('Content-Type', 'application/json');
@@ -78,135 +98,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       });
   });
 
-  // ===============================================================================
-  // SIGNIN PAGE
-  // ===============================================================================
-  app.get('/login', (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-    // Loads file with Login page
-    const LoginPage = require('../views/login.jsx');
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(LoginPage, { messages, name: 'Metis - Log In', dashboard: false }),
-    );
-    res.send(page);
-  });
-
-  // ===============================================================================
-  // SIGNUP
-  // ===============================================================================
-
-  app.get('/v1/api/signup', (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-    // Loads file with Signup page
-    const SignupPage = require('../views/signup.jsx');
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(SignupPage, { messages, name: 'Metis - Sign Up', dashboard: false }),
-    );
-    res.send(page);
-  });
-
-  // ===============================================================================
-  // HOMEPAGE, SETTINGS
-  // ===============================================================================
-  app.get('/', controller.isLoggedInIndex, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    // Loads file with Home page file
-    const IndexPage = require('../views/index.jsx');
-    page = ReactDOMServer.renderToString(
-      React.createElement(IndexPage, {
-        connection,
-        messages,
-        name: 'Metis',
-        user: req.user,
-        dashboard: true,
-      }),
-    );
-    res.send(page);
-  });
-
-  app.get('/gravity', (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-
-    const requirements = {
-      passphrase: process.env.APP_ACCOUNT ? 'yes' : false,
-      address: process.env.APP_ACCOUNT_ADDRESS ? 'yes' : false,
-      public_key: process.env.APP_PUBLIC_KEY ? 'yes' : false,
-      encryption: process.env.SESSION_SECRET !== undefined ? 'defined' : 'undefined',
-      name: process.env.APPNAME,
-      version: process.env.VERSION,
-    };
-
-    // Loads gravity setup progress page
-
-    const GravityPage = require('../views/gravity.jsx');
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(GravityPage, {
-        messages,
-        requirements,
-        name: 'Metis - Log In',
-        user: req.user,
-        dashboard: false,
-      }),
-    );
-    res.send(page);
-  });
-
-  app.get('/home', (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    const requirements = {
-      passphrase: process.env.APP_ACCOUNT ? 'yes' : false,
-      address: process.env.APP_ACCOUNT_ADDRESS ? 'yes' : false,
-      public_key: process.env.APP_PUBLIC_KEY ? 'yes' : false,
-      encryption: process.env.SESSION_SECRET !== undefined ? 'defined' : 'undefined',
-      name: process.env.APPNAME,
-      version: process.env.VERSION,
-    };
-
-    // Loads public home page
-
-    const PublicHomePage = require('../views/public_home_page.jsx');
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(PublicHomePage, {
-        messages,
-        requirements,
-        name: 'Metis - Home',
-        user: req.user,
-        dashboard: false,
-      }),
-    );
-    res.send(page);
-  });
-
-  app.get('/security', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-    // Loads security page
-    const SecurityPage = require('../views/security.jsx');
-
-    page = ReactDOMServer.renderToString(
-      React.createElement(SecurityPage, {
-        connection,
-        messages,
-        name: 'Metis - Security',
-        user: req.user,
-        dashboard: true,
-        validation: req.session.jup_key,
-      }),
-    );
-    res.send(page);
-  });
 
   // =======================================================
   // LOGOUT
@@ -215,7 +106,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     req.logout();
     req.session.destroy();
     // console.log(req.session);
-    res.redirect('/');
+    res.send('logged out');
+    // res.redirect('/');
   });
 
 
@@ -224,12 +116,21 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
 
   app.post('/v1/api/get_jupiter_account', (req, res) => {
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== Get Jupiter Account');
+    logger.info('== POST');
+    logger.info('==');
+    logger.info('======================================================================================');
+    console.log('');
+
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
       .then((response) => {
         const { accountRS, publicKey } = response.data;
         res.send({
           success: true,
-          account: accountRS, // TODO check if the right value should be response.data.account
+          account: accountRS,
           public_key: publicKey,
         });
       })
@@ -247,22 +148,22 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // ===============================================================================
 
   app.post('/v1/api/create_jupiter_account', (req, res) => {
-    logger.verbose(`###################################################################################`);
-    logger.verbose(`## create_jupiter_account`);
-    logger.verbose(`## app.post('/v1/api/create_jupiter_account', (req, res)`);
-    logger.verbose(`## `);
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== New Account Generation');
+    logger.info('== POST: /v1/api/create_jupiter_account');
+    logger.info('==');
+    logger.info('======================================================================================');
+    console.log('');
+
     if(!req.body.account_data){
       return res.send({ success: false, message: 'missing account_data'});
     }
     const accountData = req.body.account_data;
-    logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    logger.info(`++ req.body.account_data= ${JSON.stringify(accountData)}`);
-    logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     const passwordHash = bcrypt.hashSync(accountData.encryption_password, bcrypt.genSaltSync(8), null);
     const passphrase = accountData.passphrase;
     res.setHeader('Content-Type', 'application/json');
-    logger.sensitive(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`);
-
     axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`) // will create an account if doesnt exist.
       .then((response) => {
         const jupiterAccount = {
@@ -292,21 +193,19 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   });
 
 
-  // ===============================================================================
-  // SIGNUP AND LOGIN post calls
-  // ===============================================================================
-  // Signup with immediate login afterwards
-  /* app.post('/signup', passport.authenticate('gravity-signup', {
-        successRedirect: '/',
-        failureRedirect: '/signup',
-        failureFlash: true
-     }));
-  */
-
   /**
-   *
+   * SIGNUP
    */
   app.post('/v1/api/signup', (req, res, next) => {
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== SignUp');
+    logger.info('== POST: /v1/api/signup ');
+    logger.info('==');
+    logger.info('======================================================================================');
+    console.log('');
+
     passport.authenticate('gravity-signup', (error, user, message) => {
       console.log(error, user, message);
       if (error) {
@@ -321,6 +220,15 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    *
    */
     app.get('/v1/api/job/status', (req, res, next) => {
+      console.log('');
+      logger.info('======================================================================================');
+      logger.info('==');
+      logger.info('== Job Status');
+      logger.info('== GET: /v1/api/job/status ');
+      logger.info('==');
+      logger.info('======================================================================================');
+      console.log('');
+
       const {jobId} = req.query;
       const callback = function(err, job) {
         if(!err){
@@ -335,6 +243,15 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
 
     app.put('/v1/api/publicKey', async (req, res) => {
+      console.log('');
+      logger.info('======================================================================================');
+      logger.info('==');
+      logger.info('== Add Publickey');
+      logger.info('== PUT: /v1/api/publicKey ');
+      logger.info('==');
+      logger.info('======================================================================================');
+      console.log('');
+
       const { user } = req;
       const { userPublicKey } = req.body;
 
@@ -361,14 +278,17 @@ module.exports = (app, passport, React, ReactDOMServer) => {
          })
     });
 
-
   /**
-   *
+   *  Login
    */
   app.post('/v1/api/appLogin', (req, res, next) => {
-    gravityCLIReporter.setTitle(' METIS LOGIN ');
-    logger.verbose('appLogin()');
-    logger.debug('--headers--');
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('== Login');
+    logger.info('== POST: /v1/api/appLogin');
+    logger.info('======================================================================================');
+    console.log('');
+
     logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
 
     passport.authenticate('gravity-login', (error, user, message) => {
@@ -376,16 +296,13 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
       if (error) {
         logger.error(`Error! ${error}`);
-        // gravityCLIReporter.sendReportAndReset();
         return next(error);
       }
-
 
       if (!user) {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
         logger.error(errorMessage);
-        gravityCLIReporter.addItem('Conclusion', 'Unable to log in. Please check your credentials');
-        // gravityCLIReporter.sendReportAndReset();
+
         return res.status(400).json({
           success: false,
           message: errorMessage,
@@ -418,10 +335,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         account: user.userData.account,
       };
 
-      gravityCLIReporter.addItem('Account Data', JSON.stringify(accountData));
-      // user.publicKey = accountData.publicKey;
-      gravityCLIReporter.sendReport();
-      gravityCLIReporter.reset();
 
       res.status(200).send({ user: userContainer, token });
     })(req, res, next);

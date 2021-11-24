@@ -1,25 +1,13 @@
 import _ from 'lodash';
 const gu = require('../utils/gravityUtils');
-import mailer from 'nodemailer';
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
-import {channelConfig, messagesConfig} from '../config/constants';
-import Invite from '../models/invite';
 import Channel from '../models/channel';
 import Message from '../models/message';
 import metis from '../config/metis';
-import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
-import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
-import {JupiterAPIService} from "../services/jupiterAPIService";
-import {jupiterTransactionsService, JupiterTransactionsService} from "../services/jupiterTransactionsService";
-import {GravityCrypto} from "../services/gravityCrypto";
-import channelRecord from "../models/channel.js";
-import {jupiterFundingService} from "../services/jupiterFundingService";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
-const jwt = require('jsonwebtoken');
 
 const {
     v1: uuidv1,
@@ -38,10 +26,12 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Get List of Channels
      */
     app.get('/v1/api/channels', async (req,res) => {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## Get member channels`);
-        logger.verbose(`## GET: /v1/api/channels`);
-        logger.verbose(`## `);
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Get member Channels');
+        logger.info('== GET: /v1/api/channels');
+        logger.info('======================================================================================');
+        console.log('');
 
         const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
             req.user.passphrase,
@@ -64,6 +54,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Video Conference
      */
     app.post('/v1/api/channels/call', async (req, res) => {  //@TODO what is this used for?
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Video Conference');
+        logger.info('== POST: v1/api/channels/call');
+        logger.info('======================================================================================');
+        console.log('');
+
 
         const {data} = req.body;
         const {user} = req;
@@ -91,6 +88,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Accept channel invite
      */
     app.post('/v1/api/channel/invite/accept', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Accept Channel Invite');
+        logger.info('== v1/api/channel/invite/accept');
+        logger.info('======================================================================================');
+        console.log('');
+
 
         const {channelAddress} = req.body
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
@@ -116,6 +120,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Render a channel's conversations
      */
     app.get('/channels/:id', controller.isLoggedIn, (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Render a channel conversations');
+        logger.info('== GET: channels/:id');
+        logger.info('======================================================================================');
+        console.log('');
+
         const messages = req.session.flash;
         req.session.flash = null;
 
@@ -142,6 +153,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Get a channel's messages
      */
     app.get('/v1/api/data/messages/:scope/:firstIndex', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('==  Get a channel\'s messages');
+        logger.info('== GET: /v1/api/data/messages/:scope/:firstIndex');
+        logger.info('======================================================================================');
+        console.log('');
+
         const {user, channel} = req;
         const tableData = {
             passphrase: channel.channel_record.passphrase,
@@ -165,10 +183,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Send a message
      */
     app.post('/v1/api/data/messages', async (req, res) => {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## Send A Message)`);
-        logger.verbose(`## app.post('/v1/api/data/messages'(req, res)`);
-        logger.verbose(`## `);
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Send a message');
+        logger.info('== POST: /v1/api/data/messages');
+        logger.info('======================================================================================');
+        console.log('');
+
         let {data} = req.body;
         const {user, channel} = req;
         data = {
@@ -241,7 +262,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Get a user's invites
      */
     app.get('/v1/api/channel/invites', async (req, res) => {
-        logger.info('Get Channel Invites');
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Get user invites');
+        logger.info('== GET: /v1/api/channel/invites');
+        logger.info('======================================================================================');
+        console.log('');
+
         const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
             req.user.passphrase,
             req.user.password
@@ -256,10 +283,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Send an invite
      */
     app.post('/v1/api/channel/invite', async (req, res) => {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## Send an Invite`);
-        logger.verbose(`## /v1/api/channel/invite`);
-        logger.verbose(`## `);
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Send An Invite');
+        logger.info('== POST: api/channel/invite');
+        logger.info('======================================================================================');
+        console.log('');
+
         const {channelAddress, inviteeAddress} = req.body;
         const {user} = req;
 
@@ -304,10 +334,13 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Create a Channel, assigned to the current user
      */
     app.post('/v1/api/channel', async (req, res, next) => {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## Create a Channel, assigned to the current user`)
-        logger.verbose(`## app.post('/v1/api/channel')(req,res,next)`);
-        logger.verbose(`## `);
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Create a Channel, assigned to the current user');
+        logger.info('== app.post(\'/v1/api/channel\')(req,res,next)');
+        logger.info('======================================================================================');
+        console.log('');
+
         const {channelName} = req.body;
         if (!channelName) {
             return res.status(400).send({errorMessage: 'need channelName in body'})
