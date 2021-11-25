@@ -1,5 +1,5 @@
 import gu from '../utils/gravityUtils';
-import {channelConfig, tableConfig, userConfig} from '../config/constants';
+import {channelConfig, userConfig} from '../config/constants';
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
 const _ = require('lodash');
@@ -313,7 +313,7 @@ class JupiterAccountService {
         logger.verbose(`## `);
         logger.sensitive(`tag=${JSON.stringify(tag)}`);
 
-        if(! accountProperties instanceof GravityAccountProperties){throw new Error('invalid accountProperties')}
+        if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
         if(!tag){throw new Error('empty tag')}
 
         const transactions = await jupiterTransactionsService.getBlockChainTransactionsByTag(accountProperties.address, tag);
@@ -345,21 +345,7 @@ class JupiterAccountService {
         if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
 
         try {
-
-            const latestListOfPublicKeyTransactions = await this.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
-
-            const publicKeyIds = await jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecryptOrPassThrough(
-                latestListOfPublicKeyTransactions,
-                accountProperties.crypto,
-                accountProperties.passphrase
-            );
-
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('publicKeyIds');
-            console.log(publicKeyIds);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
-            return publicKeyIds.map((pk) => pk.message);
+            return  await this.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
         } catch (error) {
             error.message = `getPublicKeysFromUserAccount: ${error.message}`;
             logger.error(`${error}`);
@@ -568,7 +554,8 @@ class JupiterAccountService {
                 return Promise.all([userPublicKeyPromise, userPublicKeyListPromise]);
             })
             .then(([_, userPublicKeyList]) => {
-                const latestPublicKeyList = userPublicKeyList.pop();
+                const [latestPublicKeyList] = userPublicKeyList;
+
                 return latestPublicKeyList
                     ? jupiterTransactionsService.getReadableMessageFromMessageTransactionIdAndDecrypt(
                         latestPublicKeyList.transaction,
@@ -578,8 +565,8 @@ class JupiterAccountService {
                     : [];
             })
             .then((userPublicKeyList) => {
-                userPublicKeyList.push(publicKey);
-                const encryptedMessage = gravityAccountProperties.crypto.encryptJson(userPublicKeyList);
+                userPublicKeyList.message.push(publicKey);
+                const encryptedMessage = gravityAccountProperties.crypto.encryptJson(userPublicKeyList.message);
                 return jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,
