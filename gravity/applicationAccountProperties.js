@@ -1,10 +1,9 @@
 const {feeManagerSingleton, FeeManager} = require("../services/FeeManager");
-const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+// const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {fundingManagerSingleton, FundingManager} = require("../services/fundingManager");
-const logger = require('../utils/logger')(module);
+// const logger = require('../utils/logger')(module);
 
 /**
- * @TODO this class is obsolete. We should use the FeeManager.
  */
 class ApplicationAccountProperties {
     /**
@@ -51,7 +50,7 @@ const jupTransferFee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_f
 const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
 const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
 
-module.exports.applicationAccountProperties = new ApplicationAccountProperties(
+module.exports.metisApplicationAccountProperties = new ApplicationAccountProperties(
     process.env.JUPITER_DEADLINE,
     STANDARD_FEE,
     ACCOUNT_CREATION_FEE,

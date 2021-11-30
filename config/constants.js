@@ -7,10 +7,14 @@ module.exports = {
     userPublicKeyList: 'v1.metis.user.public-key-list'
   },
   channelConfig:{
-    channelUsers: 'v1.metis.channel.public-key',
-    channelUserList: 'v1.metis.channel.public-key.list',
+    channelMemberPublicKey: 'v1.metis.channel.member-public-key',
+    channelMemberPublicKeyList: 'v1.metis.channel.member-public-key-list',
     channelRecord: 'v1.metis.channel.channel-record',
     channelInviteRecord: 'v1.metis.channel.channel-invite-record',
+    channelMember: 'v1.metis.channel.channel-member',
+    channelMemberList: 'v1.metis.channel.channel-member-list',
+    channelInvitationDeclinedList: 'v1.metis.channel.channel-invitation-declined-list',
+    channelInvitationDeclinedRecord: 'v1.metis.channel.channel-invitation-declined-record'
   },
   tableConfig:{
     tableList: 'v1.metis.table.table-list',

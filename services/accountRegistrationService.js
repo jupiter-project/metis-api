@@ -92,7 +92,7 @@ class AccountRegistration {
             let metisAppAccountStatement = null;
             let usersTableStatement = null;
 
-            this.jupiterTransactionsService.isAliasAvailable(newAccountAliasName)
+            this.jupiterAccountService.isAliasAvailable(newAccountAliasName)
                 .then(isAliasAvailable => {
                     if(!isAliasAvailable){
                         throw new Error('alias is already in user');

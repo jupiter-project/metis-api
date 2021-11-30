@@ -61,7 +61,7 @@ class Channel extends Model {
     // @TODO figure out how to get a single channel
     const { records } = await super.loadRecords(accessData);
     if (records && Array.isArray(records)) {
-      console.log('Channel records ------>'. records);
+      // console.log('Channel records ------>'. records);
       return records.find(record => record.channel_record.account === account);
     }
 
@@ -187,12 +187,12 @@ class Channel extends Model {
       logger.sensitive(`accessLink= ${JSON.stringify(accessLink)}`);
 
     if (!this.record.passphrase || this.record.password) {
-      console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-      console.log('this.record.passphrase');
-      console.log(this.record.passphrase);
-      console.log('this.record.password');
-      console.log(this.record.password);
-      console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+      // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+      // console.log('this.record.passphrase');
+      // console.log(this.record.passphrase);
+      // console.log('this.record.password');
+      // console.log(this.record.password);
+      // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
 
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();

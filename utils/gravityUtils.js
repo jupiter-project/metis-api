@@ -67,6 +67,16 @@ const isNonEmptyArray = function(array)
     return false
 }
 
+const arrayShiftOrNull = function(array){
+    if (!Array.isArray(array)) {
+        return null;
+    }
+    if(array.length === 0){
+        return null;
+    }
+    return array.shift();
+}
+
 /**
  * example JUP-NFVU-KKGE-FFQF-7WT5G
  *         JUP-7WMJ-S9N6-3LQV-A3VCK
@@ -92,6 +102,8 @@ const isWellFormedJupiterAddress = function(address){
  * @returns {boolean}
  */
 const isWellFormedJupiterTransactionId = function(transactionId){
+    if(!transactionId){return false}
+
     const re = /^[0-9]{15,25}$/
     if(re.test(transactionId)){
         return true;
@@ -110,18 +122,53 @@ const isWellFormedJupiterTransactionId = function(transactionId){
  * @returns {boolean}
  */
 const isWellFormedPublicKey = function(publicKey) {
+    logger.sensitive(`#### isWellFormedPublicKey(publicKey= ${publicKey})`);
+    if(!publicKey){
+        logger.warn('publicKey is empty');
+        return false;
+    }
 
-    return true; //@TODO Fix!!!
+    if(typeof publicKey === 'undefined'){
+        logger.warn('publickey is undefined')
+        return false;
+    }
 
     const re = /^[0-9A-Fa-f]{64}$/
     if(re.test(publicKey)){
         return true;
     }
 
-
+    logger.warn(`publickey is not well formed: ${publicKey}`)
     return false;
 }
 
+/**
+ *
+ * @param accountId
+ * @returns {boolean}
+ */
+const isWellFormedAccountId = function(accountId) {
+    logger.sensitive(`#### isWellFormedAccountId(accountId= ${accountId})`);
+    if(!accountId){
+        logger.warn('accountId is empty');
+        return false;
+    }
+
+    if(typeof accountId === 'undefined'){
+        logger.warn('accountId is undefined')
+        return false;
+    }
+
+    return true;
+
+    // const re = /^[0-9A-Fa-f]{64}$/
+    // if(re.test(publicKey)){
+    //     return true;
+    // }
+    //
+    // logger.warn(`publickey is not well formed: ${publicKey}`)
+    // return false;
+}
 
 /**
  *
@@ -135,15 +182,16 @@ const isWellFormedJupiterAccountData = function(jupiterAccountData) {
 
 //@TODO please implement
 const isWellFormedPassphrase = function(passphrase){
-
-    return true;
-
-
+    if(!passphrase){
+        logger.sensitive(`passphrase= ${passphrase}`)
+        return false}
     //^((\w+)\s){11}+\w+$
-    const re = /^((\w+)\s){11}\w+$/
+    const re = /^(\w+\s){11}\w+$/
     if(re.test(passphrase)){
         return true;
     }
+
+    logger.sensitive(`passphrase= ${passphrase}`);
 
     return false;
 }
@@ -217,6 +265,29 @@ const jsonParseOrNull = function (stringToParse) {
     return json;
 };
 
+/**
+ *
+ * @param promises
+ * @returns {Promise<unknown>}
+ */
+const filterPromisesByRemovingEmptyResults = function(promises){
+    logger.verbose(`############################################`);
+    logger.verbose(`## filterPromisesByRemovingEmptyResults()`);
+    logger.verbose(`promises.length= ${promises.length}`);
+
+
+    return Promise.all(promises)
+        .then( results => {
+            const reduced =  results.reduce( (reduced, result) => {
+                if(!result){ return reduced }
+                reduced.push(result);
+                return reduced;
+            }, []);
+
+            return reduced;
+        })
+}
+
 module.exports = {
     isObject,
     jsonPropertyIsNonEmptyArray,
@@ -224,6 +295,7 @@ module.exports = {
     isNumberGreaterThanZero,
     isWellFormedJupiterAddress,
     isWellFormedPassphrase,
+    isWellFormedAccountId,
     isWellFormedJupiterTransactionId,
     isWellFormedJupiterAccountData,
     isWellFormedPublicKey,
@@ -234,7 +306,9 @@ module.exports = {
     generateRandomPassword,
     isNonEmptyString,
     isString,
-    isNonEmptyArray
+    isNonEmptyArray,
+    arrayShiftOrNull: arrayShiftOrNull,
+    filterPromisesByRemovingEmptyResults
 };
 
 

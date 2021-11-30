@@ -65,6 +65,7 @@ module.exports = {
         });
     }
   },
+
   getPNTokenAndSendInviteNotification: (senderAlias, userAddress, channelName) => {
     findNotificationsByAddressList([userAddress])
       .then((data) => {
@@ -83,7 +84,13 @@ module.exports = {
           const payload = { title: 'Invitation', isInvitation: true };
           const threeMinutesDelay = 180000;
           const tokensAndBadge = data.map(item => ({ token: item.tokenList, badge: item.badgeCounter }));
+
+
+
           tokensAndBadge.map(tb => sendPushNotification(tb.token, alert, tb.badge, payload, 'channels', threeMinutesDelay));
+
+
+
         }
       })
       .catch((error) => {

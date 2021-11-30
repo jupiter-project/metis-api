@@ -9,6 +9,7 @@ import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
 import ChannelRecord from "../models/channel";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const jwt = require('jsonwebtoken');
 
 const {
@@ -31,15 +32,21 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         logger.info('======================================================================================');
         logger.info('== Get member Channels');
         logger.info('== GET: /v1/api/channels');
+        logger.sensitive(`== req.user.passphrase: ${req.user.passphrase}`);
+        logger.sensitive(`== req.user.password: ${req.user.password}`);
         logger.info('======================================================================================');
         console.log('');
 
-        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+        const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
         )
 
+
+
         const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
+
+
 
         const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
              reduced.push({
@@ -51,6 +58,10 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         console.log('ChannelList ----->', listOfChannels);
 
         res.send(listOfChannels);
+        console.log('');
+        logger.info('^======================================================================================^');
+        logger.info('^= Get member Channels');
+        logger.info('^= GET: /v1/api/channels');
     })
 
     /**
@@ -98,24 +109,24 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         logger.info('======================================================================================');
         console.log('');
 
-
         const {channelAddress} = req.body
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
-        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+        const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
         );
 
-            chanService.acceptInvitation(memberAccountProperties, channelAddress)
-                .then(() => {
-                    return res.send({success: true, message: 'Invite accepted'});
-                })
-                .catch(error => {
-                    logger.error(`*********************************************`)
-                    logger.error(`** channel/invite/accept ERROR`)
-                    logger.error(`${error}`);
-                    return res.status(500).send({error: true, fullError: `${error}`});
-                });
+        chanService.acceptInvitation(memberAccountProperties, channelAddress)
+            .then(() => {
+                res.send({success: true, message: 'Invite accepted'});
+            })
+            .catch(error => {
+                logger.error(`*********************************************`)
+                logger.error(`** channel/invite/accept ERROR`)
+                logger.error(`${error}`);
+                res.status(500).send({error: true, fullError: `${error}`});
+            });
+
 
     });
 
@@ -170,6 +181,8 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         }
 
 
+
+
         const channelRecord = new ChannelRecord({ user_id: user.id, public_key: user.publicKey, user_api_key: user.publicKey });
         const userData = JSON.parse(gravity.decrypt(user.accountData));
         const channel = await channelRecord.loadChannelByAddress(channelAddress, userData);
@@ -211,6 +224,8 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             sender: user.userData.account,
             senderAlias: user.userData.alias,
         };
+
+
 
         const tableData = channel.channel_record;
         const message = new Message(data);
@@ -282,11 +297,11 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         logger.info('======================================================================================');
         console.log('');
 
-        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+        const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
         )
-        chanService.getChannelInvitations(memberAccountProperties)
+        chanService.getChannelInvitationContainersSentToAccount(memberAccountProperties)
             .then(channelInvitations => {
                 res.send(channelInvitations);
             })
@@ -310,7 +325,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
             if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
 
-            const inviterAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
+            const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
 
 
@@ -352,7 +367,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         if (!channelName) {
             return res.status(400).send({errorMessage: 'need channelName in body'})
         }
-        const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+        const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password);
 

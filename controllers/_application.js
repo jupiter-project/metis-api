@@ -5,7 +5,8 @@ import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
 import controller from '../config/controller';
 import {jobScheduleService} from '../services/jobScheduleService';
 import {jupiterAccountService} from "../services/jupiterAccountService";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 
@@ -259,7 +260,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         return res.status(400).send({ successful: false, message: 'User public key is required' });
       }
 
-      const userProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(user.passphrase, user.password);
+      const userProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
 
      jupiterAccountService.addPublicKeyToUserAccount(userPublicKey, userProperties)
          .then(() => jupiterAccountService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
@@ -303,19 +304,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
         logger.error(errorMessage);
 
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      let accountData = {};
-      try {
-        logger.verbose('attempting to decrypt the accountData');
-        accountData = JSON.parse(gravity.decrypt(user.accountData));
-      } catch (error) {
-        const errorMessage = 'Unable to decrypt your data.';
-        gravityCLIReporter.addItem('Account Data', 'Unable to decrypt Account Data');
         return res.status(400).json({
           success: false,
           message: errorMessage,

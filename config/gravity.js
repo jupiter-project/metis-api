@@ -11,7 +11,7 @@ const logger = require('../utils/logger')(module);
 // import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 import {tableConfig} from "./constants";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
-const {jupiterAccountService} = require("../services/jupiterAccountService");
+// const {jupiterAccountService} = require("../services/jupiterAccountService");
 const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 
 class Gravity {
@@ -1569,9 +1569,9 @@ class Gravity {
                             logger.debug('---------------------------------------------------------------------------------------')
                             logger.sensitive(`userAccountTablesResponse=${JSON.stringify(userAccountTablesResponse)}`);
 
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
-                            logger.sensitive(userAccountTablesResponse);
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive(userAccountTablesResponse);
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
 
                             // if (userFromPassphraseResponse.databaseFound && !userFromPassphraseResponse.userNeedsSave) {
                             //   logger.debug(`database found and userNeedsSave`);
@@ -1585,9 +1585,9 @@ class Gravity {
                               appAccountTables: userAccountTablesResponse.appAccountTables
                             }
 
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
-                            logger.sensitive(resolveData);
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive(resolveData);
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
 
                             return resolve(resolveData);
 
@@ -2503,7 +2503,7 @@ class Gravity {
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
 
 
-        const sendRecordResponse = await jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
+        const sendRecordResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             accountCredentials.passphrase,
             accountCredentials.account,
             encryptedData,
@@ -2526,7 +2526,7 @@ class Gravity {
         // }
 
         if (sendRecordResponse.data.broadcasted && !sendRecordResponse.error) {
-          const sendTableListResponse = await jupiterTransactionsService.sendTaggedAndEncipheredMetisMessage(
+          const sendTableListResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
               accountCredentials.passphrase,
               accountCredentials.account,
               encryptedTableData,

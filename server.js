@@ -1,3 +1,10 @@
+
+require('babel-register')({
+  presets: ['react'],
+});
+
+const { instantiateGravityAccountProperties } = require('./gravity/instantiateGravityAccountProperties');
+const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
 const firebaseAdmin = require("firebase-admin");
 // Firebase Service initializer
@@ -25,10 +32,6 @@ const cors = require('cors');
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').load();
 }
-
-require('babel-register')({
-  presets: ['react'],
-});
 
 const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
@@ -224,19 +227,14 @@ const { jobScheduleService } = require('./services/jobScheduleService');
 const {jupiterFundingService} = require("./services/jupiterFundingService");
 const {chanService} = require("./services/chanService");
 const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+// const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
 
 jobScheduleService.init(kue);
 
 
 gravity.getFundingMonitor()
   .then(async (monitorResponse) => {
-    // console.log(monitorResponse);
-    logger.verbose(`-----------------------------------------------------------------------------------`);
-    logger.verbose(`-- gravity.getFundingMonitor().then(monitorResponse)`);
-    logger.verbose(`-- `);
-    logger.sensitive(`!!monitorResponse =${!!monitorResponse}`);
     const { monitors } = monitorResponse;
-    logger.sensitive(`monitors= ${monitors}`);
     if (monitors && monitors.length === 0) {
       logger.info('Funding property not set for app. Setting it now...');
       const fundingResponse = await gravity.setFundingProperty({
@@ -268,45 +266,71 @@ gravity.getFundingMonitor()
 const WORKERS = 100;
 
 jobs.process('user-registration', WORKERS, (job,done) => {
-  logger.verbose(`###########################################`)
-  logger.verbose(`## JobQueue: user-registration`)
-  logger.verbose(`##`)
-  const decryptedData = gravity.decrypt(job.data.data)
-  const parsedData = JSON.parse(decryptedData);
+  console.log('');
+  logger.info('======================================================================================');
+  logger.info('==');
+  logger.info('== jobs.process(user-registration)');
+  logger.info('==');
+  logger.info('======================================================================================');
+  console.log('');
 
-  metisRegistration(job.data.account, parsedData)
-      .then(() => done())
-      .catch( error =>{
-        logger.error(`***********************************************************************************`);
-        logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
-        logger.error(`** `);
-        console.log(error);
+  try {
+    const decryptedData = gravity.decrypt(job.data.data)
+    const parsedData = JSON.parse(decryptedData);
 
-        return done(error)
-      })
+    metisRegistration(job.data.account, parsedData)
+        .then(() => done())
+        .catch(error => {
+          logger.error(`***********************************************************************************`);
+          logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
+          logger.error(`** `);
+          logger.error(`${error}`)
+
+          return done(error)
+        })
+  } catch (error) {
+    logger.error(`****************************************************************`);
+    logger.error(`** jobs.process(user-registration).catch(error)`);
+    logger.error(`** - error= ${error}`)
+
+    return done(error)
+  }
 })
 
 jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
   logger.verbose(`###########################################`)
-  logger.verbose(`## JobQueue: channel-creation-confirmation`)
+  logger.verbose(`## jobs.process(channel-creation-confirmation)`)
   logger.verbose(`##`)
 
-  const {channelName, memberAccountProperties} = job.data;
+  try {
+    const {channelName, memberAccountProperties} = job.data;
 
-  //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
-  const memberProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
-      memberAccountProperties.passphrase,
-      memberAccountProperties.password);
+    if (!gu.isNonEmptyString(channelName)) {
+      throw new Error('channelName is EMPTY.')
+    }
 
-  memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
-  const createNewChannelResults = await chanService.createNewChannel(channelName, memberProperties);
+    //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
+    const memberProperties = await instantiateGravityAccountProperties(
+        memberAccountProperties.passphrase,
+        memberAccountProperties.password);
 
-  console.log('RESULTS -------->', createNewChannelResults);
+    memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
+    const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
 
-  return done(null, {
-    channelName: createNewChannelResults.channelName ,
-    channelAccountProperties: createNewChannelResults.channelAccountProperties
-  });
+    // console.log('RESULTS -------->', createNewChannelResults);
+
+    return done(null, {
+      channelName: channelName,
+      channelAccountProperties: createNewChannelResults
+    });
+  } catch (error){
+    logger.error(`****************************************************************`);
+    logger.error(`** jobs.process(channel-creation-confirmation).catch(error)`);
+    logger.error(`** `);
+    logger.error(`   error= ${error}`)
+
+    return done(error)
+  }
 
 })
 

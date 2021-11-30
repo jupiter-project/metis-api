@@ -1,7 +1,12 @@
+
 import { gravity } from './gravity';
+
 import User from '../models/user';
+
 import {accountRegistration} from "../services/accountRegistrationService";
+
 const LocalStrategy = require('passport-local').Strategy;
+
 const logger = require('../utils/logger')(module);
 
 // Used to serialize the user for the session
@@ -137,20 +142,22 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
         });
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.verbose(`######################################`)
-            logger.verbose(`## passport.job.on(failed_attempt(signUpFailedAttempt))`)
-            logger.verbose(`account=${account}`)
-            logger.sensitive('errorMessage=', errorMessage);
-            logger.sensitive('doneAttempts=', doneAttempts);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** passport.job.on(failed_attempt())`);
+            logger.error(`** `);
+            logger.error(`account= ${account}`)
+            logger.error(`errorMessage= ${errorMessage}`);
+            logger.error(`doneAttempts= ${doneAttempts}`);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',{message: `${errorMessage}`});
         });
 
         job.on('failed', function(errorMessage){
-            logger.verbose(`######################################`)
-            logger.verbose(`## passport.job.on(failed(errorMessage))`)
-            logger.verbose(`account=${account}`)
-            logger.sensitive('errorMessage=', errorMessage);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** passport.job.on(failed())`);
+            logger.error(`** `);
+            logger.error(`account= ${account}`)
+            logger.error(`errorMessage= ${errorMessage}`);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', {message: `${errorMessage}`});
         });
     });
   }));
@@ -295,7 +302,7 @@ const metisLogin = (passport) => {
             account: userRecord.account,
           },
         };
-        logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
+        // logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
         // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
 
         const doneResponse = {

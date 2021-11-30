@@ -138,6 +138,7 @@ function Metis() {
             })
     }
 
+    //@TODO obsolete.
     async function addToMemberList(params) {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## addToMemberList(params)`);
@@ -217,33 +218,12 @@ function Metis() {
             });
     }
 
-    /**
-     *
-     * @returns {*}
-     * @param {GravityAccountProperties} memberProperties
-     * @param {GravityAccountProperties} channelProperties
-     */
-    async function addMemberToChannelIfDoesntExist(memberProperties, channelProperties) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## addMemberToChannelIfDoesntExist(memberProperties, channelProperties)`);
-        logger.verbose(`## `);
 
-        if(!(memberProperties instanceof GravityAccountProperties)){throw new Error('invalid memberProperties')}
-        if(!(channelProperties instanceof GravityAccountProperties)){throw new Error('invalid channelProperties')}
-
-
-        const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties);
-        memberPublicKeys.map(async (memberKey) => {
-            await jupiterAccountService.addPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
-        });
-        logger.debug('addMemberToChannelIfDoesntExist() end.')
-    }
 
     return Object.freeze({
         getChannelProperties,
         getMember,
         addToMemberList,
-        addMemberToChannelIfDoesntExist,
         getChannelUsersArray,
     });
 }

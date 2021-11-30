@@ -1,5 +1,5 @@
 import gu from "../utils/gravityUtils";
-import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 const logger = require('../utils/logger')(module);
@@ -47,12 +47,7 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     jupiterRequest(rtype, params, data = {}) {
-        // logger.verbose(`###################################################################################`);
-        // logger.verbose(`## jupiterRequest(rtype,params,data)`);
-        // logger.verbose(`## `);
-        // logger.sensitive(`data=${JSON.stringify(data)}`);
         const url = this.jupiterUrl(params);
-        // logger.sensitive(`jupiterRequest > url= ${url}`);
         return new Promise((resolve, reject) => {
             return axios({url: url, method: rtype, data: data})
                 .then(response => {
@@ -90,11 +85,6 @@ class JupiterAPIService {
     }
 
     async get(params) {
-        // logger.verbose('##########################');
-        // logger.verbose(`## get(params)`)
-        // logger.verbose('##');
-        // logger.sensitive(`params=${JSON.stringify(params)}`);
-
         return this.jupiterRequest('get', params);
     }
 
@@ -144,10 +134,14 @@ class JupiterAPIService {
     }
 
 
-
+    /**
+     *
+     * @param address
+     * @returns {Promise<unknown>}
+     */
     async getAliases(address){
         logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAlias(address)`);
+        logger.verbose(`## getAliases(address)`);
         logger.verbose(`## `);
         logger.sensitive(`address=${JSON.stringify(address)}`);
         if(!gu.isWellFormedJupiterAddress(address)){
@@ -233,11 +227,7 @@ class JupiterAPIService {
      * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
      */
     async getBlockChainTransactions(address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## getBlockChainTransactions(account: ${address}, message, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        logger.verbose('##');
-        logger.sensitive(`address=${address}`);
-        logger.sensitive(`message=${JSON.stringify(message)}`);
+        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         }
@@ -258,6 +248,47 @@ class JupiterAPIService {
     }
 
 
+
+
+// {
+//     "unconfirmedTransactions": [
+//         {
+//             "senderPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
+//             "signature": "2cd667757ea07d266954fdc4822e05298854f87fde6d98159412cb8c26a0350983609ab3bd05c24ff35099aad112de060121653524d76c5cfa2fc8eb82fb98ce",
+//             "feeNQT": "317500",
+//             "type": 1,
+//             "fullHash": "5d72d3a87dea7f8ea52fa7e64a233de4d2d4dec85b21156edd4771c267a53c84",
+//             "version": 1,
+//             "phased": false,
+//             "ecBlockId": "9892207482531449821",
+//             "signatureHash": "26bed089b5fdd24da101074da7e07f4cb36cec6aafac2687ab4b1ff38eda3d30",
+//             "attachment": {
+//                 "version.Message": 1,
+//                 "encryptedMessage": {
+//                     "data": "e07aa1d7ff92e606d07c91ecb3ea3f68b951eb27a27984f02f806a791bf108d584e59ea46ba477ec7385cb1c466b70c30c11ece5efedf1a44f79db6163ee66d0fbf9b6d5011cf05da93bf89c4924ba8f3848256d66c1c5c38247785ba2e31330",
+//                     "nonce": "57a891f80b63a457ced76aac2265729c91841d0dd52e81863477265978d71af4",
+//                     "isText": true,
+//                     "isCompressed": true
+//                 },
+//                 "version.EncryptedMessage": 1,
+//                 "version.PublicKeyAnnouncement": 1,
+//                 "recipientPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
+//                 "version.MetisAccountInfo": 0,
+//                 "messageIsText": true,
+//                 "message": "v1.metis.channel.public-key.list"
+//             },
+//             "senderRS": "JUP-4MT8-CKA7-EYPY-3P49S",
+//             "subtype": 12,
+//             "amountNQT": "0",
+//             "sender": "2025587753023000358",
+//             "recipientRS": "JUP-4MT8-CKA7-EYPY-3P49S",
+//             "recipient": "2025587753023000358",
+//             "ecBlockHeight": 508333,
+//             "deadline": 60,
+//             "transaction": "10268183500852261469",
+//             "timestamp": 129535844,
+//             "height": 2147483647
+//         },
     /**
      * Currently the getUnconfirmedTransactions doesnt handle withMessage+Message.
      *
@@ -266,14 +297,17 @@ class JupiterAPIService {
      * @param withMessage
      * @param type
      * @param includeExpiredPrunable
-     * @returns {Promise<*>}
+     * @returns {Promise<{
+     *          unconfirmedTransactions: [
+     *              {senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
+     *                  versionMessage,encryptedMessage: {data,nonce,isText,isCompressed},
+     *                  versionEncryptedMessage,versionPublicKeyAnnouncement,recipientPublicKey,versionMetisAccountInfo,messageIsText,message},
+     *               senderRS,subtype,amountNQT,sender,recipientRS,recipient,ecBlockHeight,deadline,transaction,timestamp,height}],
+     *           requestProcessingTime }
+     *           >}
      */
     async getUnconfirmedBlockChainTransactions(address, message = null, withMessage = false, type = 1, includeExpiredPrunable = true) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getUnconfirmedBlockChainTransactions(address, message, withMessage, type, includeExpiredPrunable)`);
-        logger.verbose(`## `);
-        logger.sensitive(`address=${JSON.stringify(address)}`);
-
+        logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
         if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
@@ -584,10 +618,7 @@ class JupiterAPIService {
         compressMessageToEncryptToSelf,
         subtype
     ) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## sendMetisMessageOrMessage(*)`);
-        logger.verbose('##');
-
+        logger.verbose(`### jupiterApiService.sendMetisMessageOrMessage(*)`);
         let params = {}
 
         if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )){
@@ -787,5 +818,5 @@ class JupiterAPIService {
 
 module.exports = {
     JupiterAPIService: JupiterAPIService,
-    jupiterAPIService: new JupiterAPIService(process.env.JUPITERSERVER, applicationAccountProperties)
+    jupiterAPIService: new JupiterAPIService(process.env.JUPITERSERVER, metisApplicationAccountProperties)
 };

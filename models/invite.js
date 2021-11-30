@@ -2,10 +2,11 @@ import Model from './_model';
 import { gravity } from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {jupiterAPIService} from "../services/jupiterAPIService";
-import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {channelConfig} from "../config/constants";
+// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+// import {channelConfig} from "../config/constants";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const logger = require('../utils/logger')(module);
 
 class Invite extends Model {
@@ -44,7 +45,7 @@ class Invite extends Model {
     logger.verbose(`## Invite.get()`);
     logger.verbose(`## `);
 
-    return GravityAccountProperties.instantiateBasicGravityAccountProperties(this.user.passphrase, this.user.encryptionPassword)
+    return instantiateGravityAccountProperties(this.user.passphrase, this.user.encryptionPassword)
         .then(memberAccountProperties => {
           //@TODO we need to use tags here!!
           return jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(this.user.account)
@@ -98,7 +99,7 @@ class Invite extends Model {
         this.user.passphrase,
         null,
         fee,
-        applicationAccountProperties.deadline,
+        metisApplicationAccountProperties.deadline,
         null,
         null,
         null,
