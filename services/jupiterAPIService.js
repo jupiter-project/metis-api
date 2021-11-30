@@ -590,7 +590,9 @@ class JupiterAPIService {
      * @param {string} encryptToSelfMessageData
      * @param {string} encryptToSelfMessageNonce
      * @param {boolean} compressMessageToEncryptToSelf
-     * @returns {Promise<unknown>}
+     * @returns {Promise<{status, statusText,headers, config, request, data:
+     *                      {signatureHash,broadcasted, transactionJSON, unsignedTransactionBytes,requestProcessingTime,transactionBytes,fullHash,transaction }
+     *                  }>}
      */
     async sendMetisMessageOrMessage(
         requestType,
@@ -658,8 +660,16 @@ class JupiterAPIService {
 
         return new Promise( (resolve, reject) => {
             this.post(params)
-                .then((response) => {
+                .then( response => {
                     logger.debug(`then()`);
+
+
+
+                    console.log(response)
+
+
+
+
                     if (response.data.broadcasted && response.data.broadcasted === true) {
                         return resolve(response);
                     }

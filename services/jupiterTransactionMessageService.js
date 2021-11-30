@@ -154,7 +154,6 @@ class JupiterTransactionMessageService {
         )
     }
 
-
     /**
      *
      * @param messageTransactionIds
@@ -207,11 +206,6 @@ class JupiterTransactionMessageService {
 
         return  results;
     }
-
-
-
-
-
 
     async readMessagesFromMessageTransactionsAndDecryptOrPassThroughAndReturnMessageContainers(transactions, crypto, passphrase) {
         logger.verbose('##############################################################################################');
@@ -369,8 +363,6 @@ class JupiterTransactionMessageService {
         })
     }
 
-
-
     getReadableMessageContainerFromMessageTransactionIdOrNull(messageTransactionId, passphrase) {
         return this.getReadableMessageContainerFromMessageTransactionId(messageTransactionId,passphrase)
             .catch( error => null);
@@ -393,7 +385,6 @@ class JupiterTransactionMessageService {
                 return {message: message, transactionId: messageTransactionId};
             })
     }
-
 
     /**
      *
@@ -538,7 +529,7 @@ class JupiterTransactionMessageService {
      * @param feeType
      * @param recipientPublicKey
      * @param prunable
-     * @returns {Promise<*>}
+     * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
     sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable=false ) {
         logger.verbose(`###################################################################################`);

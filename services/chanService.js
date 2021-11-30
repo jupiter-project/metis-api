@@ -256,17 +256,6 @@ class ChanService {
         logger.sensitive(`  ## - inviteeAddress= ${JSON.stringify(inviteeAddress)}`);
 
         try {
-            // const alreadyInvited = await this.hasRecievedInvitationForChannel(inviterAccountProperties, channelAccountProperties.address);
-            // if (alreadyInvited) {
-            //     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            //     logger.info(`++ Already Invited!`);
-            //     console.log(`inviter:  ${inviterAccountProperties.address}`);
-            //     console.log(`channel:  ${channelAccountProperties.address}`);
-            //     console.log(`channelName:  ${channelAccountProperties.channelName}`);
-            //     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            //     return;
-            // }
-
 
             // First: We can send the same invitation several times. When creating the invite list we'll de-dup.
 
@@ -286,7 +275,14 @@ class ChanService {
                 inviteePublicKey
             )
 
-            return sendTaggedAndEncipheredMetisMessageResponse;
+            const createInvitationResponse = {
+                invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,
+                channelAddress: channelAccountProperties.address,
+                channelName: channelAccountProperties.channelName,
+                inviteeAddress: inviteeAddress,
+            }
+
+            return createInvitationResponse;
         } catch (error) {
             logger.error(`****************************************************************`);
             logger.error(`** createInvitation(channelAccountProperties, inviterAccountProperties, inviteeAddress).catch(error)`);

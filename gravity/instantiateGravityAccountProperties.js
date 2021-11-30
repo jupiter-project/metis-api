@@ -15,7 +15,7 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
             if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new Error('address is invalid')}
             if(!gu.isWellFormedPublicKey(accountInfo.publicKey)){throw new Error('publicKey is invalid')}
             if(!gu.isWellFormedAccountId(accountInfo.accountId)){throw new Error('accountId is invalid')}
-            return new GravityAccountProperties(
+            const properties =  new GravityAccountProperties(
                 accountInfo.address,
                 accountInfo.accountId,
                 accountInfo.publicKey,
@@ -24,6 +24,14 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
                 password,
                 encryptAlgorithm
             );
+
+
+
+            // cosnt aluiases = this.jupiterTransactionsService.getAliases(accountInfo.address);
+            // properties.addAlias(aliases);
+
+            return properties;
+
         }).catch( error => {
             logger.error(`***********************************************************************************`);
             logger.error(`** instantiateGravityAccountProperties().catch(error)`);

@@ -42,26 +42,22 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             req.user.password
         )
 
-
-
         const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
-
-
 
         const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
              reduced.push({
                  channelAddress: channelAccountProperties.address,
-                 channelName: channelAccountProperties.channelName});
+                 channelName: channelAccountProperties.channelName
+             });
              return reduced;
         }, [])
 
-        console.log('ChannelList ----->', listOfChannels);
-
         res.send(listOfChannels);
+
         console.log('');
         logger.info('^======================================================================================^');
-        logger.info('^= Get member Channels');
-        logger.info('^= GET: /v1/api/channels');
+        logger.info('^ Get member Channels');
+        logger.info('^ GET: /v1/api/channels');
     })
 
     /**
@@ -303,7 +299,17 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         )
         chanService.getChannelInvitationContainersSentToAccount(memberAccountProperties)
             .then(channelInvitations => {
-                res.send(channelInvitations);
+                const payload = channelInvitations.map( channelInvitationContainer => {
+                    return {
+                        invitationId: channelInvitationContainer.transactionId,
+                        channelName: channelInvitationContainer.message.channelRecord.channelName,
+                        channelAddress: channelInvitationContainer.message.channelRecord.address,
+                        inviterAddress: channelInvitationContainer.message.inviterAddress,
+                        invitationSentAt: channelInvitationContainer.message.createdAt
+                    }
+                })
+
+                res.send(payload);
             })
     });
 
@@ -338,7 +344,16 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
                     const message = `${inviterAlias} invited you to join a channel`;
                     const metadata = {isInvitation: 'true'};
                     getPNTokensAndSendPushNotification([inviteeAddress], inviterAccountProperties.address, {}, message, 'Invitation', metadata);
-                    res.send({success: true});
+
+                    // const createInvitationResponse = {
+                    //     invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,
+                    //     channelAddress: channelAccountProperties.address,
+                    //     channelName: channelAccountProperties.channelName,
+                    //     inviteeAddress: inviteeAddress.address,
+                    // }
+
+                    res.send(response);
+
                 })
                 .catch(error => {
                     logger.error(`${error}`);
