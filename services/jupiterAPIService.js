@@ -366,6 +366,7 @@ class JupiterAPIService {
      * @returns {Promise<{data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}} | {encryptedMessageIsPrunable,errorDescription,errorCode,requestProcessingTime,error}>}
      */
     async getMessage(transactionId, passphrase) {
+        console.log('[getMessage]:', passphrase);
         return new Promise( (resolve, reject) => {
             this.get( {requestType: 'readMessage', transaction: transactionId, secretPhrase: passphrase})
                 .then( response => {

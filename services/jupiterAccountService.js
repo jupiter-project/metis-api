@@ -367,6 +367,7 @@ class JupiterAccountService {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## getMemberChannels(memberProperties)`);
         logger.verbose(`## `);
+        console.log('getMemberChannels ------>', memberProperties);
         if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
         try {
 
@@ -519,13 +520,15 @@ class JupiterAccountService {
             .then(([_, userPublicKeyList]) => {
                 const [latestPublicKeyList] = userPublicKeyList;
 
-                return latestPublicKeyList
-                    ? jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
-                        latestPublicKeyList.transaction,
-                        gravityAccountProperties.crypto,
-                        gravityAccountProperties.passphrase
-                    )
-                    : [];
+                if(!latestPublicKeyList){
+                    return {message: []};
+                }
+
+                return jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+                    latestPublicKeyList.transaction,
+                    gravityAccountProperties.crypto,
+                    gravityAccountProperties.passphrase
+                );
             })
             .then((userPublicKeyList) => {
                 userPublicKeyList.message.push(publicKey);
@@ -554,7 +557,7 @@ class JupiterAccountService {
             .then((transactions) => {
                 const [transactionId] = transactions;
                 return transactionId ? jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
-                    transactionId.message,
+                    transactionId.transaction,
                     gravityAccountProperties.crypto,
                     gravityAccountProperties.passphrase
                 ) : [];

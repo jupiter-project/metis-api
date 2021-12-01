@@ -184,7 +184,8 @@ const isWellFormedJupiterAccountData = function(jupiterAccountData) {
 const isWellFormedPassphrase = function(passphrase){
     if(!passphrase){
         logger.sensitive(`passphrase= ${passphrase}`)
-        return false}
+        return false
+    }
     //^((\w+)\s){11}+\w+$
     const re = /^(\w+\s){11}\w+$/
     if(re.test(passphrase)){
