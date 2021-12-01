@@ -47,52 +47,53 @@ class GravityTablesService {
      * @param initialFundingAmount
      * @returns {Promise<Object>}
      */
-    async processTableUsingProperties(newTableProperties, clientProperties, applicationProperties, initialFundingAmount = 0){
-            const appStatement = this.applicationTransactions.getAccountStatement(applicationProperties); //Include AppBalance and Table Balance
-            const clientStatement = this.applicationTransactions.getAccountStatement(clientProperties);
-            return Promise.all( [appStatement, clientStatement])
-                .then((promiseResults) => {
-                    const appStatement = promiseResults[0];
-                    const clientStatement = promiseResults[1];
-                    return this.processTable( newTableProperties, clientStatement, appStatement, initialFundingAmount)
-            })
-    }
+    // async processTableUsingProperties(newTableProperties, clientProperties, applicationProperties, initialFundingAmount = 0){
+    //         const appStatement = this.applicationTransactions.getAccountStatement(applicationProperties); //Include AppBalance and Table Balance
+    //         const clientStatement = this.applicationTransactions.getAccountStatement(clientProperties);
+    //         return Promise.all( [appStatement, clientStatement])
+    //             .then((promiseResults) => {
+    //                 const appStatement = promiseResults[0];
+    //                 const clientStatement = promiseResults[1];
+    //                 return this.processTable( newTableProperties, clientStatement, appStatement, initialFundingAmount)
+    //         })
+    // }
 
     /**
-     *
+     * @todo obsolete
      * @param newTableProperties
      * @param clientStatement
      * @param appStatement
      * @param initialFundingAmount
      * @returns {Promise<unknown[]>}
      */
-    async processTable(newTableProperties, clientStatement, appStatement, initialFundingAmount = 0){
-        logger.verbose('createTable');
-            const newPassphrase = gu.generatePassphrase();
-            const isTableNameAvailable = this.isTableNameAvailable(tableName, clientStatement.attachedTables);
-            const canAppFundTable = this.canAppFundTable(clientStatement, initialFundingAmount);
-            if (!(isTableNameAvailable && canAppFundTable)) {
-                throw new Error(`Problem processing table: isTableNameAvailable= ${isTableNameAvailable}, canAppFundTable=${canAppFundTable}`)
-            }
-            const newAccountAddress = await this.jupiterAccountService.getAccountId(newPassphrase);
-            newTableProperties.address = newAccountAddress;
-            const encryptedTableRecord = this.constructAndEncryptTableRecord(newAccountAddress, clientProperties, clientProperties.crypto)
-            const encryptedTableListRecord = this.constructAndEncryptTableListRecord(newAccountAddress, clientProperties.crypto);
-            let allPromise = []
-            allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties, encryptedTableListRecord))
-            allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties,encryptedTableRecord, newTableProperties.name))
-            if(!(initialFundingAmount > 0)) {
-                return Promise.all(allPromise); // [{transactionType: 'tableRecord', transactionId: 123}, {transactionType: 'tableList', transactionId: 123}]
-            }
-
-            return Promise.all(allPromise)
-                .then(jupiterApiResponses => {
-                    this.jupiterApiService.sendMoney( clientStatement.clientProperties  ,newTableProperties,initialFundingAmount)
-                        .then( sendMoneyResponse => { // [{transactionType: 'sendMoney', transactionId: 123}]
-                            return {...jupiterApiResponses, sendMoneyResponse}; // return all transactions
-                        })
-                })
-    }
+    // async processTable(newTableProperties, clientStatement, appStatement, initialFundingAmount = 0){
+    //     logger.verbose('createTable');
+    //         const newPassphrase = gu.generatePassphrase();
+    //         const isTableNameAvailable = this.isTableNameAvailable(tableName, clientStatement.attachedTables);
+    //         const canAppFundTable = this.canAppFundTable(clientStatement, initialFundingAmount);
+    //         if (!(isTableNameAvailable && canAppFundTable)) {
+    //             throw new Error(`Problem processing table: isTableNameAvailable= ${isTableNameAvailable}, canAppFundTable=${canAppFundTable}`)
+    //         }
+    //         const accountInfo = await this.jupiterAccountService.fetchAccountInfo(newPassphrase);
+    //         const newAccountAddress = accountInfo.address;
+    //         newTableProperties.address = newAccountAddress;
+    //         const encryptedTableRecord = this.constructAndEncryptTableRecord(newAccountAddress, clientProperties, clientProperties.crypto)
+    //         const encryptedTableListRecord = this.constructAndEncryptTableListRecord(newAccountAddress, clientProperties.crypto);
+    //         let allPromise = []
+    //         allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties, encryptedTableListRecord))
+    //         allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties,encryptedTableRecord, newTableProperties.name))
+    //         if(!(initialFundingAmount > 0)) {
+    //             return Promise.all(allPromise); // [{transactionType: 'tableRecord', transactionId: 123}, {transactionType: 'tableList', transactionId: 123}]
+    //         }
+    //
+    //         return Promise.all(allPromise)
+    //             .then(jupiterApiResponses => {
+    //                 this.jupiterApiService.sendMoney( clientStatement.clientProperties  ,newTableProperties,initialFundingAmount)
+    //                     .then( sendMoneyResponse => { // [{transactionType: 'sendMoney', transactionId: 123}]
+    //                         return {...jupiterApiResponses, sendMoneyResponse}; // return all transactions
+    //                     })
+    //             })
+    // }
 
     // /**
     //  * AttachTable = Create Account, Send record transaction, and Fund Account
@@ -345,33 +346,33 @@ class GravityTablesService {
      * @param userAccountTableNames
      * @param databaseCrypto
      */
-    constructAndEncryptTableListRecord(nameOfTableToAttach, userAccountTableNames, databaseCrypto){
-
-        userAccountTableNames.push(nameOfTableToAttach);
-
-        if (nameOfTableToAttach === 'channels' && userAccountTableNames.length < 2) {
-            userAccountTableNames = ['users', 'channels'];
-        }
-
-        if (nameOfTableToAttach === 'invites' && userAccountTableNames.length < 3) {
-            userAccountTableNames = ['users', 'channels', 'invites'];
-        }
-
-        // tableList === userAccountTableNames
-        // tableListRecord === tableListRecord
-        // encryptedTableData ===  encryptedTableListRecord
-        // encryptedData === encryptedUserRecord
-
-        //ie {tables: ['users', 'channels', 'invites'], date: 123123}
-        const tableListRecord = {
-            tables: userAccountTableNames,
-            date: Date.now(),
-        };
-
-        const encryptedTableListRecord = databaseCrypto.encryptJson(tableListRecord);
-
-        return encryptedTableListRecord;
-    }
+    // constructAndEncryptTableListRecord(nameOfTableToAttach, userAccountTableNames, databaseCrypto){
+    //
+    //     userAccountTableNames.push(nameOfTableToAttach);
+    //
+    //     if (nameOfTableToAttach === 'channels' && userAccountTableNames.length < 2) {
+    //         userAccountTableNames = ['users', 'channels'];
+    //     }
+    //
+    //     if (nameOfTableToAttach === 'invites' && userAccountTableNames.length < 3) {
+    //         userAccountTableNames = ['users', 'channels', 'invites'];
+    //     }
+    //
+    //     // tableList === userAccountTableNames
+    //     // tableListRecord === tableListRecord
+    //     // encryptedTableData ===  encryptedTableListRecord
+    //     // encryptedData === encryptedUserRecord
+    //
+    //     //ie {tables: ['users', 'channels', 'invites'], date: 123123}
+    //     const tableListRecord = {
+    //         tables: userAccountTableNames,
+    //         date: Date.now(),
+    //     };
+    //
+    //     const encryptedTableListRecord = databaseCrypto.encryptJson(tableListRecord);
+    //
+    //     return encryptedTableListRecord;
+    // }
 
     /**
      *

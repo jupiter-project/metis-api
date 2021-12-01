@@ -125,7 +125,7 @@ class JupiterAccountService {
      */
     async getAccountId(passphrase) {
         return this.jupiterAPIService.getAccountId(passphrase).then((response) => {
-            return response;
+            return response.data;
         });
     }
 
@@ -154,7 +154,7 @@ class JupiterAccountService {
         }
 
         return new Promise(async (resolve, reject) => {
-            const accountInfo = await jupiterAPIService.getAccountInformation(passphrase); //{address,accountId,publicKey,success}
+            const accountInfo = await this.fetchAccountInfo(passphrase); //{address,accountId,publicKey,success}
             const passwordHash = bcrypt.hashSync(password, bcrypt.genSaltSync(8), null);
             const properties = new GravityAccountProperties(
                 accountInfo.address,
@@ -260,7 +260,7 @@ class JupiterAccountService {
                     const records = this.tableService.extractRecordsFromMessages(transactionMessages);
 
                     this.jupiterAPIService
-                        .getAccountInformation(accountProperties.passphrase)
+                        .fetchAccountInfo(accountProperties.passphrase)
                         .then((accountInformationResponse) => {
                             accountProperties.publicKey = accountInformationResponse.publicKey;
                             resolve({
@@ -697,111 +697,144 @@ class JupiterAccountService {
     //     // return channelStatement.properties;
     // }
 
-    /**
-     * example: {address, accountId, publicKey, passphrase}
-     * @param passphrase
-     * @returns {Promise<{address, accountId, publicKey, passphrase}>}
-     */
-    getAccountIdOrNewAccount(passphrase) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAccountIdOrNewAccount(passphrase)`);
-        logger.verbose(`## `);
-        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
-        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
-
-        return jupiterAPIService.getAccountId(passphrase)
-            .then(accountIdResponse => {
-
-                if( !(accountIdResponse.hasOwnProperty('accountRS') &&  gu.isWellFormedJupiterAddress(accountIdResponse.accountRS))){
-                    throw new Error('theres a problem with getAccountId.accountRS')
-                }
-
-                if( !(accountIdResponse.hasOwnProperty('account') &&  gu.isWellFormedJupiterTransactionId(accountIdResponse.account))){
-                    throw new Error('theres a problem with getAccountId.account')
-                }
-
-                if( !(accountIdResponse.hasOwnProperty('publicKey') &&  gu.isWellFormedPublicKey(accountIdResponse.publicKey))){
-                    throw new Error('theres a problem with getAccountId.publicKey')
-                }
-
-
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('accountIdResponse');
-                console.log(accountIdResponse);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
-
-                const accountInformation =  {
-                    address: accountIdResponse.accountRS,
-                    accountId: accountIdResponse.account,
-                    publicKey: accountIdResponse.publicKey,
-                    passphrase: passphrase
-                }
-                logger.sensitive(`accountInformation= ${JSON.stringify(accountInformation)}`);
-
-                return accountInformation
-            })
-            .catch( error => {
-                logger.error(`***********************************************************************************`);
-                logger.error(`** getAccountIdOrNewAccount().getAccountId()catch(error)`);
-                logger.error(`** `);
-                console.log(error);
-                throw error;
-            })
-    }
+    // /**
+    //  * example: {address, accountId, publicKey, passphrase}
+    //  * @param passphrase
+    //  * @returns {Promise<{address, accountId, publicKey, passphrase}>}
+    //  */
+    // getAccountIdOrNewAccount(passphrase) {
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getAccountIdOrNewAccount(passphrase)`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+    //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+    //
+    //     return jupiterAPIService.getAccountId(passphrase)
+    //         .then(accountIdResponse => {
+    //
+    //             if( !(accountIdResponse.data.hasOwnProperty('accountRS') &&  gu.isWellFormedJupiterAddress(accountIdResponse.data.accountRS))){
+    //                 throw new Error('theres a problem with getAccountId.accountRS')
+    //             }
+    //
+    //             if( !(accountIdResponse.data.hasOwnProperty('account') &&  gu.isWellFormedJupiterTransactionId(accountIdResponse.data.account))){
+    //                 throw new Error('theres a problem with getAccountId.account')
+    //             }
+    //
+    //             if( !(accountIdResponse.data.hasOwnProperty('publicKey') &&  gu.isWellFormedPublicKey(accountIdResponse.data.publicKey))){
+    //                 throw new Error('theres a problem with getAccountId.publicKey')
+    //             }
+    //
+    //
+    //             console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //             console.log('accountIdResponse.data');
+    //             console.log(accountIdResponse.data);
+    //             console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //
+    //
+    //             const accountInformation =  {
+    //                 address: accountIdResponse.data.accountRS,
+    //                 accountId: accountIdResponse.data.account,
+    //                 publicKey: accountIdResponse.data.publicKey,
+    //                 passphrase: passphrase
+    //             }
+    //             logger.sensitive(`accountInformation= ${JSON.stringify(accountInformation)}`);
+    //
+    //             return accountInformation
+    //         })
+    //         .catch( error => {
+    //             logger.error(`***********************************************************************************`);
+    //             logger.error(`** getAccountIdOrNewAccount().getAccountId()catch(error)`);
+    //             logger.error(`** `);
+    //             console.log(error);
+    //             throw error;
+    //         })
+    // }
 
     /**
      *
+     * @param {string} passphrase
+     * @returns {Promise<{address,accountId,publicKey,passphrase}>}
+     */
+    async fetchAccountInfo(passphrase) {
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## fetchAccountInfo(passphrase)`);
+        logger.verbose(`## `);
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
+        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+
+        return this.jupiterAPIService.getAccountId(passphrase)
+            .then(response => {
+                return {
+                            address: response.data.accountRS,
+                            accountId: response.data.account,
+                            publicKey: response.data.publicKey,
+                            passphrase: passphrase
+                        }
+            })
+            .catch( error => {
+                logger.error(`********************************************`)
+                logger.error('** fetchAccountInfo().getAccountId(passphrase).catch(error)')
+                logger.error('**')
+                logger.error(`${error}`);
+
+                throw error
+            })
+
+    };
+
+    /**
+     * @todo this is a duplciate of fetchAccountInfo!
      * @param passphrase
      * @returns {Promise<{accountId: *, address: *, passphrase: *, publicKey: *}>}
      */
-    getAccountInformation(passphrase) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAccountInformation(passphrase)`);
-        logger.verbose(`## `);
-        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
-        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
-
-        return jupiterAPIService.getAccountId(passphrase)
-            .then(accountIdResponse => {
-                if (!accountIdResponse) {
-                    throw new Error('theres a problem with getAccountId')
-                }
-
-                return {
-                    address: accountIdResponse.accountRS,
-                    accountId: accountIdResponse.account,
-                    publicKey: accountIdResponse.publicKey,
-                    passphrase: passphrase
-                }
-            })
-    }
+    // getAccountInformation(passphrase) {
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getAccountInformation(passphrase)`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+    //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+    //
+    //     return jupiterAPIService.getAccountId(passphrase)
+    //         .then(accountIdResponse => {
+    //             if (!accountIdResponse) {
+    //                 throw new Error('theres a problem with getAccountId')
+    //             }
+    //
+    //             return {
+    //                 address: accountIdResponse.accountRS,
+    //                 accountId: accountIdResponse.account,
+    //                 publicKey: accountIdResponse.publicKey,
+    //                 passphrase: passphrase
+    //             }
+    //         })
+    // }
 
 
     /**
+     * @todo this looks wrong! Please refactor and test.
      *
      * @param passphrase
      * @returns {passphrase, unconfirmedBalanceNqt, accountId, address, forgedBalanceNqt, publicKey, balanceNqt}
      */
-    getAccountInformationUsingPassphrase(passphrase){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAccountInformationUsingPassphrase(passphrase)`);
-        logger.verbose(`## `);
-        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
-        return this.getAccountIdOrNewAccount(passphrase)
-            .then(account => {
-                console.log('** $$ ** $$ ** $$');
-                return this.getAccountInformation(account.address);
-            })
-            .then(accountInfo => {
-                const accountInformationUsingPassphrase = {
-                    ...accountInfo,
-                    passphrase
-                }
-                logger.sensitive(JSON.stringify(accountInformationUsingPassphrase));
-                return accountInformationUsingPassphrase;
-            })
-    }
+    // getAccountInformationUsingPassphrase(passphrase){
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getAccountInformationUsingPassphrase(passphrase)`);
+    //     logger.verbose(`## `);
+    //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+    //     return this.getAccountIdOrNewAccount(passphrase)
+    //         .then(account => {
+    //             console.log('** $$ ** $$ ** $$');
+    //             return this.getAccountInformation(account.address);
+    //         })
+    //         .then(accountInfo => {
+    //             const accountInformationUsingPassphrase = {
+    //                 ...accountInfo,
+    //                 passphrase
+    //             }
+    //             logger.sensitive(JSON.stringify(accountInformationUsingPassphrase));
+    //             return accountInformationUsingPassphrase;
+    //         })
+    // }
 
     /**
      *

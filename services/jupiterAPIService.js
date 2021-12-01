@@ -1,7 +1,8 @@
 import gu from "../utils/gravityUtils";
-import {metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {ApplicationAccountProperties, metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
+import {add} from "lodash";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
@@ -16,14 +17,29 @@ class JupiterAPIService {
      */
     constructor(jupiterHost, applicationAccountProperties) {
         if(!jupiterHost){throw new Error('missing jupiterHost')}
-        if(!applicationAccountProperties){throw new Error('missing appAccountProperties')}
+        if(! applicationAccountProperties instanceof ApplicationAccountProperties){throw new Error('applicationAccointProperties is not valid')}
 
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
     }
 
-    static get requestTypes() {
-        return {sendMetisMessage: 'sendMetisMessage'}
+    /**
+     *
+     * @returns {{getAliases: string, getAccountId: string, sendMetisMessage: string, getAccount: string, getAccountProperties: string, getUnconfirmedTransactions: string, getBlockchainTransactions: string, getTransaction: string}}
+     */
+     static get requestTypes() {
+        return {
+            sendMetisMessage: 'sendMetisMessage',
+            getAccountProperties: 'getAccountProperties',
+            getAccountId: 'getAccountId',
+            getAliases: 'getAliases',
+            getAccount: 'getAccount',
+            getBlockchainTransactions: 'getBlockchainTransactions',
+            getUnconfirmedTransactions: 'getUnconfirmedTransactions',
+            getTransaction: 'getTransaction',
+            readMessage: 'readMessage',
+            getBalance: 'getBalance',
+        }
     }
 
     /**
@@ -84,19 +100,46 @@ class JupiterAPIService {
 
     }
 
+    /**
+     * @param params
+     * @returns {Promise<*>}
+     */
     async get(params) {
         return this.jupiterRequest('get', params);
     }
 
+    /**
+     *
+     * @param params
+     * @param data
+     * @returns {Promise<*>}
+     */
     post(params, data = {}) {
         return this.jupiterRequest('post', params, data);
     }
 
-
     /**
      *
-     * @param {string} address
+     * @param params
+     * @param data
      * @returns {Promise<*>}
+     */
+    put(params, data = {}) {
+        return this.jupiterRequest('put', params, data);
+    }
+
+
+
+
+    /**
+     * @description {
+     *                   "recipientRS": "JUP-NFVU-KKGE-FFQF-7WT5G",
+     *                   "recipient": "6273299379500234618",
+     *                   "requestProcessingTime": 1,
+     *                   "properties": []
+     *               }
+     * @param {string} address
+     * @returns {Promise<{"recipientRS","recipient","requestProcessingTime","properties":[]}>}
      */
     async getAccountProperties(address) {
         if(!gu.isWellFormedJupiterAddress(address)){
@@ -104,15 +147,22 @@ class JupiterAPIService {
         };
 
         return this.get({
-            requestType: 'getAccountProperties',
+            requestType: JupiterAPIService.requestTypes.getAccountProperties,
             recipient: address,
         })
     }
 
     /**
      * If doesnt exists then create a new accountId.
+     *
+     * @description {
+     *                   "accountRS": "JUP-KMRG-9PMP-87UD-3EXSF",
+     *                   "publicKey": "8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068",
+     *                   "requestProcessingTime": 0,
+     *                   "account": "1649351268274589422"
+     *               }
      * @param {string} passphrase
-     * @returns {Promise<object>} -
+     * @returns {Promise<{data: {"accountRS","publicKey","requestProcessingTime","account"}}>}
      */
     async getAccountId(passphrase) {
     logger.verbose(`###################################################################################`);
@@ -123,13 +173,10 @@ class JupiterAPIService {
         if(!gu.isWellFormedPassphrase(passphrase)){
             throw new Error(`Jupier passphrase is not valid: ${passphrase}`);
         }
-        return new Promise((resolve, reject) => {
-            this.get({
-                requestType: 'getAccountId',
-                secretPhrase: passphrase,
-            }).then( response => {
-                resolve(response.data);
-            })
+
+        return this.get({
+            requestType: JupiterAPIService.requestTypes.getAccountId,
+            secretPhrase: passphrase,
         })
     }
 
@@ -151,15 +198,32 @@ class JupiterAPIService {
         }
 
         return this.post( {
-                requestType: 'getAliases',
+                requestType: JupiterAPIService.requestTypes.getAliases,
                 account: address
             })
     }
 
     /**
      *
+     * @example {
+                    "errorDescription": "\"account\" not specified",
+                    "errorCode": 3
+                }
+
+     @example {
+                    "unconfirmedBalanceNQT": "15175646367987",
+                    "accountRS": "JUP-KMRG-9PMP-87UD-3EXSF",
+                    "forgedBalanceNQT": "0",
+                    "balanceNQT": "15175646367987",
+                    "publicKey": "8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068",
+                    "requestProcessingTime": 0,
+                    "account": "1649351268274589422"
+                }
+
+
      * @param {string} address
-     * @returns {Promise<*>}
+     * @throws {Promise<{"errorDescription","errorCode"}>}
+     * @returns {Promise<{"unconfirmedBalanceNQT","accountRS","forgedBalanceNQT","balanceNQT","publicKey","requestProcessingTime","account":""}>}
      */
     async getAccount(address) {
         if(!gu.isWellFormedJupiterAddress(address)){
@@ -167,49 +231,12 @@ class JupiterAPIService {
         }
 
         return this.post( {
-            requestType: 'getAccount',
+            requestType: JupiterAPIService.requestTypes.getAccount,
             account: address
         })
     };
 
-    /**
-     *
-     * @param passphrase
-     * @returns {Promise<unknown>}
-     */
-    async getAccountInformation(passphrase) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAccountInformation(passphrase)`);
-        logger.verbose(`## `);
-        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
-        return new Promise((resolve, reject) => {
-            this.getAccountId(passphrase)
-                .then(response => {
 
-                    if(!response){
-                        logger.error('Theres a problem with getAccountId()');
-                        logger.error(JSON.stringify(response));
-                        throw new Error('There is a problem with getAccountId()')
-                    }
-                    // {"accountRS":"JUP-KMRG-9PMP-87UD-3EXSF","publicKey":"8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068","requestProcessingTime":0,"account":"1649351268274589422"}
-                    const address = response.accountRS;
-                    resolve({
-                        address,
-                        accountId: response.account,
-                        publicKey: response.publicKey,
-                        success: true,
-                    })
-                })
-                .catch( error => {
-                    logger.error(`********************************************`)
-                    logger.error('** getAccountInformation().getAccountId().catch(error)')
-                    logger.error('**')
-                    logger.error(`${error}`);
-
-                    reject({ success: false, message: 'There was an error in getting accountId information' });
-                })
-        })
-    };
 
     /**
      * All parameters: account,timestamp,type, subtype, firstIndex, lastIndex, numberOfConfirmations, withMessage,
@@ -219,10 +246,10 @@ class JupiterAPIService {
      * @param {string} address - JUP-123
      * @param {string} message
      * @param {boolean} withMessage
-     * @returns {Promise<*>} - { requestProcessingTime, transactions: [{signature, transactionIndex,type,phased,ecBlockId,
-     * signatureHash,attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, version.MetisMetaData,
-     * version.EncryptedMessage},senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
-     * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]
+     * @returns {Promise<{ data: {requestProcessingTime,
+     *                     transactions: [{signature, transactionIndex,type,phased,ecBlockId,signatureHash,
+     *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
+     *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
      */
     async getBlockChainTransactions(address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
         logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
@@ -231,7 +258,7 @@ class JupiterAPIService {
         }
 
         let params = {
-            requestType: 'getBlockchainTransactions',
+            requestType: JupiterAPIService.requestTypes.getBlockchainTransactions,
             account: address,
             type,
             withMessage,
@@ -242,53 +269,53 @@ class JupiterAPIService {
             params = {...params, message}
         }
 
-        return this.get( params);
+        return this.get(params);
     }
 
 
 
-
-// {
-//     "unconfirmedTransactions": [
-//         {
-//             "senderPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
-//             "signature": "2cd667757ea07d266954fdc4822e05298854f87fde6d98159412cb8c26a0350983609ab3bd05c24ff35099aad112de060121653524d76c5cfa2fc8eb82fb98ce",
-//             "feeNQT": "317500",
-//             "type": 1,
-//             "fullHash": "5d72d3a87dea7f8ea52fa7e64a233de4d2d4dec85b21156edd4771c267a53c84",
-//             "version": 1,
-//             "phased": false,
-//             "ecBlockId": "9892207482531449821",
-//             "signatureHash": "26bed089b5fdd24da101074da7e07f4cb36cec6aafac2687ab4b1ff38eda3d30",
-//             "attachment": {
-//                 "version.Message": 1,
-//                 "encryptedMessage": {
-//                     "data": "e07aa1d7ff92e606d07c91ecb3ea3f68b951eb27a27984f02f806a791bf108d584e59ea46ba477ec7385cb1c466b70c30c11ece5efedf1a44f79db6163ee66d0fbf9b6d5011cf05da93bf89c4924ba8f3848256d66c1c5c38247785ba2e31330",
-//                     "nonce": "57a891f80b63a457ced76aac2265729c91841d0dd52e81863477265978d71af4",
-//                     "isText": true,
-//                     "isCompressed": true
-//                 },
-//                 "version.EncryptedMessage": 1,
-//                 "version.PublicKeyAnnouncement": 1,
-//                 "recipientPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
-//                 "version.MetisAccountInfo": 0,
-//                 "messageIsText": true,
-//                 "message": "v1.metis.channel.public-key.list"
-//             },
-//             "senderRS": "JUP-4MT8-CKA7-EYPY-3P49S",
-//             "subtype": 12,
-//             "amountNQT": "0",
-//             "sender": "2025587753023000358",
-//             "recipientRS": "JUP-4MT8-CKA7-EYPY-3P49S",
-//             "recipient": "2025587753023000358",
-//             "ecBlockHeight": 508333,
-//             "deadline": 60,
-//             "transaction": "10268183500852261469",
-//             "timestamp": 129535844,
-//             "height": 2147483647
-//         },
     /**
      * Currently the getUnconfirmedTransactions doesnt handle withMessage+Message.
+     *
+     * @example {
+    "unconfirmedTransactions": [
+        {
+            "senderPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
+            "signature": "2cd667757ea07d266954fdc4822e05298854f87fde6d98159412cb8c26a0350983609ab3bd05c24ff35099aad112de060121653524d76c5cfa2fc8eb82fb98ce",
+            "feeNQT": "317500",
+            "type": 1,
+            "fullHash": "5d72d3a87dea7f8ea52fa7e64a233de4d2d4dec85b21156edd4771c267a53c84",
+            "version": 1,
+            "phased": false,
+            "ecBlockId": "9892207482531449821",
+            "signatureHash": "26bed089b5fdd24da101074da7e07f4cb36cec6aafac2687ab4b1ff38eda3d30",
+            "attachment": {
+                "version.Message": 1,
+                "encryptedMessage": {
+                    "data": "e07aa1d7ff92e606d07c91ecb3ea3f68b951eb27a27984f02f806a791bf108d584e59ea46ba477ec7385cb1c466b70c30c11ece5efedf1a44f79db6163ee66d0fbf9b6d5011cf05da93bf89c4924ba8f3848256d66c1c5c38247785ba2e31330",
+                    "nonce": "57a891f80b63a457ced76aac2265729c91841d0dd52e81863477265978d71af4",
+                    "isText": true,
+                    "isCompressed": true
+                },
+                "version.EncryptedMessage": 1,
+                "version.PublicKeyAnnouncement": 1,
+                "recipientPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
+                "version.MetisAccountInfo": 0,
+                "messageIsText": true,
+                "message": "v1.metis.channel.public-key.list"
+            },
+            "senderRS": "JUP-4MT8-CKA7-EYPY-3P49S",
+            "subtype": 12,
+            "amountNQT": "0",
+            "sender": "2025587753023000358",
+            "recipientRS": "JUP-4MT8-CKA7-EYPY-3P49S",
+            "recipient": "2025587753023000358",
+            "ecBlockHeight": 508333,
+            "deadline": 60,
+            "transaction": "10268183500852261469",
+            "timestamp": 129535844,
+            "height": 2147483647
+        }
      *
      * @param address
      * @param message
@@ -312,7 +339,7 @@ class JupiterAPIService {
         }
 
         let params = {
-            requestType: 'getUnconfirmedTransactions',
+            requestType: JupiterAPIService.requestTypes.getUnconfirmedTransactions,
             account: address,
             type,
             withMessage,
@@ -325,20 +352,17 @@ class JupiterAPIService {
     }
 
     /**
-     *
+     * @example {"signature":"25011e954b302da2911ce36c8d2bbe9358c750769282153af380a86e103bfd081ecdce2484cb13d3d9b71da89ac43708d337a5faf198f29b1f7f2bc8793ba61d","transactionIndex":0,"type":1,"phased":false,"ecBlockId":"9001715635790867936","signatureHash":"340fd40a4c1f8a463d3458e269dcef5d4a8dc481c12b6b7930b868162d434fda","attachment":{"version.Message":1,"messageIsText":true,"message":"this is a test 2","version.ArbitraryMessage":0},"senderRS":"JUP-NFVU-KKGE-FFQF-7WT5G","subtype":0,"amountNQT":"0","recipientRS":"JUP-NFVU-KKGE-FFQF-7WT5G","block":"12682721922156988900","blockTimestamp":118259859,"deadline":60,"timestamp":118259852,"height":106383,"senderPublicKey":"6d9cc564149825f60d0bd73182a8cb1e1a49fb6ea65c8a9fd126e87cf8aa7078","feeNQT":"500","requestProcessingTime":1,"confirmations":410353,"fullHash":"8fdfcb5ece727e3c60cd901bbd7ef57ebf03b0d1c7908e7dcea823a5d45072c2","version":1,"sender":"6273299379500234618","recipient":"6273299379500234618","ecBlockHeight":105662,"transaction":"4359047720020467599"}
      * @param {string} transactionId
-     * @returns {Promise<*>}
+     * @returns {Promise<{"signature","transactionIndex","type","phased","ecBlockId","signatureHash","attachment":{"versionMessage","messageIsText","message","versionArbitraryMessage"},"senderRS","subtype","amountNQT","recipientRS","block","blockTimestamp","deadline","timestamp","height","senderPublicKey","feeNQT","requestProcessingTime","confirmations","fullHash","version","sender","recipient","ecBlockHeight","transaction"}>}
      */
     async getTransaction(transactionId) {
-        // logger.verbose('#####################################################################################');
-        // logger.verbose(`## getTransaction(transactionId: ${transactionId})`);
-        // logger.verbose('#####################################################################################');
         if(!gu.isWellFormedJupiterTransactionId(transactionId)){
             throw new Error(`Jupiter transaction id not valid: ${transactionId}`);
         };
 
         return this.get( {
-            requestType: 'getTransaction',
+            requestType: JupiterAPIService.requestTypes.getTransaction,
             transaction: transactionId
         });
     }
@@ -348,7 +372,7 @@ class JupiterAPIService {
     /**
      *
      *
-     * @description {
+     * @example {
      * "encryptedMessageIsPrunable": false,
      * "decryptedMessage": "d12a43fa680ff6390e00707c7a0dc4aa07e0bc0e710647f8d973e9bf428e40383ca43682c61a5edcdf67cd6979ae5ee8b7da41ba1e4ce46548ff9334d76a32b26e8750ac20a146676202ca091f5f31000709a08b6d744ce91f1fbf1876a63ea0f851cc57453f2b747953372fe985ac27c3590ca28c5ea6a4e3821a045eb1a50dd90a9e7aae341c30aef2ed3401b5ca8219de379ed33f12ae9a5a348620172dd011fdf4bcc31a983f5a0978d213c100e9c0128b851a353bc7fdc08e859ebd516df1eccc352aab7e28491195e85f024634a72acb090a8565705d90a813fd82a1b9b045fb6f77a01f11ba318f0fb16e3458915e529f23cbcc10690f67dd715fc75f428ef8e30635ffc0d9fbdd843a406a68d2279eed0fea227b10327a8269ca96b25a7c571e5118f3f2a0560c65b93df49ee5bb1d9318966d9c98b93470485f697d27d95093e4db01a60d5927fbc48e6b730fa210b13ce503a8d6f532625df13d9ab3dc29d01348ff177dfbf562c969a0ad7c2467b180d5a598e63ebec320ff1f40f2911469fd581250a47fa081868e8c4e89c57c8f78c23f6a6f64264b3c1e5b4c0ea45dd97ed80dbf22e592a43716c3900bd4ce5b0717baee6d55f6656e584faa871261c0b48ad5982e2834f7793f2253004de1521da2112ee4939fa5a599445484cd9425f14206b4e0534db4d7d835ee",
      * "requestProcessingTime": 1
@@ -363,33 +387,31 @@ class JupiterAPIService {
      * }
      * @param {string} transactionId
      * @param {string} passphrase
-     * @returns {Promise<{data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}} | {encryptedMessageIsPrunable,errorDescription,errorCode,requestProcessingTime,error}>}
+     * @throws {Promise<{encryptedMessageIsPrunable,errorDescription,errorCode,requestProcessingTime,error}>}
+     * @returns {Promise<{data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}>}
      */
     async getMessage(transactionId, passphrase) {
-        return new Promise( (resolve, reject) => {
-            this.get( {requestType: 'readMessage', transaction: transactionId, secretPhrase: passphrase})
-                .then( response => {
-                    if(response.data.errorCode){
-                        return reject(response)
-                    }
-                    resolve(response);
-                })
-                .catch( error => reject(error))
-        })
+        if(!gu.isWellFormedJupiterTransactionId(transactionId)){
+            throw new Error(`Jupiter transaction id not valid: ${transactionId}`);
+        };
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
+
+        return this.get( {requestType: JupiterAPIService.requestTypes.readMessage, transaction: transactionId, secretPhrase: passphrase})
     }
 
 
-// (response.data.errorCode) {}:
-
-
+    /**
+     * @example {"unconfirmedBalanceNQT":"15175546045487","forgedBalanceNQT":"0","balanceNQT":"15175546045487","requestProcessingTime":0}
+     * @param {string} address
+     * @returns {Promise<{"unconfirmedBalanceNQT","forgedBalanceNQT","balanceNQT","requestProcessingTime"}>}
+     */
     async getBalance(address) {
+        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
         return this.get( {
-            requestType: 'getBalance',
+            requestType: JupiterAPIService.requestTypes.getBalance,
             account: address
         });
     }
-
-
 
 
     async sendSimpleNonEncipheredMessage(from, to, message, fee, prunable) {
@@ -824,16 +846,6 @@ class JupiterAPIService {
 
         return this.post(newParams)
     }
-
-    // async getUnconfirmedBlockChainTransactions(address) {
-    //     logger.verbose('----------------------------------------');
-    //     logger.verbose(`fetchUnconfirmedBlockChainTransactions(address)`);
-    //     logger.verbose('--');
-    //     return this.jupiterRequest('get', {
-    //         requestType: 'getUnconfirmedTransactions',
-    //         account: address,
-    //     });
-    // }
 
 }
 

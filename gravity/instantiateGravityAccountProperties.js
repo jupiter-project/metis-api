@@ -10,7 +10,7 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
 
-    return jupiterAccountService.getAccountInformation(passphrase)
+    return jupiterAccountService.fetchAccountInfo(passphrase)
         .then(accountInfo => {
             if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new Error('address is invalid')}
             if(!gu.isWellFormedPublicKey(accountInfo.publicKey)){throw new Error('publicKey is invalid')}
