@@ -26,7 +26,9 @@ module.exports = (app) => {
             return res.status(500).send({success: false, error: `${error}`})
         }
 
-        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+        console.log('/v1/api/:channelAddress/members', user.passphrase);
+
+        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.decryptedAccountData.encryptionPassword);
         const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
         if(!channelAccountProperties){

@@ -2,7 +2,7 @@ import gu from "../utils/gravityUtils";
 import {ApplicationAccountProperties, metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
-import {add} from "lodash";
+// import {add} from "lodash";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 

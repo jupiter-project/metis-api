@@ -351,7 +351,7 @@ class ChanService {
 
     /**
      *
-     * @param getChannelAccountPropertiesOrNull
+     * @param memberAccountProperties
      * @param channelAddress
      * @returns {Promise<string>}
      */

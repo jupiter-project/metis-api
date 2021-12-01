@@ -177,6 +177,17 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         }
 
 
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){
+            return res.status(500).send({success: false, error: `${error}`})
+        }
+
+        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.decryptedAccountData.encryptionPassword);
+        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+
+        if(!channelAccountProperties){
+            return res.status(500).send({message:'channel is not available'})
+        }
+
 
 
         const channelRecord = new ChannelRecord({ user_id: user.id, public_key: user.publicKey, user_api_key: user.publicKey });
@@ -186,14 +197,14 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         console.log('Current channel ---->', channel);
 
         const tableData = {
-            passphrase: channel.channel_record.passphrase,
-            account: channel.channel_record.account,
-            password: channel.channel_record.password,
+            passphrase: channelAccountProperties.passphrase,
+            account: channelAccountProperties.address,
+            password: channelAccountProperties.password,
         };
         const channelModel = new Channel(tableData);
         channelModel.user = user;
 
-        channelModel.loadMessages(req.params.scope, req.params.firstIndex, order, limit)
+        channelModel.loadMessages(req.params.scope, req.params.firstIndex, 'desc', 10)
             .then(response => res.send(response))
             .catch(error => {
                 console.log('Error getting messages', error);
