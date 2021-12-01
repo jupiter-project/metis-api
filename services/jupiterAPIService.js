@@ -136,8 +136,10 @@ class JupiterAPIService {
 
     /**
      *
-     * @param address
-     * @returns {Promise<unknown>}
+     * @param {string} address
+     * @returns {Promise<{status, statusText,headers, config, request, data:
+     *                      {aliases: [{aliasURI, aliasName, accountRS, alias, account, timestamp}],requestProcessingTime}
+     *                  }>}
      */
     async getAliases(address){
         logger.verbose(`###################################################################################`);
@@ -148,14 +150,10 @@ class JupiterAPIService {
             throw new Error(`Jupiter Address is not valid: ${address}`);
         }
 
-        return new Promise((resolve, reject) => {
-            this.post( {
+        return this.post( {
                 requestType: 'getAliases',
                 account: address
-            }).then( response =>{
-                resolve(response.data.aliases);
             })
-        })
     }
 
     /**
@@ -349,10 +347,23 @@ class JupiterAPIService {
 
     /**
      *
+     *
+     * @description {
+     * "encryptedMessageIsPrunable": false,
+     * "decryptedMessage": "d12a43fa680ff6390e00707c7a0dc4aa07e0bc0e710647f8d973e9bf428e40383ca43682c61a5edcdf67cd6979ae5ee8b7da41ba1e4ce46548ff9334d76a32b26e8750ac20a146676202ca091f5f31000709a08b6d744ce91f1fbf1876a63ea0f851cc57453f2b747953372fe985ac27c3590ca28c5ea6a4e3821a045eb1a50dd90a9e7aae341c30aef2ed3401b5ca8219de379ed33f12ae9a5a348620172dd011fdf4bcc31a983f5a0978d213c100e9c0128b851a353bc7fdc08e859ebd516df1eccc352aab7e28491195e85f024634a72acb090a8565705d90a813fd82a1b9b045fb6f77a01f11ba318f0fb16e3458915e529f23cbcc10690f67dd715fc75f428ef8e30635ffc0d9fbdd843a406a68d2279eed0fea227b10327a8269ca96b25a7c571e5118f3f2a0560c65b93df49ee5bb1d9318966d9c98b93470485f697d27d95093e4db01a60d5927fbc48e6b730fa210b13ce503a8d6f532625df13d9ab3dc29d01348ff177dfbf562c969a0ad7c2467b180d5a598e63ebec320ff1f40f2911469fd581250a47fa081868e8c4e89c57c8f78c23f6a6f64264b3c1e5b4c0ea45dd97ed80dbf22e592a43716c3900bd4ce5b0717baee6d55f6656e584faa871261c0b48ad5982e2834f7793f2253004de1521da2112ee4939fa5a599445484cd9425f14206b4e0534db4d7d835ee",
+     * "requestProcessingTime": 1
+     *
+     * {"encryptedMessageIsPrunable":false,"errorDescription":"Wrong secretPhrase or sharedKey: pad block corrupted","errorCode":4,"requestProcessingTime":1,"error":"java.lang.RuntimeException: pad block corrupted"}
+     *{
+     * "encryptedMessageIsPrunable": false,
+     * "errorDescription": "Wrong secretPhrase or sharedKey: pad block corrupted",
+     * "errorCode": 4,
+     * "requestProcessingTime": 2,
+     * "error": "java.lang.RuntimeException: pad block corrupted"
+     * }
      * @param {string} transactionId
      * @param {string} passphrase
-     * @returns {Promise<{data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}>} - {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime} | {encryptedMessageIsPrunable,
-     * errorDescription,errorCode,requestProcessingTime,error}
+     * @returns {Promise<{data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}} | {encryptedMessageIsPrunable,errorDescription,errorCode,requestProcessingTime,error}>}
      */
     async getMessage(transactionId, passphrase) {
         return new Promise( (resolve, reject) => {

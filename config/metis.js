@@ -53,6 +53,10 @@ function Metis() {
     }
 
     async function getAliasAccountProperties(aliases = []) {
+
+        //
+
+
         const profilePictures = aliases.map(async (alias) => {
             const {accountRS} = await gravity.getAlias(alias);
             const {properties} = await gravity.getAccountProperties({recipient: accountRS});
@@ -122,6 +126,8 @@ function Metis() {
             }
         });
 
+
+        //
         const memberProfilePicture = await getAliasAccountProperties(members);
         return {aliases, members, memberProfilePicture};
     }

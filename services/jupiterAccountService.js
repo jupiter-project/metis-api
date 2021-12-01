@@ -172,8 +172,7 @@ class JupiterAccountService {
             promises.push(
                 this.jupiterTransactionsService.messageService.extractMessagesBySender(properties, allBlockChainTransactions)
             );
-            promises.push(this.jupiterAPIService.getAliases(accountInfo.address));
-
+            promises.push(this.getAliasesOrEmptyArray(accountInfo.address));
             Promise.all(promises)
                 .then((results) => {
                     logger.verbose('---------------------------------------------------------------------------');
@@ -194,9 +193,10 @@ class JupiterAccountService {
 
                     const records = this.tableService.extractRecordsFromMessages(transactionMessages);
 
-                    aliases.forEach((aliasInfo) => {
-                        properties.addAlias(aliasInfo);
-                    });
+                    properties.addAliases(aliases)
+                    // aliases.forEach((aliasInfo) => {
+                    //     properties.addAlias(aliasInfo);
+                    // });
 
                     const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
                     const attachedTablesStatementsPromises = [];
@@ -805,14 +805,13 @@ class JupiterAccountService {
 
     /**
      *
-     * @param {string} address
+     * @param address
+     * @returns {Promise<{aliasURI, aliasName, accountRS, alias, account, timestamp}[] | *[]>}
      */
     getAliasesOrEmptyArray(address){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAliasesOrEmptyArray(address)`);
-        logger.verbose(`## `);
-        logger.sensitive(`address=${JSON.stringify(address)}`);
+        logger.sensitive(`#### getAliasesOrEmptyArray(address)`);
         if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}
+        logger.sensitive(`address=${JSON.stringify(address)}`);
 
         return this.jupiterAPIService.getAliases(address)
             .then(getAliasesResponse => {

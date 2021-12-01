@@ -25,13 +25,11 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
                 encryptAlgorithm
             );
 
-
-
-            // cosnt aluiases = this.jupiterTransactionsService.getAliases(accountInfo.address);
-            // properties.addAlias(aliases);
-
-            return properties;
-
+            return jupiterAccountService.getAliasesOrEmptyArray(accountInfo.address)
+                .then(aliases => {
+                    properties.addAliases(aliases);
+                    return properties;
+                })
         }).catch( error => {
             logger.error(`***********************************************************************************`);
             logger.error(`** instantiateGravityAccountProperties().catch(error)`);

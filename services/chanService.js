@@ -374,12 +374,17 @@ class ChanService {
                 memberAccountProperties.address,
                 tag
             )
+            logger.sensitive(`tag=${JSON.stringify(tag)}`);
+            logger.sensitive(`transactions=${JSON.stringify(transactions)}`);
             const transactionsBySelf = transactionUtils.filterEncryptedMessageTransactionsBySender(transactions, memberAccountProperties.address);
+            logger.sensitive(`transactionsBySelf=${JSON.stringify(transactionsBySelf)}`);
             if (!gu.isNonEmptyArray(transactionsBySelf)) {
                 return null;
             }
             const [transaction] = transactionsBySelf;
+            logger.sensitive(`transaction=${JSON.stringify(transaction)}`);
             const transactionId = transactionUtils.extractTransactionId(transaction);
+
             const messageContainer = await this.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
             // const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
                 transactionId,
@@ -387,11 +392,13 @@ class ChanService {
                 memberAccountProperties.passphrase
             );
 
+            logger.sensitive(`messageContainer=${JSON.stringify(messageContainer)}`);
             const gravityAccountProperties = await instantiateGravityAccountProperties(
                 messageContainer.message.passphrase,
                 messageContainer.message.password
             )
 
+            logger.sensitive(`gravityAccountProperties=${JSON.stringify(gravityAccountProperties)}`);
             return gravityAccountProperties;
         } catch(error){
             logger.error(`****************************************************************`);

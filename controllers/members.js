@@ -23,16 +23,21 @@ module.exports = (app) => {
     try{
 
         if(!gu.isWellFormedJupiterAddress(channelAddress)){
-            res.status(500).send({success: false, error: `${error}`})
+            return res.status(500).send({success: false, error: `${error}`})
         }
 
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
         const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
-        // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        // console.log('channelAccountProperties');
-        // console.log(channelAccountProperties);
-        // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        if(!channelAccountProperties){
+            return res.status(500).send({message:'channel is not available'})
+        }
+
+
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('channelAccountProperties');
+        console.log(channelAccountProperties);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
 
         const channelMembers = await jupiterAccountService.getChannelMembers(channelAccountProperties)
 
@@ -50,10 +55,11 @@ module.exports = (app) => {
         // });
 
         // const memberList = {};
-        res.send(channelMembers);
+        return res.send(channelMembers);
         // res.send({ ...memberList, channelUserList: {}, publicKeys: userPublicKeyList })
     }catch (error){
-        logger.error(`Error getting members: ${error}`);
+        logger.error(`Error getting members`);
+        console.log(error);
         res.status(500).send({success: false, error: `${error}`})
     }
   });
