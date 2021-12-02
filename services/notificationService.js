@@ -71,14 +71,14 @@ module.exports = {
           return notification;
         });
   },
-  findNotificationsByAddressList: (addressList, excludeChannelId = null) => {
+  findNotificationsByAddressList: (addressList, excludeChannelAddress = null) => {
     const filter = {
       userAddress: { $in: addressList },
       pnAccounts: { $exists: true, $ne: [] },
     };
 
-    if (excludeChannelId) {
-      filter.mutedChannelIds = { $nin: [excludeChannelId] };
+    if (excludeChannelAddress) {
+      filter.mutedChannelIds = { $nin: [excludeChannelAddress] };
     }
 
     return Notifications.find(filter);

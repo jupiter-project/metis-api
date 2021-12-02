@@ -273,6 +273,49 @@ class JupiterAPIService {
         return this.get(params);
     }
 
+    getBlockChainTransactionsByIndex(firstIndex, lastIndex, address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
+        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error(`Jupiter address not valid: ${address}`);
+        }
+
+        let params = {
+            requestType: JupiterAPIService.requestTypes.getBlockchainTransactions,
+            account: address,
+            type,
+            withMessage,
+            includeExpiredPrunable,
+            firstIndex,
+            lastIndex
+        };
+
+        if(withMessage && message){
+            params = {...params, message}
+        }
+
+        return this.get(params);
+    }
+
+    getUnconfirmedBlockChainTransactionsByIndex(firstIndex, lastIndex, address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
+        logger.sensitive(`#### getUnconfirmedBlockChainTransactionsByIndex(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
+        if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error(`Jupiter address not valid: ${address}`);
+        }
+
+        let params = {
+            requestType: JupiterAPIService.requestTypes.getUnconfirmedTransactions,
+            account: address,
+            type,
+            withMessage,
+            includeExpiredPrunable
+        };
+
+        if(withMessage && message){ params = {...params, message}}
+
+        return this.get( params);
+    }
+
 
 
     /**
