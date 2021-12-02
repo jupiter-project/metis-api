@@ -219,7 +219,7 @@ class JupiterTransactionsService {
             // const dataToDecipher = transaction.attachment.encryptedMessage.data;
             // const nonce = transaction.attachment.encryptedMessage.nonce;
             // metisMessagePromises.push(
-            //     this.jupiterApi.getDecipheredData(dataToDecipher, address, passphrase, nonce)
+            //     this.jupiterApi.decryptFrom(dataToDecipher, address, passphrase, nonce)
             //         .then((response) => {
             //             transaction.decryptedMessage = response.data.decryptedMessage;
             //             resolve(transaction);
@@ -525,10 +525,10 @@ class JupiterTransactionsService {
         logger.verbose('#####################################################################################');
         logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
 
-        const unconfirmedTransactions = await this.jupiterAPIService.getUnconfirmedBlockChainTransactions(accountProperties.address);
+        const unconfirmedTransactionsResponse = await this.jupiterAPIService.getUnconfirmedBlockChainTransactions(accountProperties.address);
 
         return await this.messageService.readMessagesFromMessageTransactionsAndDecryptOrPassThroughAndReturnMessageContainers(
-            unconfirmedTransactions,
+            unconfirmedTransactionsResponse,
             accountProperties.crypto,
             accountProperties.passphrase
         )

@@ -78,7 +78,7 @@ class JupiterTransactionMessageService {
             // const dataToDecipher = transaction.attachment.encryptedMessage.data;
             // const nonce = transaction.attachment.encryptedMessage.nonce;
             // metisMessagePromises.push(
-            //     this.jupiterApi.getDecipheredData(dataToDecipher, address, passphrase, nonce)
+            //     this.jupiterApi.decryptFrom(dataToDecipher, address, passphrase, nonce)
             //         .then((response) => {
             //             transaction.decryptedMessage = response.data.decryptedMessage;
             //             resolve(transaction);
