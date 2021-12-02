@@ -1,15 +1,22 @@
 import _ from 'lodash';
-const gu = require('../utils/gravityUtils');
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
 import Channel from '../models/channel';
+import ChannelRecord from '../models/channel';
 import Message from '../models/message';
 import metis from '../config/metis';
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
-import ChannelRecord from "../models/channel";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
+import jupiterAPIService from "../services/jupiterAPIService";
+import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
+import {messagesConfig} from "../config/constants";
+import {FeeManager} from "../services/FeeManager";
+import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
+
+const gu = require('../utils/gravityUtils');
 const jwt = require('jsonwebtoken');
 
 const {
@@ -19,7 +26,8 @@ const {
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
 const logger = require('../utils/logger')(module);
-const {getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification} = require('../services/messageService');
+const {getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification} = require('../services/PushNotificationMessageService');
+
 
 module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
     app.use(device.capture());
@@ -176,40 +184,26 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             return res.status(400).send({success: false, message: 'Channel account is required'});
         }
 
+        try{
+            if(!gu.isWellFormedJupiterAddress(channelAddress)){
+                return res.status(500).send({success: false, error: `${error}`})
+            }
 
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){
-            return res.status(500).send({success: false, error: `${error}`})
+            const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.decryptedAccountData.encryptionPassword);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+
+            if(!channelAccountProperties){
+                return res.status(500).send({message:'channel is not available'})
+            }
+
+            const tag = 'v1.metis.message.message-record';
+            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainersByIndex(0, 10, channelAccountProperties, tag, false);
+            res.send(messageTransactions);
+        } catch (error){
+            logger.error('Error getting messages:');
+            logger.error(JSON.stringify(error));
+            res.status(500).send({message: 'Error getting messages'})
         }
-
-        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.decryptedAccountData.encryptionPassword);
-        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
-
-        if(!channelAccountProperties){
-            return res.status(500).send({message:'channel is not available'})
-        }
-
-
-
-        const channelRecord = new ChannelRecord({ user_id: user.id, public_key: user.publicKey, user_api_key: user.publicKey });
-        const userData = JSON.parse(gravity.decrypt(user.accountData));
-        const channel = await channelRecord.loadChannelByAddress(channelAddress, userData);
-
-        console.log('Current channel ---->', channel);
-
-        const tableData = {
-            passphrase: channelAccountProperties.passphrase,
-            account: channelAccountProperties.address,
-            password: channelAccountProperties.password,
-        };
-        const channelModel = new Channel(tableData);
-        channelModel.user = user;
-
-        channelModel.loadMessages(req.params.scope, req.params.firstIndex, 'desc', 10)
-            .then(response => res.send(response))
-            .catch(error => {
-                console.log('Error getting messages', error);
-                return res.status(500).send({success: false, message: 'Something went wrong'});
-            });
     });
 
     /**
@@ -221,76 +215,55 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         logger.info('== Send a message');
         logger.info('== POST: /v1/api/data/messages');
         logger.info('======================================================================================');
-        console.log('');
 
-        let {data} = req.body;
-        const {user, channel} = req;
-        data = {
-            ...data,
-            name: user.userData.alias,
-            sender: user.userData.account,
-            senderAlias: user.userData.alias,
-        };
+        const { user } = req;
+        const {
+            message,
+            address,
+            replyMessage,
+            replyRecipientAlias,
+            replyRecipientAddress,
+            attachmentUrl,
+            version,
+            mentions = [],
+            type = 'message'
+        } = req.body;
 
+        if(!message || !address){
+            return res.status(400).send({message: 'Must include a valid message and address'});
+        }
 
+        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
 
-        const tableData = channel.channel_record;
-        const message = new Message(data);
-        const {memberProfilePicture} = await metis.getMember({
-            channel: tableData.account,
-            account: tableData.publicKey,
-            password: tableData.password,
-        });
+        if(!channelAccountProperties){
+            return res.status(403).send({message: 'Invalid channel address.'})
+        }
 
-        const mentions = _.get(req, 'data.mentions', []);
-        const channelName = _.get(tableData, 'name', 'a channel');
-        const userData = JSON.parse(gravity.decrypt(user.accountData));
+        try{
+            const messageRecord = generateNewMessageRecordJson(
+                memberAccountProperties,
+                message,
+                type,
+                replyMessage,
+                replyRecipientAlias,
+                replyRecipientAddress,
+                attachmentUrl,
+                version,
+            );
 
-        message.sendRecord(userData, tableData)
-            .then(() => {
-                const messagePayload = {
-                    sender: user.userData.account,
-                    message: data.message,
-                    name: user.userData.alias,
-                    replyMessage: data.replyMessage,
-                    replyRecipientName: data.replyRecipientName,
-                    isInvitation: data.isInvitation || false,
-                    messageVersion: data.messageVersion,
-                    date: Date.now(),
-                    encryptionLevel: "channel"
-                };
-
-                if (!!data.isInvitation) {
-                    websocket.of('/chat').to(channel.id).emit('newMemberChannel');
-                }
-                websocket.of('/chat').to(channel.id).emit('createMessage', messagePayload);
-            })
-            .then(() => {
-                let members = memberProfilePicture.map(member => member.accountRS);
-                if (Array.isArray(members) && members.length > 0) {
-                    const senderAccount = user.userData.account;
-                    const senderName = user.userData.alias;
-                    members = members.filter(member => member !== senderAccount && !mentions.includes(member));
-
-                    const pnBody = `${senderName} has sent a message on channel ${channelName}`;
-                    const pnTitle = `${senderName} @ ${channelName}`;
-
-                    const channelAccount = channel && channel.channel_record
-                        ? channel.channel_record.account : null;
-
-                    getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, {channelAccount});
-
-                    // Push notification for mentioned members
-                    const pnmBody = `${senderName} was tagged on ${channelName}`;
-                    const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-                    getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, {channelAccount});
-                }
-            })
-            .then(() => res.send({success: true, message: 'Message successfully sent'}))
-            .catch(error => {
-                logger.error('[/data/messages]',`${error}`);
-                res.status(500).send({success: false, fullError: `${error}`});
-            });
+            await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+            if (type === 'invitation') {
+                websocket.of('/chat').to(address).emit('newMemberChannel');
+            }
+            websocket.of('/chat').to(address).emit('createMessage', messageRecord);
+        }catch(error){
+            logger.error('Error sending metis message:')
+            logger.error(JSON.stringify(error));
+            return res.status(500).send({message: 'Error sending message'})
+        }
+        res.send({ message: 'Message successfully sent' });
+        await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
     });
 
     /**

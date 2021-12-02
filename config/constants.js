@@ -1,6 +1,7 @@
 module.exports = {
   messagesConfig: {
     maxMessageLength: '260',
+    messageRecord: 'v1.metis.message.message-record'
   },
   userConfig:{
     userPublicKey: 'v1.metis.user.public-key',

@@ -157,6 +157,28 @@ class JupiterTransactionsService {
         return this.messageService.getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted);
     }
 
+    async getReadableTaggedMessageContainersByIndex(firstIndex, lastIndex, gravityAccountProperties, tag, isMetisEncrypted = true){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getReadableTaggedMessageContainersByIndex(firstIndex, lastIndex, gravityAccountProperties, tag, isMetisEncrypted = true)`);
+        logger.verbose(`## `);
+        if (!gravityAccountProperties instanceof GravityAccountProperties){
+            throw new Error('memberAccountProperties is invalid')
+        }
+        if(!gu.isNonEmptyString(tag)){throw new Error('tag is invalid')};
+        logger.sensitive(`gravityAccountProperties.address= ${JSON.stringify(gravityAccountProperties.address)}`);
+        logger.sensitive(`tag= ${tag}`);
+
+        const messageTransactions = await this.getTaggedConfirmedAndUnconfirmedBlockChainTransactionsByIndex(0, 10, gravityAccountProperties.address, tag, false);
+
+        const confirmedTransactions = messageTransactions.filter(transaction => {
+            return transaction.hasOwnProperty('attachment') &&
+                transaction.attachment.hasOwnProperty('message') &&
+                transaction.attachment.message.includes(tag)
+        });
+
+        return this.messageService.getReadableMessageContainers(confirmedTransactions, gravityAccountProperties, isMetisEncrypted);
+    }
+
     /**
      *
      * @param {[]} messageTransactions - [{signature, transactionIndex, type, phased, ecBlockId, signatureHash,
@@ -265,9 +287,32 @@ class JupiterTransactionsService {
         const confirmedTransactionsPromise = this.getBlockChainTransactionsByTag(address,tag);
         const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag);
         const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise])
-        const confirmedTransactions = confirmedTransactionsResponse;
-        const unconfirmendTransactions = unconfirmendTransactionsResponse;
         const combinedTransactions = [ ...confirmedTransactionsResponse, ...unconfirmendTransactionsResponse ];
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        logger.info(`++ combinedTransactions.length= ${combinedTransactions.length}`);
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        return combinedTransactions.filter(transaction => {
+            return transaction.hasOwnProperty('attachment') &&
+                transaction.attachment.hasOwnProperty('message') &&
+                transaction.attachment.message.includes(tag)
+        });
+    }
+
+
+    async getTaggedConfirmedAndUnconfirmedBlockChainTransactionsByIndex(firstIndex, lastIndex, address, tag){
+        logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag)`);
+        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
+        if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
+        logger.sensitive(`address= ${JSON.stringify(address)}`);
+        logger.sensitive(`tag= ${JSON.stringify(tag)}`);
+
+        const confirmedTransactionsPromise = jupiterAPIService.getBlockChainTransactionsByIndex(firstIndex, lastIndex, address, tag , true);;
+        const unconfirmedTransactionsPromise = jupiterAPIService.getUnconfirmedBlockChainTransactionsByIndex(firstIndex, lastIndex, address, tag , true );
+
+
+
+        const [{data: { transactions}}, {data: {unconfirmedTransactions}}] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise])
+        const combinedTransactions = [ ...transactions, ...unconfirmedTransactions ];
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`++ combinedTransactions.length= ${combinedTransactions.length}`);
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');

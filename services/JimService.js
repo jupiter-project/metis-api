@@ -7,7 +7,7 @@ import jupiterApiService from "./jupiterAPIService";
 import fs from "fs";
 const FormData = require('form-data');
 const axios = require('axios');
-const { getPNTokensAndSendPushNotification, errorMessageHandler } = require('./messageService');
+const { getPNTokensAndSendPushNotification, errorMessageHandler } = require('./PushNotificationMessageService');
 const accountPropertyFee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_property);  //ACCOUNT_PROPERTY_FEE
 const logger = require('../utils/logger')(module);
 

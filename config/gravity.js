@@ -2954,6 +2954,8 @@ class Gravity {
 
     const transactions = await this.getTransactions(query);
 
+    console.log('Transactions id =======>', transactions);
+
     if (!transactions.error) {
       for (let x = 0; x < transactions.length; x += 1) {
         const thisTransaction = transactions[x];
