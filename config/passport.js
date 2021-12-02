@@ -4,6 +4,7 @@ import { gravity } from './gravity';
 import User from '../models/user';
 
 import {accountRegistration} from "../services/accountRegistrationService";
+import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
 
 const LocalStrategy = require('passport-local').Strategy;
 
@@ -168,12 +169,15 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
  * @param passport
  */
 const metisLogin = (passport) => {
+    logger.verbose(`    ########################################################################`);
+    logger.verbose(`    ## metisLogin`);
+
   passport.use('gravity-login', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
     passReqToCallback: 'true',
   },
-  (req, account, accounthash, done) => {
+  async (req, account, accounthash, done) => {
   /**
    * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
    * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
@@ -184,6 +188,13 @@ const metisLogin = (passport) => {
     logger.verbose('#####################################################################################');
     logger.verbose('## metisLogin(passport)');
     logger.verbose('##');
+
+    // const userRecord = await gravity.getUser2(metisGravityAccountProperties, account);
+    // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    // console.log('userRecord');
+    // console.log(userRecord);
+    // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
     const {
       jupkey,
       public_key,
@@ -204,10 +215,7 @@ const metisLogin = (passport) => {
       originalTime: Date.now(),
     };
 
-    logger.sensitive(`containedDatabase=${JSON.stringify(containedDatabase)}`);
-
-
-    logger.verbose('gravity.getUser(account, jupkey, containedDatabase)');
+    logger.verbose('metisLogin().gravity.getUser(account, jupkey, containedDatabase)');
     gravity.getUser(account, jupkey, containedDatabase)
       .then(async (response) => {
         logger.debug('---------------------------------------------------------------------------------------');

@@ -9,7 +9,7 @@ const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
 // import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
-import {tableConfig} from "./constants";
+import {tableConfig, userConfig} from "./constants";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 // const {jupiterAccountService} = require("../services/jupiterAccountService");
 const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
@@ -824,7 +824,7 @@ class Gravity {
       const pendingRecords = [];
       let recordsFound = 0;
       let responseData = {};
-      let database = [];
+      let blockChainTransactions = [];
       let completedNumber = 0;
       let pendingNumber = 0;
       // let show_pending = scope.show_pending;
@@ -1074,7 +1074,7 @@ class Gravity {
         logger.debug('Parsing all the transactions')
         logger.debug(`transactionSender= ${transactionSender} `);
 
-        for (let arrayIndex = 0; arrayIndex < Object.keys(database).length; arrayIndex += 1) {
+        for (let transactionsIndex = 0; transactionsIndex < Object.keys(blockChainTransactions).length; transactionsIndex += 1) {
           let completion = false;
 
           // console.log(database[arrayIndex])
@@ -1092,39 +1092,35 @@ class Gravity {
           // logger.debug(`Transaction : ${JSON.stringify(database[obj])}`);
           // logger.debug(`Transaction  senderRS = ${database[obj].senderRS} recipientRS = ${database[obj].recipientRS} transaction = ${database[obj].transaction}`);
 
-          if (database[arrayIndex].attachment.encryptedMessage && database[arrayIndex].attachment.encryptedMessage.data)
+          if (blockChainTransactions[transactionsIndex].attachment.encryptedMessage && blockChainTransactions[transactionsIndex].attachment.encryptedMessage.data)
           {
             // console.log(1)
+            // logger.debug(`transactionSender= ${transactionSender} `);
 
-            // gravityCLIReporter.addItemsInJson('Transaction Info', {
-            //   'senderRS': database[obj].senderRS,
-            //   'recipientRS': database[obj].recipientRS
-            // } ,  reportSection );
-
-            if( database[arrayIndex].senderRS === transactionSender ){
+            if( blockChainTransactions[transactionsIndex].senderRS === transactionSender ){
               // console.log(2)
               // logger.debug(`Transaction payload: ${database[obj].transaction}`)
               if (scope.show_pending !== undefined && scope.show_pending > 0) {
-                // console.log(3)
-                if (database[arrayIndex].confirmations <= scope.show_pending) {
-                  // console.log(4)
-                  pendingRecords.push(arrayIndex.transaction);
+                console.log(3)
+                if (blockChainTransactions[transactionsIndex].confirmations <= scope.show_pending) {
+                  console.log(4)
+                  pendingRecords.push(transactionsIndex.transaction);
                   pendingNumber += 1;
                 } else {
                   // console.log(5)
-                  // logger.debug(` ${arrayIndex} : Correct SenderRs  `)
-                  records.push(database[arrayIndex].transaction);
+                  // logger.debug(` ${transactionsIndex} : Correct SenderRs  `)
+                  records.push(blockChainTransactions[transactionsIndex].transaction);
                   completedNumber += 1;
                 }
               } else if (scope.size === 'all') {
                 // console.log(6)
-                // logger.debug(` ${arrayIndex} : Correct SenderRs  `)
-                records.push(database[arrayIndex].transaction);
+                // logger.debug(` ${transactionsIndex} : Correct SenderRs  `)
+                records.push(blockChainTransactions[transactionsIndex].transaction);
                 completedNumber += 1;
               } else if (scope.size === 'last') {
                 // console.log(7)
-                // logger.debug(` ${arrayIndex} : Correct SenderRs  `)
-                records.push(database[arrayIndex].transaction);
+                // logger.debug(` ${transactionsIndex} : Correct SenderRs  `)
+                records.push(blockChainTransactions[transactionsIndex].transaction);
                 recordsFound += 1;
                 completedNumber += 1;
                 completion = true;
@@ -1132,26 +1128,19 @@ class Gravity {
               // console.log(8)
               recordsFound += 1;
             } else {
-              // console.log(9)
-              logger.warn(`${arrayIndex} : Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
-              // gravityCLIReporter.addItem(
-              //     `Transaction Info for `,
-              //     ` # Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`,
-              //     reportSection );
+              console.log(9)
+              logger.warn(`${transactionsIndex} : Wrong SenderRs: ${blockChainTransactions[transactionsIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
             }
-            // console.log(10)
+            console.log(10)
           } else {
-            // console.log(11)
-            logger.debug(`${arrayIndex} : Not a MessageTransaction: ${database[arrayIndex].transaction}`)
+            // console.log('.')
+            // logger.debug(`${transactionsIndex} : Not a MessageTransaction: ${blockChainTransactions[transactionsIndex].transaction}`)
           }
           if (completion) {
-            // console.log(12)
+            console.log(12)
             logger.verbose(`records = ${JSON.stringify(records)}`);
             break;
           }
-          // console.log(13)
-
-          // console.log('*--------------------------end')
         }
 
         logger.debug(` Total Valid Records Found: ${records.length}`)
@@ -1171,8 +1160,8 @@ class Gravity {
           logger.debug('---------------------------------------------------------------------------------------')
           logger.debug(`--  getRecords().axiosGet(url).then(response)`)
           logger.debug('---------------------------------------------------------------------------------------')
-          database = response.data.transactions;
-          logger.info(`-- Total transactions: ${database.length}`);
+          blockChainTransactions = response.data.transactions;
+          logger.info(`-- Total blockChainTransactions: ${blockChainTransactions.length}`);
 
           // gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
           eventEmitter.emit('database_retrieved');
@@ -1446,6 +1435,23 @@ class Gravity {
     });
   }
 
+  /**
+   *
+   * @param metisAccountProperties
+   * @param memberAddress
+   * @return {Promise<{userRecord: *}>}
+   */
+  getUser2(metisAccountProperties, memberAddress) {
+    return jupiterTransactionsService.getReadableTaggedMessageContainers(
+        metisAccountProperties,
+        `${userConfig.metisUserRecord}.${memberAddress}`,
+        )
+        .then(messageContainer => {
+          return {
+            userRecord: messageContainer.message
+          }
+        })
+  }
 
   /**
    *
@@ -1458,12 +1464,9 @@ class Gravity {
    * {noUserTables, applicationTablesFound, userNeedsSave, tables, applicationTables}
    */
   getUser(account, passphrase, containedDatabase = null) {
-    logger.verbose('###############################################################################################')
-    logger.verbose(`###############################################################################################\n`)
-    logger.verbose(`##    getUser(account=${JSON.stringify(account)}, passphrase, containedDatabase=${!!containedDatabase})\n`);
-    logger.verbose('###############################################################################################')
-    logger.verbose('###############################################################################################')
-
+    logger.verbose('##########################################################################################')
+    logger.verbose(`## getUser(account=${JSON.stringify(account)}, passphrase, containedDatabase=${!!containedDatabase})`);
+    logger.verbose('##')
 
     const self = this;
     return new Promise((resolve, reject) => {
@@ -1801,8 +1804,8 @@ class Gravity {
         // The some() method tests whether at least one element in the array passes the test implemented by the provided
         // function. It returns true if, in the array, it finds an element for which the provided function returns true;
         // otherwise it returns false. It doesn't modify the array.
-        Object.keys(applicationAccountUserTableTransactions).some((arrayIndex) => {
-          const transaction = applicationAccountUserTableTransactions[arrayIndex];
+        Object.keys(applicationAccountUserTableTransactions).some((transactionsIndex) => {
+          const transaction = applicationAccountUserTableTransactions[transactionsIndex];
           let completion = false;
           logger.debug(` the recipient ${transaction.recipientRS} needs to be ${userAccount}`);
           if (transaction.attachment.encryptedMessage.data && transaction.recipientRS === userAccount) {

@@ -34,41 +34,43 @@ class JupiterAccountService {
         this.transactionUtils = transactionUtils;
     }
 
-    async addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties) {
+    /**
+     *
+     * @param accountProperties
+     * @param metisUsersTableProperties
+     * @return {Promise<{data: *, transactionsReport: [{name: string, id: *}]}>}
+     */
+    addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties) {
         logger.verbose('###########################################################################');
         logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
         logger.verbose('##');
+        if(!accountProperties instanceof GravityAccountProperties){throw new Error('accountProperties is not valid')}
+        if(!metisUsersTableProperties instanceof GravityAccountProperties){throw new Error('metisUsersTableProperties is not valid')}
         logger.verbose(`  accountProperties.address= ${accountProperties.address}`);
         logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`);
-        logger.verbose(`  metisUsersTableProperties.publicKey= ${metisUsersTableProperties.publicKey}`);
 
-        return new Promise((resolve, reject) => {
-            this.generateId(accountProperties, metisUsersTableProperties).then((transactionId) => {
+        return this.generateId(accountProperties, metisUsersTableProperties)
+            .then((transactionId) => {
                 logger.verbose('---------------------------------------------------------------------------------');
                 logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
                 logger.verbose('--');
-                logger.debug(`transactionId= ${transactionId}`);
+                const tag = `${userConfig.metisUserRecord}.${accountProperties.address}`;
                 const userRecord = accountProperties.generateUserRecord(transactionId);
-                logger.debug(`userRecord.account=`);
-                logger.debug(`metisUsersTableProperties.crypto = ${JSON.stringify(metisUsersTableProperties.crypto)}`);
                 const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
-                logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`);
-                const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-                const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-                this.jupiterAPIService
-                    .sendSimpleEncipheredMetisMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord, fee, subtype)
-                    .then((response) => {
-                        logger.verbose('---------------------------------------------------------------------------------');
-                        logger.verbose(
-                            `-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).sendSimpleEncipheredMetisMessage().then(response)`
-                        );
-                        logger.verbose('--');
-                        return resolve({
+                return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+                    metisUsersTableProperties.passphrase,
+                    accountProperties.address,
+                    encryptedUserRecord,
+                    tag,
+                    FeeManager.feeTypes.account_record,
+                    accountProperties.publicKey
+                )
+                    .then(response => {
+                        return {
                             data: response.data,
-                            transactionsReport: [{name: 'users-table-record', id: response.data.transaction}]
-                        });
-                    });
-            });
+                            transactionsReport:[{name: 'users-table-record', id: response.data.transaction}]
+                        }
+                    })
         });
     }
 

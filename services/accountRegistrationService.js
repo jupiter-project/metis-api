@@ -43,7 +43,7 @@ class AccountRegistration {
   }
 
   defaultTableNames() {
-    return ['channels', 'invites', 'storage'];
+    return ['storage'];
   }
 
 
@@ -162,13 +162,13 @@ class AccountRegistration {
                     }
                     newAndFundedAccountStatement.properties.addAlias(aliasObject);
 
-                    return this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions)
+                    // return this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions)
                 })
                 .then( () => {
                     return this.jupiterAccountService.addRecordToMetisUsersTable(newAndFundedAccountStatement.properties, usersTableStatement.properties)
                 })
                 .then( addRecordToMetisUsersTableResponse => {
-                    return this.jupiterFundingService.waitForAllTransactionConfirmations(addRecordToMetisUsersTableResponse.transactionsReport)
+                    // return this.jupiterFundingService.waitForAllTransactionConfirmations(addRecordToMetisUsersTableResponse.transactionsReport)
                 })
                 .then( () => {
                     const metisAppRegistrationData = this.printRegistrationData(newAndFundedAccountStatement)

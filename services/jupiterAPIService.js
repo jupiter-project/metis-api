@@ -705,27 +705,7 @@ class JupiterAPIService {
         if(encryptToSelfMessageNonce){ params.encryptToSelfMessageNonce = encryptToSelfMessageNonce}
         if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ params.compressMessageToEncryptToSelf = 'true'}
 
-        logger.sensitive(`params= ${JSON.stringify(params)}`);
-
-        return new Promise( (resolve, reject) => {
-            this.post(params)
-                .then( response => {
-                    logger.debug(`then()`);
-
-                    // console.log(response)
-
-                    if (response.data.broadcasted && response.data.broadcasted === true) {
-                        return resolve(response);
-                    }
-                    logger.error(`then(error)`);
-                    return reject({errorType: 'responseValueNotAsExpected', message: response});
-                })
-                .catch( error  => {
-                    logger.error(`error()`);
-                    console.log(error)
-                    return reject({errorType: 'requestError', message: `${error}`});
-                });
-        })
+        return this.post(params)
     }
 
 
@@ -890,19 +870,39 @@ class JupiterAPIService {
      * @param address
      * @return {Promise<{"aliases": [{"aliasURI","aliasName","accountRS","alias","account","timestamp"}],"requestProcessingTime"}>}
      */
-    async getAliases(address) {
-        logger.verbose('#################################################')
-        logger.verbose(`## getAliases(address)`);
-        logger.verbose('##')
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
+    // async getAliases(address) {
+    //     logger.verbose('#################################################')
+    //     logger.verbose(`## getAliases(address)`);
+    //     logger.verbose('##')
+    //     if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
+    //
+    //     const params = {
+    //         aliasName,
+    //         requestType: 'getAliases',
+    //     }
+    //
+    //     return this.get(params)
+    // }
 
-        const params = {
-            aliasName,
-            requestType: 'getAliases',
+    async getAliases(address){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getAliases(address)`);
+        logger.verbose(`## `);
+        logger.sensitive(`address=${JSON.stringify(address)}`);
+        if(!gu.isWellFormedJupiterAddress(address)){
+            throw new Error(`Jupiter Address is not valid: ${address}`);
         }
 
-        return this.get(params)
+        return this.post( {
+                requestType: JupiterAPIService.requestTypes.getAliases,
+                account: address
+            })
     }
+
+
+
+
+
 
     /**
      * @example {
