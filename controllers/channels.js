@@ -256,7 +256,7 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             if (type === 'invitation') {
                 websocket.of('/chat').to(address).emit('newMemberChannel');
             }
-            websocket.of('/chat').to(address).emit('createMessage', messageRecord);
+            websocket.of('/chat').to(address).emit('createMessage', { message: messageRecord });
         }catch(error){
             logger.error('Error sending metis message:')
             logger.error(JSON.stringify(error));
