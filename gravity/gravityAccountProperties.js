@@ -1,11 +1,10 @@
-const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {GravityCrypto} = require("../services/gravityCrypto");
 const bcrypt = require("bcrypt-nodejs");
 const gu = require("../utils/gravityUtils");
-const {applicationAccountProperties} = require("./applicationAccountProperties");
-const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
+const {JupiterAccountProperties} = require("./jupiterAccountProperties");
+const {metisApplicationAccountProperties} = require("./applicationAccountProperties");
 
 /**
  *
@@ -106,8 +105,10 @@ class GravityAccountProperties extends JupiterAccountProperties {
     }
 
 
+
+    //@TODO generateUserRecord should be removed.
     /**
-     *
+     * OBSOLETE!
      * @param generatingTransactionId
      * @returns {{date: number, user_record: {firstname: string, twofa_enabled: boolean, publicKey: string, lastname: string, secret_key: null, accounthash: string, twofa_completed: boolean, api_key: *, alias: *, encryption_password: string, id, account: string, email: string}, id}}
      */
@@ -162,65 +163,10 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
     }
 
-    /**
-     *
-     * @param jwtAccountData
-     * @returns {Object}
-     */
-    static instantiateBasicGravityAccountProperties(passphrase, password){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## instantiateBasicGravityAccountProperties`);
-        logger.verbose(`## `);
-        logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
-        logger.sensitive(`password=${JSON.stringify(password)}`);
-
-        if(!passphrase){throw new Error('passphrase is empty')}
-        if(!password){throw new Error('password is empty')}
-
-        return jupiterTransactionsService.getAccountInformation(passphrase)
-            .then(accountInfo => {
-                return GravityAccountProperties.instantiateGravityAccountProperties(
-                    accountInfo.address,
-                    passphrase,
-                    password,
-                    accountInfo.accountId,
-                    accountInfo.publicKey,
-                    gu.generateHash(password)
-                )
-            }).catch( error => {
-                logger.error(`***********************************************************************************`);
-                logger.error(`** instantiateBasicGravityAccountProperties().catch(error)`);
-                logger.error(`** `);
-                console.log(error);
-                throw error;
-            })
-    }
-
-    /**
-     *
-     * @param address
-     * @param passphrase
-     * @param password
-     * @param accountId
-     * @param publicKey
-     * @param accountHash
-     * @param algorithm
-     * @returns {GravityAccountProperties}
-     */
-    static instantiateGravityAccountProperties(address, passphrase, password, accountId, publicKey, accountHash, algorithm = encryptAlgorithm){
-        return new GravityAccountProperties(
-            address,
-            accountId,
-            publicKey,
-            passphrase,
-            accountHash,
-            password,
-            algorithm
-        );
-    }
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
+
 module.exports.metisGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
     process.env.APP_ACCOUNT_ID,
@@ -232,6 +178,7 @@ module.exports.metisGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_EMAIL,
     process.env.APP_NAME,
     '', // lastname
-    applicationAccountProperties
+     metisApplicationAccountProperties
 );
+
 

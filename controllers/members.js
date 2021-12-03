@@ -1,28 +1,103 @@
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+
+const gu = require('../utils/gravityUtils');
 import metis from '../config/metis';
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import ChannelRecord from "../models/channel";
+import {gravity} from "../config/gravity";
+import {channelConfig} from "../config/constants";
+import {chanService} from "../services/chanService";
 const logger = require('../utils/logger')(module);
 
 module.exports = (app) => {
-  app.get('/v1/api/data/members', async (req, res) => {
-    const { channel_record: { account, password, passphrase }} = req.channel;
-    const tableData = { account, password, passphrase };
+
+
+    /**
+     * GET Channel Members
+     */
+    app.get('/v1/api/:channelAddress/members', async (req, res) => {
+      const { user } =  req;
+      const { channelAddress } = req.params;
 
     try{
-        const channelProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(passphrase, password);
-        const channelPublicKeyList =  await jupiterAccountService.getPublicKeysFromChannelAccount(channelProperties);
-        const userPublicKeyList = channelPublicKeyList.map(cpkl => cpkl.userPublicKey);
 
-        const memberList = await metis.getMember({ //TODO we need to get rid of this
-            channel: tableData.account,
-            account: req.user.account,
-            password: tableData.password
-        });
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){
+            return res.status(500).send({success: false, error: `${error}`})
+        }
 
-        res.send({ ...memberList, channelUserList: userPublicKeyList })
+        console.log('/v1/api/:channelAddress/members', user.passphrase);
+
+        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.decryptedAccountData.encryptionPassword);
+        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+
+        if(!channelAccountProperties){
+            return res.status(500).send({message:'channel is not available'})
+        }
+
+
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('channelAccountProperties');
+        console.log(channelAccountProperties);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+        const channelMembers = await jupiterAccountService.getChannelMembers(channelAccountProperties)
+
+        // console.log(channelMembers);
+
+        // const channelPublicKeyList =  await jupiterAccountService.getPublicKeysFromChannelAccount(channelAccountProperties);
+        // const userPublicKeyList = channelPublicKeyList.map(cpkl => cpkl.userPublicKey);
+
+        // console.log('userPublicKeyList ----->', userPublicKeyList);
+
+        // const memberList = await metis.getMember({ //TODO we need to get rid of this
+        //     channel: channelProperties.address,
+        //     account: user.account,
+        //     password: channelProperties.password
+        // });
+
+        // const memberList = {};
+        return res.send(channelMembers);
+        // res.send({ ...memberList, channelUserList: {}, publicKeys: userPublicKeyList })
     }catch (error){
-        logger.error(`Error getting members: ${JSON.stringify(error)}`);
-        res.status(500).send({success: false, error})
+        logger.error(`Error getting members`);
+        console.log(error);
+        res.status(500).send({success: false, error: `${error}`})
     }
   });
+
+
+    // /**
+    //  * Get Channel Members
+    //  */
+    // app.get('/v1/api/channel/members', async (req,res) => {
+    //     console.log('');
+    //     logger.info('======================================================================================');
+    //     logger.info('== Get Channel Members');
+    //     logger.info('== GET: /v1/api/channel/members');
+    //     logger.info('======================================================================================');
+    //     console.log('');
+    //
+    //     const memberAccountProperties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(
+    //         req.user.passphrase,
+    //         req.user.password
+    //     )
+    //
+    //     const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
+    //
+    //     const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
+    //         reduced.push({
+    //             channelAddress: channelAccountProperties.address,
+    //             channelName: channelAccountProperties.channelName});
+    //         return reduced;
+    //     }, [])
+    //
+    //     console.log('ChannelList ----->', listOfChannels);
+    //
+    //     res.send(listOfChannels);
+    //     console.log('');
+    //     logger.info('- Get member Channels');
+    //     logger.info('- GET: /v1/api/channels');
+    //     logger.info('^======================================================================================^');
+    // })
 };

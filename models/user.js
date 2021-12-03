@@ -305,7 +305,7 @@ class User extends Model {
             }
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, errors: error.response });
           });
       }

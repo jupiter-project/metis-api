@@ -9,7 +9,7 @@ const { hideBin } = require('yargs/helpers')
 // const AccountRegistration  = require('../services/accountRegistrationService');
 const {gravityUtils} = require("../utils/gravityUtils");
 const { jupiterAPIService } = require('../services/jupiterAPIService');
-const { applicationAccountProperties, ApplicationAccountProperties} = require('../gravity/applicationAccountProperties');
+const { metisApplicationAccountProperties, ApplicationAccountProperties} = require('../gravity/applicationAccountProperties');
 const { JupiterAccountProperties } = require('../gravity/jupiterAccountProperties');
 const {jupiterAxios} = require("../config/axiosConf");
 const logger = require('../utils/logger');
@@ -26,7 +26,7 @@ let applicationGravityAccountProperties = new ApplicationAccountProperties();
 
 const jupiterAccountService = new JupiterAccountService(
     jupiterAPIService,
-    applicationAccountProperties,
+    metisApplicationAccountProperties,
     tableService,
     jupiterTransactionsService);
 

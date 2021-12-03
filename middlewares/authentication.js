@@ -6,7 +6,10 @@ const logger = require('../utils/logger')(module);
 //  Verificar Token
 // ============================
 const tokenVerify = (req, res, next) => {
-  logger.debug(`tokenVerify(), URL:  ${req.url}`);
+  logger.verbose(`###################################################################################`);
+  logger.verbose(`## tokenVerify()`);
+  logger.verbose(`## `);
+
   const token = req.get('Authorization');
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [
@@ -24,6 +27,7 @@ const tokenVerify = (req, res, next) => {
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
   if (valid.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token')) {
+    console.log('-->next');
     return next();
   }
 
@@ -50,11 +54,15 @@ const tokenVerify = (req, res, next) => {
     req.user = decodedUser;
 
     const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, process.env.ENCRYPT_PASSWORD);
-    const { passphrase, password } = crypto.decryptAndParseOrNull(decodedUser.accountData);
+    const decryptedAccountData = crypto.decryptAndParse(decodedUser.accountData);
 
-    req.user.passphrase = passphrase;
-    req.user.password = password;
+    req.user.passphrase = decryptedAccountData.passphrase;
+    req.user.password = decryptedAccountData.encryptionPassword;
+    req.user.address = decryptedAccountData.account;
+    req.user.publicKey = decryptedAccountData.publicKey;
+    req.user.decryptedAccountData = decryptedAccountData
     req.channel = decodedChannel;
+
     next();
   });
 };

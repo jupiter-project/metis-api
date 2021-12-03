@@ -56,7 +56,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         res.send({ success: true, application: response.app, tables: response.tables });
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.send({ success: false, message: 'There was an error retrieving app data' });
       });
   });
@@ -99,7 +99,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
             });
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             res.send({ success: false, message: 'Invalid table', error: 'table-not-found' });
           });
       } else {
@@ -112,8 +112,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
             res.send(response);
           })
           .catch((error) => {
-            logger.error(error);
-            res.send({ success: false, errors: error });
+            logger.error(`${error}`);
+            res.send({ success: false, errors: `${error}` });
           });
       }
     }
@@ -126,13 +126,13 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           res.send({ success: true, balances: response });
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           res.send({ success: false, message: 'There was an error retrieving app data' });
         });
     } else {
       const error = { success: false, message: 'Address secret was not included in request' };
-      logger.error(error);
-      res.send(error);
+      logger.error(`${error}`);
+      res.send(`${error}`);
     }
   });
 };

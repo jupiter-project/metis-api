@@ -107,15 +107,24 @@ class GravityCrypto {
      */
     decryptAndParseOrNull(data){
         const decryptedValue = this.decryptOrPassThrough(data);
-        let json = null;
         try{
-            json = JSON.parse(decryptedValue);
+            return this.decryptAndParse(decryptedValue);
         } catch(error) {
             return null;
         }
-
-        return json;
     }
+
+    /**
+     *
+     * @param data
+     * @returns {any}
+     */
+    decryptAndParse(data){
+        const decryptedValue = this.decryptOrPassThrough(data);
+        return  JSON.parse(decryptedValue);
+    }
+
+
 }
 
 module.exports.GravityCrypto = GravityCrypto;

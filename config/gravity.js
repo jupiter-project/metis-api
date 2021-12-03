@@ -1,3 +1,4 @@
+import gu from '../utils/gravityUtils';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
 require('dotenv').config();
@@ -7,8 +8,11 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
-import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
+// import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
+import {tableConfig, userConfig} from "./constants";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
+// const {jupiterAccountService} = require("../services/jupiterAccountService");
+const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 
 class Gravity {
   constructor() {
@@ -100,7 +104,7 @@ class Gravity {
           resolve(response.tables);
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           reject(error);
         });
     });
@@ -134,7 +138,7 @@ class Gravity {
           resolve(tables);
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           reject(error);
         });
     });
@@ -314,13 +318,13 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   loadAccountData(accountCredentials ) { // -> getREcords
-    logger.verbose(`###################################################################################`);
+    logger.info(`###################################################################################`);
     logger.verbose(`## loadAccountData(accountCredentials)`);
     logger.verbose(`## `);
     logger.sensitive(`accountCredentials=${JSON.stringify(accountCredentials)}`);
     return new Promise((resolve, reject) => {
 
-      logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
+      // logger.debug(`loadAccountData(accountCredentials=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}, passphrase)`);
       this.getRecords(
           accountCredentials.address,
           accountCredentials.address,
@@ -328,9 +332,9 @@ class Gravity {
           { size: 'all', show_pending: null, show_unconfirmed: false },
           accountCredentials.password )
           .then((recordsContainer) => { //{records,last_record,pending}
-            logger.verbose(`-----------------------------------------------------------------------------------`);
-            logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
-            logger.verbose(`-- `);
+            // logger.verbose(`-----------------------------------------------------------------------------------`);
+            // logger.debug(`-- loadAccountData(containedDatabase=${!!accountCredentials}).getRecords(ownerAddress=${accountCredentials.address}, transactionSender=${accountCredentials.address}).THEN(recordsContainer)`);
+            // logger.verbose(`-- `);
             logger.sensitive(`recordsContainer=${JSON.stringify(recordsContainer)}`);
             const allRecords = recordsContainer.records;
             if (Array.isArray(allRecords) && !allRecords.length ){
@@ -436,7 +440,7 @@ class Gravity {
       const accountPropertiesHolder = account;
       const accountPropertiesHolderPassphrase = passphrase;
 
-      logger.debug(`loadUserAndAppData(containedDatabase=${!!containedDatabase}).getRecords(ownerAddress=${ownerAddress}, transactionSender=${accountPropertiesHolder}, passphrase)`);
+      // logger.debug(`loadUserAndAppData(containedDatabase=${!!containedDatabase}).getRecords(ownerAddress=${ownerAddress}, transactionSender=${accountPropertiesHolder}, passphrase)`);
       self.getRecords(
           ownerAddress,
           accountPropertiesHolder,
@@ -611,7 +615,7 @@ class Gravity {
         })
         .catch((error) => {
           logger.error('Theres an error!');
-          logger.error(error);
+          logger.error(`${error}`);
           reject({ success: false, error: 'There was an error loading records' });
         });
     });
@@ -750,7 +754,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 reject(error);
               });
           });
@@ -776,8 +780,8 @@ class Gravity {
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
-          logger.error(error);
-          resolve({ success: false, errors: error });
+          logger.error(`${error}`);
+          resolve({ success: false, errors: `${error}` });
         });
     });
   }
@@ -804,15 +808,11 @@ class Gravity {
       ownerPassword = this.password)
   {
     logger.verbose('############################################################################################################################')
-    logger.verbose(`                       getRecords(ownerAddress= ${ownerAddress}, transactionSender= ${transactionSender}, transactionSenderPassphrase, scope, ownerPass)`)
-    logger.verbose('############################################################################################################################')
+    logger.verbose(`## getRecords(ownerAddress, transactionSender, transactionSenderPassphrase, scope, ownerPass)`)
+    logger.verbose('##')
 
-    logger.debug(`ownerAddress = ${ownerAddress}`);
-    logger.debug(`transactionSender = ${transactionSender}`);
-
-    const reportSection = `Information used for retrieving Account Properties for - ${ownerAddress}`
-    gravityCLIReporter.addItem('Owner Account Address', ownerAddress, reportSection )
-    gravityCLIReporter.addItem('Account Properties Holder', transactionSender,reportSection )
+    logger.verbose(`ownerAddress= ${ownerAddress}`);
+    logger.verbose(`transactionSender= ${transactionSender}`);
 
     const eventEmitter = new events.EventEmitter();
     const self = this;
@@ -824,7 +824,7 @@ class Gravity {
       const pendingRecords = [];
       let recordsFound = 0;
       let responseData = {};
-      let database = [];
+      let blockChainTransactions = [];
       let completedNumber = 0;
       let pendingNumber = 0;
       // let show_pending = scope.show_pending;
@@ -861,7 +861,7 @@ class Gravity {
         }
         // logger.debug('getRecords().return()')
         // logger.sensitive(JSON.stringify(responseData));
-        gravityCLIReporter.addItemsInJson('Records', responseData.records, reportSection);
+        // gravityCLIReporter.addItemsInJson('Records', responseData.records, reportSection);
         return resolve(responseData);
       });
 
@@ -911,7 +911,7 @@ class Gravity {
                   decryptedPendings.push(decriptedPending);
                   logger.debug(`decryptedPendings count: ${decriptedPending.length}`);
                 } catch (e) {
-                  logger.error(JSON.stringify(e));
+                  logger.error(`${e}`);
                 }
 
                 recordCounter += 1;
@@ -921,9 +921,8 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error('ERROR!!!')
-                logger.error(error);
-                return reject({ success: false, errors: error });
+                logger.error(`${error}`);
+                return reject({ success: false, errors: `${error}` });
               });
           });
         } else {
@@ -932,9 +931,7 @@ class Gravity {
       });
 
       eventEmitter.on('records_retrieved', () => {
-
         logger.debug(`getRecords().on(records_retrieved)`);
-        logger.debug('  Calling readMessage for each MessageTransaction received from the Table Account')
         logger.debug(`Message Transaction count: ${records.length}`);
 
         if (records.length <= 0) {
@@ -969,7 +966,7 @@ class Gravity {
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
                     // logger.error(JSON.stringify(error));
-                    return resolve({error: true, message: error});
+                    return resolve({error: true, message: `${error}`});
                   });
             })
             messageResponses.push(messageResponse);
@@ -1039,13 +1036,13 @@ class Gravity {
                   decryptedRecords.push(...decryptedMessages);
                 }
 
-                gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
-                  'Total requests': messageResponses.length,
-                  'Total successful requests': totalSuccessfulMessageRequests,
-                  'Total failed requests': totalUnsuccessfulMessageRequests,
-                  'Total decrypted Message Transactions': decryptedMessages.length,
-                  'Total messages not able to be decrypted': notAbleToDecrypt
-                }, reportSection);
+                // gravityCLIReporter.addItemsInJson('Jupiter GetMessages', {
+                //   'Total requests': messageResponses.length,
+                //   'Total successful requests': totalSuccessfulMessageRequests,
+                //   'Total failed requests': totalUnsuccessfulMessageRequests,
+                //   'Total decrypted Message Transactions': decryptedMessages.length,
+                //   'Total messages not able to be decrypted': notAbleToDecrypt
+                // }, reportSection);
 
                 eventEmitter.emit('check_on_pending');
               })
@@ -1077,7 +1074,7 @@ class Gravity {
         logger.debug('Parsing all the transactions')
         logger.debug(`transactionSender= ${transactionSender} `);
 
-        for (let arrayIndex = 0; arrayIndex < Object.keys(database).length; arrayIndex += 1) {
+        for (let transactionsIndex = 0; transactionsIndex < Object.keys(blockChainTransactions).length; transactionsIndex += 1) {
           let completion = false;
 
           // console.log(database[arrayIndex])
@@ -1095,39 +1092,35 @@ class Gravity {
           // logger.debug(`Transaction : ${JSON.stringify(database[obj])}`);
           // logger.debug(`Transaction  senderRS = ${database[obj].senderRS} recipientRS = ${database[obj].recipientRS} transaction = ${database[obj].transaction}`);
 
-          if (database[arrayIndex].attachment.encryptedMessage && database[arrayIndex].attachment.encryptedMessage.data)
+          if (blockChainTransactions[transactionsIndex].attachment.encryptedMessage && blockChainTransactions[transactionsIndex].attachment.encryptedMessage.data)
           {
             // console.log(1)
+            // logger.debug(`transactionSender= ${transactionSender} `);
 
-            // gravityCLIReporter.addItemsInJson('Transaction Info', {
-            //   'senderRS': database[obj].senderRS,
-            //   'recipientRS': database[obj].recipientRS
-            // } ,  reportSection );
-
-            if( database[arrayIndex].senderRS === transactionSender ){
+            if( blockChainTransactions[transactionsIndex].senderRS === transactionSender ){
               // console.log(2)
               // logger.debug(`Transaction payload: ${database[obj].transaction}`)
               if (scope.show_pending !== undefined && scope.show_pending > 0) {
-                // console.log(3)
-                if (database[arrayIndex].confirmations <= scope.show_pending) {
-                  // console.log(4)
-                  pendingRecords.push(arrayIndex.transaction);
+                console.log(3)
+                if (blockChainTransactions[transactionsIndex].confirmations <= scope.show_pending) {
+                  console.log(4)
+                  pendingRecords.push(transactionsIndex.transaction);
                   pendingNumber += 1;
                 } else {
                   // console.log(5)
-                  // logger.debug(` ${arrayIndex} : Correct SenderRs  `)
-                  records.push(database[arrayIndex].transaction);
+                  // logger.debug(` ${transactionsIndex} : Correct SenderRs  `)
+                  records.push(blockChainTransactions[transactionsIndex].transaction);
                   completedNumber += 1;
                 }
               } else if (scope.size === 'all') {
                 // console.log(6)
-                // logger.debug(` ${arrayIndex} : Correct SenderRs  `)
-                records.push(database[arrayIndex].transaction);
+                // logger.debug(` ${transactionsIndex} : Correct SenderRs  `)
+                records.push(blockChainTransactions[transactionsIndex].transaction);
                 completedNumber += 1;
               } else if (scope.size === 'last') {
                 // console.log(7)
-                // logger.debug(` ${arrayIndex} : Correct SenderRs  `)
-                records.push(database[arrayIndex].transaction);
+                // logger.debug(` ${transactionsIndex} : Correct SenderRs  `)
+                records.push(blockChainTransactions[transactionsIndex].transaction);
                 recordsFound += 1;
                 completedNumber += 1;
                 completion = true;
@@ -1135,26 +1128,19 @@ class Gravity {
               // console.log(8)
               recordsFound += 1;
             } else {
-              // console.log(9)
-              logger.warn(`${arrayIndex} : Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
-              gravityCLIReporter.addItem(
-                  `Transaction Info for `,
-                  ` # Wrong SenderRs: ${database[arrayIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`,
-                  reportSection );
+              console.log(9)
+              logger.warn(`${transactionsIndex} : Wrong SenderRs: ${blockChainTransactions[transactionsIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
             }
-            // console.log(10)
+            console.log(10)
           } else {
-            // console.log(11)
-            logger.debug(`${arrayIndex} : Not a MessageTransaction: ${database[arrayIndex].transaction}`)
+            // console.log('.')
+            // logger.debug(`${transactionsIndex} : Not a MessageTransaction: ${blockChainTransactions[transactionsIndex].transaction}`)
           }
           if (completion) {
-            // console.log(12)
+            console.log(12)
             logger.verbose(`records = ${JSON.stringify(records)}`);
             break;
           }
-          // console.log(13)
-
-          // console.log('*--------------------------end')
         }
 
         logger.debug(` Total Valid Records Found: ${records.length}`)
@@ -1174,16 +1160,16 @@ class Gravity {
           logger.debug('---------------------------------------------------------------------------------------')
           logger.debug(`--  getRecords().axiosGet(url).then(response)`)
           logger.debug('---------------------------------------------------------------------------------------')
-          database = response.data.transactions;
-          logger.info(`-- Total transactions: ${database.length}`);
+          blockChainTransactions = response.data.transactions;
+          logger.info(`-- Total blockChainTransactions: ${blockChainTransactions.length}`);
 
           // gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
           logger.error('Error getting transactions');
-          logger.error(error);
-          return resolve({ success: false, errors: error });
+          logger.error(`${error}`);
+          return resolve({ success: false, errors: `${error}` });
         });
     });
   }
@@ -1236,7 +1222,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 reject({ success: false, error: error.response });
               });
           });
@@ -1260,8 +1246,8 @@ class Gravity {
           eventEmitter.emit('database_retrieved');
         })
         .catch((error) => {
-          logger.error(error);
-          resolve({ success: false, errors: error });
+          logger.error(`${error}`);
+          resolve({ success: false, errors: `${error}` });
         });
     });
   }
@@ -1374,7 +1360,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 reject(error);
               });
           });
@@ -1426,8 +1412,8 @@ class Gravity {
             eventEmitter.emit('table_retrieved');
           })
           .catch((error) => {
-            logger.error(error);
-            reject({ success: false, errors: error });
+            logger.error(`${error}`);
+            reject({ success: false, errors: `${error}` });
           });
       });
 
@@ -1449,6 +1435,23 @@ class Gravity {
     });
   }
 
+  /**
+   *
+   * @param metisAccountProperties
+   * @param memberAddress
+   * @return {Promise<{userRecord: *}>}
+   */
+  getUser2(metisAccountProperties, memberAddress) {
+    return jupiterTransactionsService.getReadableTaggedMessageContainers(
+        metisAccountProperties,
+        `${userConfig.metisUserRecord}.${memberAddress}`,
+        )
+        .then(messageContainer => {
+          return {
+            userRecord: messageContainer.message
+          }
+        })
+  }
 
   /**
    *
@@ -1461,12 +1464,9 @@ class Gravity {
    * {noUserTables, applicationTablesFound, userNeedsSave, tables, applicationTables}
    */
   getUser(account, passphrase, containedDatabase = null) {
-    logger.verbose('###############################################################################################')
-    logger.verbose(`###############################################################################################\n`)
-    logger.verbose(`##    getUser(account=${JSON.stringify(account)}, passphrase, containedDatabase=${!!containedDatabase})\n`);
-    logger.verbose('###############################################################################################')
-    logger.verbose('###############################################################################################')
-
+    logger.verbose('##########################################################################################')
+    logger.verbose(`## getUser(account=${JSON.stringify(account)}, passphrase, containedDatabase=${!!containedDatabase})`);
+    logger.verbose('##')
 
     const self = this;
     return new Promise((resolve, reject) => {
@@ -1572,9 +1572,9 @@ class Gravity {
                             logger.debug('---------------------------------------------------------------------------------------')
                             logger.sensitive(`userAccountTablesResponse=${JSON.stringify(userAccountTablesResponse)}`);
 
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
-                            logger.sensitive(userAccountTablesResponse);
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive(userAccountTablesResponse);
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
 
                             // if (userFromPassphraseResponse.databaseFound && !userFromPassphraseResponse.userNeedsSave) {
                             //   logger.debug(`database found and userNeedsSave`);
@@ -1588,9 +1588,9 @@ class Gravity {
                               appAccountTables: userAccountTablesResponse.appAccountTables
                             }
 
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
-                            logger.sensitive(resolveData);
-                            logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
+                            // logger.sensitive(resolveData);
+                            // logger.sensitive('-=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=--=-=-=-=-=-')
 
                             return resolve(resolveData);
 
@@ -1670,8 +1670,8 @@ class Gravity {
           })
         })
           .catch((error) => {
-            logger.error(error);
-            reject({ success: false, errors: error });
+            logger.error(`${error}`);
+            reject({ success: false, errors: `${error}` });
           });
 
         })
@@ -1761,14 +1761,14 @@ class Gravity {
                       decrypted.confirmed = true;
                       return resolve(decrypted);
                     } catch ( error ) {
-                      logger.error(error);
-                      return resolve({error:true, message: error})
+                      logger.error(`${error}`);
+                      return resolve({error:true, message: `${error}`})
                     }
                   })
                   .catch((error) => {
                     logger.error('readMessage call return a non-200');
                     logger.error(JSON.stringify(error));
-                    return resolve({error:true, message: error});
+                    return resolve({error:true, message: `${error}`});
                   });
             })
 
@@ -1804,8 +1804,8 @@ class Gravity {
         // The some() method tests whether at least one element in the array passes the test implemented by the provided
         // function. It returns true if, in the array, it finds an element for which the provided function returns true;
         // otherwise it returns false. It doesn't modify the array.
-        Object.keys(applicationAccountUserTableTransactions).some((arrayIndex) => {
-          const transaction = applicationAccountUserTableTransactions[arrayIndex];
+        Object.keys(applicationAccountUserTableTransactions).some((transactionsIndex) => {
+          const transaction = applicationAccountUserTableTransactions[transactionsIndex];
           let completion = false;
           logger.debug(` the recipient ${transaction.recipientRS} needs to be ${userAccount}`);
           if (transaction.attachment.encryptedMessage.data && transaction.recipientRS === userAccount) {
@@ -1838,8 +1838,8 @@ class Gravity {
             eventEmitter.emit('table_retrieved');
           })
           .catch((error) => {
-            logger.error(error);
-            reject({ success: false, errors: error });
+            logger.error(`${error}`);
+            reject({ success: false, errors: `${error}` });
           });
       });
 
@@ -1901,8 +1901,8 @@ class Gravity {
           eventEmitter.emit('records_retrieved');
         })
         .catch((error) => {
-          logger.error(error);
-          reject({ success: false, errors: error });
+          logger.error(`${error}`);
+          reject({ success: false, errors: `${error}` });
         });
     });
   }
@@ -1949,7 +1949,7 @@ class Gravity {
             }
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, message: 'There was an error obtaining account Jupiter balance' });
           });
       });
@@ -1961,7 +1961,7 @@ class Gravity {
             eventEmitter.emit('account_retrieved');
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, message: 'There was an error obtaining account Jupiter balance' });
           });
       } else {
@@ -2029,7 +2029,7 @@ class Gravity {
           logger.error(JSON.stringify(response.data));
           return reject({ error: true, data: response.data });
         })
-        .catch(error => reject({ error: true, fullError: error }));
+        .catch(error => reject({ error: true, fullError: `${error}` }));
     });
   }
 
@@ -2053,7 +2053,7 @@ class Gravity {
       .catch(error => ({
         error: true,
         message: 'There was an error making axios request',
-        fullError: error,
+        fullError: `${error}`,
       }));
   }
 
@@ -2173,7 +2173,7 @@ class Gravity {
       interval: 10,
     }
 
-    gravityCLIReporter.addItemsInJson('Funding Properties', postParams,'Funding')
+    // gravityCLIReporter.addItemsInJson('Funding Properties', postParams,'Funding')
 
     return this.jupiterRequest('post', postParams);
   }
@@ -2344,7 +2344,7 @@ class Gravity {
           resolve({ address, publicKey: response.data.publicKey, success: true });
         })
         .catch((error) => {
-          logger.error(error);
+          logger.error(`${error}`);
           logger.info('There was an error in address creation');
           reject({ success: false, message: 'There was an error creating a new Jupiter address' });
         });
@@ -2402,6 +2402,7 @@ class Gravity {
     // let app;
     let newTableAddress;
     let newPassphrase;
+    let newPassword;
     let newPublicKey;
     // let current_tables;
     let record;
@@ -2489,58 +2490,92 @@ class Gravity {
 
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-        const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
-        let response;
-        try {
-          logger.debug(`Sending a jupiter message`);
-          response = await axios.post(callUrl);
-        } catch (e) {
-          logger.error('********************');
-          logger.error('ERROR ATTACHING TABLE!')
-          console.log(e)
-          response = { error: true, fullError: e };
+
+        let tag = null;
+        switch (tableName){
+          case 'channels': tag = tableConfig.channelsTable;break;
+          case 'invites': tag = tableConfig.invitesTable;break;
+          case 'storage': tag = tableConfig.storageTable;break;
+          case 'users': tag = tableConfig.usersTable;break;
         }
 
-        if (response.data.broadcasted && !response.error) {
-          logger.info(`Table ${tableName} pushed to the blockchain and linked to your account...`);
-          // const recipientPublicKey = (database.publicKey | database.publicKey == 'undefined')? `&recipientPublicKey=${database.publicKey}`:''
-          const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
-          logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
-          try {
-            response = await axios.post(tableListUpdateUrl);
-          } catch (e) {
-            logger.error('********************');
-            logger.error('ERROR ATTACHING TABLE!')
-            console.log(e)
-            logger.error('********************');
-            response = { error: true, fullError: e };
-          }
+        if(!tag){throw new Error(`theres a problem with attaching the table: ${tableName}`)}
 
-          if (response.data && response.data.broadcasted && response.data.broadcasted === true) {
+
+        logger.sensitive(`tableName= ${JSON.stringify(tableName)}`);
+        logger.sensitive(`tag= ${JSON.stringify(tag)}`);
+
+
+        const sendRecordResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+            accountCredentials.passphrase,
+            accountCredentials.account,
+            encryptedData,
+            tag,
+            FeeManager.feeTypes.account_record,
+            accountCredentials.publicKey
+        )
+
+
+        // const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+        // let response;
+        // try {
+        //   logger.debug(`Sending a jupiter message`);
+        //   response = await axios.post(callUrl);
+        // } catch (e) {
+        //   logger.error('********************');
+        //   logger.error('ERROR ATTACHING TABLE!')
+        //   console.log(e)
+        //   response = { error: true, fullError: e };
+        // }
+
+        if (sendRecordResponse.data.broadcasted && !sendRecordResponse.error) {
+          const sendTableListResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+              accountCredentials.passphrase,
+              accountCredentials.account,
+              encryptedTableData,
+              tableConfig.tableList,
+              FeeManager.feeTypes.account_record,
+              accountCredentials.publicKey
+          )
+
+
+          // const tableListUpdateUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedTableData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
+          // logger.sensitive(`tableListUpdateUrl= ${tableListUpdateUrl}`);
+          // try {
+          //   sendRecordResponse = await axios.post(tableListUpdateUrl);
+          // } catch (e) {
+          //   logger.error('********************');
+          //   logger.error('ERROR ATTACHING TABLE!')
+          //   console.log(e)
+          //   logger.error('********************');
+          //   sendRecordResponse = { error: true, fullError: e };
+          // }
+
+          if (sendTableListResponse.data && sendTableListResponse.data.broadcasted) {
             eventEmitter.emit('table_created');
-          } else if (response.data && response.data.errorDescription != null) {
+          } else if (sendRecordResponse.data && sendRecordResponse.data.errorDescription != null) {
             reject({
               success: false,
-              message: response.data.errorDescription,
-              jupiter_response: response.data,
+              message: sendRecordResponse.data.errorDescription,
+              jupiter_response: sendRecordResponse.data,
             });
           } else {
             reject({
               success: false,
               message: 'There was an error',
-              fullError: response,
+              fullError: sendRecordResponse,
             });
           }
-        } else if (response.data.errorDescription != null) {
-          logger.error(`Error: ${JSON.stringify(response.data)}`);
+        } else if (sendRecordResponse.data.errorDescription != null) {
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
           reject({
             success: false,
-            message: response.data.errorDescription,
-            jupiter_response: response.data,
+            message: sendRecordResponse.data.errorDescription,
+            jupiter_response: sendRecordResponse.data,
           });
         } else {
-          logger.error(`Error: ${JSON.stringify(response.data)}`);
-          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: response.data });
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
+          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: sendRecordResponse.data });
         }
       });
 
@@ -2566,6 +2601,7 @@ class Gravity {
           reject(`Error: Unable to save table. ${tableName} is already in the database`);
         } else {
           newPassphrase = this.generate_passphrase();
+          newPassword = gu.generateRandomPassword();
           logger.debug(`CreateNewAddress()`)
           this.createNewJupiterAccount(newPassphrase)
             .then((newJupiterAccountResponse) => { //{address, publicKey, success}
@@ -2584,6 +2620,7 @@ class Gravity {
                     address: newTableAddress,
                     passphrase: newPassphrase,
                     public_key: newJupiterAccountResponse.publicKey,
+                    password: newPassword,
                   },
                 };
                 listOfTableNames.push(tableName);
@@ -2620,7 +2657,7 @@ class Gravity {
             eventEmitter.emit('tableName_obtained');
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject('Error in creating table');
           });
       });
@@ -2920,6 +2957,8 @@ class Gravity {
 
     const transactions = await this.getTransactions(query);
 
+    console.log('Transactions id =======>', transactions);
+
     if (!transactions.error) {
       for (let x = 0; x < transactions.length; x += 1) {
         const thisTransaction = transactions[x];
@@ -2966,7 +3005,7 @@ class Gravity {
               transaction,
               error: true,
               message: 'Error in retrieving first layer of decryption',
-              fullError: error,
+              fullError: `${error}`,
             });
           });
       } else {
@@ -3074,7 +3113,7 @@ class Gravity {
             }
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, message: 'There was an error', error: error.response });
           });
 
@@ -3095,7 +3134,7 @@ class Gravity {
           })
           .catch((error) => {
             logger.info('There was an error in updating table list');
-            logger.error(error);
+            logger.error(`${error}`);
             logger.info(encryptedTableData);
           });
       });
@@ -3130,7 +3169,7 @@ class Gravity {
               }
             })
             .catch((error) => {
-              logger.error(error);
+              logger.error(`${error}`);
               reject('Error creating Jupiter address for your table.');
             });
         }
@@ -3167,7 +3206,7 @@ class Gravity {
               }
             })
             .catch((error) => {
-              logger.error(error);
+              logger.error(`${error}`);
               reject('Error in creating table');
             });
         }
@@ -3185,7 +3224,7 @@ class Gravity {
         })
         .catch((error) => {
           logger.error('There was an error trying to create a new table in Jupiter.');
-          logger.error(error);
+          logger.error(`${error}`);
           eventEmitter.emit('insufficient_balance');
         });
     });
@@ -3251,7 +3290,7 @@ class Gravity {
 
                   fs.writeFile('.env', envVariablesInString, (error) => {
                     if (error) {
-                      return logger.error(error);
+                      return logger.error(`${error}`);
                     }
                     logger.info('\nSuccess! .env file generated!');
                     logger.info('\nPlease write down the 12-word passphrase and account address assigned to your app as well as the password assigned for encryption (See .env or .gravity.js files). If you lose your passphrase or your encryption password, you will lose access to all saved data.');
@@ -3265,7 +3304,7 @@ class Gravity {
                 }
               })
               .catch((error) => {
-                logger.error(error);
+                logger.error(`${error}`);
                 logger.error('There was an error in database creation');
                 rl.close();
               });

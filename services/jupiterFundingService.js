@@ -1,21 +1,31 @@
 const {feeManagerSingleton, FeeManager} = require("./FeeManager");
-const {resolve} = require("path");
-const {reject} = require("lodash");
-const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
+// const {resolve} = require("path");
+// const {reject} = require("lodash");
+// const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
 const {jupiterAPIService} = require("./jupiterAPIService");
-const {applicationAccountProperties} = require("../gravity/applicationAccountProperties");
-const {metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
+// const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("../gravity/metisApplicationAccountProperties");
+const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {JupiterAPIService} = require("./jupiterAPIService");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
+
+    /**
+     *
+     * @param {JupiterAPIService} jupiterAPIService
+     * @param {GravityAccountProperties} applicationProperties
+     */
     constructor(jupiterAPIService, applicationProperties) {
-        if(!jupiterAPIService){throw new Error('missing jupiterAPIService')}
-        if(!applicationProperties){throw new Error('missing applicationProperties')}
+        if(!(applicationProperties instanceof  GravityAccountProperties)){throw new Error('problem with applicationProperties')}
+        if(!(jupiterAPIService instanceof  JupiterAPIService)){throw new Error('problem with applicationProperties')}
 
         this.feeNQT = parseInt(applicationProperties.feeNQT);
-        this.tableCreation = parseInt(applicationProperties.accountCreationFeeNQT)
+        if(!this.feeNQT){throw new Error('problem with feeNqt')}
+        // this.tableCreation = parseInt(applicationProperties.accountCreationFeeNQT)
         this.defaultNewUserTransferAmount = parseInt(applicationProperties.minimumAppBalance)
+        if(!this.defaultNewUserTransferAmount){throw new Error(' problem with defaultNewUserTransferAmount')}
         this.defaultNewTableTransferAmount = parseInt(applicationProperties.minimumTableBalance)
+        if(!this.defaultNewTableTransferAmount){throw new Error('problem with defaultNewTableTransferAmount')}
         this.jupiterAPIService = jupiterAPIService;
         this.applicationProperties = applicationProperties;
         this.intervalTimeInSeconds = 8;
@@ -44,9 +54,7 @@ class JupiterFundingService {
      * @returns {Promise<unknown>}
      */
     async waitForTransactionConfirmation(transactionId){
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## waitForTransactionConfirmation( transactionId=${transactionId})`);
-        logger.verbose('##');
+        logger.sensitive(`#### waitForTransactionConfirmation( transactionId=${transactionId})`);
 
         if(!transactionId){
             throw new Error('transactionId cannot be empty');
@@ -84,8 +92,9 @@ class JupiterFundingService {
      */
     async provideInitialStandardUserFunds(recipientProperties){
         logger.verbose('#####################################################################################');
-        logger.verbose(`## provideInitialStandardApplicationFunds( recipientProperties= ${!!recipientProperties})`);
+        logger.verbose(`## provideInitialStandardUserFunds( recipientProperties= ${!!recipientProperties})`);
         logger.verbose('##');
+        if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('recipientProperties is invalid')}
         const initialAmount = this.defaultNewUserTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
@@ -93,15 +102,19 @@ class JupiterFundingService {
 
     /**
      *
-     * @param recipientProperties
+     * @param {GravityAccountProperties} recipientProperties
      * @returns {Promise<*>}
      */
     async provideInitialStandardTableFunds(recipientProperties){
         logger.verbose('#####################################################################################');
-        logger.verbose(`## provideInitialStandardApplicationFunds( recipientProperties= ${!!recipientProperties})`);
+        logger.verbose(`## provideInitialStandardTableFunds( recipientProperties= ${!!recipientProperties})`);
         logger.verbose('##');
+
+        if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('invalid recipientProperties')};
+
         const initialAmount = this.defaultNewTableTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 
@@ -114,16 +127,12 @@ class JupiterFundingService {
      * @returns {Promise<unknown>}
      */
      transfer(senderProperties, recipientProperties, transferAmount, fee ) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## transfer(senderProperties= ${!!senderProperties}, recipientProperties= ${!!recipientProperties}, transferAmount= ${transferAmount})`)
-        logger.verbose('##');
-        logger.sensitive(`sender: ${senderProperties.address}`);
-        logger.sensitive(`recipient: ${recipientProperties.address}`);
-        logger.sensitive(`amount: ${transferAmount}`);
+         logger.sensitive(`#### transfer(senderProperties, recipientProperties, transferAmount=${transferAmount}, fee=${fee} )`);
         if (!transferAmount) {throw new Error('transfer amount missing');}
-        if (!recipientProperties) {throw new Error('recipient missing');}
-        if (!senderProperties) {throw new Error('sender missing');}
+        if( !recipientProperties instanceof GravityAccountProperties){throw new Error('recipientProperties is invalid')}
+        if( !senderProperties instanceof GravityAccountProperties){throw new Error('senderProperties is invalid')}
 
+        //@Todo this should not return the Response. Try changing to return Response.data?
         return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, transferAmount, fee )
     }
 

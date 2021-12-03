@@ -47,52 +47,53 @@ class GravityTablesService {
      * @param initialFundingAmount
      * @returns {Promise<Object>}
      */
-    async processTableUsingProperties(newTableProperties, clientProperties, applicationProperties, initialFundingAmount = 0){
-            const appStatement = this.applicationTransactions.getAccountStatement(applicationProperties); //Include AppBalance and Table Balance
-            const clientStatement = this.applicationTransactions.getAccountStatement(clientProperties);
-            return Promise.all( [appStatement, clientStatement])
-                .then((promiseResults) => {
-                    const appStatement = promiseResults[0];
-                    const clientStatement = promiseResults[1];
-                    return this.processTable( newTableProperties, clientStatement, appStatement, initialFundingAmount)
-            })
-    }
+    // async processTableUsingProperties(newTableProperties, clientProperties, applicationProperties, initialFundingAmount = 0){
+    //         const appStatement = this.applicationTransactions.getAccountStatement(applicationProperties); //Include AppBalance and Table Balance
+    //         const clientStatement = this.applicationTransactions.getAccountStatement(clientProperties);
+    //         return Promise.all( [appStatement, clientStatement])
+    //             .then((promiseResults) => {
+    //                 const appStatement = promiseResults[0];
+    //                 const clientStatement = promiseResults[1];
+    //                 return this.processTable( newTableProperties, clientStatement, appStatement, initialFundingAmount)
+    //         })
+    // }
 
     /**
-     *
+     * @todo obsolete
      * @param newTableProperties
      * @param clientStatement
      * @param appStatement
      * @param initialFundingAmount
      * @returns {Promise<unknown[]>}
      */
-    async processTable(newTableProperties, clientStatement, appStatement, initialFundingAmount = 0){
-        logger.verbose('createTable');
-            const newPassphrase = gu.generatePassphrase();
-            const isTableNameAvailable = this.isTableNameAvailable(tableName, clientStatement.attachedTables);
-            const canAppFundTable = this.canAppFundTable(clientStatement, initialFundingAmount);
-            if (!(isTableNameAvailable && canAppFundTable)) {
-                throw new Error(`Problem processing table: isTableNameAvailable= ${isTableNameAvailable}, canAppFundTable=${canAppFundTable}`)
-            }
-            const newAccountAddress = await this.jupiterAccountService.getAccountId(newPassphrase);
-            newTableProperties.address = newAccountAddress;
-            const encryptedTableRecord = this.constructAndEncryptTableRecord(newAccountAddress, clientProperties, clientProperties.crypto)
-            const encryptedTableListRecord = this.constructAndEncryptTableListRecord(newAccountAddress, clientProperties.crypto);
-            let allPromise = []
-            allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties, encryptedTableListRecord))
-            allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties,encryptedTableRecord, newTableProperties.name))
-            if(!(initialFundingAmount > 0)) {
-                return Promise.all(allPromise); // [{transactionType: 'tableRecord', transactionId: 123}, {transactionType: 'tableList', transactionId: 123}]
-            }
-
-            return Promise.all(allPromise)
-                .then(jupiterApiResponses => {
-                    this.jupiterApiService.sendMoney( clientStatement.clientProperties  ,newTableProperties,initialFundingAmount)
-                        .then( sendMoneyResponse => { // [{transactionType: 'sendMoney', transactionId: 123}]
-                            return {...jupiterApiResponses, sendMoneyResponse}; // return all transactions
-                        })
-                })
-    }
+    // async processTable(newTableProperties, clientStatement, appStatement, initialFundingAmount = 0){
+    //     logger.verbose('createTable');
+    //         const newPassphrase = gu.generatePassphrase();
+    //         const isTableNameAvailable = this.isTableNameAvailable(tableName, clientStatement.attachedTables);
+    //         const canAppFundTable = this.canAppFundTable(clientStatement, initialFundingAmount);
+    //         if (!(isTableNameAvailable && canAppFundTable)) {
+    //             throw new Error(`Problem processing table: isTableNameAvailable= ${isTableNameAvailable}, canAppFundTable=${canAppFundTable}`)
+    //         }
+    //         const accountInfo = await this.jupiterAccountService.fetchAccountInfo(newPassphrase);
+    //         const newAccountAddress = accountInfo.address;
+    //         newTableProperties.address = newAccountAddress;
+    //         const encryptedTableRecord = this.constructAndEncryptTableRecord(newAccountAddress, clientProperties, clientProperties.crypto)
+    //         const encryptedTableListRecord = this.constructAndEncryptTableListRecord(newAccountAddress, clientProperties.crypto);
+    //         let allPromise = []
+    //         allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties, encryptedTableListRecord))
+    //         allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties,encryptedTableRecord, newTableProperties.name))
+    //         if(!(initialFundingAmount > 0)) {
+    //             return Promise.all(allPromise); // [{transactionType: 'tableRecord', transactionId: 123}, {transactionType: 'tableList', transactionId: 123}]
+    //         }
+    //
+    //         return Promise.all(allPromise)
+    //             .then(jupiterApiResponses => {
+    //                 this.jupiterApiService.sendMoney( clientStatement.clientProperties  ,newTableProperties,initialFundingAmount)
+    //                     .then( sendMoneyResponse => { // [{transactionType: 'sendMoney', transactionId: 123}]
+    //                         return {...jupiterApiResponses, sendMoneyResponse}; // return all transactions
+    //                     })
+    //             })
+    // }
 
     // /**
     //  * AttachTable = Create Account, Send record transaction, and Fund Account
@@ -140,7 +141,7 @@ class GravityTablesService {
     //                             })
     //                     })
     //                     .catch( error =>{
-    //                         logger.error(error);
+    //                         logger.error(`${error}`);
     //                         reject(error);
     //                     })
     //             })
@@ -327,12 +328,12 @@ class GravityTablesService {
     //                         resolve(response);
     //                     })
     //                     .catch(error =>{
-    //                         logger.error(error);
+    //                         logger.error(`${error}`);
     //                         reject(error)
     //                     })
     //             })
     //             .catch((error) => {
-    //                 logger.error(error);
+    //                 logger.error(`${error}`);
     //                 reject(error);
     //             })
     //     })
@@ -345,33 +346,33 @@ class GravityTablesService {
      * @param userAccountTableNames
      * @param databaseCrypto
      */
-    constructAndEncryptTableListRecord(nameOfTableToAttach, userAccountTableNames, databaseCrypto){
-
-        userAccountTableNames.push(nameOfTableToAttach);
-
-        if (nameOfTableToAttach === 'channels' && userAccountTableNames.length < 2) {
-            userAccountTableNames = ['users', 'channels'];
-        }
-
-        if (nameOfTableToAttach === 'invites' && userAccountTableNames.length < 3) {
-            userAccountTableNames = ['users', 'channels', 'invites'];
-        }
-
-        // tableList === userAccountTableNames
-        // tableListRecord === tableListRecord
-        // encryptedTableData ===  encryptedTableListRecord
-        // encryptedData === encryptedUserRecord
-
-        //ie {tables: ['users', 'channels', 'invites'], date: 123123}
-        const tableListRecord = {
-            tables: userAccountTableNames,
-            date: Date.now(),
-        };
-
-        const encryptedTableListRecord = databaseCrypto.encryptJson(tableListRecord);
-
-        return encryptedTableListRecord;
-    }
+    // constructAndEncryptTableListRecord(nameOfTableToAttach, userAccountTableNames, databaseCrypto){
+    //
+    //     userAccountTableNames.push(nameOfTableToAttach);
+    //
+    //     if (nameOfTableToAttach === 'channels' && userAccountTableNames.length < 2) {
+    //         userAccountTableNames = ['users', 'channels'];
+    //     }
+    //
+    //     if (nameOfTableToAttach === 'invites' && userAccountTableNames.length < 3) {
+    //         userAccountTableNames = ['users', 'channels', 'invites'];
+    //     }
+    //
+    //     // tableList === userAccountTableNames
+    //     // tableListRecord === tableListRecord
+    //     // encryptedTableData ===  encryptedTableListRecord
+    //     // encryptedData === encryptedUserRecord
+    //
+    //     //ie {tables: ['users', 'channels', 'invites'], date: 123123}
+    //     const tableListRecord = {
+    //         tables: userAccountTableNames,
+    //         date: Date.now(),
+    //     };
+    //
+    //     const encryptedTableListRecord = databaseCrypto.encryptJson(tableListRecord);
+    //
+    //     return encryptedTableListRecord;
+    // }
 
     /**
      *
@@ -474,7 +475,7 @@ class GravityTablesService {
                                 })
                         })
                         .catch( error =>{
-                            logger.error(error);
+                            logger.error(`${error}`);
                             reject(error);
                         })
                 })
@@ -766,10 +767,7 @@ class TableService {
 
 
     extractLatestTableNamesFromMessages(messages){
-        if(messages.length === 0 ) {
-            return []
-        }
-
+        if(messages.length === 0 ) {return []}
         const reducedMessages =  messages.reduce( (reduced, message) => {
             if(message.tables){
                 reduced.push(message)
@@ -781,13 +779,10 @@ class TableService {
         reducedMessages.sort(function(a, b){return b.date -a.date}); // decending by date
         logger.debug(`reducedMessage= ${JSON.stringify(reducedMessages)}`);
 
-        if(reducedMessages.length < 1){
-            return []
-        }
+        if(reducedMessages.length < 1){return []}
 
         return reducedMessages[0].tables;
     }
-
 
     // messages= [{"id":"2376166064047524148","user_record":"{\"id\":\"2376166064047524148\",\"account\":\"JUP-KMRG-9PMP-87UD-3EXSF\",\"accounthash\":\"$2a$08$61DAz/0mKPTxEPs6Mufr5.j3VVEKlI0BnolWMSQvJ3x9Qe5CZCAjW\",\"alias\":\"sprtz\",\"secret_key\":null,\"twofa_enabled\":false,\"twofa_completed\":false,\"api_key\":\"$2a$08$5swQ16YpeVGOF8oh.i8gDukGhf5fdsn.pjrJucKIy5TrQXS1x..AO\",\"encryption_password\":\"sprtz\"}","date":1625269463920},{"tables":["users","channels","invites","users"],"date":1625269444963},[{"users":{"address":"JUP-7WMJ-S9N6-3LQV-A3VCK","passphrase":"scratch neck before bullet glass hallway like sway very crush itself leg"}}],{"tables":["users","channels","invites"],"date":1625269431846},{"invites":{"address":"JUP-3GKU-CKKB-N5F5-FSTYJ","passphrase":"single commit gun screw beauty slice teeth six dad friendship paint autumn"}},{"tables":["users","channels"],"date":1625269431464},{"channels":{"address":"JUP-X5E2-MWPE-3FLC-GU3KU","passphrase":"look crimson some toward grand ask block holy tightly hello anyone lovely"}}]
 
@@ -1018,12 +1013,8 @@ class TableService {
         logger.verbose(`## extractTablesFromMessages(messages.length= ${messages.length})`);
         logger.verbose('##');
 
-        if (messages.length === 0) {
-            return [];
-        }
-
+        if (messages.length === 0) {return []};
         logger.debug(`messages.length= ${messages.length}`);
-
         const tableNames = this.extractLatestTableNamesFromMessages(messages);
 
         const unique = (value, index, self) => {
@@ -1093,7 +1084,7 @@ module.exports.tableService = new TableService( jupiterTransactionsService, jupi
 //                     })
 //             })
 //             .catch( error =>{
-//                 logger.error(error);
+//                 logger.error(`${error}`);
 //                 reject(error);
 //             })
 //     });

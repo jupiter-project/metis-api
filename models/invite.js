@@ -2,9 +2,11 @@ import Model from './_model';
 import { gravity } from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {jupiterAPIService} from "../services/jupiterAPIService";
-import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+// import {channelConfig} from "../config/constants";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const logger = require('../utils/logger')(module);
 
 class Invite extends Model {
@@ -36,14 +38,14 @@ class Invite extends Model {
 
   /**
    *
-   * @returns {Promise<string>}
+   * @returns {Promise<[]>}
    */
   async get() {
     logger.verbose(`###################################################################################`);
     logger.verbose(`## Invite.get()`);
     logger.verbose(`## `);
 
-    return GravityAccountProperties.instantiateBasicGravityAccountProperties(this.user.passphrase, this.user.encryptionPassword)
+    return instantiateGravityAccountProperties(this.user.passphrase, this.user.encryptionPassword)
         .then(memberAccountProperties => {
           //@TODO we need to use tags here!!
           return jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(this.user.account)
@@ -69,6 +71,10 @@ class Invite extends Model {
 
   //@TODO rename to sendInvitation
   async send() {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## send()`);
+    logger.verbose(`## `);
+
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
@@ -93,13 +99,13 @@ class Invite extends Model {
         this.user.passphrase,
         null,
         fee,
-        applicationAccountProperties.deadline,
+        metisApplicationAccountProperties.deadline,
         null,
         null,
         null,
         null,
         false,
-        JSON.stringify(messageData),
+        JSON.stringify(messageData), //not being encrypted?
         null,
         null,
         null,

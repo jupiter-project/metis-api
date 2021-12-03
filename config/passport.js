@@ -1,7 +1,13 @@
+
 import { gravity } from './gravity';
+
 import User from '../models/user';
+
 import {accountRegistration} from "../services/accountRegistrationService";
+import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
+
 const LocalStrategy = require('passport-local').Strategy;
+
 const logger = require('../utils/logger')(module);
 
 // Used to serialize the user for the session
@@ -137,20 +143,22 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
         });
 
         job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.verbose(`######################################`)
-            logger.verbose(`## passport.job.on(failed_attempt(signUpFailedAttempt))`)
-            logger.verbose(`account=${account}`)
-            logger.sensitive('errorMessage=', errorMessage);
-            logger.sensitive('doneAttempts=', doneAttempts);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** passport.job.on(failed_attempt())`);
+            logger.error(`** `);
+            logger.error(`account= ${account}`)
+            logger.error(`errorMessage= ${errorMessage}`);
+            logger.error(`doneAttempts= ${doneAttempts}`);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',{message: `${errorMessage}`});
         });
 
         job.on('failed', function(errorMessage){
-            logger.verbose(`######################################`)
-            logger.verbose(`## passport.job.on(failed(errorMessage))`)
-            logger.verbose(`account=${account}`)
-            logger.sensitive('errorMessage=', errorMessage);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
+            logger.error(`***********************************************************************************`);
+            logger.error(`** passport.job.on(failed())`);
+            logger.error(`** `);
+            logger.error(`account= ${account}`)
+            logger.error(`errorMessage= ${errorMessage}`);
+            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', {message: `${errorMessage}`});
         });
     });
   }));
@@ -161,12 +169,15 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
  * @param passport
  */
 const metisLogin = (passport) => {
+    logger.verbose(`    ########################################################################`);
+    logger.verbose(`    ## metisLogin`);
+
   passport.use('gravity-login', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
     passReqToCallback: 'true',
   },
-  (req, account, accounthash, done) => {
+  async (req, account, accounthash, done) => {
   /**
    * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
    * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
@@ -177,6 +188,13 @@ const metisLogin = (passport) => {
     logger.verbose('#####################################################################################');
     logger.verbose('## metisLogin(passport)');
     logger.verbose('##');
+
+    // const userRecord = await gravity.getUser2(metisGravityAccountProperties, account);
+    // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    // console.log('userRecord');
+    // console.log(userRecord);
+    // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
     const {
       jupkey,
       public_key,
@@ -197,10 +215,7 @@ const metisLogin = (passport) => {
       originalTime: Date.now(),
     };
 
-    logger.sensitive(`containedDatabase=${JSON.stringify(containedDatabase)}`);
-
-
-    logger.verbose('gravity.getUser(account, jupkey, containedDatabase)');
+    logger.verbose('metisLogin().gravity.getUser(account, jupkey, containedDatabase)');
     gravity.getUser(account, jupkey, containedDatabase)
       .then(async (response) => {
         logger.debug('---------------------------------------------------------------------------------------');
@@ -295,7 +310,7 @@ const metisLogin = (passport) => {
             account: userRecord.account,
           },
         };
-        logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
+        // logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
         // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
 
         const doneResponse = {

@@ -78,6 +78,15 @@ class JupiterAccountProperties {
         this.aliasList.push(aliasInfo);
     }
 
+    /**
+     *
+     * @param aliases
+     */
+    addAliases(aliases){
+        aliases.forEach(alias => {
+            this.addAlias(alias)
+        })
+    }
 
     /**
      *

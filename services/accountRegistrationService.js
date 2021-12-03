@@ -43,7 +43,7 @@ class AccountRegistration {
   }
 
   defaultTableNames() {
-    return ['channels', 'invites', 'storage'];
+    return ['storage'];
   }
 
 
@@ -92,7 +92,7 @@ class AccountRegistration {
             let metisAppAccountStatement = null;
             let usersTableStatement = null;
 
-            this.jupiterTransactionsService.isAliasAvailable(newAccountAliasName)
+            this.jupiterAccountService.isAliasAvailable(newAccountAliasName)
                 .then(isAliasAvailable => {
                     if(!isAliasAvailable){
                         throw new Error('alias is already in user');
@@ -162,13 +162,13 @@ class AccountRegistration {
                     }
                     newAndFundedAccountStatement.properties.addAlias(aliasObject);
 
-                    return this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions)
+                    // return this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions)
                 })
                 .then( () => {
                     return this.jupiterAccountService.addRecordToMetisUsersTable(newAndFundedAccountStatement.properties, usersTableStatement.properties)
                 })
                 .then( addRecordToMetisUsersTableResponse => {
-                    return this.jupiterFundingService.waitForAllTransactionConfirmations(addRecordToMetisUsersTableResponse.transactionsReport)
+                    // return this.jupiterFundingService.waitForAllTransactionConfirmations(addRecordToMetisUsersTableResponse.transactionsReport)
                 })
                 .then( () => {
                     const metisAppRegistrationData = this.printRegistrationData(newAndFundedAccountStatement)
@@ -208,6 +208,7 @@ class AccountRegistration {
             logger.debug(`Attaching a table: ${listOfMissingTableNames[i]} to the account: ${tableOwnerProperties.address}`)
             tablesToAttach.push(this.attachTable(listOfMissingTableNames[i], tableOwnerProperties)); //{name, address, passphrase, publicKey, sendMoneyTransactionId}
         }
+
         return Promise.all(tablesToAttach)
             .then( tablesToAttachResults => { // [{name, address, passphrase, publicKey, sendMoneyTransactionId}]
                 return this.tableService.createTableListRecord(tableOwnerProperties, this.defaultTableNames())
