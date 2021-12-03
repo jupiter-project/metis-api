@@ -96,7 +96,6 @@ module.exports = {
 
     findMutedChannels(userAddress)
       .then(([response]) => {
-        console.log('muted channel list -----', response);
         const { mutedChannelAddressList } = response || { mutedChannelAddressList: [] };
         res.json({
           success: true,
