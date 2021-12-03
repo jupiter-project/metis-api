@@ -78,7 +78,7 @@ module.exports = {
     };
 
     if (excludeChannelAddress) {
-      filter.mutedChannelIds = { $nin: [excludeChannelAddress] };
+      filter.mutedChannelAddressList = { $nin: [excludeChannelAddress] };
     }
 
     return Notifications.find(filter);
@@ -107,6 +107,6 @@ module.exports = {
   findMutedChannels: (userAddress) => {
     const filter = { userAddress };
     return Notifications.find(filter)
-      .select('mutedChannelIds');
+      .select('mutedChannelAddressList');
   },
 };
