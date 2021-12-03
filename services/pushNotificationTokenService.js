@@ -26,7 +26,7 @@ module.exports = {
 
     const update = {
       userAddress: jupId,
-      mutedChannelIds: [],
+      mutedChannelAddressList: [],
       pnAccounts: [
         {
           provider: provider,
@@ -66,49 +66,41 @@ module.exports = {
         })
   },
   editMutedChannels: (req, res) => {
-    const { userAddress, channelId, isMuted } = req.body;
+    const { userData: { account: userAddress } } = req.user;
+    const { channelAddress, isMuted } = req.body;
 
-    if (!(userAddress && channelId)) {
-      const error = {
-        ok: false,
-        error: 'bad request',
-        message: 'Alias and Channel id are required.',
-      };
-      logger.error(`${error}`);
-      return res.status(400).json(error);
+    if (!channelAddress) {
+      return res.status(400).json({message: 'Alias and Channel id are required.'});
     }
 
     const filter = { userAddress };
     const update = isMuted
-      ? { $pull: { mutedChannelIds: channelId } }
-      : { $push: { mutedChannelIds: channelId } };
+      ? { $pull: { mutedChannelAddressList: channelAddress } }
+      : { $push: { mutedChannelAddressList: channelAddress } };
 
     findOneNotificationAndUpdate(filter, update)
-      .then(notification => res.json({ success: true, notification }))
+      .then(notification => {
+        res.json({success: true, notification})
+      })
       .catch((error) => {
         logger.error(`${error}`);
         res.status(400).json({ ok: false, error });
       });
   },
   findMutedChannels: (req, res) => {
-    const { userAddress } = req.params;
+    const { userData: { account: userAddress } } = req.user;
 
     if (!userAddress){
-      const error = {
-        ok: false,
-        error: 'bad request',
-        message: 'Alias is required.',
-      };
-      logger.error(`${error}`);
-      return res.status(400).json(error);
+      return res.status(400).json({ message: 'Alias is required.' });
     }
 
     findMutedChannels(userAddress)
       .then(([response]) => {
-        const { mutedChannelIds } = response || { mutedChannelIds: [] };
+        console.log('muted channel list -----', response);
+        const { mutedChannelAddressList } = response || { mutedChannelAddressList: [] };
         res.json({
           success: true,
-          mutedChannelIds,
+          mutedChannelAddressList,
         });
       })
       .catch((error) => {
