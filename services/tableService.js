@@ -10,6 +10,7 @@ const gu = require('../utils/gravityUtils');
 // const jupiterApiService = require("./jupiterAPIService");
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
+const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 // const {jupiterAPIService} = require("./jupiterAPIService");
 // const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 
@@ -766,8 +767,17 @@ class TableService {
     }
 
 
+    /**
+     *
+     * @param messages
+     * @return {*[]|*}
+     */
     extractLatestTableNamesFromMessages(messages){
-        if(messages.length === 0 ) {return []}
+        logger.sensitive(`#### extractLatestTableNamesFromMessages(messages): messages.length= ${messages.length})`);
+        if(messages.length === 0 ) {
+            logger.warn(`empty messages. returning []`);
+            return []
+        }
         const reducedMessages =  messages.reduce( (reduced, message) => {
             if(message.tables){
                 reduced.push(message)
@@ -776,10 +786,11 @@ class TableService {
             return reduced;
         }, [])
 
+        logger.debug(`reducedMessages.length= ${reducedMessages.length}`);
         reducedMessages.sort(function(a, b){return b.date -a.date}); // decending by date
-        logger.debug(`reducedMessage= ${JSON.stringify(reducedMessages)}`);
-
         if(reducedMessages.length < 1){return []}
+
+        logger.sensitive(`Latest Table Names: ${JSON.stringify(reducedMessages[0].tables)}`);
 
         return reducedMessages[0].tables;
     }
@@ -936,9 +947,7 @@ class TableService {
      * @param {[]}messages
      */
     extractRecordsFromMessages(messages){
-        logger.verbose('#####################################################################################');
-        logger.verbose('## extractRecordsFromMessages(messages)');
-        logger.verbose('##');
+        logger.verbose(`#### extractRecordsFromMessages(messages): messges.length=${messages.length}`);
         // logger.debug(`  messages= ${JSON.stringify(messages)}`);
         // logger.sensitive(`extractedRecordsFromMessages= ${JSON.stringify(records)}`);
         return messages.reduce((reduced, message) => {
@@ -975,32 +984,19 @@ class TableService {
      * @returns {null | GravityAccountProperties}
      */
     extractUserPropertiesFromRecordsOrNull(address, records){
+        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
+        if(!Array.isArray(records)){throw new Error('records is not valid')}
+        if(!records.hasOwnProperty('account')){throw new Error('records is not valid')}
+        if(!records.hasOwnProperty('secret_key')){throw new Error('records is not valid')}
+        if(!records.hasOwnProperty('encryption_password')){throw new Error('records is not valid')}
+
         const record = records.filter(record => record.account == address);
 
-        if(!record){
+        if(record.length === 0){
             return null;
         }
 
-        if(record.length < 1){
-            return null;
-        }
-
-        const properties = new GravityAccountProperties(
-            record.account,
-            record.id,
-            record.api_key,
-            record.secret_key,
-            record.accounthash,
-            record.encryption_password,
-            null, //algorithm
-            record.email,
-            record.firstname,
-            record.lastname
-        )
-
-        // properties.addAlias(record.alias);
-
-        return properties;
+        return instantiateGravityAccountProperties(record.secret_key, record.encryption_password);
     }
 
     /**
@@ -1009,12 +1005,8 @@ class TableService {
      * @returns {*[]}
      */
     extractTablesFromMessages(messages) {
-        logger.verbose('###############################################################');
-        logger.verbose(`## extractTablesFromMessages(messages.length= ${messages.length})`);
-        logger.verbose('##');
-
+        logger.verbose(`#### extractTablesFromMessages(messages.length= ${messages.length})`);
         if (messages.length === 0) {return []};
-        logger.debug(`messages.length= ${messages.length}`);
         const tableNames = this.extractLatestTableNamesFromMessages(messages);
 
         const unique = (value, index, self) => {

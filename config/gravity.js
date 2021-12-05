@@ -8,10 +8,9 @@ const events = require('events');
 const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
-// import { gravityCLIReporter} from '../gravity/gravityCLIReporter';
 import {tableConfig, userConfig} from "./constants";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
-// const {jupiterAccountService} = require("../services/jupiterAccountService");
 const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 
 class Gravity {
@@ -1150,27 +1149,36 @@ class Gravity {
 
       const port = process.env.JUPITER_PORT ? `:${process.env.JUPITER_PORT}` : '';
 
-      const includeExpiredPrunable = 'includeExpiredPrunable=true'; // This is done because metis was sending prunable user_record messages which cause the user to not be able to log in.
-      const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${ownerAddress}&type=1&${includeExpiredPrunable}`;
-      // logger.verbose(url);
-      logger.debug(`getRecords().axios.get(url)`);
-      logger.sensitive(`url=${url}`);
-      axios.get(url)
-        .then((response) => {
-          logger.debug('---------------------------------------------------------------------------------------')
-          logger.debug(`--  getRecords().axiosGet(url).then(response)`)
-          logger.debug('---------------------------------------------------------------------------------------')
-          blockChainTransactions = response.data.transactions;
-          logger.info(`-- Total blockChainTransactions: ${blockChainTransactions.length}`);
 
-          // gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
-          eventEmitter.emit('database_retrieved');
-        })
-        .catch((error) => {
-          logger.error('Error getting transactions');
-          logger.error(`${error}`);
-          return resolve({ success: false, errors: `${error}` });
-        });
+      jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(ownerAddress)
+          .then(transactions => {
+            blockChainTransactions = transactions;
+            eventEmitter.emit('database_retrieved');
+          }).catch(error => {
+            return reject(`Address is incorrect: ${ownerAddress}`)
+          })
+
+      // const includeExpiredPrunable = 'includeExpiredPrunable=true'; // This is done because metis was sending prunable user_record messages which cause the user to not be able to log in.
+      // const url = `${self.jupiter_data.server}${port}/nxt?requestType=getBlockchainTransactions&account=${ownerAddress}&type=1&${includeExpiredPrunable}`;
+      // // logger.verbose(url);
+      // logger.debug(`getRecords().axios.get(url)`);
+      // logger.sensitive(`url=${url}`);
+      // axios.get(url)
+      //   .then((response) => {
+      //     logger.debug('---------------------------------------------------------------------------------------')
+      //     logger.debug(`--  getRecords().axiosGet(url).then(response)`)
+      //     logger.debug('---------------------------------------------------------------------------------------')
+      //     blockChainTransactions = response.data.transactions;
+      //     logger.info(`-- Total blockChainTransactions: ${blockChainTransactions.length}`);
+      //
+      //     // gravityCLIReporter.addItem('Total Transactions To Process', database.length, reportSection)
+      //     eventEmitter.emit('database_retrieved');
+      //   })
+      //   .catch((error) => {
+      //     logger.error('Error getting transactions');
+      //     logger.error(`${error}`);
+      //     return resolve({ success: false, errors: `${error}` });
+      //   });
     });
   }
 
@@ -1435,23 +1443,6 @@ class Gravity {
     });
   }
 
-  /**
-   *
-   * @param metisAccountProperties
-   * @param memberAddress
-   * @return {Promise<{userRecord: *}>}
-   */
-  getUser2(metisAccountProperties, memberAddress) {
-    return jupiterTransactionsService.getReadableTaggedMessageContainers(
-        metisAccountProperties,
-        `${userConfig.metisUserRecord}.${memberAddress}`,
-        )
-        .then(messageContainer => {
-          return {
-            userRecord: messageContainer.message
-          }
-        })
-  }
 
   /**
    *
@@ -1549,8 +1540,8 @@ class Gravity {
                       if(!userRecord){
                         isUserRecordInCurrentAppAccoutUsersTable = false;
                         logger.warn(`The user record doesnt exists in this Metis Account`);
-                        logger.warn(`Another metis account may have created this account. So we will need to create an account for this metis account.`);
-                        throw new Error('Implement new user creation functionality!');
+                        return reject('The user record doesnt exists in this Metis Account');
+                        // throw new Error('Implement new user creation functionality!');
                       }
 
                     logger.debug('---------------------------------------------------------------------------------------')
@@ -1558,7 +1549,8 @@ class Gravity {
                     logger.debug('---------------------------------------------------------------------------------------')
                       if(!(userRecord.encryption_password === containedDatabase.encryptionPassword)){
                         logger.warn('Not valid password');
-                        throw new Error(`The password is not valid. Need to return the proper reject()`);
+                        return reject('The password is incorrect');
+                        // throw new Error(`The password is not valid. Need to return the proper reject()`);
                       }
 
                       // ------------------------------------------------------------------------------------------------------------------------------
@@ -1602,8 +1594,11 @@ class Gravity {
                         });
 
                 })
-
+                  .catch( error => {
+                    return reject(error);
+                  })
             })
+
       } else {
         logger.debug('No containedDatabase and not the application account.');
         logger.debug(`getUser().retrieveUserFromApp(account = ${account})`);

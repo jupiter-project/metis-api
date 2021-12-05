@@ -3,8 +3,10 @@ import { gravity } from '../config/gravity';
 import metis from '../config/metis';
 import { loadInitialJFSImage } from '../utils/utils';
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
-import jupiterApiService from "./jupiterAPIService";
+// import {jupiterApiService} from "./jupiterAPIService";
 import fs from "fs";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+// import {jupiterAccountService} from "./jupiterAccountService";
 const FormData = require('form-data');
 const axios = require('axios');
 const { getPNTokensAndSendPushNotification, errorMessageHandler } = require('./PushNotificationMessageService');
@@ -22,21 +24,16 @@ const logger = require('../utils/logger')(module);
  * @returns {Promise<AxiosResponse>}
  */
 const UploadAnImageButFirstCheckForStorageAndCreateIfMissing = (
-  jupAccount,
-  passphraseAccount,
-  passwordAccount,
+  channelProperties,
   fileBase64Encoded,
   fileName,
 ) => {
 
-  if ( !jupAccount || !passphraseAccount || !passwordAccount || !fileBase64Encoded ) {
-    throw new Error('Missing params, Account, passphrase ans password are required');
-  }
 
   const dataLogin = {
-    account: jupAccount,
-    passphrase: passphraseAccount,
-    password: passwordAccount,
+    account: channelProperties.address,
+    passphrase: channelProperties.passphrase,
+    password: channelProperties.password,
   };
 
   const defaultHeader = {
@@ -66,6 +63,7 @@ const UploadAnImageButFirstCheckForStorageAndCreateIfMissing = (
       return axios.post(`${process.env.JIM_SERVER}/api/v1/file`, form, defaultHeader);
     });
 };
+
 
 const profileDelete = (passphrase, account, password) => {
 
@@ -355,9 +353,10 @@ module.exports = {
         res.status(500).json(errorMessageHandler(error));
       });
   },
-  fileUpload: (req, res) => {
+
+  fileUpload: async (req, res) => {
     logger.debug('[fileUpload]: Start');
-    const { user, channel } = req;
+    const { user, channelAddress } = req;
     const fileBase64Encoded = req.body.file.data;
     const fileName = req.body.file.name;
     const messageObj = req.body.message.data;
@@ -366,10 +365,12 @@ module.exports = {
       return res.status(400).json({ msg: 'Missing parameters required.' });
     }
 
+    const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+    const channelProperties = await  this.chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+
+
     UploadAnImageButFirstCheckForStorageAndCreateIfMissing(
-      channel.channel_record.account,
-      channel.channel_record.passphrase,
-      channel.channel_record.password,
+        channelProperties,
       fileBase64Encoded,
       fileName,
     )
@@ -377,11 +378,13 @@ module.exports = {
         if (!response.data) {
           res.status(500).json({ success: false, message: 'Error trying to save image' });
         }
+
+        // This used to
         const dataMessage = {
           ...messageObj,
-          name: user.userData.alias,
-          sender: user.userData.account,
-          senderAlias: user.userData.alias,
+          name: memberAccountProperties.getCurrentAliasNameOrNull(),
+          sender: memberAccountProperties.address,
+          senderAlias: memberAccountProperties.getCurrentAliasNameOrNull(),
           type: 'storage',
           payload: response.data,
         };

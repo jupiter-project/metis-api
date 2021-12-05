@@ -1,12 +1,10 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
-import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-import controller from '../config/controller';
 import {jobScheduleService} from '../services/jobScheduleService';
 import {jupiterAccountService} from "../services/jupiterAccountService";
-// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {jupiterAPIService} from "../services/jupiterAPIService";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 
@@ -73,7 +71,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // This constains the aliases from an account
   // ===========================================================
   // Loads aliases
-  app.get('/v1/api/aliases', (req, res) => {
+  app.get('/v1/api/aliases', async (req, res) => {
     console.log('');
     logger.info('======================================================================================');
     logger.info('==');
@@ -84,19 +82,16 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     console.log('');
 
     const {account} = req.query
-    const aliases = `${process.env.JUPITERSERVER}/nxt?requestType=getAliases&account=${account}`;
-    res.setHeader('Content-Type', 'application/json');
-    axios.get(aliases)
-      .then((response) => {
-        res.send(response.data);
-      })
-      .catch((error) => {
-        logger.error(`${error}`);
-        res.send({
-          success: false,
-          message: 'There was an error getting aliases from jupiter',
+    jupiterAPIService.getAliases(account)
+        .then(aliasesResponse => {
+          res.send(aliasesResponse.data);
+        })
+        .catch((error) => {
+          logger.error(`${error}`);
+          res.status(500).send({
+            message: 'There was an error getting aliases from jupiter',
+          });
         });
-      });
   });
 
 
@@ -148,72 +143,70 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   // NEW ACCOUNT GENERATION
   // ===============================================================================
 
-  app.post('/v1/api/create_jupiter_account', (req, res) => {
-    console.log('');
-    logger.info('======================================================================================');
-    logger.info('==');
-    logger.info('== New Account Generation');
-    logger.info('== POST: /v1/api/create_jupiter_account');
-    logger.info('==');
-    logger.info('======================================================================================');
-    console.log('');
+  app.post('/v1/api/create_jupiter_account', async (req, res) => {
+      logger.info(`\n\n`);
+      logger.info('======================================================================================');
+      logger.info('==');
+      logger.info('== New Account Generation');
+      logger.info('== POST: /v1/api/create_jupiter_account');
+      logger.info('==');
+      logger.info(`======================================================================================\n\n`);
 
-    if(!req.body.account_data){
-      return res.send({ success: false, message: 'missing account_data'});
-    }
-    const accountData = req.body.account_data;
-    const passwordHash = bcrypt.hashSync(accountData.encryption_password, bcrypt.genSaltSync(8), null);
-    const passphrase = accountData.passphrase;
-    res.setHeader('Content-Type', 'application/json');
-    axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${passphrase}`) // will create an account if doesnt exist.
-      .then((response) => {
+      try {
+        if (!req.body.account_data) {
+          return res.status(500).send({message: 'missing account_data'});
+        }
+        const accountData = req.body.account_data;
+        const passwordHash = bcrypt.hashSync(accountData.encryption_password, bcrypt.genSaltSync(8), null);
+        const passphrase = accountData.passphrase;
+        const getAccountIdResponse = await jupiterAPIService.getAccountId(passphrase);
         const jupiterAccount = {
-          account: response.data.accountRS,
-          public_key: response.data.publicKey,
-          alias: response.data.alias,
+          account: getAccountIdResponse.data.accountRS,
+          public_key: getAccountIdResponse.data.publicKey,
+          alias: getAccountIdResponse.data.alias,
           accounthash: passwordHash,
-          jup_account_id: response.data.account,
+          jup_account_id: getAccountIdResponse.data.account,
           email: accountData.email,
           firstname: accountData.firstname,
           lastname: accountData.lastname,
           twofa_enabled: accountData.twofa_enabled,
         };
-
-        logger.sensitive(`jupiterAccount=${ JSON.stringify(jupiterAccount)}`);
-
-        if (response.data.accountRS == null) {
-          res.send({ success: false, message: 'There was an error in saving the trasaction record', transaction: response.data });
+        if (getAccountIdResponse.data.accountRS === null) {
+          return res.status(500).send({
+            message: 'There was an error in saving the trasaction record',
+            transaction: getAccountIdResponse.data
+          });
         } else {
-          res.send({ success: true, message: 'Jupiter account created', account: jupiterAccount });
+          return res.send({message: 'Jupiter account created', account: jupiterAccount});
         }
-      })
-      .catch((error) => {
-        logger.error(`${error}`);
-        res.send({ success: false, message: 'There was an error', error: error.response });
-      });
-  });
+      } catch(error) {
+        logger.error(`****************************************************************`);
+        logger.error(`** /v1/api/create_jupiter_account.catch(error)`);
+        console.log(error)
+        return res.status(500).send({ message: `There was an error: ${error.response}`});
+      }
+    })
+
 
 
   /**
    * SIGNUP
    */
   app.post('/v1/api/signup', (req, res, next) => {
-    console.log('');
+    console.log(`\n\n`);
     logger.info('======================================================================================');
-    logger.info('==');
     logger.info('== SignUp');
     logger.info('== POST: /v1/api/signup ');
-    logger.info('==');
-    logger.info('======================================================================================');
+    logger.info(`======================================================================================\n\n`);
     console.log('');
 
-    passport.authenticate('gravity-signup', (error, user, message) => {
-      console.log(error, user, message);
+    passport.authenticate('gravity-signup', (error, jobId, _) => {
+
       if (error) {
         console.log(error);
-        return res.status(500).send({ success: false, message });
+        return res.status(500).send({ jobId });
       }
-      return res.status(200).send({ success: true, message });
+      return res.status(200).send({ jobId: jobId });
     })(req, res, next);
   });
 
@@ -241,7 +234,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       }
       jobScheduleService.checkJobStatus(jobId, callback);
     });
-
 
     app.put('/v1/api/publicKey', async (req, res) => {
       console.log('');
@@ -284,10 +276,11 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    */
   app.post('/v1/api/appLogin', (req, res, next) => {
     console.log('');
-    logger.info('======================================================================================');
+    logger.info(`\n\n`)
+    logger.info(`======================================================================================`);
     logger.info('== Login');
     logger.info('== POST: /v1/api/appLogin');
-    logger.info('======================================================================================');
+    logger.info(`======================================================================================/n/n`);
     console.log('');
 
     logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
@@ -297,32 +290,30 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
       if (error) {
         logger.error(`Error! ${error}`);
-        return next(error);
+        return res.status(500).json({message: error.message})
       }
 
       if (!user) {
         const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
         logger.error(errorMessage);
-
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
+        return res.status(400).json({message: errorMessage});
       }
 
-      const token = jwt.sign(
-        { ...user },
-        process.env.SESSION_SECRET, {
-          expiresIn: process.env.JWT_TOKEN_EXPIRATION,
-        },
-      );
+      const userInfo = {
+        accessKey: user.accessKey,
+        encryptionKey: user.encryptionKey,
+        account: user.account,
+        publicKey: user.publicKey,
+        profilePictureURL: user.profilePictureURL,
+        userData: user.userData
+      }
+      const token = jwt.sign(userInfo, process.env.SESSION_SECRET, {expiresIn: process.env.JWT_TOKEN_EXPIRATION});
+
       const userContainer = {
-        id: user.id,
         profilePictureURL: user.profilePictureURL,
         alias: user.userData.alias,
         account: user.userData.account,
       };
-
 
       res.status(200).send({ user: userContainer, token });
     })(req, res, next);

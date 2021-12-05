@@ -1,10 +1,8 @@
-
 import { gravity } from './gravity';
-
 import User from '../models/user';
-
 import {accountRegistration} from "../services/accountRegistrationService";
 import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {jupiterAccountService} from "../services/jupiterAccountService";
 
 const LocalStrategy = require('passport-local').Strategy;
 
@@ -65,35 +63,51 @@ const getSignUpUserInformation = (account, requestBody) => ({
   jup_account_id: requestBody.jup_account_id,
 });
 
+
 /**
  *
+ * @param address
+ * @param requestBody
+ * @return {Promise<string>}
  */
-const metisRegistration = async (account, requestBody) => {
+const metisRegistration = async (address, requestBody) => {
     logger.verbose(`###################################################################################`);
-    logger.verbose(`## metisRegistration(account, requestBody)`);
+    logger.verbose(`## metisRegistration(address=${address}, requestBody)`);
     logger.verbose(`## `);
-    logger.sensitive(`account=${JSON.stringify(account)}`);
-    logger.sensitive(`requestBody=${JSON.stringify(requestBody)}`);
 
-    const signUpUserInformation = getSignUpUserInformation(account, requestBody);
-        const registration = accountRegistration.register(
-            signUpUserInformation.account,
-            signUpUserInformation.alias,
-            signUpUserInformation.passphrase,
-            signUpUserInformation.encryption_password
-        )
+    const signUpUserInformation = getSignUpUserInformation(address, requestBody);
 
-        return registration;
+    const registration = accountRegistration.register2(
+        signUpUserInformation.account,
+        signUpUserInformation.alias,
+        signUpUserInformation.passphrase,
+        signUpUserInformation.encryption_password
+    )
+
+    // const registration = accountRegistration.register(
+    //     signUpUserInformation.account,
+    //     signUpUserInformation.alias,
+    //     signUpUserInformation.passphrase,
+    //     signUpUserInformation.encryption_password
+    // )
+
+    return registration;
 };
 
 /**
  * Signup to Metis
- * @param {*} passport
+ * @param passport
+ * @param jobsQueue
+ * @param websocket
  */
 const metisSignup = (passport, jobsQueue, websocket ) => {
-  logger.verbose('######################################################');
-  logger.verbose('##  metisSignup(passport)');
-  logger.verbose('##');
+    logger.info(`\n\n`);
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== metisSignup(passport)');
+    logger.info('==');
+    logger.info(`======================================================================================\n\n`);
+
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -112,18 +126,23 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
         const job = jobsQueue.create('user-registration', jobData)
             .priority('high')
             .removeOnComplete(false)
-            .save( (err) =>{
-                if(err){
-                    logger.error(`there is a problem saving to redis`);
-                    logger.error(JSON.stringify(err));
+            .save( error =>{
+                logger.verbose(`-----------------------------------------------------------------------------------`);
+                logger.verbose(`-- JobQueue: user-registration.save(error)`);
+                logger.verbose(`-- `);
+                logger.sensitive(`error= ${error}`);
+                if(error){
+                    logger.error(`There is a problem saving to redis`);
+                    logger.error(`${error}`);
                     websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
+                    throw new Error('user-registration');
                 }
-                logger.verbose(`jobQueue.save() id= ${job.id}`);
-                logger.verbose(`account= ${account}`);
-                setTimeout(()=>{
-                  websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
-                }, 1000);
-                done(null, null, job.id);
+                logger.verbose(`job.id= ${job.id}`);
+                // res.status(200).send({jobId: job.id});
+
+                websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
+
+                return done(null, job.id);
             });
 
         // logger.debug(`job id= ${job.id} for account=${account}`);
@@ -189,21 +208,50 @@ const metisLogin = (passport) => {
     logger.verbose('## metisLogin(passport)');
     logger.verbose('##');
 
-    // const userRecord = await gravity.getUser2(metisGravityAccountProperties, account);
-    // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-    // console.log('userRecord');
-    // console.log(userRecord);
-    // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+      const {
+          jupkey,
+          public_key,
+          jup_account_id,
+          encryptionPassword,
+      } = req.body;
+      let user;
+      let valid = true;
 
-    const {
-      jupkey,
-      public_key,
-      jup_account_id,
-      encryptionPassword,
-    } = req.body;
-    let user;
-    let valid = true;
+      try {
+          const userAccountProperties = await jupiterAccountService.getMemberAccountPropertiesFromPersistedUserRecordOrNull(jupkey, encryptionPassword);
+          if(userAccountProperties){
+              const userInfo = {
+                  accessKey: gravity.encrypt(jupkey),
+                  encryptionKey: gravity.encrypt(encryptionPassword),
+                  account: gravity.encrypt(account),
+                  publicKey: public_key,
+                  profilePictureURL: '',
+                  userData: {
+                      alias: userAccountProperties.getCurrentAliasNameOrNull(),
+                      account: userAccountProperties.address
+                  },
+              };
 
+              return done(null, userInfo, 'Authentication validated!');
+          }
+      } catch(error){
+          console.log(error);
+          return done(error);
+      }
+
+    // 2. Past this means its an older Account....
+    const accountStatement = await jupiterAccountService.fetchAccountStatement(
+        metisGravityAccountProperties.passphrase,
+        metisGravityAccountProperties.password,
+        'metis-account',
+        'app'
+    );
+
+    const usersTableStatement =  await accountStatement.attachedTables.find( table => table.statementId === 'table-users');
+
+    if (!usersTableStatement) {
+      throw new Error('There is no application users table');
+    }
 
     const containedDatabase = {
       account,

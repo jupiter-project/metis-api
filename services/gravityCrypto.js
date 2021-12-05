@@ -6,6 +6,11 @@ class GravityCrypto {
     constructor(decryptionAlgorithm, decryptionPassword) {
         if(!decryptionAlgorithm){throw new Error('missing decryptionAlgorithm')}
         if(!decryptionPassword){throw new Error('missing decryptionPassword')}
+        if(decryptionPassword === undefined){throw new Error('password cannot be undefined')}
+        if(decryptionPassword === 'undefined'){throw new Error('password cannot be undefined')}
+        if(decryptionAlgorithm === undefined){throw new Error('decryptionAlgorithm cannot be undefined')}
+        if(decryptionAlgorithm === 'undefined'){throw new Error('decryptionAlgorithm cannot be undefined')}
+
 
         this.decryptionAlgorithm = decryptionAlgorithm;
         this.decryptionPassword = decryptionPassword;

@@ -55,7 +55,6 @@ class GravityService{
             );
 
             if (!transactionUtils.isValidEncryptedMessageTransactionResponse(response.data)) {
-                console.log(response.data);
                 throw new Error(`Response.data is not a valid transaction response object`);
             }
 

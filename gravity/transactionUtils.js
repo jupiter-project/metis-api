@@ -18,11 +18,14 @@ class TransactionUtils {
     }
 
 
+    /**
+     *
+     * @param transactionIds
+     * @return {boolean}
+     */
     areWellFormedJupiterTransactionIds(transactionIds){
         if(!Array.isArray(transactionIds)){throw new Error('Not an array: transactionsIds')}
-
         if(!gu.isNonEmptyArray(transactionIds)){return true} // empty array returns true
-
         const someAreNotWellFormed =  transactionIds.some( transactionId => !this.isWellFormedJupiterTransactionId(transactionId));
 
         return !someAreNotWellFormed;
@@ -134,7 +137,7 @@ class TransactionUtils {
      * @returns {boolean}
      */
     isValidBaseTransaction(transaction) {
-        logger.sensitive(`#### isValidBaseTransaction(transaction)`);
+        // logger.sensitive(`#### isValidBaseTransaction(transaction)`);
 
         if(!transaction){
             logger.warn('transaction is empty')
@@ -176,6 +179,7 @@ class TransactionUtils {
                     return false;
                 }
             }
+
 
             return true;
         } catch (error) {
@@ -282,23 +286,16 @@ class TransactionUtils {
     }
 
     filterMessageTransactionsByCallback(transactions, callback){
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## filterMessageTransactionsByCallback(transactions, callback)`);
-        logger.verbose('##');
-        logger.verbose(`transactions.length = ${transactions.length}`);
-
+        logger.verbose(`#### filterMessageTransactionsByCallback(transactions, callback): transactions.length = ${transactions.length} `);
         if (transactions.length === 0) {
             logger.warn(`Empty transactions array passed in`)
             return []
         }
         const messageTransactions = this.filterEncryptedMessageTransactions(transactions);
-
-        console.log(`1. messageTransactions ${messageTransactions.length}`);
         const filteredTransactions = messageTransactions.filter(messageTransaction => {
             return callback(messageTransaction)
         });
-        console.log(`2. filteredTransactions ${filteredTransactions.length}`);
-        logger.debug(`Total filtered transactions: ${filteredTransactions.length}`);
+        logger.debug(`## Total filtered transactions: ${filteredTransactions.length}`);
 
         return filteredTransactions;
     }

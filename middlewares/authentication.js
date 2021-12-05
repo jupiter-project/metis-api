@@ -7,7 +7,7 @@ const logger = require('../utils/logger')(module);
 // ============================
 const tokenVerify = (req, res, next) => {
   logger.verbose(`###################################################################################`);
-  logger.verbose(`## tokenVerify()`);
+  logger.verbose(`## tokenVerify(req, res, next)`);
   logger.verbose(`## `);
 
   const token = req.get('Authorization');
@@ -27,7 +27,6 @@ const tokenVerify = (req, res, next) => {
   const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
   if (valid.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token')) {
-    console.log('-->next');
     return next();
   }
 
@@ -42,26 +41,31 @@ const tokenVerify = (req, res, next) => {
   }
 
   jwt.verify(updatedToken, process.env.SESSION_SECRET, (err, decodedUser) => {
-    logger.debug('tokenVerify().verify()');
+    logger.debug('tokenVerify().verify(updatedToken, session, CALLBACK(err, decodedUser))');
     if (err) {
+      logger.error(`****************************************************************`);
+      logger.error(`** tokenVerify.jwtVerify().error`);
       console.log(err);
-      return res.status(401).json({
-        ok: false,
-        err,
-      });
+      const errorMessage = `${err}`;
+
+      return res.status(401).send(errorMessage);
     }
 
     req.user = decodedUser;
-
     const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, process.env.ENCRYPT_PASSWORD);
-    const decryptedAccountData = crypto.decryptAndParse(decodedUser.accountData);
-
-    req.user.passphrase = decryptedAccountData.passphrase;
-    req.user.password = decryptedAccountData.encryptionPassword;
-    req.user.address = decryptedAccountData.account;
-    req.user.publicKey = decryptedAccountData.publicKey;
-    req.user.decryptedAccountData = decryptedAccountData
+    // const decryptedAccountData = crypto.decryptAndParse(decodedUser.accountData);
+    req.user.passphrase = crypto.decrypt(decodedUser.accessKey);
+    req.user.password = crypto.decrypt(decodedUser.encryptionKey) ;
+    req.user.address = crypto.decrypt(decodedUser.account);
+    req.user.publicKey = decodedUser.publicKey;
     req.channel = decodedChannel;
+
+    // req.user.passphrase = decryptedAccountData.passphrase;
+    // req.user.password = decryptedAccountData.encryptionPassword;
+    // req.user.address = decryptedAccountData.account;
+    // req.user.publicKey = decryptedAccountData.publicKey;
+    // req.user.decryptedAccountData = decryptedAccountData
+    // req.channel = decodedChannel;
 
     next();
   });
