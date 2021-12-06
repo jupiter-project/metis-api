@@ -7,7 +7,8 @@ const {jupiterAPIService, JupiterAPIService} = require("./jupiterAPIService");
 const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
-const {add} = require("lodash");
+const {add, first} = require("lodash");
+// const {FeeManager} = require("./FeeManager");
 
 class JupiterTransactionsService {
 
@@ -23,17 +24,6 @@ class JupiterTransactionsService {
         this.messageService = jupiterTransactionMessageService;
         this.transactionUtils = transactionUtils;
     }
-
-
-
-
-
-    // isValidEncryptedMessageTransaction(){
-    //     const transactionProperties = ['recipientPublicKey']
-    // }
-
-
-    // return !!transaction.attachment.encryptedMessage.data;
 
     /**
      *
@@ -67,35 +57,6 @@ class JupiterTransactionsService {
         });
     }
 
-    /**
-     *
-     * @param {object} transactions - {?}
-     * @param {string} password - Password used for encryption/decryption
-     * @returns {object}
-     */
-    // decryptTransactionMessagesAndReturnUpdatedTransactions(transactions, algorithm, password) {
-    //
-    //     console.log('---_----')
-    //     throw new Error('FIX THIS!!!..')
-    //
-    //
-    //     logger.verbose(`decryptTransactionMessages()`);
-    //     const gravityCrypt = new GravityCrypto(algorithm, password);
-    //     const updatedTransactions = transactions.map(transaction => {
-    //         let updatedTransaction = _.clone(transaction);
-    //         const message = transaction.attachment.encryptedMessage.data;
-    //         const decryptedMessage = gravityCrypt.decrypt(message);
-    //         updatedTransaction.decryptedMessage = decryptedMessage;
-    //         // const decryptedMessage = this.decryptOrNull(message, password)
-    //         return updatedTransaction;
-    //         // return decryptedMessage;
-    //     });
-    //     logger.verbose(`TOTAL decrypted Messages ${updatedTransactions.length}`);
-    //     const cleanedTransactions = updatedTransactions.filter(transaction => transaction != null);
-    //     logger.verbose(`cleanedTransactions =   ${cleanedTransactions.length}`);
-    //     return cleanedTransactions;
-    // }
-
 
     /**
      *
@@ -121,63 +82,31 @@ class JupiterTransactionsService {
     }
 
     /**
-     * {"unconfirmedTransactions":[],"requestProcessingTime":0}
      *
-     * @param address
-     * @returns {Promise<*>}
+     * @param {GravityAccountProperties} gravityAccountProperties
+     * @param {string} tag
+     * @param {boolean} [isMetisEncrypted=true]
+     * @param {number|null} [firstIndex=null]
+     * @param {number|null} [lastIndex=null]
+     * @return {Promise<Array|{message, transactionId}[]|*[]>}
      */
-    // async getUnconfirmedBlockChainTransactions(accountProperties) {
-    //     logger.verbose('----------------------------------------');
-    //     logger.verbose(`fetchUnconfirmedBlockChainTransactions(accountProperties: ${!!accountProperties})`);
-    //     logger.verbose('----------------------------------------');
-    //     logger.verbose(`accountProperties.address= ${accountProperties.address}`)
-    //
-    //     return this.jupiterAPIService.jupiterRequest('get', {
-    //         requestType: 'getUnconfirmedTransactions',
-    //         account: accountProperties.address
-    //     });
-    // }
-
-
-    async getReadableTaggedMessageContainers(gravityAccountProperties, tag, isMetisEncrypted = true){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getReadableTaggedMessageContainers(gravityAccountProperties, tag, isMetisEncrypted = true)`);
-        logger.verbose(`## `);
+    async getReadableTaggedMessageContainers(gravityAccountProperties, tag, isMetisEncrypted = true, firstIndex = null, lastIndex = null){
+        logger.verbose(`#### getReadableTaggedMessageContainers(gravityAccountProperties, tag=${tag}, isMetisEncrypted=${isMetisEncrypted})`);
+        logger.verbose(`- gravityAccountProperties.address=${gravityAccountProperties.address}`);
         if (!gravityAccountProperties instanceof GravityAccountProperties){
             throw new Error('memberAccountProperties is invalid')
         }
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is invalid')};
-        logger.sensitive(`gravityAccountProperties.address= ${JSON.stringify(gravityAccountProperties.address)}`);
-        logger.sensitive(`tag= ${tag}`);
         const transactions = await this.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
             gravityAccountProperties.address,
-            tag
+            tag,
+            firstIndex,
+            lastIndex
         )
 
         return this.messageService.getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted);
     }
 
-    async getReadableTaggedMessageContainersByIndex(firstIndex, lastIndex, gravityAccountProperties, tag, isMetisEncrypted = true){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getReadableTaggedMessageContainersByIndex(firstIndex, lastIndex, gravityAccountProperties, tag, isMetisEncrypted = true)`);
-        logger.verbose(`## `);
-        if (!gravityAccountProperties instanceof GravityAccountProperties){
-            throw new Error('memberAccountProperties is invalid')
-        }
-        if(!gu.isNonEmptyString(tag)){throw new Error('tag is invalid')};
-        logger.sensitive(`gravityAccountProperties.address= ${JSON.stringify(gravityAccountProperties.address)}`);
-        logger.sensitive(`tag= ${tag}`);
-
-        const messageTransactions = await this.getTaggedConfirmedAndUnconfirmedBlockChainTransactionsByIndex(0, 10, gravityAccountProperties.address, tag, false);
-
-        const confirmedTransactions = messageTransactions.filter(transaction => {
-            return transaction.hasOwnProperty('attachment') &&
-                transaction.attachment.hasOwnProperty('message') &&
-                transaction.attachment.message.includes(tag)
-        });
-
-        return this.messageService.getReadableMessageContainers(confirmedTransactions, gravityAccountProperties, isMetisEncrypted);
-    }
 
     /**
      *
@@ -270,22 +199,25 @@ class JupiterTransactionsService {
 
     /**
      *
-     * @param address
-     * @param tag
+     * @param {string} address
+     * @param {string} tag
+     * @param {number} [firstIndex=null]
+     * @param {number} [lastIndex=null]
+     *
      * @returns {Promise<[{senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
      *                  versionMessage,encryptedMessage: {data,nonce,isText,isCompressed},
      *                  versionEncryptedMessage,versionPublicKeyAnnouncement,recipientPublicKey,versionMetisAccountInfo,messageIsText,message},
      *               senderRS,subtype,amountNQT,sender,recipientRS,recipient,ecBlockHeight,deadline,transaction,timestamp,height}]
      *           >}
      */
-    async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag){
-        logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag)`);
+    async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null){
+        logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.sensitive(`address= ${JSON.stringify(address)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
-        const confirmedTransactionsPromise = this.getBlockChainTransactionsByTag(address,tag);
-        const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag);
+        const confirmedTransactionsPromise = this.getBlockChainTransactionsByTag(address,tag,firstIndex,lastIndex);
+        const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag, firstIndex, lastIndex);
         const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise])
         const combinedTransactions = [ ...confirmedTransactionsResponse, ...unconfirmendTransactionsResponse ];
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
@@ -298,100 +230,31 @@ class JupiterTransactionsService {
         });
     }
 
-
-    async getTaggedConfirmedAndUnconfirmedBlockChainTransactionsByIndex(firstIndex, lastIndex, address, tag){
-        logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag)`);
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
-        if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
-        logger.sensitive(`address= ${JSON.stringify(address)}`);
-        logger.sensitive(`tag= ${JSON.stringify(tag)}`);
-
-        const confirmedTransactionsPromise = jupiterAPIService.getBlockChainTransactionsByIndex(firstIndex, lastIndex, address, tag , true);;
-        const unconfirmedTransactionsPromise = jupiterAPIService.getUnconfirmedBlockChainTransactionsByIndex(firstIndex, lastIndex, address, tag , true );
-
-
-
-        const [{data: { transactions}}, {data: {unconfirmedTransactions}}] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise])
-        const combinedTransactions = [ ...transactions, ...unconfirmedTransactions ];
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        logger.info(`++ combinedTransactions.length= ${combinedTransactions.length}`);
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        return combinedTransactions.filter(transaction => {
-            return transaction.hasOwnProperty('attachment') &&
-                transaction.attachment.hasOwnProperty('message') &&
-                transaction.attachment.message.includes(tag)
-        });
-    }
-
-
-// {
-//     "unconfirmedTransactions": [
-//         {
-//             "senderPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
-//             "signature": "2cd667757ea07d266954fdc4822e05298854f87fde6d98159412cb8c26a0350983609ab3bd05c24ff35099aad112de060121653524d76c5cfa2fc8eb82fb98ce",
-//             "feeNQT": "317500",
-//             "type": 1,
-//             "fullHash": "5d72d3a87dea7f8ea52fa7e64a233de4d2d4dec85b21156edd4771c267a53c84",
-//             "version": 1,
-//             "phased": false,
-//             "ecBlockId": "9892207482531449821",
-//             "signatureHash": "26bed089b5fdd24da101074da7e07f4cb36cec6aafac2687ab4b1ff38eda3d30",
-//             "attachment": {
-//                 "version.Message": 1,
-//                 "encryptedMessage": {
-//                     "data": "e07aa1d7ff92e606d07c91ecb3ea3f68b951eb27a27984f02f806a791bf108d584e59ea46ba477ec7385cb1c466b70c30c11ece5efedf1a44f79db6163ee66d0fbf9b6d5011cf05da93bf89c4924ba8f3848256d66c1c5c38247785ba2e31330",
-//                     "nonce": "57a891f80b63a457ced76aac2265729c91841d0dd52e81863477265978d71af4",
-//                     "isText": true,
-//                     "isCompressed": true
-//                 },
-//                 "version.EncryptedMessage": 1,
-//                 "version.PublicKeyAnnouncement": 1,
-//                 "recipientPublicKey": "c4fcfcb539ddd131db025923fdecdfb478feadd8fadfe5cc122f6ebb45bf5077",
-//                 "version.MetisAccountInfo": 0,
-//                 "messageIsText": true,
-//                 "message": "v1.metis.channel.public-key.list"
-//             },
-//             "senderRS": "JUP-4MT8-CKA7-EYPY-3P49S",
-//             "subtype": 12,
-//             "amountNQT": "0",
-//             "sender": "2025587753023000358",
-//             "recipientRS": "JUP-4MT8-CKA7-EYPY-3P49S",
-//             "recipient": "2025587753023000358",
-//             "ecBlockHeight": 508333,
-//             "deadline": 60,
-//             "transaction": "10268183500852261469",
-//             "timestamp": 129535844,
-//             "height": 2147483647
-//         },
-
     /**
      *
-     * @param address
-     * @param tag
-     * @returns {Promise<T>}
+     * @param {string} address
+     * @param {string} tag
+     * @param {number|null} [firstIndex=null]
+     * @param {number|null} [lastIndex=null]
+     * @return {Promise<{unconfirmedTransactions: {senderPublicKey, signature, feeNQT, type, fullHash, version, phased, ecBlockId, signatureHash, attachment: {versionMessage, encryptedMessage: {data, nonce, isText, isCompressed}, versionEncryptedMessage, versionPublicKeyAnnouncement, recipientPublicKey, versionMetisAccountInfo, messageIsText, message}, senderRS, subtype, amountNQT, sender, recipientRS, recipient, ecBlockHeight, deadline, transaction, timestamp, height}[], requestProcessingTime}>}
      */
-    getUnconfirmedTransactionsByTag(address, tag) {
-        logger.verbose(` ###################################################################################`);
-        logger.verbose(` ## getBlockChainTransactionsByTag(channelAccount, tag)`);
-        logger.sensitive(`## - address=${JSON.stringify(address)}`);
-        logger.sensitive(`## - tag=${JSON.stringify(tag)}`);
+    getUnconfirmedTransactionsByTag(address, tag, firstIndex = null, lastIndex = null) {
+        logger.verbose(`#### getUnconfirmedTransactionsByTag(address=${address}, tag=${tag})`);
         if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
+        if(firstIndex && !Number.isInteger(firstIndex)){throw new Error(`firstIndex needs to be an int or null`) }
+        if(lastIndex && !Number.isInteger(lastIndex)){throw new Error(`lastIndex needs to be an int or null`) }
 
-        return this.jupiterAPIService.getUnconfirmedBlockChainTransactions(address, tag, true)
+        if(firstIndex && !lastIndex){
+            lastIndex = firstIndex+10;
+        }
+
+        return this.jupiterAPIService.getUnconfirmedBlockChainTransactions(address, tag, true, 1, true,firstIndex,lastIndex)
             .then( response => {
                 if(!response.hasOwnProperty('data')){ return []}
                 if(!response.data.hasOwnProperty('unconfirmedTransactions')){ return []}
                 if(!Array.isArray(response.data.unconfirmedTransactions)){return []}
-
                 const transactions = response.data.unconfirmedTransactions;
-
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log(`tag= ${tag}`)
-                console.log('transactions');
-                console.log(transactions);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
                 const messageTransactions = transactions.filter( transaction => {
                     return transaction.hasOwnProperty('attachment') &&
                         transaction.attachment.hasOwnProperty('message') &&
@@ -405,53 +268,54 @@ class JupiterTransactionsService {
     /**
      *
      * @param address
-     * @returns {Promise<unknown>}
+     * @return {Promise<[Transactions]>}
      */
     async getAllConfirmedAndUnconfirmedBlockChainTransactions(address) {
-        logger.verbose(`  ########################################################################`);
-        logger.verbose(`  ## getAllConfirmedAndUnconfirmedBlockChainTransactions(address)`);
-        logger.sensitive(`## - address= ${JSON.stringify(address)}`);
-
-        return new Promise((resolve, reject) => {
+        logger.verbose(`#### getAllConfirmedAndUnconfirmedBlockChainTransactions(address=${address})`);
+        try {
             const confirmedTransactions = this.jupiterAPIService.getBlockChainTransactions(address);
             const unconfirmedTransactions = this.jupiterAPIService.getUnconfirmedBlockChainTransactions(address);
+            const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactions, unconfirmedTransactions])
+            const confirmed = confirmedTransactionsResponse.data.transactions;
+            const unconfirmend = unconfirmendTransactionsResponse.data.unconfirmedTransactions;
 
-            Promise.all([confirmedTransactions, unconfirmedTransactions])
-                .then( ([confirmedTransactionsResponse, unconfirmendTransactionsResponse]) => {
-                const confirmedTransactions = confirmedTransactionsResponse.data.transactions;
-                const unconfirmendTransactions = unconfirmendTransactionsResponse.data.unconfirmedTransactions;
-                resolve([ ...confirmedTransactions, ...unconfirmendTransactions ]);
-            })
-
-        });
+            return [...confirmed, ...unconfirmend];
+        } catch (error) {
+            throw error;
+        }
     }
-
-
-
 
     /**
      *
-     * @param address
-     * @param tag
+     * @param {string} address
+     * @param {string} tag
+     * @param {number|null} [firstIndex=null]
+     * @param {number|null} [lastIndex=null]
      * @returns {Promise<[{signature, transactionIndex,type,phased,ecBlockId,signatureHash,
      *                    attachment: {
          *               encryptedMessage: {data, nonce, isText, isCompressed},
-         *               version.MetisMetaData,
-         *               version.EncryptedMessage,
-         *               version.Message,
-         *               version.OrdinaryPayment,
-         *               MessageIsText
+         *               versionMetisMetaData,
+         *               versionEncryptedMessage,
+         *               versionMessage,
+         *               versionOrdinaryPayment,
+         *               MessageIsText,
          *               message
      *               },
      *               senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,
-     * senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]>}
+     *                senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]>}
      */
-    getBlockChainTransactionsByTag(address, tag) {
+    getBlockChainTransactionsByTag(address, tag, firstIndex= null, lastIndex= null) {
         logger.sensitive(`#### getBlockChainTransactionsByTag(address=${address}, tag=${tag})`);
         if(!address){throw new Error('address is empty')}
         if(!tag){throw new Error('tag is empty')}
+        if(firstIndex && !Number.isInteger(firstIndex)){throw new Error(`firstIndex needs to be an int or null`) }
+        if(lastIndex && !Number.isInteger(lastIndex)){throw new Error(`lastIndex needs to be an int or null`) }
 
-        return this.jupiterAPIService.getBlockChainTransactions(address, tag, true)
+        if(firstIndex && !lastIndex){
+            lastIndex = firstIndex+10;
+        }
+
+        return this.jupiterAPIService.getBlockChainTransactions(address, tag, true,1,true,firstIndex,lastIndex)
             .then( response => {
                 if(!response.hasOwnProperty('data')){ return []}
                 if(!response.data.hasOwnProperty('transactions')){ return []}
@@ -467,102 +331,8 @@ class JupiterTransactionsService {
 
     /**
      *
-     * @param address
-     * @param passphrase
-     * @param password
-     * @returns {Promise<unknown>}
-     */
-    // async fetchUnconfirmedAndDecryptedTransactionMessages(accountProperties) {
-    //     logger.verbose('#####################################################################################');
-    //     logger.verbose(`## fetchUnconfirmedTransactions(accountProperties)`)
-    //     logger.verbose('##');
-    //     logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
-    //
-    //     return new Promise((resolve, reject) => {
-    //         this.jupiterAPIService.getUnconfirmedBlockChainTransactions(accountProperties)
-    //             .then((response) => {
-    //                 logger.verbose('----------------------------------------');
-    //                 logger.verbose(`-- fetchUnconfirmedAndDecryptedTransactionMessages().then()`)
-    //                 logger.verbose('--');
-    //                 logger.verbose(`TOTAL unconfirmed blockchain transactions: ${response.data.unconfirmedTransactions.length}`);
-    //
-    //                 const unconfirmedTransactionsContainer = response.data; //data: { unconfirmedTransactions: [], requestProcessingTime: 0 } }
-    //
-    //                 if (!this.isValidUnconfirmedTransactionsContainer(unconfirmedTransactionsContainer)) {
-    //                     throw new Error('the unconfirmed transactions container is malformed');
-    //                 }
-    //
-    //                 if (unconfirmedTransactionsContainer.unconfirmedTransactions.length <= 0) {
-    //                     logger.debug(`No Unconfirmed Transactions Founds.`)
-    //                     return resolve([])
-    //                 }
-    //
-    //                 const unconfirmedMessageTransactions = this.transactionUtils.filterEncryptedMessageTransactions(unconfirmedTransactionsContainer.unconfirmedTransactions);
-    //                 logger.verbose(`TOTAL unconfirmedMessageTransactions: ${unconfirmedMessageTransactions.length}`);
-    //
-    //                 const unconfirmedMessageTransactionsFromAddress = this.transactionUtils.filterMessageTransactionsBySenderOrRecipient(unconfirmedMessageTransactions, accountProperties.address);
-    //                 logger.verbose(`TOTAL unconfirmedMessageTransactionsFromAddress: ${unconfirmedMessageTransactionsFromAddress.length}`);
-    //                 this.putReadableMessagesIntoMessageTransactionsAndReturnTransactions(unconfirmedMessageTransactionsFromAddress, accountProperties)
-    //                     .then((jDecryptedUnconfirmedMessageTransactions) => {
-    //                         logger.verbose('--------------------------------------------');
-    //                         logger.verbose(`fetchUnconfirmedAndDecryptedTransactionMessages().getUnconfirmedBlockChainTransactions().then().decipherMessagesFromMessageTransactionsAndReturnTransactions().then(jDecryptedUnconfirmedMessageTransactions)`);
-    //                         logger.verbose('--------------------------------------------');
-    //                         logger.verbose(`jDecryptedUnconfirmedMessageTransactions.length= ${jDecryptedUnconfirmedMessageTransactions.length}`);
-    //
-    //
-    //
-    //                         logger.error('looks not good!!!')
-    //                         throw new Error('looks not good!!!')
-    //
-    //                         const decryptedTransactionMessages = this.decryptTransactionMessagesAndReturnUpdatedTransactions(
-    //                             jDecryptedUnconfirmedMessageTransactions,
-    //                             accountProperties.algorithm,
-    //                             accountProperties.password);
-    //
-    //                         logger.verbose(`TOTAL mDecryptedUnconfirmedMessageTransactions: ${decryptedTransactionMessages.length}`);
-    //                         console.log('3333 = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = ')
-    //                         resolve(decryptedTransactionMessages);
-    //                     })
-    //                     .catch(error => {
-    //                         logger.error(`jupiterDecryptMessagesFromMessageTransactionsAndReturnTransaction().catch(error)`)
-    //                         logger.error(`error=${error}`)
-    //                         reject(error);
-    //                     })
-    //             })
-    //             .catch(error => {
-    //                 logger.error(`fetchUnconfirmedTransactions().getUnconfirmedBlockChainTransactions().catch() ${error}`);
-    //                 reject(error);
-    //             })
-    //     })
-    // }
-
-    // getUnconfirmedTransactionsByTag(address, tag) {
-    //     logger.verbose(`###################################################################################`);
-    //     logger.verbose(`## getBlockChainTransactionsByTag(channelAccount, tag)`);
-    //     logger.verbose(`## `);
-    //     logger.sensitive(`address=${JSON.stringify(address)}`);
-    //     logger.sensitive(`tag=${JSON.stringify(tag)}`);
-    //     if(!address){throw new Error('address is empty')}
-    //     if(!tag){throw new Error('tag is empty')}
-    //
-    //     return this.jupiterAPIService.getUnconfirmedBlockChainTransactions(address, tag, true)
-    //         .then( response => {
-    //             if(!response.hasOwnProperty('data')){ return []}
-    //             if(!response.data.hasOwnProperty('transactions')){ return []}
-    //             if(!Array.isArray(response.data.transactions)){return []}
-    //
-    //             return response.data.transactions.filter(transaction => {
-    //                 return transaction.hasOwnProperty('attachment') &&
-    //                     transaction.attachment.hasOwnProperty('message') &&
-    //                     transaction.attachment.message === tag;
-    //             });
-    //         })
-    // }
-
-
-    /**
-     *
-     * @returns {Promise<unknown>}
+     * @param accountProperties
+     * @return {Promise<{message, transactionId}[]>}
      */
     async fetchUnconfirmedMessages(accountProperties) {
         logger.verbose('#####################################################################################');
@@ -579,6 +349,12 @@ class JupiterTransactionsService {
         )
     }
 
+    /**
+     *
+     * @param accountProperties
+     * @param decipherWith
+     * @return {Promise<Transactions[]>}
+     */
     fetchAllMessagesBySender(accountProperties, decipherWith= null) {
         logger.verbose('###########################################################################');
         logger.verbose(`## fetchAllMessagesBySender(accountProperties, decipherWith)`);

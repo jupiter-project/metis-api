@@ -6,6 +6,13 @@ class MetisError extends Error {
     }
 }
 
+class TestError extends MetisError{
+    constructor(messsage = '') {
+        super(`TEST ERROR: ${messsage}`);
+        this.name = `TestError`
+    }
+}
+
 class FundingNotConfirmedError extends MetisError {
     constructor(message = '') {
         super(`Not able to confirm funding confirmation: ` + message)

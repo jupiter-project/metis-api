@@ -1,3 +1,4 @@
+const gu = require('../utils/gravityUtils');
 const {feeManagerSingleton, FeeManager} = require("./FeeManager");
 // const {resolve} = require("path");
 // const {reject} = require("lodash");
@@ -54,11 +55,7 @@ class JupiterFundingService {
      * @returns {Promise<unknown>}
      */
     async waitForTransactionConfirmation(transactionId){
-        logger.sensitive(`#### waitForTransactionConfirmation( transactionId=${transactionId})`);
-
-        if(!transactionId){
-            throw new Error('transactionId cannot be empty');
-        }
+        if(!gu.isWellFormedJupiterTransactionId(transactionId)){throw new Error('transactionId is not valid')}
 
         return new Promise(async (resolve, reject) => {
             let workTime = 0;

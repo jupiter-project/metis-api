@@ -284,7 +284,7 @@ jobs.process('user-registration', WORKERS, (job,done) => {
           logger.error(`***********************************************************************************`);
           logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
           logger.error(`** `);
-          logger.error(`${error}`)
+          console.log(error);
 
           return done(error)
         })

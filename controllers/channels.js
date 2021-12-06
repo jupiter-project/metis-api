@@ -1,19 +1,19 @@
 import _ from 'lodash';
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
-import Channel from '../models/channel';
-import ChannelRecord from '../models/channel';
-import Message from '../models/message';
-import metis from '../config/metis';
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+// import Channel from '../models/channel';
+// import ChannelRecord from '../models/channel';
+// import Message from '../models/message';
+// import metis from '../config/metis';
+// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
-import jupiterAPIService from "../services/jupiterAPIService";
-import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
-import {messagesConfig} from "../config/constants";
-import {FeeManager} from "../services/FeeManager";
+// import jupiterAPIService from "../services/jupiterAPIService";
+// import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
+// import {messagesConfig} from "../config/constants";
+// import {FeeManager} from "../services/FeeManager";
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 
 const gu = require('../utils/gravityUtils');
@@ -106,12 +106,11 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Accept channel invite
      */
     app.post('/v1/api/channel/invite/accept', async (req, res) => {
-        console.log('');
+        console.log(`\n\n`)
         logger.info('======================================================================================');
         logger.info('== Accept Channel Invite');
         logger.info('== v1/api/channel/invite/accept');
-        logger.info('======================================================================================');
-        console.log('');
+        logger.info(`======================================================================================\n\n`);
 
         const {channelAddress} = req.body
         if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
@@ -122,15 +121,17 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
 
         chanService.acceptInvitation(memberAccountProperties, channelAddress)
             .then(() => {
-                res.send({success: true, message: 'Invite accepted'});
+                res.status(200).send({message: 'Invite accepted'});
             })
             .catch(error => {
                 logger.error(`*********************************************`)
                 logger.error(`** channel/invite/accept ERROR`)
                 logger.error(`${error}`);
-                res.status(500).send({error: true, fullError: `${error}`});
+                if(error.message === 'Invitation Not Found'){
+                    return res.status(404).send({message: error.message});
+                }
+                return res.status(500).send({message: error.message});
             });
-
 
     });
 
@@ -180,28 +181,36 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         const { user } = req;
         const { channelAddress } = req.query
 
+
+        const firstIndex = parseInt(req.params.firstIndex);
+        if(!Number.isInteger(firstIndex)){
+            return res.status(400).send({message: 'firstIndex needs to be a number'}); // BAD REQUEST
+        }
+
+        const lastIndex = firstIndex+10;
+
         if (!channelAddress) {
-            return res.status(400).send({success: false, message: 'Channel account is required'});
+            return res.status(400).send({message: 'Channel account is required'}); // BAD REQUEST
         }
 
         try{
             if(!gu.isWellFormedJupiterAddress(channelAddress)){
-                return res.status(500).send({success: false, error: `${error}`})
+                return res.status(500).send({message: `bad channel address: ${channelAddress}`})
             }
 
-            const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.decryptedAccountData.encryptionPassword);
+            const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
             if(!channelAccountProperties){
-                return res.status(500).send({message:'channel is not available'})
+                return res.status(500).send({message:`channel is not available: ${channelAddress}`})
             }
 
             const tag = 'v1.metis.message.message-record';
-            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainersByIndex(0, 10, channelAccountProperties, tag, false);
+            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, tag, false, firstIndex, lastIndex);
             res.send(messageTransactions);
         } catch (error){
             logger.error('Error getting messages:');
-            logger.error(JSON.stringify(error));
+            logger.error(`${error}`);
             res.status(500).send({message: 'Error getting messages'})
         }
     });
@@ -354,15 +363,14 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
      * Create a Channel, assigned to the current user
      */
     app.post('/v1/api/channel', async (req, res, next) => {
-        console.log('');
+        console.log(`\n\n\n`);
         logger.info('======================================================================================');
         logger.info('== Create a Channel, assigned to the current user');
         logger.info('== app.post(\'/v1/api/channel\')(req,res,next)');
-        logger.info('======================================================================================');
-        console.log('');
+        logger.info(`======================================================================================\n\n\n`);
 
         const {channelName} = req.body;
-        const { userData: { alias, account } } = req.user;
+        // const { userData: { alias, account } } = req.user;
         if (!channelName) {
             return res.status(400).send({errorMessage: 'need channelName in body'})
         }
@@ -370,29 +378,21 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
             req.user.passphrase,
             req.user.password);
 
-        const aliasInfo = {
-            aliasName: alias,
-            aliasURI: '--',
-            accountRS: account,
-        };
-
-        memberAccountProperties.addAlias(aliasInfo); //TODO remove this
-
-
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        console.log('memberAccountProperties.address');
-        console.log(memberAccountProperties.address);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
+        // const aliasInfo = {
+        //     aliasName: alias,
+        //     aliasURI: '--',
+        //     accountRS: account,
+        // };
+        // memberAccountProperties.addAlias(aliasInfo); //TODO remove this
 
         const job = jobs.create('channel-creation-confirmation', {channelName, memberAccountProperties})
             .priority('high')
             .removeOnComplete(false)
-            .save(error => {
+            .save( error => {
                 logger.verbose(`-----------------------------------------------------------------------------------`);
                 logger.verbose(`-- JobQueue: channel-creation-confirmation.save(error)`);
                 logger.verbose(`-- `);
-                logger.sensitive(`error= ${JSON.stringify(error)}`);
+                logger.sensitive(`error= ${error}`);
                 if (error) {
                     websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
                     throw new Error('channel-creation-confirmation');

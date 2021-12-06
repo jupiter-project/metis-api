@@ -124,11 +124,11 @@ class JupiterTransactionMessageService {
      * @returns {Promise<[{message: {}, transactionId: string}]>}
      */
     readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase) {
-        logger.verbose('##############################################################################################');
-        logger.verbose('## readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase)');
-        logger.verbose('##');
-        logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
-
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
+        if(!crypto instanceof GravityCrypto){throw new Error('crypto is not valid')}
+        if(!Array.isArray(messageTransactionIds)){throw new Error(`messageTransactionIds is not array`)}
+        logger.verbose(`#### readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase): messageTransactionIds.length=${messageTransactionIds.length}`);
+        logger.verbose(`ids: ${JSON.stringify(messageTransactionIds)}`);
         return this.executeCallbackForEachTransactionIdInBatches(
             messageTransactionIds,
             (transactionId) => this.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(transactionId, crypto, passphrase)
@@ -162,9 +162,9 @@ class JupiterTransactionMessageService {
      * @returns {Promise<[{message, transactionId}]>}
      */
     readMessagesFromMessageTransactionIdsAndReturnMessageContainers(messageTransactionIds, passphrase) {
-        logger.verbose('##############################################################################################');
-        logger.verbose('## readMessagesFromMessageTransactionIdsAndReturnMessageContainers(messageTransactionIds, crypto)');
-        logger.verbose('##');
+        logger.verbose('#### readMessagesFromMessageTransactionIdsAndReturnMessageContainers(messageTransactionIds, passphrase)');
+        if(!transactionUtils.areWellFormedJupiterTransactionIds(messageTransactionIds)){throw new Error('messageTransactionsIds is not valid')}
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
         logger.verbose(`messageTransactionIds.length=${messageTransactionIds.length}`);
 
         return this.executeCallbackForEachTransactionIdInBatches(
@@ -181,10 +181,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<[]>}
      */
     async executeCallbackForEachTransactionIdInBatches(messageTransactionIds, callback) {
-        logger.verbose('##############################################################################################');
-        logger.verbose('## executeCallbackForEachTransactionIdInBatches(messageTransactionIds, callback)');
-        logger.verbose('##');
-        logger.verbose(`messageTransactionIds.length= ${messageTransactionIds.length}`);
+        logger.verbose(`#### executeCallbackForEachTransactionIdInBatches(messageTransactionIds, callback): messageTransactionsIds.length= ${messageTransactionIds.length}`);
 
         if(!gu.isNonEmptyArray(messageTransactionIds)){
             logger.warn(`passed in messageTransactionIds is empty`);
@@ -203,6 +200,7 @@ class JupiterTransactionMessageService {
             const metisMessages = await gu.filterPromisesByRemovingEmptyResults(metisMessagePromises);
             results = [...results, ...metisMessages];
         }
+        logger.verbose(`---- executeCallbackForEachTransactionIdInBatches(messageTransactionIds, callback): results.length= ${results.length}`);
 
         return  results;
     }
@@ -258,31 +256,34 @@ class JupiterTransactionMessageService {
 
     /**
      *
-     * @param gravityAccountProperties
-     * @param tag
-     * @param isMetisEncrypted
-     * @returns {Promise<*>}
+     * @param transactions
+     * @param {GravityAccountProperties} gravityAccountProperties
+     * @param {boolean} isMetisEncrypted
+     * @return {Promise<Array|{message, transactionId}[]|*[]>}
      */
     async getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted = true){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted = true)`);
-        logger.verbose(`## `);
+        logger.verbose(`#### getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted= ${isMetisEncrypted})`);
         if(!Array.isArray(transactions)){throw new Error('transactions is not an array')}
+        logger.verbose(`- transactions.length= ${transactions.length}`);
         if(!gu.isNonEmptyArray(transactions)){return []}
         if (!gravityAccountProperties instanceof GravityAccountProperties){
             throw new Error('memberAccountProperties is invalid')
         }
         if(!transactionUtils.areValidTransactions(transactions)){ throw new Error('transactions are not valid')}
-
-        logger.sensitive(`gravityAccountProperties.length= ${JSON.stringify(gravityAccountProperties.length)}`);
+        logger.sensitive(`- gravityAccountProperties.length= ${JSON.stringify(gravityAccountProperties.length)}`);
         const transactionIds = this.transactionUtils.extractTransactionIds(transactions);
 
         const messages = isMetisEncrypted ?
             await this.readMessagesFromMessageTransactionIdsAndDecryptOrNullAndReturnMessageContainer(transactionIds, gravityAccountProperties.crypto, gravityAccountProperties.passphrase) :
             await this.readMessagesFromMessageTransactionIdsAndReturnMessageContainers(transactionIds, gravityAccountProperties.passphrase)
 
-        if(messages === null) {return []}
-        if(!gu.isNonEmptyArray(messages)) {return []}
+        logger.verbose(`- messages.length= ${messages.length}`);
+        if(messages === null) {
+            return []
+        }
+        if(!gu.isNonEmptyArray(messages)) {
+            return []
+        }
 
         return messages;
     }
@@ -296,20 +297,23 @@ class JupiterTransactionMessageService {
      * @returns {Promise<{message: *, transactionId: *}>}
      */
     async getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
-        logger.sensitive(`#### getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)`);
         if(!gu.isWellFormedJupiterTransactionId(messageTransactionId)){throw new Error('messageTransactionId is invalid')}
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
         if(!crypto instanceof GravityCrypto){throw new Error('crypto is invalid')}
 
         return this.getReadableMessageContainerFromMessageTransactionId(messageTransactionId, passphrase)
             .then(decryptedMessageContainer => {
-                logger.verbose(`-----------------------------------------------------------------------------------`);
-                logger.verbose(`-- getReadableMessageContainerFromMessageTransactionId()`);
-                logger.verbose(`-- `);
-                // logger.sensitive(`decryptedMessage= ${JSON.stringify(decryptedMessageContainer.message)}`);
+                logger.verbose(`---- getReadableMessageContainerFromMessageTransactionId()`);
+                if(!decryptedMessageContainer.message){
+                    logger.warn(`message is EMPTY`)
+                    return '';
+                }
+
                 const messageToParse = crypto.decryptOrNull(decryptedMessageContainer.message);
+
+
                 if(!messageToParse){
-                    logger.warn('unable to decrypt!');
+                    logger.sensitive('++++ unable to decrypt message!');
                     return ''; // because of Promise.all we should not do reject.
                 }
 
@@ -375,7 +379,6 @@ class JupiterTransactionMessageService {
      * @returns {Promise<{message: *, transactionId: *}>}
      */
     getReadableMessageContainerFromMessageTransactionId(messageTransactionId, passphrase) {
-        logger.sensitive(`#### getReadableMessageContainerFromMessageTransactionId(messageTransactionId, passphrase= ${passphrase})`);
         if(!gu.isWellFormedJupiterTransactionId(messageTransactionId)){throw new Error('messageTransactionId is invalid')}
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
 
@@ -413,8 +416,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<unknown>}
      */
     async extractMessagesBySender(senderAccountProperties, blockChainTransactions, decipherWith= null){
-        logger.verbose('##############################################################################################');
-        logger.verbose(`## extractMessagesBySender(accountProperties, blockChainTransactions,  decipherWith=null)`);
+        logger.verbose(`#### extractMessagesBySender(accountProperties, blockChainTransactions,  decipherWith=null)`);
         logger.debug(`  ## - blockChainTransactions.length= ${blockChainTransactions.length}`);
         logger.debug(`  ## - senderAccountProperties.address= ${senderAccountProperties.address}`);
 

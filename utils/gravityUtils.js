@@ -180,23 +180,28 @@ const isWellFormedJupiterAccountData = function(jupiterAccountData) {
 }
 
 
-//@TODO please implement
+/**
+ *
+ * @param passphrase
+ * @return {boolean}
+ */
 const isWellFormedPassphrase = function(passphrase){
     if(!passphrase){
-        logger.sensitive(`passphrase= ${passphrase}`)
+        logger.sensitive(`passphrase not well formed! : ${passphrase}`)
         return false
     }
-    //^((\w+)\s){11}+\w+$
     const re = /^(\w+\s){11}\w+$/
     if(re.test(passphrase)){
         return true;
     }
-
-    logger.sensitive(`passphrase= ${passphrase}`);
-
     return false;
 }
 
+/**
+ *
+ * @param number
+ * @return {boolean}
+ */
 const isNumberGreaterThanZero = function(number) {
     if(typeof number !== 'number'){
         return false;
@@ -272,10 +277,7 @@ const jsonParseOrNull = function (stringToParse) {
  * @returns {Promise<unknown>}
  */
 const filterPromisesByRemovingEmptyResults = function(promises){
-    logger.verbose(`############################################`);
-    logger.verbose(`## filterPromisesByRemovingEmptyResults()`);
-    logger.verbose(`promises.length= ${promises.length}`);
-
+    logger.verbose(`#### filterPromisesByRemovingEmptyResults(promises): promises.length= ${promises.length}`);
 
     return Promise.all(promises)
         .then( results => {
@@ -284,7 +286,7 @@ const filterPromisesByRemovingEmptyResults = function(promises){
                 reduced.push(result);
                 return reduced;
             }, []);
-
+            logger.verbose(`filtered promises.length= ${reduced.length}`)
             return reduced;
         })
 }

@@ -7,6 +7,7 @@ module.exports = {
     userPublicKey: 'v1.metis.user.public-key',
     userPublicKeyList: 'v1.metis.user.public-key-list',
     metisUserRecord: 'v1.metis.metis-user-record',
+    userRecord: 'v1.metis.user-record',
   },
   channelConfig:{
     channelMemberPublicKey: 'v1.metis.channel.member-public-key',

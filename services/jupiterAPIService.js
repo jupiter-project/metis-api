@@ -3,6 +3,7 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {add, first} from "lodash";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
@@ -57,6 +58,11 @@ class JupiterAPIService {
         }
 
     /**
+     * @example  { data: { errorDescription: 'org.h2.jdbc.JdbcSQLException: Database may be already in use: "Locked by another process: /root/jupiter/nxt_test_db/nxt.lock.db". Possible solutions: close all other connection(s); use the server mode [90020-195]',
+            errorCode: 4,
+            error: 'java.lang.RuntimeException: org.h2.jdbc.JdbcSQLException: Database may be already in use: "Locked by another process: /root/jupiter/nxt_test_db/nxt.lock.db". Possible solutions: close all other connection(s); use the server mode [90020-195]'
+          }}
+
      *
      * @param {string} rtype - GET POST PUT etc
      * @param {object} params - json object with all parameters
@@ -74,17 +80,19 @@ class JupiterAPIService {
                         logger.sensitive(`url= ${url}`)
                         logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
-                        return reject(response.error)
+                        return reject(new Error(response.error))
                     }
 
-                    if(response.data && response.data.errorDescription  && response.data.errorDescription !== null) {
-                        logger.error(`jupiterRequest().response.data.error`);
-                        logger.sensitive(`response.data= ${JSON.stringify(response.data)}`);
-                        logger.error(`error= ${JSON.stringify(response.data.errorDescription)}`)
+                    if(response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription')  && response.data.errorDescription) {
+                        logger.error(`****************************************************************`);
+                        logger.error(`** jupiterRequest().then(response) response.data.errorDescription...`);
+                        logger.error(`** - errorDescription= ${response.data.errorDescription}`)
+                        logger.error(`** - errorCode= ${response.data.errorCode}`)
+                        logger.error(`** - error= ${response.data.error}`)
                         logger.sensitive(`url= ${url}`)
                         logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
-                        return reject(response.data.errorDescription);
+                        return reject(new Error(response.data.errorDescription));
                     }
 
                     return resolve(response);
@@ -165,14 +173,11 @@ class JupiterAPIService {
      * @param {string} passphrase
      * @returns {Promise<{data: {"accountRS","publicKey","requestProcessingTime","account"}}>}
      */
-    async getAccountId(passphrase) {
-    logger.verbose(`###################################################################################`);
-    logger.verbose(`## getAccountId(passphrase)`);
-    logger.verbose(`## `);
-    logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+    getAccountId(passphrase) {
+        logger.verbose(`#### getAccountId(passphrase)`);
 
-        if(!gu.isWellFormedPassphrase(passphrase)){
-            throw new Error(`Jupier passphrase is not valid: ${passphrase}`);
+        if(!gu.isWellFormedPassphrase(passphrase)) {
+            throw new Error(`Jupiter passphrase is not valid.`);
         }
 
         return this.get({
@@ -245,75 +250,39 @@ class JupiterAPIService {
      * requireLastBlock
      *
      * @param {string} address - JUP-123
-     * @param {string} message
-     * @param {boolean} withMessage
+     * @param {string} [message=null] - Usually the tag message
+     * @param {boolean} [withMessage=false] - when true its used as a tag
+     * @param {boolean} [type=1]
+     * @param {boolean} [includeExpiredPrunable=true]
+     * @param {number|null} [firstIndex=null]
+     * @param {number|null} [lastIndex=null]
      * @returns {Promise<{ data: {requestProcessingTime,
      *                     transactions: [{signature, transactionIndex,type,phased,ecBlockId,signatureHash,
      *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
      *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
      */
-    async getBlockChainTransactions(address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
+    async getBlockChainTransactions(
+        address,
+        message = null ,
+        withMessage = false,
+        type = 1 ,
+        includeExpiredPrunable = true,
+        firstIndex = null,
+        lastIndex = null
+    ) {
         logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter address not valid: ${address}`);
-        }
 
-        let params = {
-            requestType: JupiterAPIService.requestTypes.getBlockchainTransactions,
-            account: address,
-            type,
-            withMessage,
-            includeExpiredPrunable
-        };
-
-        if(withMessage && message){
-            params = {...params, message}
-        }
-
-        return this.get(params);
-    }
-
-    getBlockChainTransactionsByIndex(firstIndex, lastIndex, address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
-        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter address not valid: ${address}`);
-        }
-
-        let params = {
-            requestType: JupiterAPIService.requestTypes.getBlockchainTransactions,
-            account: address,
-            type,
-            withMessage,
-            includeExpiredPrunable,
-            firstIndex,
-            lastIndex
-        };
-
-        if(withMessage && message){
-            params = {...params, message}
-        }
-
-        return this.get(params);
-    }
-
-    getUnconfirmedBlockChainTransactionsByIndex(firstIndex, lastIndex, address, message = null , withMessage = false, type = 1 , includeExpiredPrunable = true) {
-        logger.sensitive(`#### getUnconfirmedBlockChainTransactionsByIndex(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter address not valid: ${address}`);
-        }
-
-        let params = {
-            requestType: JupiterAPIService.requestTypes.getUnconfirmedTransactions,
-            account: address,
-            type,
-            withMessage,
-            includeExpiredPrunable
-        };
-
-        if(withMessage && message){ params = {...params, message}}
-
-        return this.get( params);
+        const requestType = JupiterAPIService.requestTypes.getBlockchainTransactions;
+        return this._getConfirmedOrUnconfirmedBlockChainTransactions(
+            requestType,
+            address,
+            message = null ,
+            withMessage = false,
+            type = 1 ,
+            includeExpiredPrunable = true,
+            firstIndex = null,
+            lastIndex = null
+        )
     }
 
 
@@ -361,11 +330,13 @@ class JupiterAPIService {
             "height": 2147483647
         }
      *
-     * @param address
-     * @param message
-     * @param withMessage
-     * @param type
-     * @param includeExpiredPrunable
+     * @param {string} address - JUP-123
+     * @param {string} [message=null] - Usually the tag message
+     * @param {boolean} [withMessage=false] - when true its used as a tag
+     * @param {boolean} [type=1]
+     * @param {boolean} [includeExpiredPrunable=true]
+     * @param {number|null} [firstIndex=null]
+     * @param {number|null} [lastIndex=null]
      * @returns {Promise<{
      *          unconfirmedTransactions: [
      *              {senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
@@ -375,25 +346,87 @@ class JupiterAPIService {
      *           requestProcessingTime }
      *           >}
      */
-    async getUnconfirmedBlockChainTransactions(address, message = null, withMessage = false, type = 1, includeExpiredPrunable = true) {
-        logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        if(!gu.isNonEmptyString(address)){throw new Error('address is empty')}
+    async getUnconfirmedBlockChainTransactions(
+        address,
+        message = null,
+        withMessage = false,
+        type = 1,
+        includeExpiredPrunable = true,
+        firstIndex = null,
+        lastIndex = null
+    ) {
+        logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        return this._getConfirmedOrUnconfirmedBlockChainTransactions(
+            JupiterAPIService.requestTypes.getUnconfirmedTransactions,
+            address,
+            message = null ,
+            withMessage = false,
+            type = 1 ,
+            includeExpiredPrunable = true,
+            firstIndex = null,
+            lastIndex = null
+        )
+    }
+
+    /**
+     * All parameters: account,timestamp,type, subtype, firstIndex, lastIndex, numberOfConfirmations, withMessage,
+     * phasedOnly, nonPhasedOnly, includeExpiredPrunable, includePhasingResult, executedOnly, message, requireBlock,
+     * requireLastBlock
+     *
+     * @param {string} requestType - confirmed or unconfirmed
+     * @param {string} address - JUP-123
+     * @param {string} [message=null] - Usually the tag message
+     * @param {boolean} [withMessage=false] - when true its used as a tag
+     * @param {boolean} [type=1]
+     * @param {boolean} [includeExpiredPrunable=true]
+     * @param {number|null} [firstIndex=null]
+     * @param {number|null} [lastIndex=null]
+     * @returns {Promise<{ data: {requestProcessingTime,
+     *                     transactions: [{signature, transactionIndex,type,phased,ecBlockId,signatureHash,
+     *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
+     *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
+     */
+    async _getConfirmedOrUnconfirmedBlockChainTransactions(
+        requestType,
+        address,
+        message = null ,
+        withMessage = false,
+        type = 1 ,
+        includeExpiredPrunable = true,
+        firstIndex = null,
+        lastIndex = null
+    ) {
+        logger.sensitive(`#### getBlockChainTransactions(requestType = ${requestType},address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
+        if(! (requestType === JupiterAPIService.requestTypes.getBlockchainTransactions || requestType === JupiterAPIService.requestTypes.getUnconfirmedTransactions)){
+            throw new Error(`requestType is invalid: ${requestType}`)
+        }
+
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         }
 
         let params = {
-            requestType: JupiterAPIService.requestTypes.getUnconfirmedTransactions,
+            requestType: requestType,
             account: address,
             type,
             withMessage,
             includeExpiredPrunable
         };
 
-        if(withMessage && message){ params = {...params, message}}
+        if(withMessage && message){
+            params = {...params, message}
+        }
 
-        return this.get( params);
+        if(firstIndex){ params.firstIndex = firstIndex }
+        if(lastIndex){ params.lastIndex = lastIndex }
+
+        return this.get(params);
     }
+
+
+
+
+
 
     /**
      * @example {"signature":"25011e954b302da2911ce36c8d2bbe9358c750769282153af380a86e103bfd081ecdce2484cb13d3d9b71da89ac43708d337a5faf198f29b1f7f2bc8793ba61d","transactionIndex":0,"type":1,"phased":false,"ecBlockId":"9001715635790867936","signatureHash":"340fd40a4c1f8a463d3458e269dcef5d4a8dc481c12b6b7930b868162d434fda","attachment":{"version.Message":1,"messageIsText":true,"message":"this is a test 2","version.ArbitraryMessage":0},"senderRS":"JUP-NFVU-KKGE-FFQF-7WT5G","subtype":0,"amountNQT":"0","recipientRS":"JUP-NFVU-KKGE-FFQF-7WT5G","block":"12682721922156988900","blockTimestamp":118259859,"deadline":60,"timestamp":118259852,"height":106383,"senderPublicKey":"6d9cc564149825f60d0bd73182a8cb1e1a49fb6ea65c8a9fd126e87cf8aa7078","feeNQT":"500","requestProcessingTime":1,"confirmations":410353,"fullHash":"8fdfcb5ece727e3c60cd901bbd7ef57ebf03b0d1c7908e7dcea823a5d45072c2","version":1,"sender":"6273299379500234618","recipient":"6273299379500234618","ecBlockHeight":105662,"transaction":"4359047720020467599"}
@@ -867,8 +900,6 @@ class JupiterAPIService {
     // }
 
 
-
-
     /**
      * @example {
                     "aliasURI": "acct:JUP-HDCL-64CT-FNDK-2EV2D@nxt",
@@ -887,7 +918,6 @@ class JupiterAPIService {
         logger.verbose(`## getAlias(aliasName= ${aliasName})`);
         logger.verbose('##')
         if(!aliasName) {throw new Error('aliasName cannot be empty')}
-
         const params = {
             aliasName,
             requestType: 'getAlias',
@@ -898,91 +928,70 @@ class JupiterAPIService {
 
     /**
      * @example {
-                    "aliases": [
-                        {
-                            "aliasURI": "acct:JUP-4EAQ-3WA2-NY54-98686@nxt",
-                            "aliasName": "istecorruptisequi",
-                            "accountRS": "JUP-KMRG-9PMP-87UD-3EXSF",
-                            "alias": "8373313910286821350",
-                            "account": "1649351268274589422",
-                            "timestamp": 122598735
-                        }
-                    ],
-                    "requestProcessingTime": 0
-                }
+     *               "aliases": [
+     *                   {
+     *                       "aliasURI": "acct:JUP-4EAQ-3WA2-NY54-98686@nxt",
+     *                       "aliasName": "istecorruptisequi",
+     *                       "accountRS": "JUP-KMRG-9PMP-87UD-3EXSF",
+     *                       "alias": "8373313910286821350",
+     *                       "account": "1649351268274589422",
+     *                       "timestamp": 122598735
+     *                   }
+     *               ],
+     *               "requestProcessingTime": 0
+     *           }
      * @param address
      * @return {Promise<{"aliases": [{"aliasURI","aliasName","accountRS","alias","account","timestamp"}],"requestProcessingTime"}>}
      */
-    // async getAliases(address) {
-    //     logger.verbose('#################################################')
-    //     logger.verbose(`## getAliases(address)`);
-    //     logger.verbose('##')
-    //     if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
-    //
-    //     const params = {
-    //         aliasName,
-    //         requestType: 'getAliases',
-    //     }
-    //
-    //     return this.get(params)
-    // }
-
     async getAliases(address){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getAliases(address)`);
-        logger.verbose(`## `);
-        logger.sensitive(`address=${JSON.stringify(address)}`);
+        logger.verbose(`#### getAliases(address=${address})`);
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter Address is not valid: ${address}`);
         }
+        const params = {
+            requestType: JupiterAPIService.requestTypes.getAliases,
+            account: address
+        }
 
-        return this.post( {
-                requestType: JupiterAPIService.requestTypes.getAliases,
-                account: address
-            })
+        return this.post(params);
     }
-
-
-
-
-
 
     /**
      * @example {
-                    "signatureHash": "8bfddb6764950232fa982aa1f82206a99e2107e6645210c2e1698bfa3d5557b8",
-                    "transactionJSON": {
-                        "senderPublicKey": "8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068",
-                        "signature": "07949435a9a0a4df474aa8ea85e7704a890c924ff9cc01010b6112b87ac9f00d95de656f4282c997329012827526b61f21f6e2d66ab9513750b83c5a34b7257b",
-                        "feeNQT": "10000",
-                        "type": 1,
-                        "fullHash": "5a3ca1ace2e4513e2d68d7cb0f968bacf855585b28aa1a01d8513a11ba516d3f",
-                        "version": 1,
-                        "phased": false,
-                        "ecBlockId": "4946662380342551644",
-                        "signatureHash": "8bfddb6764950232fa982aa1f82206a99e2107e6645210c2e1698bfa3d5557b8",
-                        "attachment": {
-                            "alias": "test123",
-                            "version.AliasAssignment": 1,
-                            "uri": "junk"
-                        },
-                        "senderRS": "JUP-KMRG-9PMP-87UD-3EXSF",
-                        "subtype": 1,
-                        "amountNQT": "0",
-                        "sender": "1649351268274589422",
-                        "ecBlockHeight": 518759,
-                        "deadline": 60,
-                        "transaction": "4490621965675084890",
-                        "timestamp": 129822730,
-                        "height": 2147483647
-                    },
-                    "unsignedTransactionBytes": "01110af0bc073c008435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb06838a6c4f961ffdc01000000000000000010270000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000067ea07005c241bf43913a64401077465737431323304006a756e6b",
-                    "broadcasted": true,
-                    "requestProcessingTime": 2,
-                    "transactionBytes": "01110af0bc073c008435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb06838a6c4f961ffdc0100000000000000001027000000000000000000000000000000000000000000000000000000000000000000000000000007949435a9a0a4df474aa8ea85e7704a890c924ff9cc01010b6112b87ac9f00d95de656f4282c997329012827526b61f21f6e2d66ab9513750b83c5a34b7257b0000000067ea07005c241bf43913a64401077465737431323304006a756e6b",
-                    "fullHash": "5a3ca1ace2e4513e2d68d7cb0f968bacf855585b28aa1a01d8513a11ba516d3f",
-                    "transaction": "4490621965675084890"
-                }
-
+     *               "signatureHash": "8bfddb6764950232fa982aa1f82206a99e2107e6645210c2e1698bfa3d5557b8",
+     *               "transactionJSON": {
+     *                   "senderPublicKey": "8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068",
+     *                   "signature": "07949435a9a0a4df474aa8ea85e7704a890c924ff9cc01010b6112b87ac9f00d95de656f4282c997329012827526b61f21f6e2d66ab9513750b83c5a34b7257b",
+     *                   "feeNQT": "10000",
+     *                   "type": 1,
+     *                   "fullHash": "5a3ca1ace2e4513e2d68d7cb0f968bacf855585b28aa1a01d8513a11ba516d3f",
+     *                   "version": 1,
+     *                   "phased": false,
+     *                   "ecBlockId": "4946662380342551644",
+     *                   "signatureHash": "8bfddb6764950232fa982aa1f82206a99e2107e6645210c2e1698bfa3d5557b8",
+     *                   "attachment": {
+     *                       "alias": "test123",
+     *                       "version.AliasAssignment": 1,
+     *                       "uri": "junk"
+     *                   },
+     *                   "senderRS": "JUP-KMRG-9PMP-87UD-3EXSF",
+     *                   "subtype": 1,
+     *                   "amountNQT": "0",
+     *                   "sender": "1649351268274589422",
+     *                   "ecBlockHeight": 518759,
+     *                   "deadline": 60,
+     *                   "transaction": "4490621965675084890",
+     *                   "timestamp": 129822730,
+     *                   "height": 2147483647
+     *               },
+     *               "unsignedTransactionBytes": "01110af0bc073c008435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb06838a6c4f961ffdc01000000000000000010270000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000067ea07005c241bf43913a64401077465737431323304006a756e6b",
+     *               "broadcasted": true,
+     *               "requestProcessingTime": 2,
+     *               "transactionBytes": "01110af0bc073c008435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb06838a6c4f961ffdc0100000000000000001027000000000000000000000000000000000000000000000000000000000000000000000000000007949435a9a0a4df474aa8ea85e7704a890c924ff9cc01010b6112b87ac9f00d95de656f4282c997329012827526b61f21f6e2d66ab9513750b83c5a34b7257b0000000067ea07005c241bf43913a64401077465737431323304006a756e6b",
+     *               "fullHash": "5a3ca1ace2e4513e2d68d7cb0f968bacf855585b28aa1a01d8513a11ba516d3f",
+     *               "transaction": "4490621965675084890"
+     *           }
+     *
      *
      * @param {{alias,passphrase,account}} params
      * @return {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"alias","versionAliasAssignment","uri"},"senderRS","subtype","amountNQT","sender","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}

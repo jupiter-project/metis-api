@@ -392,7 +392,7 @@ class ChanService {
                 memberAccountProperties.passphrase
             );
 
-            logger.sensitive(`messageContainer=${JSON.stringify(messageContainer)}`);
+            // logger.sensitive(`messageContainer=${JSON.stringify(messageContainer)}`);
             const gravityAccountProperties = await instantiateGravityAccountProperties(
                 messageContainer.message.passphrase,
                 messageContainer.message.password
@@ -598,6 +598,12 @@ class ChanService {
     // createdAt: date,
     // version: 1,
 
+    /**
+     *
+     * @param channelAccountProperties
+     * @param memberAddress
+     * @return {Promise<boolean>}
+     */
     async channelHasMemberInfo(channelAccountProperties, memberAddress) {
         logger.sensitive(`#### channelHasMemberInfo(channelAccountProperties, memberAddress=${memberAddress})`);
         const listTag = channelConfig.channelMemberList;
@@ -606,6 +612,14 @@ class ChanService {
     }
 
 
+    /**
+     *
+     * @param accountProperties
+     * @param referenceAddress
+     * @param listTag
+     * @param recordTag
+     * @return {Promise<boolean>}
+     */
     async accountHasReferenceAccountInfo(accountProperties,  referenceAddress, listTag, recordTag){
         logger.verbose(`###################################################################################`);
         logger.verbose(`## accountHasReferenceAccountInfo(accountProperties,  referenceAddress, listTag, recordTag)`);

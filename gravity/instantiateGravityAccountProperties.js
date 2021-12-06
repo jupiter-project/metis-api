@@ -5,6 +5,12 @@ const {jupiterAccountService} = require("../services/jupiterAccountService");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 
+/**
+ *
+ * @param passphrase
+ * @param password
+ * @return {Promise<GravityAccountProperties>}
+ */
 module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
     logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password=${password})`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
