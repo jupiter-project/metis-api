@@ -87,7 +87,7 @@ class JupiterAPIService {
                 .then(response => {
                     if(response.error) {
                         logger.error(`jupiterRequest().response.error`)
-                        logger.error(`error= ${JSON.stringify(response.error)}`);t
+                        logger.error(`error= ${JSON.stringify(response.error)}`)
                         logger.sensitive(`url= ${url}`)
                         logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
