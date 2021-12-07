@@ -3,7 +3,6 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {add, first} from "lodash";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
@@ -19,6 +18,18 @@ class JupiterAPIService {
 
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
+    }
+
+    /**
+     *
+     * @return {{POST: string, GET: string, PUT: string}}
+     */
+    static get method() {
+        return {
+            GET: 'GET',
+            PUT: 'PUT',
+            POST: 'POST'
+        }
     }
 
     /**
@@ -113,8 +124,8 @@ class JupiterAPIService {
      * @param params
      * @returns {Promise<*>}
      */
-    async get(params) {
-        return this.jupiterRequest('get', params);
+    get(params) {
+        return this.jupiterRequest(JupiterAPIService.method.GET, params);
     }
 
     /**
@@ -124,7 +135,7 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     post(params, data = {}) {
-        return this.jupiterRequest('post', params, data);
+        return this.jupiterRequest(JupiterAPIService.method.POST, params, data);
     }
 
     /**
@@ -134,11 +145,8 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     put(params, data = {}) {
-        return this.jupiterRequest('put', params, data);
+        return this.jupiterRequest(JupiterAPIService.method.POST, params, data);
     }
-
-
-
 
     /**
      * @description {
@@ -150,7 +158,7 @@ class JupiterAPIService {
      * @param {string} address
      * @returns {Promise<{"recipientRS","recipient","requestProcessingTime","properties":[]}>}
      */
-    async getAccountProperties(address) {
+     getAccountProperties(address) {
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         };
@@ -185,7 +193,6 @@ class JupiterAPIService {
             secretPhrase: passphrase,
         })
     }
-
 
     /**
      *
