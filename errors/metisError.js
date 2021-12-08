@@ -22,6 +22,17 @@ class JupiterApiError extends Error{
     }
 }
 
+class UnknownAliasError extends Error{
+    /**
+     *
+     * @param message
+     */
+    constructor(message = '') {
+        super(message);
+        this.name = `UnknownAliasError`;
+    }
+}
+
 class FundingNotConfirmedError extends MetisError {
     constructor(message = '') {
         super(`Not able to confirm funding confirmation: ` + message)
@@ -49,3 +60,4 @@ class FundingNotConfirmedError extends MetisError {
 // }
 
 module.exports.JupiterApiError = JupiterApiError;
+module.exports.UnknownAliasError = UnknownAliasError;

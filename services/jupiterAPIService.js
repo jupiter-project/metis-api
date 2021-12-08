@@ -3,7 +3,7 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterApiError} from "../errors/metisError";
+import {JupiterApiError, UnknownAliasError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 const logger = require('../utils/logger')(module);
@@ -935,7 +935,12 @@ class JupiterAPIService {
             requestType: JupiterAPIService.RequestType.GetAlias,
         }
 
-        return this.get(params)
+        return this.get(params).catch( error => {
+            if( error.message === 'API Response Error: Unknown alias'){
+                throw new UnknownAliasError('Alias is not found');
+            }
+            throw error;
+        })
     }
 
     /**
