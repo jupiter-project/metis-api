@@ -1,12 +1,10 @@
-import Message from '../models/message';
 import { gravity } from '../config/gravity';
 import metis from '../config/metis';
-import { loadInitialJFSImage } from '../utils/utils';
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
-// import {jupiterApiService} from "./jupiterAPIService";
 import fs from "fs";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
-// import {jupiterAccountService} from "./jupiterAccountService";
+import {chanService} from "./chanService";
+import {generateNewMessageRecordJson, sendMetisMessage} from "./messageService";
 const FormData = require('form-data');
 const axios = require('axios');
 const { getPNTokensAndSendPushNotification, errorMessageHandler } = require('./PushNotificationMessageService');
@@ -14,11 +12,20 @@ const accountPropertyFee = feeManagerSingleton.getFee(FeeManager.feeTypes.accoun
 const logger = require('../utils/logger')(module);
 
 
+const getSignInToken = (dataLogin) => {
+  return axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
+      .then((response) => {
+        if (!(response && response.data && response.data.token)){
+          throw new Error('Error generating token')
+        }
+
+        return response.data.token;
+      });
+}
+
 /**
  *
- * @param jupAccount
- * @param passphraseAccount
- * @param passwordAccount
+ * @param channelProperties
  * @param fileBase64Encoded
  * @param fileName
  * @returns {Promise<AxiosResponse>}
@@ -28,7 +35,6 @@ const UploadAnImageButFirstCheckForStorageAndCreateIfMissing = (
   fileBase64Encoded,
   fileName,
 ) => {
-
 
   const dataLogin = {
     account: channelProperties.address,
@@ -44,19 +50,19 @@ const UploadAnImageButFirstCheckForStorageAndCreateIfMissing = (
 
   // @TODO  In the near future /api/v1/storage will return a jobID so we need to poll for the job.
   // @TODO this code (post:storage) might not be needed anymore since a metis signup will create the storage.
-  return axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
-    .then((response) => {
-      defaultHeader.headers.Authorization = `Bearer ${response.data.token}`;
-      return axios.get(`${process.env.JIM_SERVER}/api/v1/storage`, defaultHeader);
-    })
-    .then((responseStorageInfo) => {
+  return getSignInToken(dataLogin)
+      .then(token => {
+        defaultHeader.headers.Authorization = `Bearer ${token}`;
+        return axios.get(`${process.env.JIM_SERVER}/api/v1/storage`, defaultHeader);
+      })
+      .then((responseStorageInfo) => {
       if (!responseStorageInfo.data) {
         return axios.post(`${process.env.JIM_SERVER}/api/v1/storage`, {}, defaultHeader);
       }
       return responseStorageInfo.data;
     })
     .then(() => {
-      const buffer = Buffer.from(fileBase64Encoded, 'base64');
+      const buffer = Buffer.from(fileBase64Encoded.data, 'base64');
       const form = new FormData();
       form.append('file', buffer, fileName);
       defaultHeader.headers['Content-Type'] = `multipart/form-data; boundary=${form.getBoundary()}`;
@@ -321,18 +327,39 @@ module.exports = {
     const { passphrase, account, encryptionPassword } = userAccount;
     const dataLogin = { account, passphrase, password: encryptionPassword };
 
-    axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
-      .then((response) => {
-        if (response && response.data && response.data.token){
-          return res.status(200).json(response.data.token);
-        }
-
-        return res.status(500).json({msg: 'Error generating token'});
-      })
-      .catch((error) => {
+    getSignInToken(dataLogin)
+        .then(token => res.status(200).json(token))
+        .catch((error) => {
         logger.debug('Something went wrong whit JIM login', error);
         res.status(500).json({ msg: 'Something went wrong whit JIM login', error });
       });
+  },
+  jimChannelSignIn: async (req, res) =>{
+    const { user } = req;
+    const { channelAddress } = req.body;
+    if (!user) {
+      return res.status(500).json({ msg: 'No user info' });
+    }
+
+    const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+    const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+
+    if(!channelAccountProperties){
+      return res.status(403).send({message: 'Invalid channel address.'})
+    }
+
+    const dataLogin = {
+      account: channelAccountProperties.address,
+      passphrase: channelAccountProperties.passphrase,
+      password: channelAccountProperties.password,
+    };
+
+    getSignInToken(dataLogin)
+        .then(token => res.status(200).json(token))
+        .catch((error) => {
+          logger.debug('Something went wrong whit JIM login', error);
+          res.status(500).json({ msg: 'Something went wrong whit JIM login', error });
+        });
   },
   userProfileDisplay: (req, res) => {
     const { user } = req;
@@ -356,57 +383,64 @@ module.exports = {
 
   fileUpload: async (req, res) => {
     logger.debug('[fileUpload]: Start');
-    const { user, channelAddress } = req;
-    const fileBase64Encoded = req.body.file.data;
-    const fileName = req.body.file.name;
-    const messageObj = req.body.message.data;
+    const { user } = req;
+    const {
+      channelAddress,
+      message: messageObj,
+      file: fileBase64Encoded
+    } = req.body;
+    const fileName = fileBase64Encoded.name;
 
-    if (!(fileBase64Encoded) || !channel || !fileName) {
+    if (!fileBase64Encoded || !channelAddress || !fileName) {
       return res.status(400).json({ msg: 'Missing parameters required.' });
     }
 
     const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-    const channelProperties = await  this.chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+    const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
+    if(!channelAccountProperties){
+      return res.status(403).send({message: 'Invalid channel address.'})
+    }
 
     UploadAnImageButFirstCheckForStorageAndCreateIfMissing(
-        channelProperties,
-      fileBase64Encoded,
-      fileName,
-    )
-      .then((response) => {
+        channelAccountProperties,
+        fileBase64Encoded,
+        fileName
+        )
+      .then(async (response) => {
+        logger.info('UploadAnImageButFirstCheckForStorageAndCreateIfMissing.then()');
+        logger.debug(JSON.stringify(response.data))
         if (!response.data) {
-          res.status(500).json({ success: false, message: 'Error trying to save image' });
+          throw new Error('Error trying to save image');
         }
 
-        // This used to
-        const dataMessage = {
-          ...messageObj,
-          name: memberAccountProperties.getCurrentAliasNameOrNull(),
-          sender: memberAccountProperties.address,
-          senderAlias: memberAccountProperties.getCurrentAliasNameOrNull(),
-          type: 'storage',
-          payload: response.data,
-        };
-        const tableData = channel.channel_record;
-        const userData = JSON.parse(gravity.decrypt(user.accountData));
-        const messageModel = new Message(dataMessage);
-        return messageModel.sendRecord(userData, tableData, messageModel.record);
+          const messageRecord = generateNewMessageRecordJson(
+              memberAccountProperties,
+              messageObj.message,
+              messageObj.type,
+              messageObj.replyMessage,
+              messageObj.replyRecipientAlias,
+              null,
+              response.data,
+              messageObj.version,
+          );
+        // websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord })
+        return sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
       })
       .then(() => metis.getMember({
-        channel: channel.channel_record.account,
-        account: channel.channel_record.publicKey,
-        password: channel.channel_record.password,
+        channel: channelAccountProperties.address,
+        account: channelAccountProperties.publicKey,
+        password: channelAccountProperties.password,
       }))
       .then(({ memberProfilePicture }) => {
         if (Array.isArray(memberProfilePicture) && memberProfilePicture.length > 0) {
-          const pnTitle = `${channel.channel_record.name}`;
+          const pnTitle = `${channelAccountProperties.firstName}`;
           const senderName = user.userData.alias;
           const message = `${senderName} sent an image`;
 
           const channelMembers = memberProfilePicture.map(member => member.accountRS);
           const membersWithoutSender = channelMembers.filter(member => member !== senderName);
-          getPNTokensAndSendPushNotification(membersWithoutSender, senderName, channel, message, pnTitle, {});
+          getPNTokensAndSendPushNotification(membersWithoutSender, senderName, channelAddress, message, pnTitle, {});
         }
       })
       .then(() => res.status(200).json({}))
@@ -414,16 +448,5 @@ module.exports = {
         logger.debug('Something went wrong', error);
         res.status(500).json(errorMessageHandler(error));
       });
-  },
-
-  // userStorageCreate: async (account, passphrase, encryptionPassword) => {
-  //   logger.debug('[userStorageCreate]: Start');
-  //   await uploadPixiImageAndWait(account, passphrase, encryptionPassword);
-  //   logger.debug('[userStorageCreate]: Creating...');
-  // },
-  // channelStorageCreate: async (account, passphrase, encryptionPassword) => {
-  //   logger.debug('[channelStorageCreate]: Start');
-  //   await uploadPixiImageAndWait(account, passphrase, encryptionPassword);
-  //   logger.debug('[channelStorageCreate]: Creating...');
-  // },
+  }
 };

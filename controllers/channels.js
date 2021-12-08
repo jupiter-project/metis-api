@@ -1,35 +1,21 @@
 import _ from 'lodash';
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
-// import Channel from '../models/channel';
-// import ChannelRecord from '../models/channel';
-// import Message from '../models/message';
-// import metis from '../config/metis';
-// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
-// import jupiterAPIService from "../services/jupiterAPIService";
-// import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
-// import {messagesConfig} from "../config/constants";
-// import {FeeManager} from "../services/FeeManager";
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 
 const gu = require('../utils/gravityUtils');
-const jwt = require('jsonwebtoken');
-
-const {
-    v1: uuidv1,
-    v4: uuidv4,
-} = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 const connection = process.env.SOCKET_SERVER;
 const device = require('express-device');
 const logger = require('../utils/logger')(module);
-const {getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification} = require('../services/PushNotificationMessageService');
+const {getPNTokensAndSendPushNotification} = require('../services/PushNotificationMessageService');
 
 
-module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
+module.exports = (app, passport, jobs, websocket) => {
     app.use(device.capture());
 
     /**
@@ -120,9 +106,8 @@ module.exports = (app, passport, React, ReactDOMServer, jobs, websocket) => {
         );
 
         chanService.acceptInvitation(memberAccountProperties, channelAddress)
-            .then(() => {
-                res.status(200).send({message: 'Invite accepted'});
-            })
+            .then(() => websocket.of('/chat').to(channelAddress).emit('newMemberChannel'))
+            .then(() => res.status(200).send({message: 'Invite accepted'}))
             .catch(error => {
                 logger.error(`*********************************************`)
                 logger.error(`** channel/invite/accept ERROR`)

@@ -203,7 +203,7 @@ metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, React, ReactDOMServer, jobs, io);
+  require(file)(app, passport, jobs, io);
 });
 
 // Route any invalid routes black to the root page

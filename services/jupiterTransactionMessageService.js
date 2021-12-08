@@ -277,10 +277,10 @@ class JupiterTransactionMessageService {
             await this.readMessagesFromMessageTransactionIdsAndDecryptOrNullAndReturnMessageContainer(transactionIds, gravityAccountProperties.crypto, gravityAccountProperties.passphrase) :
             await this.readMessagesFromMessageTransactionIdsAndReturnMessageContainers(transactionIds, gravityAccountProperties.passphrase)
 
-        logger.verbose(`- messages.length= ${messages.length}`);
         if(messages === null) {
             return []
         }
+        logger.verbose(`- messages.length= ${messages.length}`);
         if(!gu.isNonEmptyArray(messages)) {
             return []
         }

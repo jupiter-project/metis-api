@@ -12,11 +12,10 @@ const generateNewMessageRecordJson = (
     replyMessage = null,
     replyRecipientAlias = null,
     replyRecipientAddress = null,
-    attachmentUrl = null,
+    attachmentObj = null,
     version = '1.0',
 ) => {
 
-    if(!message){throw new Error('message is empty')}
     if(!(senderAccountProperties instanceof GravityAccountProperties)){throw new Error('senderAccountProperties is invalid')}
 
     const createdDate = Date.now();
@@ -30,7 +29,7 @@ const generateNewMessageRecordJson = (
         replyRecipientAlias,
         replyRecipientAddress,
         type, // message, invitation, attachment, removed
-        attachmentUrl,
+        attachmentObj,
         createdAt: createdDate,
         updatedAt: createdDate,
         version,
