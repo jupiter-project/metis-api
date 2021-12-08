@@ -5,6 +5,8 @@ import {jobScheduleService} from '../services/jobScheduleService';
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterAPIService} from "../services/jupiterAPIService";
+import {JupiterApiError} from "../errors/metisError";
+import {StatusCode} from "../utils/statusCode";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 
@@ -172,7 +174,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
           twofa_enabled: accountData.twofa_enabled,
         };
         if (getAccountIdResponse.data.accountRS === null) {
-          return res.status(500).send({
+          return res.status(StatusCode.ServerErrorInternal).send({
             message: 'There was an error in saving the trasaction record',
             transaction: getAccountIdResponse.data
           });
@@ -183,10 +185,14 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         logger.error(`****************************************************************`);
         logger.error(`** /v1/api/create_jupiter_account.catch(error)`);
         console.log(error)
-        return res.status(500).send({ message: `There was an error: ${error.response}`});
+
+        if(error instanceof JupiterApiError){
+          return res.status(StatusCode.ServerErrorInternal).send({ message: `Internal Error`});
+        }
+
+        return res.status(StatusCode.ServerErrorInternal).send({ message: `There was an error: ${error.response}`});
       }
     })
-
 
 
   /**

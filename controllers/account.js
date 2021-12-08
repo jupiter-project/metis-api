@@ -224,7 +224,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   //
   //   const data = req.body.parameters;
   //
-  //   axios.post(`${gravity.jupiter_data.server}/nxt?requestType=getAccountProperties&recipient='${data.address}`)
+  //   axios.post(`${gravity.jupiter_data.server}/nxt?requestType=GetAccountProperties&recipient='${data.address}`)
   //     .then((response) => {
   //       if (response.data.errorDescription == null) {
   //         res.send({

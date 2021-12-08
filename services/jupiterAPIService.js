@@ -3,7 +3,9 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {add, first} from "lodash";
+import {JupiterApiError, UnknownAliasError} from "../errors/metisError";
+import {StatusCode} from "../utils/statusCode";
+import {HttpMethod} from "../utils/httpMethod";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
@@ -15,7 +17,7 @@ class JupiterAPIService {
      */
     constructor(jupiterHost, applicationAccountProperties) {
         if(!jupiterHost){throw new Error('missing jupiterHost')}
-        if(! applicationAccountProperties instanceof ApplicationAccountProperties){throw new Error('applicationAccointProperties is not valid')}
+        if(! applicationAccountProperties instanceof ApplicationAccountProperties){throw new Error('applicationAccountProperties is not valid')}
 
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
@@ -23,24 +25,24 @@ class JupiterAPIService {
 
     /**
      *
-     * @returns {{getAliases: string, getBalance: string, getAccountId: string, sendMetisMessage: string, decryptFrom: string, getAccount: string, readMessage: string, getAccountProperties: string, getUnconfirmedTransactions: string, getBlockchainTransactions: string, getTransaction: string, sendMoney: string}}
+     * @returns {{GetAccountId: string, GetBalance: string, SetAlias: string, GetUnconfirmedTransactions: string, GetAccount: string, SendMetisMessage: string, GetAccountProperties: string, SendMoney: string, ReadMessage: string, GetAliases: string, GetTransaction: string, GetBlockchainTransactions: string, GetAlias: string, DecryptFrom: string}}
      */
-     static get requestTypes() {
+     static get RequestType() {
         return {
-            sendMetisMessage: 'sendMetisMessage',
-            getAccountProperties: 'getAccountProperties',
-            getAccountId: 'getAccountId',
-            getAliases: 'getAliases',
-            getAccount: 'getAccount',
-            getBlockchainTransactions: 'getBlockchainTransactions',
-            getUnconfirmedTransactions: 'getUnconfirmedTransactions',
-            getTransaction: 'getTransaction',
-            readMessage: 'readMessage',
-            getBalance: 'getBalance',
-            sendMoney: 'sendMoney',
-            decryptFrom: 'decryptFrom',
-            setAlias: 'setAlias',
-            getAlias: 'getAlias',
+            SendMetisMessage: 'sendMetisMessage',
+            GetAccountProperties: 'getAccountProperties',
+            GetAccountId: 'getAccountId',
+            GetAliases: 'getAliases',
+            GetAccount: 'getAccount',
+            GetBlockchainTransactions: 'getBlockchainTransactions',
+            GetUnconfirmedTransactions: 'getUnconfirmedTransactions',
+            GetTransaction: 'getTransaction',
+            ReadMessage: 'readMessage',
+            GetBalance: 'getBalance',
+            SendMoney: 'sendMoney',
+            DecryptFrom: 'decryptFrom',
+            SetAlias: 'setAlias',
+            GetAlias: 'getAlias',
         }
     }
 
@@ -80,7 +82,7 @@ class JupiterAPIService {
                         logger.sensitive(`url= ${url}`)
                         logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
-                        return reject(new Error(response.error))
+                        return reject(new JupiterApiError(response.error, StatusCode.ServerErrorInternal))
                     }
 
                     if(response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription')  && response.data.errorDescription) {
@@ -92,29 +94,48 @@ class JupiterAPIService {
                         logger.sensitive(`url= ${url}`)
                         logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
-                        return reject(new Error(response.data.errorDescription));
+                        return reject(new JupiterApiError(response.data.errorDescription, StatusCode.ServerErrorInternal))
                     }
 
                     return resolve(response);
                 })
                 .catch( error => {
-                    logger.error(`jupiterRequest().axios.catch(error)`)
-                    logger.sensitive(`url= ${url}`);
-                    logger.sensitive(`request data= ${JSON.stringify(data)}`)
-                    logger.error(`error= ${error}`);
+                    logger.error(`****************************************************************`);
+                    logger.error(`** jupiterRequest().axios.catch(error)`)
+                    logger.sensitive(`** url= ${url}`);
 
-                    reject(error);
+                    if (error.response) {
+                        // The request was made and the server responded with a status code
+                        // that falls out of the range of 2xx
+                        // console.log(error.response.data);
+                        // console.log(error.response.status);
+                        // console.log(error.response.headers);
+                        const httpResponseStatus = error.response.status;
+                        const message = error.response.data;
+                        return reject(new JupiterApiError(message, httpResponseStatus))
+                    } else if (error.request) {
+                        // The request was made but no response was received
+                        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+                        // http.ClientRequest in node.js
+                        console.log(error.request);
+                        const message = 'The request was made but no response was received';
+                        // const httpResponseStatus = 500;
+                        return reject(new JupiterApiError(message, StatusCode.ServerErrorInternal))
+                    }
+                    // Something happened in setting up the request that triggered an Error
+                    // console.log('Error', error.message);
+                    // const httpResponseStatus = 500;
+                    return reject(new JupiterApiError(error.message, StatusCode.ServerErrorInternal))
                 })
-        }  )
-
+        } )
     }
 
     /**
      * @param params
      * @returns {Promise<*>}
      */
-    async get(params) {
-        return this.jupiterRequest('get', params);
+    get(params) {
+        return this.jupiterRequest(HttpMethod.GET, params);
     }
 
     /**
@@ -124,7 +145,7 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     post(params, data = {}) {
-        return this.jupiterRequest('post', params, data);
+        return this.jupiterRequest(HttpMethod.POST, params, data);
     }
 
     /**
@@ -134,11 +155,8 @@ class JupiterAPIService {
      * @returns {Promise<*>}
      */
     put(params, data = {}) {
-        return this.jupiterRequest('put', params, data);
+        return this.jupiterRequest(HttpMethod.PUT, params, data);
     }
-
-
-
 
     /**
      * @description {
@@ -150,13 +168,13 @@ class JupiterAPIService {
      * @param {string} address
      * @returns {Promise<{"recipientRS","recipient","requestProcessingTime","properties":[]}>}
      */
-    async getAccountProperties(address) {
+     getAccountProperties(address) {
         if(!gu.isWellFormedJupiterAddress(address)){
             throw new Error(`Jupiter address not valid: ${address}`);
         };
 
         return this.get({
-            requestType: JupiterAPIService.requestTypes.getAccountProperties,
+            requestType: JupiterAPIService.RequestType.GetAccountProperties,
             recipient: address,
         })
     }
@@ -181,11 +199,10 @@ class JupiterAPIService {
         }
 
         return this.get({
-            requestType: JupiterAPIService.requestTypes.getAccountId,
+            requestType: JupiterAPIService.RequestType.GetAccountId,
             secretPhrase: passphrase,
         })
     }
-
 
     /**
      *
@@ -204,7 +221,7 @@ class JupiterAPIService {
     //     }
     //
     //     return this.post( {
-    //             requestType: JupiterAPIService.requestTypes.getAliases,
+    //             requestType: JupiterAPIService.RequestType.getAliases,
     //             account: address
     //         })
     // }
@@ -237,7 +254,7 @@ class JupiterAPIService {
         }
 
         return this.post( {
-            requestType: JupiterAPIService.requestTypes.getAccount,
+            requestType: JupiterAPIService.RequestType.GetAccount,
             account: address
         })
     };
@@ -272,7 +289,7 @@ class JupiterAPIService {
     ) {
         logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
 
-        const requestType = JupiterAPIService.requestTypes.getBlockchainTransactions;
+        const requestType = JupiterAPIService.RequestType.GetBlockchainTransactions;
         return this._getConfirmedOrUnconfirmedBlockChainTransactions(
             requestType,
             address,
@@ -357,7 +374,7 @@ class JupiterAPIService {
     ) {
         logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
         return this._getConfirmedOrUnconfirmedBlockChainTransactions(
-            JupiterAPIService.requestTypes.getUnconfirmedTransactions,
+            JupiterAPIService.RequestType.GetUnconfirmedTransactions,
             address,
             message = null ,
             withMessage = false,
@@ -397,7 +414,7 @@ class JupiterAPIService {
         lastIndex = null
     ) {
         logger.sensitive(`#### getBlockChainTransactions(requestType = ${requestType},address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        if(! (requestType === JupiterAPIService.requestTypes.getBlockchainTransactions || requestType === JupiterAPIService.requestTypes.getUnconfirmedTransactions)){
+        if(! (requestType === JupiterAPIService.RequestType.GetBlockchainTransactions || requestType === JupiterAPIService.RequestType.GetUnconfirmedTransactions)){
             throw new Error(`requestType is invalid: ${requestType}`)
         }
 
@@ -423,11 +440,6 @@ class JupiterAPIService {
         return this.get(params);
     }
 
-
-
-
-
-
     /**
      * @example {"signature":"25011e954b302da2911ce36c8d2bbe9358c750769282153af380a86e103bfd081ecdce2484cb13d3d9b71da89ac43708d337a5faf198f29b1f7f2bc8793ba61d","transactionIndex":0,"type":1,"phased":false,"ecBlockId":"9001715635790867936","signatureHash":"340fd40a4c1f8a463d3458e269dcef5d4a8dc481c12b6b7930b868162d434fda","attachment":{"version.Message":1,"messageIsText":true,"message":"this is a test 2","version.ArbitraryMessage":0},"senderRS":"JUP-NFVU-KKGE-FFQF-7WT5G","subtype":0,"amountNQT":"0","recipientRS":"JUP-NFVU-KKGE-FFQF-7WT5G","block":"12682721922156988900","blockTimestamp":118259859,"deadline":60,"timestamp":118259852,"height":106383,"senderPublicKey":"6d9cc564149825f60d0bd73182a8cb1e1a49fb6ea65c8a9fd126e87cf8aa7078","feeNQT":"500","requestProcessingTime":1,"confirmations":410353,"fullHash":"8fdfcb5ece727e3c60cd901bbd7ef57ebf03b0d1c7908e7dcea823a5d45072c2","version":1,"sender":"6273299379500234618","recipient":"6273299379500234618","ecBlockHeight":105662,"transaction":"4359047720020467599"}
      * @param {string} transactionId
@@ -439,7 +451,7 @@ class JupiterAPIService {
         };
 
         return this.get( {
-            requestType: JupiterAPIService.requestTypes.getTransaction,
+            requestType: JupiterAPIService.RequestType.GetTransaction,
             transaction: transactionId
         });
     }
@@ -473,7 +485,7 @@ class JupiterAPIService {
         };
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
 
-        return this.get( {requestType: JupiterAPIService.requestTypes.readMessage, transaction: transactionId, secretPhrase: passphrase})
+        return this.get( {requestType: JupiterAPIService.RequestType.ReadMessage, transaction: transactionId, secretPhrase: passphrase})
     }
 
 
@@ -486,7 +498,7 @@ class JupiterAPIService {
     async getBalance(address) {
         if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
         return this.get( {
-            requestType: JupiterAPIService.requestTypes.getBalance,
+            requestType: JupiterAPIService.RequestType.GetBalance,
             account: address
         });
     }
@@ -864,7 +876,7 @@ class JupiterAPIService {
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
         return this.post( {
-            requestType: JupiterAPIService.requestTypes.sendMoney,
+            requestType: JupiterAPIService.RequestType.SendMoney,
             recipient: toAccountProperties.address,
             secretPhrase: fromAccountProperties.passphrase, //fromAccount
             amountNQT:amount,
@@ -891,7 +903,7 @@ class JupiterAPIService {
     //     if(!gu.isWellFormedJupiterAddress(address)) {throw new Error('Please provide a valid address');}
     //
     //     return this.get( {
-    //         requestType: JupiterAPIService.requestTypes.decryptFrom,
+    //         requestType: JupiterAPIService.RequestType.decryptFrom,
     //         secretPhrase: passphrase,
     //         account: address,
     //         data: dataToDecipher,
@@ -920,10 +932,15 @@ class JupiterAPIService {
         if(!aliasName) {throw new Error('aliasName cannot be empty')}
         const params = {
             aliasName,
-            requestType: 'getAlias',
+            requestType: JupiterAPIService.RequestType.GetAlias,
         }
 
-        return this.get(params)
+        return this.get(params).catch( error => {
+            if( error.message === 'API Response Error: Unknown alias'){
+                throw new UnknownAliasError('Alias is not found');
+            }
+            throw error;
+        })
     }
 
     /**
@@ -949,7 +966,7 @@ class JupiterAPIService {
             throw new Error(`Jupiter Address is not valid: ${address}`);
         }
         const params = {
-            requestType: JupiterAPIService.requestTypes.getAliases,
+            requestType: JupiterAPIService.RequestType.GetAliases,
             account: address
         }
 
@@ -1005,9 +1022,10 @@ class JupiterAPIService {
         if(!params.alias) {throw new Error('need an alias value')}
         if(!params.account) {throw new Error('need an account value')}
 
+
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
         const newParams = {
-            requestType: 'setAlias',
+            requestType: JupiterAPIService.RequestType.SetAlias,
             aliasName: params.alias,
             secretPhrase: params.passphrase,
             aliasURI: `acct:${params.account}@nxt`,

@@ -545,7 +545,7 @@ class JupiterTransactionMessageService {
         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
 
         return this.jupiterAPIService.sendMetisMessageOrMessage(
-            JupiterAPIService.requestTypes.sendMetisMessage,
+            JupiterAPIService.RequestType.SendMetisMessage,
             toAddress,
             recipientPublicKey,
             fromPassphrase,

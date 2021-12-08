@@ -5,6 +5,11 @@ import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {jupiterAPIService} from "../services/jupiterAPIService";
+// import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
+// import {messagesConfig} from "../config/constants";
+// import {FeeManager} from "../services/FeeManager";
+
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 
 const gu = require('../utils/gravityUtils');
