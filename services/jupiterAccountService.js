@@ -4,6 +4,7 @@ import {instantiateGravityAccountProperties} from "../gravity/instantiateGravity
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
 import {add} from "lodash";
+import {JupiterApiError, UnknownAliasError} from "../errors/metisError";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
 const {jupiterAPIService} = require('./jupiterAPIService');
@@ -870,8 +871,7 @@ class JupiterAccountService {
                 return false;
             })
             .catch( error => {
-                if(error.message === 'Unknown alias'){
-                    logger.verbose(`---- isAliasAvailable(aliasName=${aliasName}).then() : true`)
+                if(error.name === "UnknownAliasError"){
                     return true;
                 }
 

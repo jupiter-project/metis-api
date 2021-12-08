@@ -1,4 +1,10 @@
+const {StatusCode} = require("../utils/statusCode");
+
 class MetisError extends Error {
+    /**
+     *
+     * @param {string} message
+     */
     constructor(message) {
         super(message);
         this.name = this.constructor.name;
@@ -6,10 +12,24 @@ class MetisError extends Error {
     }
 }
 
-class TestError extends MetisError{
-    constructor(messsage = '') {
-        super(`TEST ERROR: ${messsage}`);
-        this.name = `TestError`
+// throw new JupiterApiError(message, httpResponseStatus)
+
+class JupiterApiError extends Error{
+    constructor(messsage = '', httpResponseStatus = StatusCode.ServerErrorInternal) {
+        super(`API Response Error: ${messsage}`);
+        this.name = `MetisApiError`;
+        this.status = httpResponseStatus;
+    }
+}
+
+class UnknownAliasError extends Error{
+    /**
+     *
+     * @param message
+     */
+    constructor(message = '') {
+        super(message);
+        this.name = `UnknownAliasError`;
     }
 }
 
@@ -39,6 +59,5 @@ class FundingNotConfirmedError extends MetisError {
 
 // }
 
-module.exports = {
-    FundingNotConfirmedError,
-};
+module.exports.JupiterApiError = JupiterApiError;
+module.exports.UnknownAliasError = UnknownAliasError;
