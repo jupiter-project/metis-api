@@ -87,13 +87,33 @@ const isWellFormedJupiterAddress = function(address){
 
     if(!isNonEmptyString(address)){return false};
 
-    return true; //@TODO complete the implementation!!!
+    // return true; //@TODO complete the implementation!!!
     const re = /^JUP-\w\w\w\w-\w\w\w\w-\w\w\w\w-\w\w\w\w\w$/;
     if(re.test(address)){
         return true;
     }
 
     return false;
+}
+
+
+// must contain only digits and latin letters)
+const isWellFormedJupiterAlias = function(alias){
+    if(!isNonEmptyString(alias)){return false};
+    const re = /^([a-zA-Z]|[0-9])*$/;
+    if(re.test(alias)){
+        return true;
+    }
+
+    return false;
+}
+
+
+const isWellFormedJupiterAddressOrAlias = function(addressOrAlias){
+    if(isWellFormedJupiterAlias(addressOrAlias) || isWellFormedJupiterAddress(addressOrAlias)){
+        return true
+    }
+    return false
 }
 
 /**
@@ -297,6 +317,8 @@ module.exports = {
     generatePassphrase,
     isNumberGreaterThanZero,
     isWellFormedJupiterAddress,
+    isWellFormedJupiterAddressOrAlias,
+    isWellFormedJupiterAlias,
     isWellFormedPassphrase,
     isWellFormedAccountId,
     isWellFormedJupiterTransactionId,
