@@ -59,7 +59,8 @@ class ChanService {
         logger.verbose(`## getChannelInvite(memberAccountProperties, channelAddress)`);
         logger.verbose(`## `);
         if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-            throw new Error('channelAddress not well formed')
+            throw new BadJupiterAddressError(channelAddress)
+            // throw new Error('channelAddress not well formed')
         }
         logger.sensitive(`channelAddress=${JSON.stringify(channelAddress)}`);
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
@@ -117,7 +118,8 @@ class ChanService {
         logger.verbose(`## hasRecievedInvitationForChannel(sentToMemberAccountProperties, forChannelAddress)`);
         logger.verbose(`## `);
         if (!gu.isWellFormedJupiterAddress(forChannelAddress)) {
-            throw new Error('forChannelAddress not well formed')
+            throw new BadJupiterAddressError(forChannelAddress)
+            // throw new Error('forChannelAddress not well formed')
         }
         if (!(sentToMemberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('sentToMemberAccountProperties incorrect')
@@ -250,7 +252,8 @@ class ChanService {
         logger.verbose(`    ## createInvitation(channelAccountProperties, inviterAccountProperties, inviteeAddress)`);
         if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('channelAccountProperties is invalid')};
         if(!(inviterAccountProperties instanceof GravityAccountProperties)){throw new Error('inviterAccountProperties is invalid')};
-        if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress is invalid')};
+        if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new BadJupiterAddressError(inviteeAddress)};
+        // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress is invalid')};
         logger.sensitive(`  ## - channelAccountProperties.address= ${JSON.stringify(channelAccountProperties.address)}`);
         logger.sensitive(`  ## - inviterAccountProperties.address= ${JSON.stringify(inviterAccountProperties.address)}`);
         logger.sensitive(`  ## - inviteeAddress= ${JSON.stringify(inviteeAddress)}`);
@@ -306,7 +309,8 @@ class ChanService {
         logger.verbose(`    ########################################################################`);
         logger.verbose(`    ## acceptInvitation(memberAccountProperties, channelAddress)`);
         if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-            throw new Error('channelAddress is invalid')
+            throw new BadJupiterAddressError(channelAddress)
+            // throw new Error('channelAddress is invalid')
         }
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
@@ -361,7 +365,8 @@ class ChanService {
 
         try {
             if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-                throw new Error('channelAddress is invalid')
+                throw new BadJupiterAddressError(channelAddress)
+                // throw new Error('channelAddress is invalid')
             }
             if (!(memberAccountProperties instanceof GravityAccountProperties)) {
                 throw new Error('memberAccountProperties incorrect')
@@ -551,7 +556,8 @@ class ChanService {
      */
     generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress){
         if(!gu.isNonEmptyString(channelName)){throw new Error('channelName is empty')}
-        if(!gu.isWellFormedJupiterAddress(createdByAddress)){throw new Error('createdByAddress is invalid')}
+        if(!gu.isWellFormedJupiterAddress(createdByAddress)){throw new BadJupiterAddressError(createdByAddress)}
+        // if(!gu.isWellFormedJupiterAddress(createdByAddress)){throw new Error('createdByAddress is invalid')}
         if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('channelAccountProperties is invalid')}
 
         const createdDate = Date.now();
@@ -625,7 +631,8 @@ class ChanService {
         logger.verbose(`## accountHasReferenceAccountInfo(accountProperties,  referenceAddress, listTag, recordTag)`);
         logger.verbose(`## `);
         if(!accountProperties instanceof GravityAccountProperties){throw new Error('accountProperties is invalid')}
-        if(!gu.isWellFormedJupiterAddress(referenceAddress)){throw new Error('referenceAddress is invalid')}
+        if(!gu.isWellFormedJupiterAddress(referenceAddress)){throw new BadJupiterAddressError(referenceAddress)}
+        // if(!gu.isWellFormedJupiterAddress(referenceAddress)){throw new Error('referenceAddress is invalid')}
         if(!listTag){throw new Error('listtag is invalid')}
         if(!recordTag){throw new Error('recordTag is invalid')}
 
@@ -795,6 +802,7 @@ const metis = require("../config/metis");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {head, stubFalse, has} = require("lodash");
 const {transactionUtils} = require("../gravity/transactionUtils");
+const {BadJupiterAddressError} = require("../errors/metisError");
 // const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 
 module.exports.chanService = new ChanService(

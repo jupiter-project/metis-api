@@ -2,6 +2,7 @@
 const gu = require("../utils/gravityUtils");
 const {GravityAccountProperties} = require("./gravityAccountProperties");
 const {jupiterAccountService} = require("../services/jupiterAccountService");
+const {BadJupiterAddressError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 
@@ -18,7 +19,8 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
 
     return jupiterAccountService.fetchAccountInfo(passphrase)
         .then(accountInfo => {
-            if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new Error('address is invalid')}
+            if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new BadJupiterAddressError(accountInfo.address)}
+            // if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new Error('address is invalid')}
             if(!gu.isWellFormedPublicKey(accountInfo.publicKey)){throw new Error('publicKey is invalid')}
             if(!gu.isWellFormedAccountId(accountInfo.accountId)){throw new Error('accountId is invalid')}
             const properties =  new GravityAccountProperties(

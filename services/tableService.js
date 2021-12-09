@@ -11,6 +11,7 @@ const gu = require('../utils/gravityUtils');
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {BadJupiterAddressError} = require("../errors/metisError");
 // const {jupiterAPIService} = require("./jupiterAPIService");
 // const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 
@@ -984,7 +985,8 @@ class TableService {
      * @returns {null | GravityAccountProperties}
      */
     extractUserPropertiesFromRecordsOrNull(address, records){
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
+        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
         if(!Array.isArray(records)){throw new Error('records is not valid')}
         if(!records.hasOwnProperty('account')){throw new Error('records is not valid')}
         if(!records.hasOwnProperty('secret_key')){throw new Error('records is not valid')}

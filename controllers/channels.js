@@ -11,6 +11,7 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 // import {FeeManager} from "../services/FeeManager";
 
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
+import {BadJupiterAddressError} from "../errors/metisError";
 
 const gu = require('../utils/gravityUtils');
 const { v4: uuidv4 } = require('uuid');
@@ -104,7 +105,8 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info(`======================================================================================\n\n`);
 
         const {channelAddress} = req.body
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)};
+        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
         const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
@@ -311,8 +313,10 @@ module.exports = (app, passport, jobs, websocket) => {
         const {user} = req;
 
         try {
-            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
+            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
+            if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new BadJupiterAddressError(inviteeAddress)}
+            // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
 
             const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);

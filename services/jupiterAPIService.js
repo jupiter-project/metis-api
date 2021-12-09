@@ -3,9 +3,10 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterApiError, UnknownAliasError} from "../errors/metisError";
+import {BadJupiterAddressError, JupiterApiError, UnknownAliasError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
+import {add} from "lodash";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
@@ -170,7 +171,7 @@ class JupiterAPIService {
      */
      getAccountProperties(address) {
         if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter address not valid: ${address}`);
+            throw new BadJupiterAddressError(address);
         };
 
         return this.get({
@@ -250,7 +251,8 @@ class JupiterAPIService {
      */
     async getAccount(address) {
         if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter Address is not valid: ${address}`);
+            throw new BadJupiterAddressError(address);
+            // throw new Error(`Jupiter Address is not valid: ${address}`);
         }
 
         return this.post( {
@@ -419,7 +421,8 @@ class JupiterAPIService {
         }
 
         if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter address not valid: ${address}`);
+            throw new BadJupiterAddressError(address);
+            // throw new Error(`Jupiter address not valid: ${address}`);
         }
 
         let params = {
@@ -496,7 +499,8 @@ class JupiterAPIService {
      * @returns {Promise<{"unconfirmedBalanceNQT","forgedBalanceNQT","balanceNQT","requestProcessingTime"}>}
      */
     async getBalance(address) {
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
+        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
         return this.get( {
             requestType: JupiterAPIService.RequestType.GetBalance,
             account: address
@@ -963,7 +967,8 @@ class JupiterAPIService {
     async getAliases(address){
         logger.verbose(`#### getAliases(address=${address})`);
         if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error(`Jupiter Address is not valid: ${address}`);
+            throw new BadJupiterAddressError(address);
+            // throw new Error(`Jupiter Address is not valid: ${address}`);
         }
         const params = {
             requestType: JupiterAPIService.RequestType.GetAliases,

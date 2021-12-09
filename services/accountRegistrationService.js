@@ -61,7 +61,8 @@ class AccountRegistration {
      * @return {boolean}
      */
   isAccountRegisteredWithApp(clientAddress, appRecords){
-      if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new Error('clientAddress is not valid')}
+      if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new BadJupiterAddressError(clientAddress)}
+      // if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new Error('clientAddress is not valid')}
       if(!Array.isArray(appRecords)){throw new Error('appRecords is not an array')}
       if(!appRecords.hasOwnProperty('account')){throw new Error('records is not valid. missing property: account')}
       const record = appRecords.filter(record => record.account == clientAddress);
@@ -418,6 +419,7 @@ const { gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {BadJupiterAddressError} = require("../errors/metisError");
 
 module.exports.AccountRegistration = AccountRegistration;
 module.exports.accountRegistration = new AccountRegistration(

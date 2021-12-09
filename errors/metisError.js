@@ -33,6 +33,13 @@ class UnknownAliasError extends Error{
     }
 }
 
+class BadJupiterAddressError extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter Address is not valid (${message}) `)
+        this.name = "BadJupiterAddressError"
+    }
+}
+
 class FundingNotConfirmedError extends MetisError {
     constructor(message = '') {
         super(`Not able to confirm funding confirmation: ` + message)
@@ -61,3 +68,4 @@ class FundingNotConfirmedError extends MetisError {
 
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
+module.exports.BadJupiterAddressError = BadJupiterAddressError;

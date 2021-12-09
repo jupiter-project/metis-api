@@ -8,6 +8,7 @@ const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageS
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {add, first} = require("lodash");
+const {BadJupiterAddressError} = require("../errors/metisError");
 // const {FeeManager} = require("./FeeManager");
 
 class JupiterTransactionsService {
@@ -212,7 +213,8 @@ class JupiterTransactionsService {
      */
     async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null){
         logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
+        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.sensitive(`address= ${JSON.stringify(address)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
