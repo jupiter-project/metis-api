@@ -307,16 +307,24 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('======================================================================================');
         console.log('');
 
-        const {channelAddress, inviteeAddress} = req.body;
+        const {channelAddress, inviteeAddressOrAlias} = req.body;
         const {user} = req;
 
         try {
             if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
+            if(!gu.isWellFormedJupiterAddressOrAlias(inviteeAddressOrAlias)){throw new Error(`inviteeAddressOrAlias not well formed ${inviteeAddressOrAlias}`)}
 
             const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
 
+
+            let inviteeAddress = inviteeAddressOrAlias
+            if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias) && gu.isWellFormedJupiterAlias(inviteeAddressOrAlias)){
+                // We need to get the Jup Address
+               let getAliasResponse = await  jupiterAPIService.getAlias(inviteeAddressOrAlias)
+
+                inviteeAddress = getAliasResponse.data.accountRS;
+            }
 
             return chanService.createInvitation(
                 channelAccountProperties,
@@ -332,7 +340,7 @@ module.exports = (app, passport, jobs, websocket) => {
                     //     invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,
                     //     channelAddress: channelAccountProperties.address,
                     //     channelName: channelAccountProperties.channelName,
-                    //     inviteeAddress: inviteeAddress.address,
+                    //     inviteeAddressOrAlias: inviteeAddressOrAlias.address,
                     // }
 
                     res.send(response);
