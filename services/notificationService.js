@@ -70,8 +70,7 @@ module.exports = {
             return Notifications.create(update);
         }
 
-        // const pnAccounts = notification.pnAccounts;
-
+        const pnAccounts = notification.pnAccounts;
         const tokenExists = pnAccounts.find(pnAccount => pnAccount.token === newToken);
         if(tokenExists) { return notification }
 
