@@ -8,6 +8,7 @@ const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageS
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {add, first} = require("lodash");
+const {BadJupiterAddressError} = require("../errors/metisError");
 // const {FeeManager} = require("./FeeManager");
 
 class JupiterTransactionsService {
@@ -103,6 +104,13 @@ class JupiterTransactionsService {
             firstIndex,
             lastIndex
         )
+
+        console.log(`\n\n\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('getConfirmedAndUnconfirmedBlockChainTransactionsByTag');
+        console.log(transactions.length);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+
 
         return this.messageService.getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted);
     }
@@ -212,7 +220,8 @@ class JupiterTransactionsService {
      */
     async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null){
         logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
+        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.sensitive(`address= ${JSON.stringify(address)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
@@ -374,8 +383,7 @@ class JupiterTransactionsService {
      * @returns {Promise<*>}
      */
     dereferenceListAndGetReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted = true) {
-        logger.verbose(`    ########################################################################`);
-        logger.verbose(`    ## dereferenceListAndGetReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted)`);
+        logger.verbose(`#### dereferenceListAndGetReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted)`);
         if( ! gravityAccountProperties instanceof GravityAccountProperties){throw new Error('gravityAccountProperties is invalid')}
         if(!listTag){throw new Error('listtag is invalid')}
 
@@ -393,6 +401,7 @@ class JupiterTransactionsService {
                 }
                 const latestListContainer = listContainers.shift();
                 const transactionIds = latestListContainer.message;
+                logger.info(`- latest list of referenced transactions: ${transactionIds}`);
                 const messages = []
                 transactionIds.forEach(transactionId => {
                     messages.push(this.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecryptOrPassThrough(

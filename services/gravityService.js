@@ -23,7 +23,7 @@ class GravityService{
      * @param recordTag
      * @param metisEncrypt
      * @param feeType
-     * @returns {Promise<*>}
+     * @returns {Promise<Transaction>}
      */
     async addNewRecordToReferencedDataSet(
         recordJson,
@@ -62,16 +62,7 @@ class GravityService{
             const responseTransactionId = transactionUtils.extractTransactionId(transaction);
             // Update the List.
             const messageContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(gravityAccountProperties, listTag);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=- messageContainers');
-            console.log(messageContainers);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
             const firstMessageContainer = gu.arrayShiftOrNull(messageContainers);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=- firstMessageContainer');
-            console.log(firstMessageContainer);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
             let updatedList = [];
             if (firstMessageContainer) {
                 updatedList = firstMessageContainer.message;

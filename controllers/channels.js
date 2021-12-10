@@ -11,6 +11,8 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 // import {FeeManager} from "../services/FeeManager";
 
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
+import {BadJupiterAddressError} from "../errors/metisError";
+import {StatusCode} from "../utils/statusCode";
 
 const gu = require('../utils/gravityUtils');
 const { v4: uuidv4 } = require('uuid');
@@ -74,18 +76,18 @@ module.exports = (app, passport, jobs, websocket) => {
         const {data} = req.body;
         const {user} = req;
         try {
-            const sender = user.userData.alias;
-            let recipient = _.get(data, 'recipient', '');
+            const senderAlias = user.userData.alias;
+            let recipientAddress = _.get(data, 'recipient', '');
 
-            if (!recipient.toLowerCase().includes('jup-')) {
-                const aliasResponse = await gravity.getAlias(recipient);
-                recipient = aliasResponse.accountRS;
+            if (!recipientAddress.toLowerCase().includes('jup-')) {
+                const aliasResponse = await gravity.getAlias(recipientAddress);
+                recipientAddress = aliasResponse.accountRS;
             }
 
-            const message = `${sender} is inviting you to a video call`;
+            const message = `${senderAlias} is inviting you to a video call`;
             const url = `metis/${uuidv4()}`;
-            const metadata = {isCall: 'true', url: url, recipient: recipient, sender: sender};
-            getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'call', metadata);
+            const metadata = {isCall: 'true', url: url, recipient: recipientAddress, sender: senderAlias};
+            getPNTokensAndSendPushNotification([recipientAddress], senderAlias, {}, message, 'call', metadata);
             res.send({success: true, url: url});
         } catch (e) {
             logger.error(e);
@@ -104,7 +106,7 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info(`======================================================================================\n\n`);
 
         const {channelAddress} = req.body
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is incorrect')};
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)};
         const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
@@ -120,7 +122,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 if(error.message === 'Invitation Not Found'){
                     return res.status(404).send({message: error.message});
                 }
-                return res.status(500).send({message: error.message});
+                return res.status(StatusCode.ServerErrorInternal).send({message: error.message});
             });
 
     });
@@ -311,8 +313,15 @@ module.exports = (app, passport, jobs, websocket) => {
         const {user} = req;
 
         try {
-            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            if(!gu.isWellFormedJupiterAddressOrAlias(inviteeAddressOrAlias)){throw new Error(`inviteeAddressOrAlias not well formed ${inviteeAddressOrAlias}`)}
+
+            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
+            if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
+            // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
+
+            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
+            // if(!gu.isWellFormedJupiterAddressOrAlias(inviteeAddressOrAlias)){throw new Error(`inviteeAddressOrAlias not well formed ${inviteeAddressOrAlias}`)}
+
 
             const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
@@ -334,7 +343,15 @@ module.exports = (app, passport, jobs, websocket) => {
                     const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
                     const message = `${inviterAlias} invited you to join a channel`;
                     const metadata = {isInvitation: 'true'};
-                    getPNTokensAndSendPushNotification([inviteeAddress], inviterAccountProperties.address, {}, message, 'Invitation', metadata);
+                    // getPNTokensAndSendPushNotification: async (recipientAddressArray, channelAddress, message, title, metadata) => {
+                    // getPNTokensAndSendPushNotification: async (recipientAddressArray, mutedChannelsToExclude, message, title, metadata) => {
+                    getPNTokensAndSendPushNotification(
+                        [inviteeAddress],
+                        [],
+                        message,
+                        'Invitation',
+                        metadata
+                    );
 
                     // const createInvitationResponse = {
                     //     invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,

@@ -1,4 +1,6 @@
 const Notifications = require('../models/notifications');
+const gu = require('../utils/gravityUtils');
+const {BadJupiterAddressError} = require("../errors/metisError");
 
 module.exports = {
   findOneNotificationAndUpdate: (filter, updateData) => {
@@ -9,6 +11,11 @@ module.exports = {
     const upsertOptions = { upsert: true, new: true, runValidators: true };
     return Notifications.findOneAndUpdate(filter, updateData, upsertOptions);
   },
+    /**
+     *
+     * @param filter
+     * @return {*}
+     */
   incrementBadgeCounter: (filter) => {
     if (!filter) {
       throw new Error('Filter and data to update are required.');
@@ -37,52 +44,126 @@ module.exports = {
           return Notifications.updateOne(filter, { $pull: { pnAccounts: { provider, token } } });
         });
   },
-  findNotificationAndUpdate: (filter, updateData, token, provider) => {
-    if (!filter || !updateData || !provider) {
-      throw new Error('Filter and data to update are required.');
-    }
 
-    return Notifications.find(filter)
-        .lean()
-        .then(async ([notification]) => {
-          console.log('[notification]:', notification);
+    upsertNotificationDocumentWithNewToken: async (userAddress, provider, newToken) => {
+        const filter = { userAddress: userAddress};
+        const update = {
+            userAddress: userAddress,
+            mutedChannelAddressList: [],
+            pnAccounts: [
+                {
+                    provider: provider,
+                    token: newToken,
+                    createdAt: new Date(),
+                    badgeCounter: 0,
+                }
+            ]
+        };
 
-          if (!notification){
-            return Notifications.create(updateData);
-          }
+        const notification = await Notifications.findOne(filter);
+        if(!notification){
+            return Notifications.create(update);
+        }
 
-          if (!notification.pnAccounts){
+        if (!notification.pnAccounts){
             await Notifications.deleteOne(filter);
-            return Notifications.create(updateData);
-          }
+            return Notifications.create(update);
+        }
 
-          const tokenAlreadyExist = notification.pnAccounts.find(account => account.token === token);
+        // const pnAccounts = notification.pnAccounts;
 
-          if (!tokenAlreadyExist){
-            const newToken = {
-              provider,
-              token,
-              createdAt: new Date(),
-              badgeCounter: 0,
-            };
-            return Notifications.updateOne(filter, { $push: { pnAccounts: [newToken] } });
-          }
+        const tokenExists = pnAccounts.find(pnAccount => pnAccount.token === newToken);
+        if(tokenExists) { return notification }
 
-          return notification;
-        });
-  },
-  findNotificationsByAddressList: (addressList, excludeChannelAddress = null) => {
+        const newPNAccount = {
+            provider,
+            newToken,
+            createdAt: new Date(),
+            badgeCounter: 0,
+        };
+
+        // pnAccounts.push(newPNAccount);
+
+        return Notifications.updateOne(filter, { $push: { pnAccounts: newPNAccount } });
+    },
+
+  // findNotificationAndUpdate: (filter, updateData, token, provider) => {
+  //   if (!filter || !updateData || !provider) {
+  //     throw new Error('Filter and data to update are required.');
+  //   }
+  //
+  //   return Notifications.find(filter)
+  //       .lean()
+  //       .then(async ([notification]) => {
+  //         console.log('[notification]:', notification);
+  //
+  //         if (!notification){
+  //           return Notifications.create(updateData);
+  //         }
+  //
+  //         if (!notification.pnAccounts){
+  //           await Notifications.deleteOne(filter);
+  //           return Notifications.create(updateData);
+  //         }
+  //
+  //         const tokenAlreadyExist = notification.pnAccounts.find(account => account.token === token);
+  //
+  //         if (!tokenAlreadyExist){
+  //           const newToken = {
+  //             provider,
+  //             token,
+  //             createdAt: new Date(),
+  //             badgeCounter: 0,
+  //           };
+  //           return Notifications.updateOne(filter, { $push: { pnAccounts: [newToken] } });
+  //         }
+  //
+  //         return notification;
+  //       });
+  // },
+    /**
+     *
+     * @param userAddresses
+     * @param mutedUserAddresses
+     * @return {*}
+     */
+  findNotifications: (userAddresses, mutedUserAddresses = []) => {
+      if(!gu.isNonEmptyArray(userAddresses)){throw new Error('addressList needs to be an array with values')}
+      userAddresses.forEach(userAddress => {
+          if(!gu.isWellFormedJupiterAddress(userAddress)){throw new BadJupiterAddressError(userAddress)}
+      })
+
+      if(!Array.isArray(mutedUserAddresses)){throw new Error(`mutedUserAddresses needs to be an array`)}
+      mutedUserAddresses.forEach(mutedUserAddress => {
+          if(!gu.isWellFormedJupiterAddress(mutedUserAddress)){throw new BadJupiterAddressError(mutedUserAddress)}
+      })
+
+      // if(mutedUserAddresses && !gu.isWellFormedJupiterAddress(mutedUserAddresses)){ throw new Error(`excludeChannelAdddress needs to be null or valid address`)}
+      // if(mutedUserAddresses && !gu.isWellFormedJupiterAddress(mutedUserAddresses)){ throw new Error(`excludeChannelAdddress needs to be null or valid address`)}
     const filter = {
-      userAddress: { $in: addressList },
+      userAddress: { $in: userAddresses },
       pnAccounts: { $exists: true, $ne: [] },
     };
 
-    if (excludeChannelAddress) {
-      filter.mutedChannelAddressList = { $nin: [excludeChannelAddress] };
+    if (mutedUserAddresses.length > 0) {
+      filter.mutedChannelAddressList = { $nin: mutedUserAddresses };
     }
 
     return Notifications.find(filter);
   },
+
+    // findNotificationsByAddress: (address) => {
+    //     if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+    //
+    //     const filter = {
+    //         userAddress: { $eq: address },
+    //         pnAccounts: { $exists: true, $ne: [] },
+    //     };
+    //
+    //     return Notifications.find(filter);
+    // },
+
+
   /**
    * Returns the notification items filtering by
    * token,
@@ -93,6 +174,7 @@ module.exports = {
     const filter = { pnAccounts: { token: token } };
     return Notifications.find(filter).select('pnAccounts');
   },
+
   updateBadgeCounter: (userAddress, badge) => {
     if (!userAddress) {
       throw new Error('User Address are required');

@@ -8,6 +8,7 @@ import ChannelRecord from "../models/channel";
 import {gravity} from "../config/gravity";
 import {channelConfig} from "../config/constants";
 import {chanService} from "../services/chanService";
+import {StatusCode} from "../utils/statusCode";
 const logger = require('../utils/logger')(module);
 
 module.exports = (app) => {
@@ -21,48 +22,22 @@ module.exports = (app) => {
       const { channelAddress } = req.params;
 
     try{
-
         if(!gu.isWellFormedJupiterAddress(channelAddress)){
             return res.status(500).send({success: false, error: `${error}`})
         }
-
-        console.log('/v1/api/:channelAddress/members', user.passphrase);
-
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
         const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
-
         if(!channelAccountProperties){
             return res.status(500).send({message:'channel is not available'})
         }
-
-
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        console.log('channelAccountProperties');
-        console.log(channelAccountProperties);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
         const channelMembers = await jupiterAccountService.getChannelMembers(channelAccountProperties)
 
-        // console.log(channelMembers);
-
-        // const channelPublicKeyList =  await jupiterAccountService.getPublicKeysFromChannelAccount(channelAccountProperties);
-        // const userPublicKeyList = channelPublicKeyList.map(cpkl => cpkl.userPublicKey);
-
-        // console.log('userPublicKeyList ----->', userPublicKeyList);
-
-        // const memberList = await metis.getMember({ //TODO we need to get rid of this
-        //     channel: channelProperties.address,
-        //     account: user.account,
-        //     password: channelProperties.password
-        // });
-
-        // const memberList = {};
         return res.send(channelMembers);
         // res.send({ ...memberList, channelUserList: {}, publicKeys: userPublicKeyList })
     }catch (error){
         logger.error(`Error getting members`);
         console.log(error);
-        res.status(500).send({success: false, error: `${error}`})
+        return res.status(StatusCode.ServerErrorInternal).send({message: `Error getting members`})
     }
   });
 

@@ -1,95 +1,143 @@
-import _ from 'lodash';
-import { findNotificationsByAddressList, findNotificationAndUpdate, incrementBadgeCounter } from './notificationService';
 
+import _ from 'lodash';
+import {findNotifications, incrementBadgeCounter} from './notificationService';
+import {BadJupiterAddressError} from "../errors/metisError";
+const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
 const { sendFirebasePN, sendApplePN } = require('../config/notifications');
 
 
+/**
+ *
+ * @param notificationsCollection
+ * @return {Promise<unknown[]|*[]>}
+ */
+const incrementBadgeCountersForNotifications = async (notificationsCollection) => {
+  if (!gu.isNonEmptyArray(notificationsCollection)) { return [] }
+  const promises = [];
+  notificationsCollection.forEach(notification => {
+    promises.push(incrementBadgeCounter({ _id: notification._id }))
+  });
+  const updatedNotificationsCollection = await Promise.all(promises);
+
+  return updatedNotificationsCollection;
+}
+
+/**
+ *
+ * @param notificationsCollection
+ * @return {*}
+ */
+const extractPNAccountsFromCollection = (notificationsCollection) => {
+  logger.sensitive(`#### extractPNAccountsFromCollection = (notificationsCollection)`);
+  if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
+  if(notificationsCollection.length === 0 ){return []}
+  const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts)
+  // if(pnAccountsArrayOfArrays.length === 0 ){return []}
+  const pnAccounts = pnAccountsArrayOfArrays.flat();
+
+  return pnAccounts;
+}
+
+/**
+ *
+ * @param text
+ * @return {*[]}
+ */
+const getMessageMentions = (text) => {
+  if (text) {
+    const reg = /@\w+/gim;
+    const mentions = text.match(reg) || [];
+    if (mentions && Array.isArray(mentions)) {
+      return mentions.map(mention => mention.replace('@', ''));
+    }
+  }
+  return [];
+}
+
 module.exports = {
-  getMessageMentions: (text) => {
-    if (text) {
-      const reg = /@\w+/gim;
-      const mentions = text.match(reg) || [];
-      if (mentions && Array.isArray(mentions)) {
-        return mentions.map(mention => mention.replace('@', ''));
+
+  /**
+   *
+   * @param senderAlias
+   * @param userAddress
+   * @param channelName
+   */
+  // getPNTokenAndSendInviteNotification: async (senderAlias, userAddress, channelName) => {
+  //   logger.sensitive(`#### getPNTokenAndSendInviteNotification: (senderAlias=${senderAlias}, userAddress=${userAddress}, channelName=${channelName})`);
+  //   if(!gu.isWellFormedJupiterAddress(userAddress)){throw new BadJupiterAddressError(userAddress)};
+  //   if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
+  //   if(!channelName){throw new Error(`channelName is empty`)};
+  //
+  //   const notificationsCollection = await findNotificationsByAddress(userAddress);
+  //   // Do nothing if Nulls
+  //   if(!gu.isNonEmptyArray(notificationsCollection)){ return }
+  //   const updatedNotificationsCollection = await incrementBadgeCountersForNotifications(notificationsCollection);
+  //   // Do nothing if Nulls
+  //   if(!gu.isNonEmptyArray(updatedNotificationsCollection)) { return }
+  //   const alert = `${senderAlias} invited you to the channel "${channelName}"`;
+  //   const threeMinutesDelay = 180000;
+  //   updatedNotificationsCollection.forEach( notification => {
+  //     sendPushNotification(
+  //         notification.tokenList,
+  //         alert,
+  //         notification.badgeCounter,
+  //         { title: 'Invitation', isInvitation: true },
+  //         'channels',
+  //         threeMinutesDelay)
+  //   } )
+  // },
+
+  /**
+   *
+   * @param recipientAddresses
+   * @param senderAlias
+   * @param mutedChannelAddressesToExclude
+   * @param message
+   * @param title
+   * @param metadata
+   */
+  getPNTokensAndSendPushNotification: async (recipientAddresses, mutedChannelAddressesToExclude, message, title, metadata) => {
+    logger.sensitive(`#### getPNTokensAndSendPushNotification: (recipientAddressArray=${recipientAddresses}, mutedChannelsToExclude=${mutedChannelAddressesToExclude})`);
+    // if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
+     if(!Array.isArray(mutedChannelAddressesToExclude)){throw new Error(`mutedChannelsToExclude is not an Array`)}
+    mutedChannelAddressesToExclude.forEach(mutedChannelAddress => {
+      if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)){throw new BadJupiterAddressError(mutedChannelAddress)}
+    })
+    if(!message){throw new Error(`message is empty`)}
+    if(!title){throw new Error(`title is empty`)}
+    // If not recipientAddress then just return. Do nothing.
+    if(!gu.isNonEmptyArray(recipientAddresses)){return}
+    recipientAddresses.forEach(recipientAddress => {
+      if(!gu.isWellFormedJupiterAddress(recipientAddress)){throw new BadJupiterAddressError(recipientAddress)};
+    })
+
+    const notificationsCollection = await findNotifications(recipientAddresses, mutedChannelAddressesToExclude);
+    const updatedNotificationsCollection = await incrementBadgeCountersForNotifications(notificationsCollection);
+    const pnAccounts = extractPNAccountsFromCollection(updatedNotificationsCollection);
+    pnAccounts.forEach(pnAccount => {
+      if (pnAccount.provider === 'ios'){
+        return sendApplePN(
+            pnAccount.token,
+            message,
+            pnAccount.badgeCounter,
+            {title, message, metadata},
+            'channels');
       }
-    }
-    return [];
-  },
-  getPNTokensAndSendPushNotification: (recipientAddressArray, senderAlias, channelAddress, message, title, metadata) => {
-    if (recipientAddressArray && Array.isArray(recipientAddressArray) && !_.isEmpty(recipientAddressArray)) {
-      findNotificationsByAddressList(recipientAddressArray, channelAddress)
-        .then((notifications) => {
 
-          if (!_.isEmpty(notifications)) {
+      if (pnAccount.provider === 'android'){
+        return sendFirebasePN(
+            pnAccount.token,
+            title,
+            message,
+            metadata
+        )}
 
-            const promises = [];
+      throw new Error(`Problem sending a PN: ${message}`);
 
-            notifications.forEach(notification => {
-              promises.push(incrementBadgeCounter({ _id: notification._id }))
-            });
-
-            return Promise.all(promises);
-          }
-          return null;
-        })
-        .then((notifications) => {
-          const payload = { title, message, metadata };
-          if (notifications && Array.isArray(notifications) && !_.isEmpty(notifications)) {
-
-            const tokensAndBadge = [];
-            notifications.map(notification => {
-              _.map(notification.pnAccounts, account => {
-
-                tokensAndBadge.push(({ token: account.token, badge: account.badgeCounter, provider: account.provider }));
-
-              });
-            });
-
-            return { tokensAndBadge, payload };
-          }
-          return { tokensAndBadge: [], payload };
-        })
-        .then(({ tokensAndBadge, payload }) => {
-          tokensAndBadge.map(tb => {
-            if (tb.provider === 'ios'){
-              sendApplePN(tb.token, message, tb.badge, payload, 'channels');
-            } else {
-              sendFirebasePN(tb.token, title, message, metadata);
-            }
-          });
-        })
-        .catch((error) => {
-          logger.error(JSON.stringify(error));
-        });
-    }
+    })
   },
 
-  getPNTokenAndSendInviteNotification: (senderAlias, userAddress, channelName) => {
-    findNotificationsByAddressList([userAddress])
-      .then((data) => {
-        if (data && Array.isArray(data) && !_.isEmpty(data)) {
-          const notificationIds = _.map(data, '_id');
-          const updateData = { $inc: { badgeCounter: 1 } };
-          // eslint-disable-next-line max-len
-          const badgeCounters = notificationIds.map(notificationId => findNotificationAndUpdate({ _id: notificationId }, updateData));
-          return Promise.all(badgeCounters);
-        }
-        return null;
-      })
-      .then((data) => {
-        if (data && Array.isArray(data) && !_.isEmpty(data)) {
-          const alert = `${senderAlias} invited you to the channel "${channelName}"`;
-          const payload = { title: 'Invitation', isInvitation: true };
-          const threeMinutesDelay = 180000;
-          const tokensAndBadge = data.map(item => ({ token: item.tokenList, badge: item.badgeCounter }));
-          tokensAndBadge.map(tb => sendPushNotification(tb.token, alert, tb.badge, payload, 'channels', threeMinutesDelay));
-        }
-      })
-      .catch((error) => {
-        logger.error(`${error}`);
-      });
-  },
   errorMessageHandler: (error) => {
     //TODO configure a better error handler for all kind og responses
     const message =  _.get(error, 'response.data.data.errorDescription', 'Something went wrong, please try again later');

@@ -1,5 +1,6 @@
 const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
+const {BadJupiterAddressError} = require("../errors/metisError");
 
 
 /**
@@ -38,7 +39,8 @@ class JupiterAccountProperties {
         }
 
         if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error('address key is not valid');
+            throw new BadJupiterAddressError(address);
+            // throw new Error('address key is not valid');
         }
 
         if(!gu.isWellFormedPassphrase(passphrase)){

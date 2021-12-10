@@ -7,6 +7,7 @@ const {jupiterAPIService} = require("./jupiterAPIService");
 // const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("../gravity/metisApplicationAccountProperties");
 const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {JupiterAPIService} = require("./jupiterAPIService");
+const {BadJupiterAddressError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -39,7 +40,12 @@ class JupiterFundingService {
      * @returns {Promise<unknown[]>}
      */
     async waitForAllTransactionConfirmations(transactionsReport){
-        if(!Array.isArray(transactionsReport)){throw new Error('not an array')};
+        if(!Array.isArray(transactionsReport)){ throw new Error('not an array') };
+        if(transactionsReport.length === 0 ){ return }
+        transactionsReport.forEach(tReport => {
+            if(!tReport.hasOwnProperty('id')){ throw new Error(`malformed transactionReport: ${tReport}`)}
+            if(!gu.isWellFormedJupiterTransactionId(tReport.id)){throw new Error(`transaction id is malformed: ${tReport.id}`)}
+        })
 
         const allTransactions = [];
         transactionsReport.forEach( transactionReport => {

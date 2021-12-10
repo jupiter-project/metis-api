@@ -4,7 +4,7 @@ import {instantiateGravityAccountProperties} from "../gravity/instantiateGravity
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
 import {add} from "lodash";
-import {JupiterApiError, UnknownAliasError} from "../errors/metisError";
+import {BadJupiterAddressError, JupiterApiError, UnknownAliasError} from "../errors/metisError";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
 const {jupiterAPIService} = require('./jupiterAPIService');
@@ -589,7 +589,8 @@ class JupiterAccountService {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
         logger.verbose(`## `);
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
         logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
         if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
         const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
@@ -615,12 +616,6 @@ class JupiterAccountService {
         const listTag = channelConfig.channelMemberList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
             .then( messageContainers  => {
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('  -- messages -- ');
-                console.log(messageContainers);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
                 const channelMembers = messageContainers.map(messageContainer => messageContainer.message);
 
                 return channelMembers;
@@ -831,7 +826,8 @@ class JupiterAccountService {
      */
     getAliasesOrEmptyArray(address){
         logger.sensitive(`#### getAliasesOrEmptyArray(address= ${address})`);
-        if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}
+        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}
 
         return this.jupiterAPIService.getAliases(address)
             .then(getAliasesResponse => {

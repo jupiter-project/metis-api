@@ -7,6 +7,7 @@ const {feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const assert = require("assert");
+const {BadJupiterAddressError} = require("../errors/metisError");
 
 class JupiterTransactionMessageService {
 
@@ -538,7 +539,8 @@ class JupiterTransactionMessageService {
         logger.verbose(`## sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
         logger.verbose(`## `);
         if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
-        if(!gu.isWellFormedJupiterAddress(toAddress)){throw new Error(`toAddress is not valid: ${toAddress}`)}
+        if(!gu.isWellFormedJupiterAddress(toAddress)){throw new BadJupiterAddressError(toAddress)}
+        // if(!gu.isWellFormedJupiterAddress(toAddress)){throw new Error(`toAddress is not valid: ${toAddress}`)}
         if(!gu.isWellFormedPublicKey(recipientPublicKey)){throw new Error(`recipientPublicKey is not valid: ${recipientPublicKey}`)}
 
         const fee = feeManagerSingleton.getFee(feeType);

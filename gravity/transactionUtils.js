@@ -1,4 +1,5 @@
 const gu = require("../utils/gravityUtils");
+const {BadJupiterAddressError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 class TransactionUtils {
@@ -249,6 +250,13 @@ class TransactionUtils {
         return transactionId;
     }
 
+    extractTransactionIdFromTransactionResponse(transactionResponse){
+        if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
+        if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
+        if(!transactionResponse.data.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
+        return this.extractTransactionId(transactionResponse.data.transactionJSON)
+    }
+
 
 
     /**
@@ -328,7 +336,8 @@ class TransactionUtils {
      * @returns {*}
      */
     filterEncryptedMessageTransactionsBySender(transactions, senderAddress) {
-        if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new Error('senderAddress is wrong')}
+        if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new BadJupiterAddressError(senderAddress)}
+        // if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new Error('senderAddress is wrong')}
         if(!Array.isArray(transactions)){throw new Error('Not array')};
         return  this.filterMessageTransactionsByCallback(transactions, (transaction) =>
             {

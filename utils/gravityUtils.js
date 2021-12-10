@@ -87,7 +87,6 @@ const isWellFormedJupiterAddress = function(address){
 
     if(!isNonEmptyString(address)){return false};
 
-    // return true; //@TODO complete the implementation!!!
     const re = /^JUP-\w\w\w\w-\w\w\w\w-\w\w\w\w-\w\w\w\w\w$/;
     if(re.test(address)){
         return true;
