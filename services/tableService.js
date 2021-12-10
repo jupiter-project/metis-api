@@ -762,6 +762,7 @@ class TableService {
                 subtype,
                 false)
                 .then(response => {
+                    //@TODO use extractTransactionId()
                     resolve({responseData: response.data, transactionReport: {name: 'create-table-list-record', id: response.data.transaction}})
                 })
         })

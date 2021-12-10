@@ -250,6 +250,13 @@ class TransactionUtils {
         return transactionId;
     }
 
+    extractTransactionIdFromTransactionResponse(transactionResponse){
+        if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
+        if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
+        if(!transactionResponse.data.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
+        return this.extractTransactionId(transactionResponse.data.transactionJSON)
+    }
+
 
 
     /**

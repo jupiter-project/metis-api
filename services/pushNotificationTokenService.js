@@ -1,48 +1,47 @@
 import {
-  findNotificationAndUpdate,
   findMutedChannels,
   updateBadgeCounter,
   findOneNotificationAndUpdate,
-  findOneNotificationAndRemovePNToken
+  findOneNotificationAndRemovePNToken, upsertNotificationDocumentWithNewToken
 } from './notificationService';
-
+import {BadJupiterAddressError} from "../errors/metisError";
+import {StatusCode} from "../utils/statusCode";
+const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
 
 module.exports = {
-  addTokenNotification: (req, res) => {
-    const { token, jupId, provider } = req.body;
-    logger.debug(`[addTokenNotification]->Token: ${token}`);
 
-    if ( !(jupId && provider && token) ){
-      const error = {
-        success: false,
-        message: 'Token, Provider and JupId are required',
-      };
+  /**
+   *
+   * @param req
+   * @param res
+   * @return {Promise<*>}
+   */
+  addTokenNotification: async (req, res) => {
+    try {
+      const {token, jupId, provider} = req.body;
+      logger.debug(`[addTokenNotification]->Token: ${token}`);
+      if (!gu.isWellFormedJupiterAddress(jupId)) {
+        const message = {message: `JupId is not valid: ${jupId}`};
+        logger.error(`${message}`);
+        return res.status(StatusCode.ClientErrorBadRequest).json(message);
+      }
+
+      if (!(provider && token)) {
+        const message = {message: 'Token, Provider and JupId are required'};
+        logger.error(`${message}`);
+        return res.status(StatusCode.ClientErrorBadRequest).json(message);
+      }
+
+      const notification = await upsertNotificationDocumentWithNewToken(jupId, provider, token);
+
+      return res.json(notification);
+    } catch(error){
+      const message = {message: `Problem with addTokenNotification`};
       logger.error(`${error}`);
-      return res.status(400).json(error);
+
+      return res.status(StatusCode.ServerErrorInternal).json(message);
     }
-
-    const filter = { userAddress: jupId};
-
-    const update = {
-      userAddress: jupId,
-      mutedChannelAddressList: [],
-      pnAccounts: [
-        {
-          provider: provider,
-          token: token,
-          createdAt: new Date(),
-          badgeCounter: 0,
-        }
-      ]
-    };
-
-    findNotificationAndUpdate(filter, update, token, provider)
-        .then(notificationInfo => res.json({success: true, notificationInfo}))
-        .catch((error) => {
-          logger.error(`${error}`);
-          res.status(400).json({ ok: false, error });
-        });
   },
   deleteTokenPushNotification: (req, res) => {
     const { jupId, provider, token } = req.params;

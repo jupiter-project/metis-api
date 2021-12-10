@@ -105,6 +105,13 @@ class JupiterTransactionsService {
             lastIndex
         )
 
+        console.log(`\n\n\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        console.log('getConfirmedAndUnconfirmedBlockChainTransactionsByTag');
+        console.log(transactions.length);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+
+
         return this.messageService.getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted);
     }
 
@@ -376,8 +383,7 @@ class JupiterTransactionsService {
      * @returns {Promise<*>}
      */
     dereferenceListAndGetReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted = true) {
-        logger.verbose(`    ########################################################################`);
-        logger.verbose(`    ## dereferenceListAndGetReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted)`);
+        logger.verbose(`#### dereferenceListAndGetReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted)`);
         if( ! gravityAccountProperties instanceof GravityAccountProperties){throw new Error('gravityAccountProperties is invalid')}
         if(!listTag){throw new Error('listtag is invalid')}
 
@@ -395,6 +401,7 @@ class JupiterTransactionsService {
                 }
                 const latestListContainer = listContainers.shift();
                 const transactionIds = latestListContainer.message;
+                logger.info(`- latest list of referenced transactions: ${transactionIds}`);
                 const messages = []
                 transactionIds.forEach(transactionId => {
                     messages.push(this.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecryptOrPassThrough(

@@ -616,12 +616,6 @@ class JupiterAccountService {
         const listTag = channelConfig.channelMemberList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
             .then( messageContainers  => {
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('  -- messages -- ');
-                console.log(messageContainers);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
                 const channelMembers = messageContainers.map(messageContainer => messageContainer.message);
 
                 return channelMembers;
