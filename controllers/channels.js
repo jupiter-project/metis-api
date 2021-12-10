@@ -316,7 +316,7 @@ module.exports = (app, passport, jobs, websocket) => {
 
             if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
             // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
+            // if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
             // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
 
             // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
@@ -333,7 +333,7 @@ module.exports = (app, passport, jobs, websocket) => {
                let getAliasResponse = await  jupiterAPIService.getAlias(inviteeAddressOrAlias)
 
                 inviteeAddress = getAliasResponse.data.accountRS;
-            }
+            } else if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
 
             return chanService.createInvitation(
                 channelAccountProperties,
