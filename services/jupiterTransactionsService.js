@@ -103,7 +103,7 @@ class JupiterTransactionsService {
             tag,
             firstIndex,
             lastIndex
-        )
+        );
 
         console.log(`\n\n\n`);
         console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
@@ -209,8 +209,8 @@ class JupiterTransactionsService {
      *
      * @param {string} address
      * @param {string} tag
-     * @param {number} [firstIndex=null]
-     * @param {number} [lastIndex=null]
+     * @param {number | null} [firstIndex=null]
+     * @param {number | null} [lastIndex=null]
      *
      * @returns {Promise<[{senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
      *                  versionMessage,encryptedMessage: {data,nonce,isText,isCompressed},

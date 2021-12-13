@@ -172,7 +172,7 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('======================================================================================\n\n\n');
         const { user } = req;
         // pageNumber starts with Page 0;
-        const { channelAddress, _pageNumber, _pageSize } = req.query
+        const { channelAddress, pageNumber: _pageNumber, pageSize: _pageSize } = req.query
 
         if (!channelAddress) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'}); // BAD REQUEST
@@ -181,27 +181,31 @@ module.exports = (app, passport, jobs, websocket) => {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
         }
 
-        const pageNumber = parseInt(_pageNumber);
-        const pageSize = parseInt(_pageSize);
 
-        if(!Number.isInteger(pageNumber)){
+        if(isNaN(_pageNumber)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'}); // BAD REQUEST
         }
-        if(!Number.isInteger(pageSize)){
+        if(isNaN(_pageSize)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'}); // BAD REQUEST
         }
 
-        if(!(pageSize>0 && pageSize<1000)){
+        const pageNumber = parseInt(_pageNumber);
+        const pageSize = parseInt(_pageSize);
+
+        console.log('Page number :', pageNumber);
+        console.log('Page pageSize :', pageSize);
+        console.log('Validation ____', !(pageSize > 0 && pageSize < 1000));
+        if(!(pageSize > 0 && pageSize < 1000)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'}); // BAD REQUEST
         }
 
-        if(!(pageNumber>0)){
+        if(pageNumber < 0){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'}); // BAD REQUEST
         }
 
         try{
             const firstIndex = pageNumber * pageSize
-            const lastIndex = firstIndex+pageSize-1;
+            const lastIndex = firstIndex + (pageSize - 1);
             const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
@@ -209,20 +213,16 @@ module.exports = (app, passport, jobs, websocket) => {
                 return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
             }
 
+            console.log('First index', firstIndex);
+            console.log('Last index', lastIndex);
             const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
 
+            console.log('Total messages:', messageTransactions.length);
 
-
-            [
-                {
-                    message: {  },
-                    transaction: 1243
-                }
-            ]
-            messageTransactions.sort(  function(a,b){
-                return new Date(b.message.  .date) - new Date(a.message.date);
-            })
-
+            // Sorting messages descending
+            messageTransactions.sort(  (a,b) =>
+                new Date(b.message.createdAt) - new Date(a.message.createdAt)
+            );
 
             res.send(messageTransactions);
         } catch (error){

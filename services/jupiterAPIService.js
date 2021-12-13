@@ -292,15 +292,16 @@ class JupiterAPIService {
         logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
 
         const requestType = JupiterAPIService.RequestType.GetBlockchainTransactions;
+
         return this._getConfirmedOrUnconfirmedBlockChainTransactions(
             requestType,
             address,
-            message = null ,
-            withMessage = false,
-            type = 1 ,
-            includeExpiredPrunable = true,
-            firstIndex = null,
-            lastIndex = null
+            message ,
+            withMessage,
+            type,
+            includeExpiredPrunable,
+            firstIndex,
+            lastIndex
         )
     }
 
@@ -437,8 +438,8 @@ class JupiterAPIService {
             params = {...params, message}
         }
 
-        if(firstIndex){ params.firstIndex = firstIndex }
-        if(lastIndex){ params.lastIndex = lastIndex }
+        if(!isNaN(firstIndex) && firstIndex >= 0){ params.firstIndex = firstIndex }
+        if(!isNaN(lastIndex) && lastIndex >= 0){ params.lastIndex = lastIndex }
 
         return this.get(params);
     }
