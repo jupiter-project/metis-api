@@ -13,6 +13,7 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
+import {messagesConfig} from "../config/constants";
 
 const gu = require('../utils/gravityUtils');
 const { v4: uuidv4 } = require('uuid');
@@ -163,47 +164,71 @@ module.exports = (app, passport, jobs, websocket) => {
     /**
      * Get a channel's messages
      */
-    app.get('/v1/api/data/messages/:scope/:firstIndex', async (req, res) => {
+    app.get('/v1/api/data/messages', async (req, res) => {
         console.log('');
         logger.info('======================================================================================');
-        logger.info('==  Get a channel\'s messages');
-        logger.info('== GET: /v1/api/data/messages/:scope/:firstIndex');
-        logger.info('======================================================================================');
-        console.log('');
+        logger.info('== Get a channel\'s messages');
+        logger.info('== GET: /v1/api/data/messages/:firstIndex');
+        logger.info('======================================================================================\n\n\n');
         const { user } = req;
-        const { channelAddress } = req.query
-
-
-        const firstIndex = parseInt(req.params.firstIndex);
-        if(!Number.isInteger(firstIndex)){
-            return res.status(400).send({message: 'firstIndex needs to be a number'}); // BAD REQUEST
-        }
-
-        const lastIndex = firstIndex+10;
+        // pageNumber starts with Page 0;
+        const { channelAddress, _pageNumber, _pageSize } = req.query
 
         if (!channelAddress) {
-            return res.status(400).send({message: 'Channel account is required'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'}); // BAD REQUEST
+        }
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
+        }
+
+        const pageNumber = parseInt(_pageNumber);
+        const pageSize = parseInt(_pageSize);
+
+        if(!Number.isInteger(pageNumber)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'}); // BAD REQUEST
+        }
+        if(!Number.isInteger(pageSize)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'}); // BAD REQUEST
+        }
+
+        if(!(pageSize>0 && pageSize<1000)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'}); // BAD REQUEST
+        }
+
+        if(!(pageNumber>0)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'}); // BAD REQUEST
         }
 
         try{
-            if(!gu.isWellFormedJupiterAddress(channelAddress)){
-                return res.status(500).send({message: `bad channel address: ${channelAddress}`})
-            }
-
+            const firstIndex = pageNumber * pageSize
+            const lastIndex = firstIndex+pageSize-1;
             const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
             if(!channelAccountProperties){
-                return res.status(500).send({message:`channel is not available: ${channelAddress}`})
+                return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
             }
 
-            const tag = 'v1.metis.message.message-record';
-            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, tag, false, firstIndex, lastIndex);
+            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
+
+
+
+            [
+                {
+                    message: {  },
+                    transaction: 1243
+                }
+            ]
+            messageTransactions.sort(  function(a,b){
+                return new Date(b.message.  .date) - new Date(a.message.date);
+            })
+
+
             res.send(messageTransactions);
         } catch (error){
             logger.error('Error getting messages:');
             logger.error(`${error}`);
-            res.status(500).send({message: 'Error getting messages'})
+            res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
         }
     });
 

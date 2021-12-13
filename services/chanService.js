@@ -354,25 +354,24 @@ class ChanService {
 
     /**
      *
-     * @param memberAccountProperties
-     * @param channelAddress
-     * @returns {Promise<string>}
+     * @param {GravityAccountProperties} memberAccountProperties
+     * @param {string} channelAddress
+     * @returns {Promise<GravityAccountProperties|null>}
      */
     async getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress){
         logger.verbose(`  ###################################################################################`);
         logger.verbose(`  ## getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress)`);
 
-        try {
-            if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-                throw new BadJupiterAddressError(channelAddress)
-                // throw new Error('channelAddress is invalid')
-            }
-            if (!(memberAccountProperties instanceof GravityAccountProperties)) {
-                throw new Error('memberAccountProperties incorrect')
-            }
-            logger.sensitive(`## - channelAddress=${channelAddress}`);
-            logger.sensitive(`## - memberAccountProperties.address=${memberAccountProperties.address}`);
+        if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+            throw new BadJupiterAddressError(channelAddress)
+        }
+        if (!(memberAccountProperties instanceof GravityAccountProperties)) {
+            throw new Error('memberAccountProperties incorrect')
+        }
+        logger.sensitive(`## - channelAddress=${channelAddress}`);
+        logger.sensitive(`## - memberAccountProperties.address=${memberAccountProperties.address}`);
 
+        try {
             const tag = `${channelConfig.channelRecord}.${channelAddress}`;
             const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
                 memberAccountProperties.address,
