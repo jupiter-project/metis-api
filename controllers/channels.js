@@ -215,7 +215,8 @@ module.exports = (app, passport, jobs, websocket) => {
 
             console.log('First index', firstIndex);
             console.log('Last index', lastIndex);
-            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
+            // const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
+            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
 
             console.log('Total messages:', messageTransactions.length);
 
@@ -224,7 +225,9 @@ module.exports = (app, passport, jobs, websocket) => {
                 new Date(b.message.createdAt) - new Date(a.message.createdAt)
             );
 
-            res.send(messageTransactions);
+            const paginatesMessages = messageTransactions.slice(firstIndex, lastIndex + 1);
+
+            res.send(paginatesMessages);
         } catch (error){
             logger.error('Error getting messages:');
             logger.error(`${error}`);

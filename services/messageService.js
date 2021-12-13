@@ -69,7 +69,7 @@ const sendMessagePushNotifications = async (memberAccountProperties, channelAcco
     if (Array.isArray(members) && members.length > 0) {
         const pnBody = `${senderAlias} has sent a message`;
         const pnTitle = `${senderAlias}`;
-        getPNTokensAndSendPushNotification(members, senderAlias, address, pnBody, pnTitle, {address});
+        getPNTokensAndSendPushNotification(members, [address], pnBody, pnTitle, {address});
     }
 
     //TODO get channel name from channel account properties
@@ -77,7 +77,7 @@ const sendMessagePushNotifications = async (memberAccountProperties, channelAcco
         // Push notification for mentioned members
         const pnmBody = `${senderAlias} was tagged`;
         const pnmTitle = `${senderAlias} has tagged`;
-        getPNTokensAndSendPushNotification(mentions, senderAlias, address, pnmBody, pnmTitle, {address});
+        getPNTokensAndSendPushNotification(mentions, [address], pnmBody, pnmTitle, {address});
     }
 }
 

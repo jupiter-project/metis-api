@@ -218,25 +218,40 @@ class JupiterTransactionsService {
      *               senderRS,subtype,amountNQT,sender,recipientRS,recipient,ecBlockHeight,deadline,transaction,timestamp,height}]
      *           >}
      */
-    async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null){
+    async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null, orderBy = 'desc'){
         logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.sensitive(`address= ${JSON.stringify(address)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
+
         const confirmedTransactionsPromise = this.getBlockChainTransactionsByTag(address,tag,firstIndex,lastIndex);
+
         const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag, firstIndex, lastIndex);
-        const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise])
-        const combinedTransactions = [ ...confirmedTransactionsResponse, ...unconfirmendTransactionsResponse ];
+
+        const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise]);
+        const combinedTransactions = [ ...unconfirmendTransactionsResponse, ...confirmedTransactionsResponse ];
+
+
+        combinedTransactions.sort((a,b) => {
+            if(orderBy === 'desc'){
+                return new Date(b.timestamp) - new Date(a.timestamp)
+            }
+
+            if (orderBy === 'asc'){
+                return new Date(a.timestamp) - new Date(b.timestamp);
+            }
+
+            throw new Error(`orderBy is invalid ${orderBy}`);
+        });
+
+
+
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`++ combinedTransactions.length= ${combinedTransactions.length}`);
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        return combinedTransactions.filter(transaction => {
-            return transaction.hasOwnProperty('attachment') &&
-                transaction.attachment.hasOwnProperty('message') &&
-                transaction.attachment.message.includes(tag)
-        });
+        return combinedTransactions;
     }
 
     /**
@@ -263,14 +278,7 @@ class JupiterTransactionsService {
                 if(!response.hasOwnProperty('data')){ return []}
                 if(!response.data.hasOwnProperty('unconfirmedTransactions')){ return []}
                 if(!Array.isArray(response.data.unconfirmedTransactions)){return []}
-                const transactions = response.data.unconfirmedTransactions;
-                const messageTransactions = transactions.filter( transaction => {
-                    return transaction.hasOwnProperty('attachment') &&
-                        transaction.attachment.hasOwnProperty('message') &&
-                        transaction.attachment.message.includes(tag)
-                })
-
-                return messageTransactions;
+                return response.data.unconfirmedTransactions;
             })
     }
 
@@ -329,12 +337,7 @@ class JupiterTransactionsService {
                 if(!response.hasOwnProperty('data')){ return []}
                 if(!response.data.hasOwnProperty('transactions')){ return []}
                 if(!Array.isArray(response.data.transactions)){return []}
-
-                return response.data.transactions.filter(transaction => {
-                    return transaction.hasOwnProperty('attachment') &&
-                        transaction.attachment.hasOwnProperty('message') &&
-                        transaction.attachment.message.includes(tag)
-                });
+                return response.data.transactions;
             })
     }
 
