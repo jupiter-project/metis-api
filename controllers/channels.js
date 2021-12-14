@@ -263,11 +263,6 @@ module.exports = (app, passport, jobs, websocket) => {
         }
 
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
-
-        if(!channelAccountProperties){
-            return res.status(403).send({message: 'Invalid channel address.'})
-        }
 
         try{
             const messageRecord = generateNewMessageRecordJson(
@@ -281,18 +276,25 @@ module.exports = (app, passport, jobs, websocket) => {
                 version,
             );
 
-            await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             if (type === 'invitation') {
                 websocket.of('/chat').to(address).emit('newMemberChannel');
             }
             websocket.of('/chat').to(address).emit('createMessage', { message: messageRecord });
+
+
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
+            if(!channelAccountProperties){
+                return res.status(403).send({message: 'Invalid channel address.'})
+            }
+
+            await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+            await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
+            res.send({ message: 'Message successfully sent' });
         }catch(error){
             logger.error('Error sending metis message:')
             logger.error(JSON.stringify(error));
             return res.status(500).send({message: 'Error sending message'})
         }
-        res.send({ message: 'Message successfully sent' });
-        await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
     });
 
     /**
