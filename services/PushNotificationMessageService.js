@@ -1,7 +1,7 @@
-
 import _ from 'lodash';
 import {findNotifications, incrementBadgeCounter} from './notificationService';
 import {BadJupiterAddressError} from "../errors/metisError";
+
 const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
 const { sendFirebasePN, sendApplePN } = require('../config/notifications');
@@ -32,11 +32,14 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
   logger.sensitive(`#### extractPNAccountsFromCollection = (notificationsCollection)`);
   if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
   if(notificationsCollection.length === 0 ){return []}
-  const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts)
-  // if(pnAccountsArrayOfArrays.length === 0 ){return []}
-  const pnAccounts = pnAccountsArrayOfArrays.flat();
 
-  return pnAccounts;
+  logger.sensitive(`notificationsCollection: ${JSON.stringify(notificationsCollection)}`);
+
+  const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts);
+
+  logger.sensitive(`pnAccountsArrayOfArrays: ${JSON.stringify(pnAccountsArrayOfArrays)}`);
+  // if(pnAccountsArrayOfArrays.length === 0 ){return []}
+  return pnAccountsArrayOfArrays.flat();
 }
 
 /**
