@@ -33,13 +33,30 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
   if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
   if(notificationsCollection.length === 0 ){return []}
 
+  console.log(`\n\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
   console.log(`notificationsCollection: `, notificationsCollection);
-
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
   const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts);
 
+  console.log(`\n\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
   console.log(`pnAccountsArrayOfArrays: `, pnAccountsArrayOfArrays);
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+
   // if(pnAccountsArrayOfArrays.length === 0 ){return []}
-  return pnAccountsArrayOfArrays.flat();
+
+  let pnAccounts = [];
+  pnAccountsArrayOfArrays.forEach(_pnAccounts => {
+    pnAccounts = [...pnAccounts, ..._pnAccounts]
+  })
+
+  console.log(`\n\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+  console.log(`pnAccounts: `, pnAccounts);
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+
+  return pnAccounts;
 }
 
 /**
