@@ -388,14 +388,14 @@ class ChanService {
             logger.sensitive(`transaction=${JSON.stringify(transaction)}`);
             const transactionId = transactionUtils.extractTransactionId(transaction);
 
-            const messageContainer = await this.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
-            // const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+
+            const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
                 transactionId,
                 memberAccountProperties.crypto,
                 memberAccountProperties.passphrase
             );
 
-            // logger.sensitive(`messageContainer=${JSON.stringify(messageContainer)}`);
+            logger.sensitive(`messageContainer=${JSON.stringify(messageContainer)}`);
             const gravityAccountProperties = await instantiateGravityAccountProperties(
                 messageContainer.message.passphrase,
                 messageContainer.message.password
