@@ -428,7 +428,7 @@ class JupiterTransactionsService {
                 })
 
                 return Promise.all(messages);
-            })
+            });
     }
 
 }

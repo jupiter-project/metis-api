@@ -3,8 +3,8 @@ import {channelConfig, userConfig} from '../config/constants';
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
-import {add} from "lodash";
-import {BadJupiterAddressError, JupiterApiError, UnknownAliasError} from "../errors/metisError";
+import {BadJupiterAddressError, UnknownAliasError} from "../errors/metisError";
+
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
 const {jupiterAPIService} = require('./jupiterAPIService');
@@ -616,9 +616,7 @@ class JupiterAccountService {
         const listTag = channelConfig.channelMemberList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
             .then( messageContainers  => {
-                const channelMembers = messageContainers.map(messageContainer => messageContainer.message);
-
-                return channelMembers;
+                return messageContainers.map(messageContainer => messageContainer.message);
             })
     }
 

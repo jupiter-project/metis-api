@@ -192,9 +192,6 @@ module.exports = (app, passport, jobs, websocket) => {
         const pageNumber = parseInt(_pageNumber);
         const pageSize = parseInt(_pageSize);
 
-        console.log('Page number :', pageNumber);
-        console.log('Page pageSize :', pageSize);
-        console.log('Validation ____', !(pageSize > 0 && pageSize < 1000));
         if(!(pageSize > 0 && pageSize < 1000)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'}); // BAD REQUEST
         }
@@ -213,12 +210,8 @@ module.exports = (app, passport, jobs, websocket) => {
                 return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
             }
 
-            console.log('First index', firstIndex);
-            console.log('Last index', lastIndex);
             // const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
             const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
-
-            console.log('Total messages:', messageTransactions.length);
 
             // Sorting messages descending
             messageTransactions.sort(  (a,b) =>
@@ -230,7 +223,7 @@ module.exports = (app, passport, jobs, websocket) => {
             res.send(paginatesMessages);
         } catch (error){
             logger.error('Error getting messages:');
-            logger.error(`${error}`);
+            logger.error(`${JSON.stringify(error)}`);
             res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
         }
     });

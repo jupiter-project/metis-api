@@ -37,7 +37,7 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
                 .then(aliases => {
                     properties.addAliases(aliases);
                     return properties;
-                })
+                });
         }).catch( error => {
             logger.error(`***********************************************************************************`);
             logger.error(`** instantiateGravityAccountProperties().catch(error)`);
