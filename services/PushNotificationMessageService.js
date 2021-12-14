@@ -33,11 +33,11 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
   if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
   if(notificationsCollection.length === 0 ){return []}
 
-  logger.sensitive(`notificationsCollection: ${JSON.stringify(notificationsCollection)}`);
+  console.log(`notificationsCollection: `, notificationsCollection);
 
   const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts);
 
-  logger.sensitive(`pnAccountsArrayOfArrays: ${JSON.stringify(pnAccountsArrayOfArrays)}`);
+  console.log(`pnAccountsArrayOfArrays: `, pnAccountsArrayOfArrays);
   // if(pnAccountsArrayOfArrays.length === 0 ){return []}
   return pnAccountsArrayOfArrays.flat();
 }
