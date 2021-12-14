@@ -251,7 +251,11 @@ class JupiterTransactionsService {
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`++ combinedTransactions.length= ${combinedTransactions.length}`);
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        return combinedTransactions;
+        return combinedTransactions.filter(transaction => {
+            return transaction.hasOwnProperty('attachment') &&
+                transaction.attachment.hasOwnProperty('message') &&
+                transaction.attachment.message.includes(tag)
+        });
     }
 
     /**
@@ -278,7 +282,12 @@ class JupiterTransactionsService {
                 if(!response.hasOwnProperty('data')){ return []}
                 if(!response.data.hasOwnProperty('unconfirmedTransactions')){ return []}
                 if(!Array.isArray(response.data.unconfirmedTransactions)){return []}
-                return response.data.unconfirmedTransactions;
+                const transactions = response.data.unconfirmedTransactions;
+                return transactions.filter(transaction => {
+                    return transaction.hasOwnProperty('attachment') &&
+                        transaction.attachment.hasOwnProperty('message') &&
+                        transaction.attachment.message.includes(tag)
+                });
             })
     }
 
@@ -337,7 +346,11 @@ class JupiterTransactionsService {
                 if(!response.hasOwnProperty('data')){ return []}
                 if(!response.data.hasOwnProperty('transactions')){ return []}
                 if(!Array.isArray(response.data.transactions)){return []}
-                return response.data.transactions;
+                return response.data.transactions.filter(transaction => {
+                    return transaction.hasOwnProperty('attachment') &&
+                        transaction.attachment.hasOwnProperty('message') &&
+                        transaction.attachment.message.includes(tag)
+                });
             })
     }
 
