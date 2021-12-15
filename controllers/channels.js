@@ -6,10 +6,6 @@ import {chanService} from "../services/chanService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {jupiterAPIService} from "../services/jupiterAPIService";
-// import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
-// import {messagesConfig} from "../config/constants";
-// import {FeeManager} from "../services/FeeManager";
-
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
@@ -24,6 +20,7 @@ const {getPNTokensAndSendPushNotification} = require('../services/PushNotificati
 
 
 module.exports = (app, passport, jobs, websocket) => {
+
     app.use(device.capture());
 
     /**
@@ -171,11 +168,11 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== GET: /v1/api/data/messages/:firstIndex');
         logger.info('======================================================================================\n\n\n');
         const { user } = req;
-        // pageNumber starts with Page 0;
+        // pageNumber starts at Page 0;
         const { channelAddress, pageNumber: _pageNumber, pageSize: _pageSize } = req.query
 
         if (!channelAddress) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'});
         }
         if(!gu.isWellFormedJupiterAddress(channelAddress)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
@@ -183,21 +180,21 @@ module.exports = (app, passport, jobs, websocket) => {
 
 
         if(isNaN(_pageNumber)){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
         }
         if(isNaN(_pageSize)){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'});
         }
 
         const pageNumber = parseInt(_pageNumber);
         const pageSize = parseInt(_pageSize);
 
         if(!(pageSize > 0 && pageSize < 1000)){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'});
         }
 
         if(pageNumber < 0){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'});
         }
 
         try{
@@ -223,7 +220,7 @@ module.exports = (app, passport, jobs, websocket) => {
             res.send(paginatesMessages);
         } catch (error){
             logger.error('Error getting messages:');
-            logger.error(`${JSON.stringify(error)}`);
+            logger.error(`${error}`);
             res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
         }
     });
