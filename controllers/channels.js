@@ -6,10 +6,6 @@ import {chanService} from "../services/chanService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {jupiterAPIService} from "../services/jupiterAPIService";
-// import {jupiterTransactionMessageService} from "../services/jupiterTransactionMessageService";
-// import {messagesConfig} from "../config/constants";
-// import {FeeManager} from "../services/FeeManager";
-
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
@@ -18,13 +14,11 @@ import {messagesConfig} from "../config/constants";
 const gu = require('../utils/gravityUtils');
 const { v4: uuidv4 } = require('uuid');
 const connection = process.env.SOCKET_SERVER;
-const device = require('express-device');
 const logger = require('../utils/logger')(module);
 const {getPNTokensAndSendPushNotification} = require('../services/PushNotificationMessageService');
 
 
 module.exports = (app, passport, jobs, websocket) => {
-    app.use(device.capture());
 
     /**
      * Get List of Channels
@@ -107,15 +101,17 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info(`======================================================================================\n\n`);
 
         const {channelAddress} = req.body
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)};
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
         const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
         );
 
         chanService.acceptInvitation(memberAccountProperties, channelAddress)
-            .then(() => websocket.of('/chat').to(channelAddress).emit('newMemberChannel'))
-            .then(() => res.status(200).send({message: 'Invite accepted'}))
+            .then(() => {
+                websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
+                res.status(200).send({message: 'Invite accepted'});
+            })
             .catch(error => {
                 logger.error(`*********************************************`)
                 logger.error(`** channel/invite/accept ERROR`)
@@ -125,7 +121,6 @@ module.exports = (app, passport, jobs, websocket) => {
                 }
                 return res.status(StatusCode.ServerErrorInternal).send({message: error.message});
             });
-
     });
 
     /**

@@ -46,6 +46,20 @@ module.exports = {
   },
 
     upsertNotificationDocumentWithNewToken: async (userAddress, provider, newToken) => {
+
+        if(!userAddress){
+            throw new Error('User address is missing');
+        }
+
+        if(!provider){
+            throw new Error('Provider is missing');
+        }
+
+        if(!newToken){
+            throw new Error('Token is missing');
+        }
+
+
         const filter = { userAddress: userAddress};
         const update = {
             userAddress: userAddress,
