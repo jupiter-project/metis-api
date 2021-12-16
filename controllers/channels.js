@@ -3,7 +3,10 @@ import controller from '../config/controller';
 import {gravity} from '../config/gravity';
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
-import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {
+    instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties,
+    refreshGravityAccountProperties
+} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {jupiterAPIService} from "../services/jupiterAPIService";
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
@@ -178,7 +181,6 @@ module.exports = (app, passport, jobs, websocket) => {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
         }
 
-
         if(isNaN(_pageNumber)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
         }
@@ -200,14 +202,15 @@ module.exports = (app, passport, jobs, websocket) => {
         try{
             const firstIndex = pageNumber * pageSize
             const lastIndex = firstIndex + (pageSize - 1);
-            const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+            const memberAccountProperties =  instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
+            // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
             if(!channelAccountProperties){
                 return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
             }
 
-            // const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
+            //@TODO this will be a big problem when channel has alot of messages!!!!!!!
             const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
 
             // Sorting messages descending
@@ -249,7 +252,7 @@ module.exports = (app, passport, jobs, websocket) => {
         } = req.body;
 
         if(!message || !address){
-            return res.status(400).send({message: 'Must include a valid message and address'});
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message and address'});
         }
 
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
@@ -274,9 +277,12 @@ module.exports = (app, passport, jobs, websocket) => {
 
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
             if(!channelAccountProperties){
-                return res.status(403).send({message: 'Invalid channel address.'})
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
             }
 
+            if(channelAccountProperties.isMinimumProperties){
+                await refreshGravityAccountProperties(channelAccountProperties)
+            }
             await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
             res.send({ message: 'Message successfully sent' });

@@ -4,9 +4,11 @@ import {instantiateGravityAccountProperties} from "../gravity/instantiateGravity
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
 import {BadJupiterAddressError, UnknownAliasError} from "../errors/metisError";
-
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
-const {GravityAccountProperties, metisGravityAccountProperties} = require('../gravity/gravityAccountProperties');
+
+// metisGravityAccountProperties
+
+const {GravityAccountProperties, metisGravityAccountProperties, myTest} = require('../gravity/gravityAccountProperties');
 const {jupiterAPIService} = require('./jupiterAPIService');
 const {tableService} = require('./tableService');
 const {jupiterTransactionsService} = require('./jupiterTransactionsService');
@@ -605,17 +607,20 @@ class JupiterAccountService {
     /**
      *
      * @param channelAccountProperties
-     * @returns {Promise<*>}
+     * @returns {Promise<[*]>}
      */
     getChannelMembers(channelAccountProperties){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getChannelMembers(channelAccountProperties) )`);
-        logger.verbose(`## `);
+        logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
         if(!(channelAccountProperties instanceof GravityAccountProperties )){ throw new Error('channelAccountProperties is invalid')}
-        logger.sensitive(`channelAccountProperties.address= ${channelAccountProperties.address}`);
+        logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
         const listTag = channelConfig.channelMemberList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
             .then( messageContainers  => {
+                console.log(`\n\n\n`);
+                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+                console.log('messageContainers');
+                console.log(messageContainers);
+                console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
                 return messageContainers.map(messageContainer => messageContainer.message);
             })
     }

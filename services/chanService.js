@@ -349,9 +349,6 @@ class ChanService {
         }
     }
 
-
-    // async getReadableTaggedMessagesOrNull(gravityAccountProperties, tag, isMetisEncrypted = true){
-
     /**
      *
      * @param {GravityAccountProperties} memberAccountProperties
@@ -377,31 +374,37 @@ class ChanService {
                 memberAccountProperties.address,
                 tag
             )
-            logger.sensitive(`tag=${JSON.stringify(tag)}`);
-            logger.sensitive(`transactions=${JSON.stringify(transactions)}`);
+            logger.info(`tag=${tag}`);
+            logger.info(`transactions.length= ${transactions.length}`);
+            // logger.sensitive(`transactions=${JSON.stringify(transactions)}`);
             const transactionsBySelf = transactionUtils.filterEncryptedMessageTransactionsBySender(transactions, memberAccountProperties.address);
-            logger.sensitive(`transactionsBySelf=${JSON.stringify(transactionsBySelf)}`);
+            logger.debug(`transactionsBySelf.length= ${transactionsBySelf.length}`);
+            logger.debug(`transactionsBySelf=${JSON.stringify(transactionsBySelf)}`);
             if (!gu.isNonEmptyArray(transactionsBySelf)) {
                 return null;
             }
             const [transaction] = transactionsBySelf;
-            logger.sensitive(`transaction=${JSON.stringify(transaction)}`);
+            logger.debug(`transaction=${JSON.stringify(transaction)}`);
             const transactionId = transactionUtils.extractTransactionId(transaction);
+            //@TODO wrap the following into something like: fetchChannelRecord();
 
-
-            const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
-                transactionId,
-                memberAccountProperties.crypto,
-                memberAccountProperties.passphrase
-            );
-
-            logger.sensitive(`messageContainer=${JSON.stringify(messageContainer)}`);
-            const gravityAccountProperties = await instantiateGravityAccountProperties(
-                messageContainer.message.passphrase,
-                messageContainer.message.password
+            const channelRecord = await this.fetchChannelRecord(transactionId, memberAccountProperties.crypto, memberAccountProperties.passphrase);
+            // const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+            //     transactionId,
+            //     memberAccountProperties.crypto,
+            //     memberAccountProperties.passphrase
+            // );
+            logger.sensitive(`channelRecord= ${JSON.stringify(channelRecord)}`);
+            const gravityAccountProperties = await instantiateMinimumGravityAccountProperties(
+                channelRecord.passphrase,
+                channelRecord.password,
+                channelRecord.address
             )
+            // )const gravityAccountProperties = await instantiateGravityAccountProperties(
+            //     messageContainer.message.passphrase,
+            //     messageContainer.message.password
+            // )
 
-            logger.sensitive(`gravityAccountProperties=${JSON.stringify(gravityAccountProperties)}`);
             return gravityAccountProperties;
         } catch(error){
             logger.error(`****************************************************************`);
@@ -413,8 +416,24 @@ class ChanService {
         }
     }
 
-
-
+    /**
+     *
+     * @param transactionId
+     * @param {GravityCrypto} crypto
+     * @param passphrase
+     * @return {Promise<{recordType, channelName, address, passphrase, password, publicKey, accountId, sender, createdBy, status, createdAt, updatedAt, version}>}
+     */
+    async fetchChannelRecord(transactionId, crypto, passphrase){
+        const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+            transactionId,
+            crypto,
+            passphrase
+        );
+        if(!( messageContainer.hasOwnProperty('message')  &&  messageContainer.message.hasOwnProperty('recordType') && messageContainer.message.recordType === 'channelRecord' )){
+            throw new Error(`invalid channelRecord transaction`)
+        }
+        return messageContainer.message;
+    }
 
     /**
      * Get a new JupAccount, Fund a new Channel, send Channel_Record transaction, Add member pubKeys to channel account.
@@ -793,10 +812,10 @@ const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {channelConfig, tableConfig, userConfig} = require("../config/constants");
 const metis = require("../config/metis");
-const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {head, stubFalse, has} = require("lodash");
 const {transactionUtils} = require("../gravity/transactionUtils");
-const {BadJupiterAddressError} = require("../errors/metisError");
+// const {BadJupiterAddressError} = require("../errors/metisError");
 // const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 
 module.exports.chanService = new ChanService(

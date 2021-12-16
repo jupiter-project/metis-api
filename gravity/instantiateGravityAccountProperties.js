@@ -3,8 +3,33 @@ const gu = require("../utils/gravityUtils");
 const {GravityAccountProperties} = require("./gravityAccountProperties");
 const {jupiterAccountService} = require("../services/jupiterAccountService");
 const {BadJupiterAddressError} = require("../errors/metisError");
+const {GravityCrypto} = require("../services/gravityCrypto");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
+
+/**
+ *
+ * @param passphrase
+ * @param password
+ * @param address
+ * @return {GravityAccountProperties}
+ */
+module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password,address) => {
+    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password=${password})`);
+    if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
+    if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
+    if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+
+    return new GravityAccountProperties(
+        address,
+        null,
+        null,
+        passphrase,
+        gu.generateHash(password),
+        password,
+        encryptAlgorithm
+    );
+}
 
 /**
  *
@@ -46,4 +71,23 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
 
             throw error;
         })
+}
+
+/**
+ *
+ * @return {Promise<void>}
+ */
+module.exports.refreshGravityAccountProperties= async (properties) => {
+    const accountInfo = await jupiterAccountService.fetchAccountInfo(properties.passphrase);
+    properties.address = accountInfo.address;
+    properties.accountId = accountInfo.accountId;
+    properties.publicKey = accountInfo.publicKey;
+    properties.passwordHash =  gu.generateHash(properties.password);
+    properties.crypto = new GravityCrypto(properties.algorithm, properties.password);
+    const aliases = await jupiterAccountService.getAliasesOrEmptyArray(accountInfo.address);
+    properties.removeAllAliases();
+    properties.addAliases(aliases);
+    properties.isMinimumProperties = false;
+
+    // return properties;
 }

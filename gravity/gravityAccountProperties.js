@@ -5,6 +5,7 @@ const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {metisApplicationAccountProperties} = require("./applicationAccountProperties");
+const {BadJupiterAddressError} = require("../errors/metisError");
 
 /**
  *
@@ -14,8 +15,8 @@ class GravityAccountProperties extends JupiterAccountProperties {
     /**
      *
      * @param {string} address - ex JUP-XXXXX
-     * @param {string} accountId - Jupiter Account ID.( Seems to be the same as pub key.)
-     * @param {string} publicKey - Jupiter  public key.
+     * @param {string|null} accountId - Jupiter Account ID.( Seems to be the same as pub key.)
+     * @param {string|null} publicKey - Jupiter  public key.
      * @param {string} passphrase - 12 words passphrase
      * @param {string} passwordHash
      * @param {string} password
@@ -43,16 +44,17 @@ class GravityAccountProperties extends JupiterAccountProperties {
         if(!password){throw new Error('missing password')}
         if(!algorithm){throw new Error('missing algorithm')}
         if(!passwordHash){throw new Error('missing passwordHash')}
-
         super(address, accountId, publicKey, passphrase, email , firstName , lastName );
+        this.isMinimumProperties = false;
+        if(accountId === null || publicKey === null) {
+            this.isMinimumProperties = true;
+        }
         this.isApp = false;
         this.passwordHash = passwordHash;
         this.password = password;
-        this.publicKey = publicKey;
-        this.crypto = null;
-        if(algorithm && password){
-            this.crypto = new GravityCrypto( algorithm, password );
-        }
+        // this.publicKey = publicKey;
+        this.algorithm = algorithm;
+        this.crypto = new GravityCrypto(algorithm,password);
         this.applicationAccountProperties = applicationAccountProperties
         if(!(applicationAccountProperties == null)){
             this.addApplicationAccountProperties(applicationAccountProperties);
@@ -94,16 +96,23 @@ class GravityAccountProperties extends JupiterAccountProperties {
         }
     }
 
+    /**
+     *
+     * @param value
+     * @return {*}
+     */
     generateHash(value) {
         return bcrypt.hashSync(value, bcrypt.genSaltSync(8), null);
     }
 
+    /**
+     *
+     * @return {string}
+     */
     generateRandomHash() {
         const newPassphrase = gu.generatePassphrase();
-
         return  bcrypt.hashSync(newPassphrase, bcrypt.genSaltSync(8), null);
     }
-
 
 
     //@TODO generateUserRecord should be removed.
@@ -166,6 +175,8 @@ class GravityAccountProperties extends JupiterAccountProperties {
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
+
+module.exports.myTest = {me: 'test'};
 
 module.exports.metisGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
