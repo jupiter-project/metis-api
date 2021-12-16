@@ -88,7 +88,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const params = {
       requestType: 'getBlockchainTransactions',
       account: user.userData.account,
-      type: '0', // TODO FIGURE OUT WHY TYPE IS STRING
+      type: 0, // TODO FIGURE OUT WHY TYPE IS STRING
+      subtype: 0,
       firstIndex: 0,
       lastIndex: 9,
     };
@@ -96,7 +97,9 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     //TODO make the "get" function static in order to avoid generating all unnecessary properties
     jupiterAPIService.get(params)
         .then(response => {
-          return res.status(200).send({transactions: response.data.transactions});
+          //TODO remove this line once filter by type = 0, subtype = 0
+          const transactions = response.data.transactions.filter(txn => txn.type === 0);
+          return res.status(200).send({transactions});
         })
         .catch(error => {
           logger.error(`${error}`);

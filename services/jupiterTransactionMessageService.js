@@ -571,7 +571,7 @@ class JupiterTransactionMessageService {
             null,
             null,
             subtype
-        )
+        );
     }
 
 }
