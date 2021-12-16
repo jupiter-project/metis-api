@@ -359,7 +359,6 @@ class JupiterAccountService {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## getMemberChannels(memberProperties)`);
         logger.verbose(`## `);
-        console.log('getMemberChannels ------>', memberProperties);
         if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
         try {
 

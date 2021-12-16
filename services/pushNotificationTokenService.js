@@ -19,10 +19,10 @@ module.exports = {
    */
   addTokenNotification: async (req, res) => {
     try {
-      const {token, jupId, provider} = req.body;
+      const {token, jupId: userAddress, provider} = req.body;
       logger.debug(`[addTokenNotification]->Token: ${token}`);
-      if (!gu.isWellFormedJupiterAddress(jupId)) {
-        const message = {message: `JupId is not valid: ${jupId}`};
+      if (!gu.isWellFormedJupiterAddress(userAddress)) {
+        const message = {message: `JupId is not valid: ${userAddress}`};
         logger.error(`${message}`);
         return res.status(StatusCode.ClientErrorBadRequest).json(message);
       }
@@ -33,7 +33,8 @@ module.exports = {
         return res.status(StatusCode.ClientErrorBadRequest).json(message);
       }
 
-      const notification = await upsertNotificationDocumentWithNewToken(jupId, provider, token);
+      console.log('Upserting Token: ', token);
+      const notification = await upsertNotificationDocumentWithNewToken(userAddress, provider, token);
 
       return res.json(notification);
     } catch(error){

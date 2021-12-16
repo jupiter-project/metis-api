@@ -46,6 +46,20 @@ module.exports = {
   },
 
     upsertNotificationDocumentWithNewToken: async (userAddress, provider, newToken) => {
+
+        if(!userAddress){
+            throw new Error('User address is missing');
+        }
+
+        if(!provider){
+            throw new Error('Provider is missing');
+        }
+
+        if(!newToken){
+            throw new Error('Token is missing');
+        }
+
+
         const filter = { userAddress: userAddress};
         const update = {
             userAddress: userAddress,
@@ -60,6 +74,7 @@ module.exports = {
             ]
         };
 
+        console.log('Update payload :', update);
         const notification = await Notifications.findOne(filter);
         if(!notification){
             return Notifications.create(update);
@@ -76,13 +91,14 @@ module.exports = {
 
         const newPNAccount = {
             provider,
-            newToken,
+            token: newToken,
             createdAt: new Date(),
             badgeCounter: 0,
         };
 
         // pnAccounts.push(newPNAccount);
 
+        console.log('New pn account payload', newPNAccount);
         return Notifications.updateOne(filter, { $push: { pnAccounts: newPNAccount } });
     },
 
