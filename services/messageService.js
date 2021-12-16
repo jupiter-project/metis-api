@@ -4,6 +4,7 @@ const {FeeManager} = require("./FeeManager");
 const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 const {getPNTokensAndSendPushNotification} = require("../services/PushNotificationMessageService");
 const metis = require("../config/metis");
+const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 
 const generateNewMessageRecordJson = (
     senderAccountProperties,
@@ -41,6 +42,9 @@ const sendMetisMessage = async (memberAccountProperties, channelAccountPropertie
     const messageRecordString = JSON.stringify(messageRecord);
     const tag = messagesConfig.messageRecord;
     const feeType = FeeManager.feeTypes.account_record;
+    if(channelAccountProperties.isMinimumProperties){
+        await refreshGravityAccountProperties(channelAccountProperties);
+    }
 
     return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
         memberAccountProperties.passphrase,
@@ -50,6 +54,7 @@ const sendMetisMessage = async (memberAccountProperties, channelAccountPropertie
         feeType,
         channelAccountProperties.publicKey
     );
+
 };
 
 const sendMessagePushNotifications = async (memberAccountProperties, channelAccountProperties, mentions) => {

@@ -271,7 +271,7 @@ class JupiterTransactionMessageService {
             throw new Error('memberAccountProperties is invalid')
         }
         if(!transactionUtils.areValidTransactions(transactions)){ throw new Error('transactions are not valid')}
-        logger.sensitive(`- gravityAccountProperties.length= ${JSON.stringify(gravityAccountProperties.length)}`);
+        // logger.sensitive(`- gravityAccountProperties.length= ${JSON.stringify(gravityAccountProperties.length)}`);
         const transactionIds = this.transactionUtils.extractTransactionIds(transactions);
 
         const messages = isMetisEncrypted ?

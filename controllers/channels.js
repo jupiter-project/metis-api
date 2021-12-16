@@ -3,9 +3,14 @@ import controller from '../config/controller';
 import {gravity} from '../config/gravity';
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {chanService} from "../services/chanService";
-import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {
+    instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties,
+    refreshGravityAccountProperties
+} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {jupiterAPIService} from "../services/jupiterAPIService";
+
+
 import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
 import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
@@ -121,6 +126,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 }
                 return res.status(StatusCode.ServerErrorInternal).send({message: error.message});
             });
+
     });
 
     /**
@@ -166,46 +172,46 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== GET: /v1/api/data/messages/:firstIndex');
         logger.info('======================================================================================\n\n\n');
         const { user } = req;
-        // pageNumber starts with Page 0;
+        // pageNumber starts at Page 0;
         const { channelAddress, pageNumber: _pageNumber, pageSize: _pageSize } = req.query
 
         if (!channelAddress) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'});
         }
         if(!gu.isWellFormedJupiterAddress(channelAddress)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
         }
 
-
         if(isNaN(_pageNumber)){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
         }
         if(isNaN(_pageSize)){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'});
         }
 
         const pageNumber = parseInt(_pageNumber);
         const pageSize = parseInt(_pageSize);
 
         if(!(pageSize > 0 && pageSize < 1000)){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'});
         }
 
         if(pageNumber < 0){
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'}); // BAD REQUEST
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'});
         }
 
         try{
             const firstIndex = pageNumber * pageSize
             const lastIndex = firstIndex + (pageSize - 1);
-            const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+            const memberAccountProperties =  instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
+            // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
             if(!channelAccountProperties){
                 return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
             }
 
-            // const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
+            //@TODO this will be a big problem when channel has alot of messages!!!!!!!
             const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
 
             // Sorting messages descending
@@ -218,7 +224,7 @@ module.exports = (app, passport, jobs, websocket) => {
             res.send(paginatesMessages);
         } catch (error){
             logger.error('Error getting messages:');
-            logger.error(`${JSON.stringify(error)}`);
+            logger.error(`${error}`);
             res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
         }
     });
@@ -247,7 +253,7 @@ module.exports = (app, passport, jobs, websocket) => {
         } = req.body;
 
         if(!message || !address){
-            return res.status(400).send({message: 'Must include a valid message and address'});
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message and address'});
         }
 
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
@@ -272,9 +278,12 @@ module.exports = (app, passport, jobs, websocket) => {
 
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
             if(!channelAccountProperties){
-                return res.status(403).send({message: 'Invalid channel address.'})
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
             }
 
+            if(channelAccountProperties.isMinimumProperties){
+                await refreshGravityAccountProperties(channelAccountProperties)
+            }
             await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
             res.send({ message: 'Message successfully sent' });

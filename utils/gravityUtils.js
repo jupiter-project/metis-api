@@ -143,12 +143,12 @@ const isWellFormedJupiterTransactionId = function(transactionId){
 const isWellFormedPublicKey = function(publicKey) {
     logger.sensitive(`#### isWellFormedPublicKey(publicKey= ${publicKey})`);
     if(!publicKey){
-        logger.warn('publicKey is empty');
+        // logger.warn('publicKey is empty');
         return false;
     }
 
     if(typeof publicKey === 'undefined'){
-        logger.warn('publickey is undefined')
+        // logger.warn('publickey is undefined')
         return false;
     }
 
@@ -157,7 +157,7 @@ const isWellFormedPublicKey = function(publicKey) {
         return true;
     }
 
-    logger.warn(`publickey is not well formed: ${publicKey}`)
+    // logger.warn(`publickey is not well formed: ${publicKey}`)
     return false;
 }
 

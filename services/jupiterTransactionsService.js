@@ -419,6 +419,7 @@ class JupiterTransactionsService {
                 const transactionIds = latestListContainer.message;
                 logger.info(`- latest list of referenced transactions: ${transactionIds}`);
                 const messages = []
+                //@TODO instead of forEach use the Tag to fetch and then remove if not in the list
                 transactionIds.forEach(transactionId => {
                     messages.push(this.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecryptOrPassThrough(
                         transactionId,
