@@ -17,7 +17,7 @@ import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
 
 const gu = require('../utils/gravityUtils');
-const { v4: uuidv4 } = require('uuid');
+const {v4: uuidv4} = require('uuid');
 const connection = process.env.SOCKET_SERVER;
 const logger = require('../utils/logger')(module);
 const {getPNTokensAndSendPushNotification} = require('../services/PushNotificationMessageService');
@@ -28,7 +28,7 @@ module.exports = (app, passport, jobs, websocket) => {
     /**
      * Get List of Channels
      */
-    app.get('/v1/api/channels', async (req,res) => {
+    app.get('/v1/api/channels', async (req, res) => {
         console.log('');
         logger.info('======================================================================================');
         logger.info('== Get member Channels');
@@ -45,12 +45,12 @@ module.exports = (app, passport, jobs, websocket) => {
 
         const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
 
-        const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
-             reduced.push({
-                 channelAddress: channelAccountProperties.address,
-                 channelName: channelAccountProperties.channelName
-             });
-             return reduced;
+        const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) => {
+            reduced.push({
+                channelAddress: channelAccountProperties.address,
+                channelName: channelAccountProperties.channelName
+            });
+            return reduced;
         }, [])
 
         res.send(listOfChannels);
@@ -106,7 +106,9 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info(`======================================================================================\n\n`);
 
         const {channelAddress} = req.body
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+        if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+            throw new BadJupiterAddressError(channelAddress)
+        }
         const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
@@ -121,7 +123,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 logger.error(`*********************************************`)
                 logger.error(`** channel/invite/accept ERROR`)
                 logger.error(`${error}`);
-                if(error.message === 'Invitation Not Found'){
+                if (error.message === 'Invitation Not Found') {
                     return res.status(404).send({message: error.message});
                 }
                 return res.status(StatusCode.ServerErrorInternal).send({message: error.message});
@@ -171,58 +173,58 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== Get a channel\'s messages');
         logger.info('== GET: /v1/api/data/messages/:firstIndex');
         logger.info('======================================================================================\n\n\n');
-        const { user } = req;
+        const {user} = req;
         // pageNumber starts at Page 0;
-        const { channelAddress, pageNumber: _pageNumber, pageSize: _pageSize } = req.query
+        const {channelAddress, pageNumber: _pageNumber, pageSize: _pageSize} = req.query
 
         if (!channelAddress) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'});
         }
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){
+        if (!gu.isWellFormedJupiterAddress(channelAddress)) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
         }
 
-        if(isNaN(_pageNumber)){
+        if (isNaN(_pageNumber)) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
         }
-        if(isNaN(_pageSize)){
+        if (isNaN(_pageSize)) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'});
         }
 
         const pageNumber = parseInt(_pageNumber);
         const pageSize = parseInt(_pageSize);
 
-        if(!(pageSize > 0 && pageSize < 1000)){
+        if (!(pageSize > 0 && pageSize < 1000)) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'});
         }
 
-        if(pageNumber < 0){
+        if (pageNumber < 0) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'});
         }
 
-        try{
+        try {
             const firstIndex = pageNumber * pageSize
             const lastIndex = firstIndex + (pageSize - 1);
-            const memberAccountProperties =  instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
+            const memberAccountProperties = instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
             // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
 
-            if(!channelAccountProperties){
-                return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
+            if (!channelAccountProperties) {
+                return res.status(StatusCode.ServerErrorInternal).send({message: `channel is not available: ${channelAddress}`})
             }
 
             //@TODO this will be a big problem when channel has alot of messages!!!!!!!
             const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
 
             // Sorting messages descending
-            messageTransactions.sort(  (a,b) =>
+            messageTransactions.sort((a, b) =>
                 new Date(b.message.createdAt) - new Date(a.message.createdAt)
             );
 
             const paginatesMessages = messageTransactions.slice(firstIndex, lastIndex + 1);
 
             res.send(paginatesMessages);
-        } catch (error){
+        } catch (error) {
             logger.error('Error getting messages:');
             logger.error(`${error}`);
             res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
@@ -239,7 +241,7 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== POST: /v1/api/data/messages');
         logger.info('======================================================================================');
 
-        const { user } = req;
+        const {user} = req;
         const {
             message,
             address,
@@ -252,13 +254,13 @@ module.exports = (app, passport, jobs, websocket) => {
             type = 'message'
         } = req.body;
 
-        if(!message || !address){
+        if (!message || !address) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message and address'});
         }
 
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
 
-        try{
+        try {
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
                 message,
@@ -273,21 +275,21 @@ module.exports = (app, passport, jobs, websocket) => {
             if (type === 'invitation') {
                 websocket.of('/chat').to(address).emit('newMemberChannel');
             }
-            websocket.of('/chat').to(address).emit('createMessage', { message: messageRecord });
+            websocket.of('/chat').to(address).emit('createMessage', {message: messageRecord});
 
 
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
-            if(!channelAccountProperties){
+            if (!channelAccountProperties) {
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
             }
 
-            if(channelAccountProperties.isMinimumProperties){
+            if (channelAccountProperties.isMinimumProperties) {
                 await refreshGravityAccountProperties(channelAccountProperties)
             }
             await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
-            res.send({ message: 'Message successfully sent' });
-        }catch(error){
+            res.send({message: 'Message successfully sent'});
+        } catch (error) {
             logger.error('Error sending metis message:')
             logger.error(JSON.stringify(error));
             return res.status(500).send({message: 'Error sending message'})
@@ -311,7 +313,7 @@ module.exports = (app, passport, jobs, websocket) => {
         )
         chanService.getChannelInvitationContainersSentToAccount(memberAccountProperties)
             .then(channelInvitations => {
-                const payload = channelInvitations.map( channelInvitationContainer => {
+                const payload = channelInvitations.map(channelInvitationContainer => {
                     return {
                         invitationId: channelInvitationContainer.transactionId,
                         channelName: channelInvitationContainer.message.channelRecord.channelName,
@@ -336,68 +338,58 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('======================================================================================');
         console.log('');
 
-        const {channelAddress, inviteeAddressOrAlias} = req.body;
         const {user} = req;
+        const {channelAddress, inviteeAddressOrAlias} = req.body;
+        let inviteeAddress = inviteeAddressOrAlias;
 
         try {
-
-            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
-            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            // if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
-            // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
-
-            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            // if(!gu.isWellFormedJupiterAddressOrAlias(inviteeAddressOrAlias)){throw new Error(`inviteeAddressOrAlias not well formed ${inviteeAddressOrAlias}`)}
-
-
-            const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-            const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
-
-
-            let inviteeAddress = inviteeAddressOrAlias
-            if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias) && gu.isWellFormedJupiterAlias(inviteeAddressOrAlias)){
+            if (!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias) && gu.isWellFormedJupiterAlias(inviteeAddressOrAlias)) {
                 // We need to get the Jup Address
-               let getAliasResponse = await  jupiterAPIService.getAlias(inviteeAddressOrAlias)
+                let getAliasResponse = await jupiterAPIService.getAlias(inviteeAddressOrAlias)
 
                 inviteeAddress = getAliasResponse.data.accountRS;
-            } else if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
+            }
 
-            return chanService.createInvitation(
-                channelAccountProperties,
-                inviterAccountProperties,
-                inviteeAddress)
-                .then(response => {
-                    const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
-                    const message = `${inviterAlias} invited you to join a channel`;
-                    const metadata = {isInvitation: 'true'};
-                    // getPNTokensAndSendPushNotification: async (recipientAddressArray, channelAddress, message, title, metadata) => {
-                    // getPNTokensAndSendPushNotification: async (recipientAddressArray, mutedChannelsToExclude, message, title, metadata) => {
-                    getPNTokensAndSendPushNotification(
-                        [inviteeAddress],
-                        [],
-                        message,
-                        'Invitation',
-                        metadata
-                    );
-
-                    // const createInvitationResponse = {
-                    //     invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,
-                    //     channelAddress: channelAccountProperties.address,
-                    //     channelName: channelAccountProperties.channelName,
-                    //     inviteeAddressOrAlias: inviteeAddressOrAlias.address,
-                    // }
-
-                    res.send(response);
-
-                })
-                .catch(error => {
-                    logger.error(`${error}`);
-                    res.sendStatus(500);
-                })
+            if (!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)) {
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Wrong Invitee address'});
+            }
         } catch (error) {
-            logger.error(`${error}`);
-            res.sendStatus(500);
+            return res.status(StatusCode.ClientErrorNotFound).json({message: 'Wrong Alias, please enter a valid alias.'});
         }
+
+
+        if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Wrong Channel address, please enter a valid account'});
+        }
+
+        const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+        const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
+
+        return chanService.createInvitation(
+            channelAccountProperties,
+            inviterAccountProperties,
+            inviteeAddress)
+            .then(response => {
+                websocket.of('/invite').to(`${inviteeAddress}`).emit('newInvite');
+                return response;
+            })
+            .then(response => {
+                const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
+                const message = `${inviterAlias} invited you to join a channel`;
+                const metadata = {isInvitation: 'true'};
+                getPNTokensAndSendPushNotification(
+                    [inviteeAddress],
+                    [],
+                    message,
+                    'Invitation',
+                    metadata
+                );
+                res.send(response);
+            })
+            .catch(error => {
+                logger.error(`${error}`);
+                res.sendStatus(500);
+            })
     });
 
 
@@ -430,7 +422,7 @@ module.exports = (app, passport, jobs, websocket) => {
         const job = jobs.create('channel-creation-confirmation', {channelName, memberAccountProperties})
             .priority('high')
             .removeOnComplete(false)
-            .save( error => {
+            .save(error => {
                 logger.verbose(`-----------------------------------------------------------------------------------`);
                 logger.verbose(`-- JobQueue: channel-creation-confirmation.save(error)`);
                 logger.verbose(`-- `);

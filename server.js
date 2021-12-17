@@ -163,7 +163,8 @@ io.of('/sign-up').on('connection', socketService.signUpConnection);
 
 // channel creation
 io.of('/channels').on('connection', socketService.channelCreationConnection);
-// io.of('/channels').on('connection', socketService.channelCreationConnection(this));
+
+io.of('/invite').on('connection', socketService.channelCreationConnection);
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
@@ -222,12 +223,8 @@ app.get('/*', (req, res) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
-const {jupiterFundingService} = require("./services/jupiterFundingService");
 const {chanService} = require("./services/chanService");
-const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
-// const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
 
 jobScheduleService.init(kue);
 
@@ -317,8 +314,6 @@ jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
     memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
     const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
 
-    // console.log('RESULTS -------->', createNewChannelResults);
-
     return done(null, {
       channelName: channelName,
       channelAccountProperties: createNewChannelResults
@@ -332,11 +327,7 @@ jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
     return done(error)
   }
 
-})
-
-/* jobs.process('fundAccount', (job, done) => {
-  transferWorker.fundAccount(job.data, job.id, done);
-}); */
+});
 
 mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   if (err) {
