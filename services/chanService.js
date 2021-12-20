@@ -4,18 +4,21 @@ const {metisGravityAccountProperties, GravityAccountProperties} = require("../gr
 const {jupiterAccountService} = require("./jupiterAccountService");
 const {gravityService} = require("./gravityService");
 const {tableService} = require("./tableService");
-const {FeeManager} = require("./FeeManager");
+const {FeeManager, feeManagerSingleton} = require("./FeeManager");
 
 class ChanService {
     /**
      *
      * @param appAccountProperties
      * @param jupApi
-     * @param {JupiterTransactionsService} jupiterTransactionsService
+     * @param jupiterTransactionsService
      * @param jupiterFundingService
      * @param jupiterAccountService
      * @param tableService
      * @param gravity
+     * @param gravityService
+     * @param transactionUtils
+     * @param {Validator} validator
      */
     constructor(
         appAccountProperties,
@@ -26,7 +29,9 @@ class ChanService {
         tableService,
         gravity,
         gravityService,
-        transactionUtils) {
+        transactionUtils,
+        validator
+    ) {
         if(!appAccountProperties){throw new Error('missing applicationGravityAccountProperties')}
         if(!jupApi){throw new Error('missing jupiterAPIService')}
         if(!jupiterTransactionsService){throw new Error('missing jupiterTransactionsService')}
@@ -40,8 +45,9 @@ class ChanService {
         this.jupiterAccountService = jupiterAccountService;
         this.tableService = tableService;
         this.gravity = gravity;
-        this.gravityService = gravityService
-        this.transactionUtils = transactionUtils
+        this.gravityService = gravityService;
+        this.transactionUtils = transactionUtils;
+        this.validator = validator;
     }
 
 
@@ -130,16 +136,6 @@ class ChanService {
         try {
             // First: Get all Invitations
             const invitationContainers = await this.getChannelInvitationContainersSentToAccount(sentToMemberAccountProperties);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('invitationContainers');
-            console.log(invitationContainers);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
             const invitationChannelAddresses = invitationContainers.map(messageContainer => messageContainer.message.channelRecord.address)
             if(invitationChannelAddresses.length === 0){return false}
 
@@ -205,7 +201,7 @@ class ChanService {
             const invitationContainersFilteredByTo = invitationContainers.filter( invitationContainer => invitationContainer.message.inviteeAddress === sentToMemberAccountProperties.address);
 
             // Third: Get All channels the user is a member of
-            const memberChannels = await this.jupiterAccountService.getMemberChannels(sentToMemberAccountProperties);
+            const memberChannels = await this.getMemberChannels(sentToMemberAccountProperties);
 
             // Fourth: Get the difference
             const invitationContainersNotInExistingChannels = invitationContainersFilteredByTo.filter(invitationContainer =>
@@ -248,23 +244,19 @@ class ChanService {
      * @returns {Promise<void>}
      */
     async createInvitation(channelAccountProperties, inviterAccountProperties, inviteeAddress){
-        logger.verbose(`    ########################################################################`);
-        logger.verbose(`    ## createInvitation(channelAccountProperties, inviterAccountProperties, inviteeAddress)`);
+        logger.verbose(`#### createInvitation(channelAccountProperties, inviterAccountProperties, inviteeAddress)`);
         if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('channelAccountProperties is invalid')};
         if(!(inviterAccountProperties instanceof GravityAccountProperties)){throw new Error('inviterAccountProperties is invalid')};
         if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new BadJupiterAddressError(inviteeAddress)};
         // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress is invalid')};
-        logger.sensitive(`  ## - channelAccountProperties.address= ${JSON.stringify(channelAccountProperties.address)}`);
-        logger.sensitive(`  ## - inviterAccountProperties.address= ${JSON.stringify(inviterAccountProperties.address)}`);
-        logger.sensitive(`  ## - inviteeAddress= ${JSON.stringify(inviteeAddress)}`);
-
+        logger.sensitive(`channelAccountProperties.address= ${JSON.stringify(channelAccountProperties.address)}`);
+        logger.sensitive(`inviterAccountProperties.address= ${JSON.stringify(inviterAccountProperties.address)}`);
+        logger.sensitive(`inviteeAddress= ${JSON.stringify(inviteeAddress)}`);
         try {
-
             // First: We can send the same invitation several times. When creating the invite list we'll de-dup.
-
             // Second: Send the invitation transaction
             const channelName = channelAccountProperties.channelName;
-            const inviteRecordJson = this.generateInviteRecordJson(channelName, inviteeAddress, inviterAccountProperties, channelAccountProperties);
+            const inviteRecordJson = await this.generateInviteRecordJson(channelName, inviteeAddress, inviterAccountProperties, channelAccountProperties);
             const feeType = FeeManager.feeTypes.invitation_to_channel;
             const inviteeInfo = await jupiterAccountService.getAccountOrNull(inviteeAddress);
             const inviteePublicKey = inviteeInfo.publicKey;
@@ -306,16 +298,15 @@ class ChanService {
      * @returns {Promise<void>}
      */
     async acceptInvitation(memberAccountProperties, channelAddress){
-        logger.verbose(`    ########################################################################`);
-        logger.verbose(`    ## acceptInvitation(memberAccountProperties, channelAddress)`);
+        logger.verbose(`#### acceptInvitation(memberAccountProperties, channelAddress)`);
         if (!gu.isWellFormedJupiterAddress(channelAddress)) {
             throw new BadJupiterAddressError(channelAddress)
         }
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
-        logger.sensitive(`  ## - memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
-        logger.sensitive(`  ## - channelAddress= ${channelAddress}`);
+        logger.sensitive(`memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
+        logger.sensitive(`channelAddress= ${channelAddress}`);
 
         try {
             // First: lets get the list of invitations
@@ -327,6 +318,10 @@ class ChanService {
             const invitationContainer = invitationContainers.find(invitationContainer => invitationContainer.message.channelRecord.address === channelAddress)
             if(invitationContainer === undefined){throw new Error('Invitation Not Found..')}
             const invitationRecord = invitationContainer.message;
+            const validateResult = this.validator.validateInviteRecord(invitationRecord);
+            if(!validateResult){
+                throw new InviteRecordValidatorError(validateResult.message);
+            }
             // const ExistingChannelAccountProperties = await this.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
             // if (ExistingChannelAccountProperties) { // member already has access to channel.
             //     return;
@@ -356,25 +351,22 @@ class ChanService {
      * @returns {Promise<GravityAccountProperties|null>}
      */
     async getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress){
-        logger.verbose(`  ###################################################################################`);
-        logger.verbose(`  ## getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress)`);
-
+        logger.verbose(`#### getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress)`);
         if (!gu.isWellFormedJupiterAddress(channelAddress)) {
             throw new BadJupiterAddressError(channelAddress)
         }
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
-        logger.sensitive(`## - channelAddress=${channelAddress}`);
-        logger.sensitive(`## - memberAccountProperties.address=${memberAccountProperties.address}`);
-
+        logger.sensitive(`channelAddress= ${channelAddress}`);
+        logger.sensitive(`memberAccountProperties.address= ${memberAccountProperties.address}`);
         try {
             const tag = `${channelConfig.channelRecord}.${channelAddress}`;
             const transactions = await jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(
                 memberAccountProperties.address,
                 tag
             )
-            logger.info(`tag=${tag}`);
+            logger.info(`tag= ${tag}`);
             logger.info(`transactions.length= ${transactions.length}`);
             // logger.sensitive(`transactions=${JSON.stringify(transactions)}`);
             const transactionsBySelf = transactionUtils.filterEncryptedMessageTransactionsBySender(transactions, memberAccountProperties.address);
@@ -424,16 +416,81 @@ class ChanService {
      * @return {Promise<{recordType, channelName, address, passphrase, password, publicKey, accountId, sender, createdBy, status, createdAt, updatedAt, version}>}
      */
     async fetchChannelRecord(transactionId, crypto, passphrase){
+        if(!gu.isWellFormedJupiterTransactionId(transactionId)){throw new Error(`transactionId is invalid`)}
+        if(!crypto instanceof GravityCrypto){throw new Error(`crypto is invalid`)}
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`passphrase is invalid`)}
         const messageContainer = await this.jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
             transactionId,
             crypto,
             passphrase
         );
-        if(!( messageContainer.hasOwnProperty('message')  &&  messageContainer.message.hasOwnProperty('recordType') && messageContainer.message.recordType === 'channelRecord' )){
-            throw new Error(`invalid channelRecord transaction`)
+        if(!messageContainer.hasOwnProperty('message')) {
+            throw new Error(`invalid channelRecord transaction: ${messageContainer}`)
         }
+        const validatorResult = this.validator.validateChannelRecord(messageContainer.message);
+        if(!validatorResult.isValid){
+            throw new ChannelRecordValidatorError(validatorResult.message);
+        }
+
         return messageContainer.message;
     }
+
+
+    /**
+     *
+     * @param transactionIds
+     * @param crypto
+     * @param passphrase
+     * @return {*}
+     */
+    fetchMultiChannelRecords(transactionIds, crypto, passphrase){
+        if(!Array.isArray(transactionIds)){throw new Error(`transactionIds is invalid`)}
+        if(! crypto instanceof GravityCrypto){throw new Error(`crypto is invalid`)}
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`passphrase is invalid`)}
+        const promises = transactionIds.map(tId => this.fetchChannelRecord(tId, crypto,passphrase));
+        return Promise.all(promises)
+    }
+
+
+    /**
+     *
+     * @param channelRecord
+     * @param version
+     * @return {boolean}
+     */
+    // static isValidChannelRecord(channelRecord, version= 1){
+    //     switch (version){
+    //         case 1: return ChanService.isValidChannelRecordV1(channelRecord);break;
+    //         default: return false;
+    //     }
+    // }
+
+    // static isValidChannelRecordV1(channelRecord){
+    //     const channelRecordProperties = [
+    //         'channelName',
+    //         'address',
+    //         'passphrase',
+    //         'password',
+    //         'publicKey',
+    //         'accountId',
+    //         'sender',
+    //         'createdBy',
+    //         'status',
+    //         'createdAt',
+    //         'updatedAt'
+    //     ]
+    //
+    //     if(!channelRecord){return false}
+    //     if(!( channelRecord.hasOwnProperty('recordType') &&
+    //         channelRecord.recordType === 'channelRecord' )  &&
+    //         channelRecord.hasOwnProperty('version')  &&
+    //         channelRecord.version === 1
+    //     ){
+    //         return false;
+    //     }
+    //
+    //     return channelRecordProperties.every( item => channelRecord.hasOwnProperty(item));
+    // }
 
     /**
      * Get a new JupAccount, Fund a new Channel, send Channel_Record transaction, Add member pubKeys to channel account.
@@ -443,10 +500,8 @@ class ChanService {
      * @returns {GravityAccountProperties}
      */
     async createNewChannelAndAddFirstMember(channelName, firstMemberProperties){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## createNewChannelAndAddFirstMember(channelName: ${channelName},firstMemberProperties)`);
-        logger.verbose(`## `);
-        if(!(firstMemberProperties instanceof GravityAccountProperties)){throw new Error('firstMemberProperties is invalid')}
+        logger.verbose(`#### createNewChannelAndAddFirstMember(channelName: ${channelName},firstMemberProperties)`);
+        if(!(firstMemberProperties instanceof GravityAccountProperties)){throw new BadGravityAccountPropertiesError(`firstMemeberProperties`)}
         if(!gu.isNonEmptyString(channelName)){ throw new Error('channelName is empty');}
         const channelPassphrase = gu.generatePassphrase();
         const channelPassword = gu.generateRandomPassword();
@@ -459,12 +514,10 @@ class ChanService {
 
             return channelAccountProperties;
         } catch (error){
-            logger.error(`****************************************************************`);
-            logger.error(`** createNewChannelAndAddFirstMember(channelName, firstMemberProperties).catch(error)`);
-            logger.error(`** `);
-            logger.error(`   channelName= ${channelName}`)
-            logger.error(`   firstMemberProperties.address= ${firstMemberProperties.address}`)
-            logger.error(`   error= ${error}`)
+            logger.error(`**** createNewChannelAndAddFirstMember(channelName, firstMemberProperties).catch(error)`);
+            logger.error(`channelName= ${channelName}`)
+            logger.error(`firstMemberProperties.address= ${firstMemberProperties.address}`)
+            logger.error(`error= ${error}`)
             throw error;
         }
     }
@@ -477,13 +530,11 @@ class ChanService {
      * @returns {Promise<void>}
      */
     async processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo, role = 'basic-member'){
-        logger.verbose(`########################################################################`);
-        logger.verbose(`## processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo)`);
-        logger.verbose(`## `);
-        if(! memberAccountProperties instanceof GravityAccountProperties){throw new Error('memberAccountProperties is invalid')}
-        if(! channelAccountPropertiesInvitedTo instanceof GravityAccountProperties){throw new Error('channelAccountPropertiesInvitedTo is invalid')}
-        logger.sensitive(`   memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
-        logger.sensitive(`   channelAccountPropertiesInvitedTo.address= ${channelAccountPropertiesInvitedTo.address}`);
+        logger.verbose(`#### processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo)`);
+        if(! memberAccountProperties instanceof GravityAccountProperties){throw new BadGravityAccountPropertiesError('memberAccountProperties')}
+        if(! channelAccountPropertiesInvitedTo instanceof GravityAccountProperties){throw new BadGravityAccountPropertiesError('channelAccountPropertiesInvitedTo')}
+        logger.sensitive(`memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
+        logger.sensitive(`channelAccountPropertiesInvitedTo.address= ${channelAccountPropertiesInvitedTo.address}`);
         const params = {
             channel:  channelAccountPropertiesInvitedTo.address,  //channel_record.account,
             password: channelAccountPropertiesInvitedTo.password,  //channel_record.password,
@@ -491,11 +542,11 @@ class ChanService {
             alias: memberAccountProperties.getCurrentAliasNameOrNull()
         };
         try {
-            const response1 = await metis.addToMemberList(params); // adds the member to the channel jupiter key/value properties
+            // sdf
+            const response1 = await metis.addToMemberList(params); // adds the member to the channel jupiter key/value properties. @TODO this is obsolete. Remove it!
             const response2 = await this.addMemberInfoToChannelIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo,role)
             const response3 = await this.addChannelInfoToAccountIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo)
             await jupiterFundingService.waitForAllTransactionConfirmations(response2.transactionsReport);
-
 
             //@TODO we need to wait for response2. But the addMemberInfoToChannelIfDoesntExist doesnt return the transactions. Need to refactor!
             // if(response2 && response2.hasOwnProperty('data')){
@@ -505,12 +556,10 @@ class ChanService {
             //     console.log(response2)
             // }
         } catch(error) {
-            logger.error(`****************************************************************`);
-            logger.error(`** processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo).catch(error)`);
-            logger.error(`** `);
-            logger.error(`   memberAccountProperties.address= ${memberAccountProperties.address}`)
-            logger.error(`   channelAccountPropertiesInvitedTo.address= ${channelAccountPropertiesInvitedTo.address}`)
-            logger.error(`   error= ${error}`)
+            logger.error(`**** processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo).catch(error)`);
+            logger.error(`memberAccountProperties.address= ${memberAccountProperties.address}`)
+            logger.error(`channelAccountPropertiesInvitedTo.address= ${channelAccountPropertiesInvitedTo.address}`)
+            logger.error(`error= ${error}`)
             throw error;
         }
     }
@@ -538,23 +587,36 @@ class ChanService {
     //       },
     //       "dataType":"channelInvite"
     // }
-    generateInviteRecordJson(channelName, inviteeAddress, inviterAccountProperties, channelAccountProperties){
+    async generateInviteRecordJson(channelName, inviteeAddress, inviterAccountProperties, channelAccountProperties) {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## generateInviteRecordJson(channelName, inviteeAddress, inviterAccountProperties, channelAccountProperties)`);
         logger.verbose(`## `);
-        if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('channelAccountProperties is invalid')}
-        if(!(inviterAccountProperties instanceof GravityAccountProperties)){throw new Error('inviterAccountProperties is invalid')}
-        if(!gu.isNonEmptyString(channelName)){throw new Error('channelName is empty')}
-        if(!gu.isNonEmptyString(inviteeAddress)){throw new Error('inviteeAddress is empty')}
-
+        if (!(channelAccountProperties instanceof GravityAccountProperties)) {
+            throw new Error('channelAccountProperties is invalid')
+        }
+        if (!(inviterAccountProperties instanceof GravityAccountProperties)) {
+            throw new Error('inviterAccountProperties is invalid')
+        }
+        if (!gu.isNonEmptyString(channelName)) {
+            throw new Error('channelName is empty')
+        }
+        if (!gu.isNonEmptyString(inviteeAddress)) {
+            throw new Error('inviteeAddress is empty')
+        }
         const date = Date.now();
-        const channelRecordJson = this.generateNewChannelRecordJson(channelName, channelAccountProperties, inviterAccountProperties.address);
+        const channelRecordJson = await this.generateNewChannelRecordJson(
+            channelName,
+            channelAccountProperties,
+            inviterAccountProperties.address);
         const inviteRecord = {
             recordType: 'channelInvite',
             inviteeAddress: inviteeAddress,
             inviterAddress: inviterAccountProperties.address,
             channelRecord: channelRecordJson,
+            createdBy: inviterAccountProperties.address,
+            status: 'active',
             createdAt: date,
+            updatedAt: date,
             version: 1,
         }
 
@@ -569,18 +631,27 @@ class ChanService {
      * @param {string} createdByAddress
      * @returns {{date: number, channel_record: {accountId: *, password, sender, createdBy, name, publickey, passphrase, account}}}
      */
-    generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress){
-        if(!gu.isNonEmptyString(channelName)){throw new Error('channelName is empty')}
-        if(!gu.isWellFormedJupiterAddress(createdByAddress)){throw new BadJupiterAddressError(createdByAddress)}
+    async generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress) {
+        if (!gu.isNonEmptyString(channelName)) {
+            throw new Error('channelName is empty')
+        }
+        if (!gu.isWellFormedJupiterAddress(createdByAddress)) {
+            throw new BadJupiterAddressError(createdByAddress)
+        }
         // if(!gu.isWellFormedJupiterAddress(createdByAddress)){throw new Error('createdByAddress is invalid')}
-        if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('channelAccountProperties is invalid')}
+        if (!(channelAccountProperties instanceof GravityAccountProperties)) {
+            throw new Error('channelAccountProperties is invalid')
+        }
 
+        if (channelAccountProperties.isMinimumProperties) {
+            await refreshGravityAccountProperties(channelAccountProperties);
+        }
         const createdDate = Date.now();
         const channelRecord = {
             recordType: 'channelRecord',
             channelName: channelName,
             address: channelAccountProperties.address,
-            passphrase: channelAccountProperties.passphrase ,
+            passphrase: channelAccountProperties.passphrase,
             password: channelAccountProperties.password,
             publicKey: channelAccountProperties.publicKey,
             accountId: channelAccountProperties.accountId,
@@ -696,6 +767,12 @@ class ChanService {
         return true;
     }
 
+    /**
+     *
+     * @param accountProperties
+     * @param channelAccountProperties
+     * @return {Promise<{}|{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+     */
     async addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties) {
         logger.verbose(`###################################################################################`);
         logger.verbose(`## addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties)`);
@@ -713,7 +790,7 @@ class ChanService {
         logger.info(`  ++ channelAccountProperties.channelName`);
         logger.verbose(channelAccountProperties.channelName);
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        const channelRecordPayload = this.generateNewChannelRecordJson(
+        const channelRecordPayload = await this.generateNewChannelRecordJson(
             channelAccountProperties.channelName,
             channelAccountProperties,
             accountProperties.address
@@ -723,6 +800,9 @@ class ChanService {
         const feeType =   FeeManager.feeTypes.account_record;
         const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}`;
 
+        if(accountProperties.isMinimumProperties){
+            await refreshGravityAccountProperties(accountProperties);
+        }
         return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             accountProperties.passphrase,
             accountProperties.address,
@@ -742,12 +822,11 @@ class ChanService {
     async addMemberInfoToChannelIfDoesntExist(memberProperties, channelProperties, role = 'basic-member') {
         logger.verbose(`#### addMemberToChannelIfDoesntExist(memberProperties, channelProperties)`);
         if (!(memberProperties instanceof GravityAccountProperties)) {
-            throw new Error('invalid memberProperties')
+            throw new BadGravityAccountPropertiesError('memberProperties')
         }
         if (!(channelProperties instanceof GravityAccountProperties)) {
-            throw new Error('invalid channelProperties')
+            throw new BadGravityAccountPropertiesError('channelProperties')
         }
-
         try {
             // FIRST: Make sure user is not already a member.
             const isChannelMember = await this.channelHasMemberInfo(channelProperties, memberProperties.address);
@@ -757,11 +836,6 @@ class ChanService {
                 console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
                 return {};
             }
-
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-            console.log('New Member');
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
             // SECOND: Add member information transaction and update the member list transaction
             const memberPublicKeys = await jupiterAccountService.getPublicKeysFromUserAccount(memberProperties);
             const newMemberPayload = {
@@ -786,23 +860,196 @@ class ChanService {
             const transactionIdForTheLatestTransactionsList = transactionUtils.extractTransactionIdFromTransactionResponse(transactionResponse);
             const transactionsReport = []
             transactionsReport.push({name: 'channel-member-list', id: transactionIdForTheLatestTransactionsList});
-
             // THIRD: Add the public keys to the channel
             memberPublicKeys.map(async (memberKey) => {
-                await jupiterAccountService.addPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
+                await this.addPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
             });
 
             return {transactionsReport:transactionsReport}
         } catch(error){
-            logger.error(`****************************************************************`);
-            logger.error(`** addMemberInfoToChannelIfDoesntExist(memberProperties, channelProperties).catch(error)`);
-            logger.error(`** `);
-            logger.error(`   memberProperties.address= ${memberProperties.address}`)
-            logger.error(`   channelProperties.address= ${channelProperties.address}`)
-            logger.error(`   error= ${error}`)
+            logger.error(`**** addMemberInfoToChannelIfDoesntExist(memberProperties, channelProperties).catch(error)`);
+            logger.error(`memberProperties.address= ${memberProperties.address}`)
+            logger.error(`channelProperties.address= ${channelProperties.address}`)
+            logger.error(`error= ${error}`)
             throw error;
         }
     }
+
+    /**
+     * @TODO should use a list of channels
+     * @TODO what if the user removes his/her channel membership?
+     * @Todo what if a user is banned from a channel?
+     *
+     * Returns  a list of GravityAccountProperties.
+     *
+     * @param {GravityAccountProperties} memberProperties
+     * @returns {Promise<*[]|{address,passphrase,password}>}
+     */
+    async getMemberChannels(memberProperties) {
+        logger.verbose(`#### getMemberChannels(memberProperties)`);
+        if(!(memberProperties instanceof GravityAccountProperties)){throw new BadGravityAccountPropertiesError('memberProperties')};
+        try {
+            const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(memberProperties.address, channelConfig.channelRecord);
+            const transactions2 = this.transactionUtils.filterEncryptedMessageTransactionsBySender(transactions, memberProperties.address); //used to be by TableChannel. we are removing the table channel.
+            const transactionIds = this.transactionUtils.extractTransactionIds(transactions2);
+            const multiChannelRecords = await this.fetchMultiChannelRecords(transactionIds,memberProperties.crypto, memberProperties.passphrase);
+            const listOfChannelsAndTheirProperties = multiChannelRecords.map( async channelRecord => {
+                const properties = await instantiateGravityAccountProperties(channelRecord.passphrase, channelRecord.password);
+                properties.channelName = channelRecord.channelName; //@TODO make this more robust.
+                return properties;
+            })
+            return await Promise.all(listOfChannelsAndTheirProperties);
+        } catch (error) {
+            logger.error(`**** getAllMemberChannels(memberProperties).catch(error)`);
+            console.log(error);
+            throw error;
+        }
+    }
+
+    /**
+     *
+     * @param memberProperties
+     * @param publicKey
+     * @return {Promise<void>}
+     */
+    async updateAllMemberChannelsWithNewPublicKey(memberProperties, publicKey) {
+        try {
+            const memberChannels = await this.getMemberChannels(memberProperties);
+
+            memberChannels.map(async ({passphrase, password}) => {
+                const properties = await instantiateGravityAccountProperties(passphrase, password);
+                await this.addPublicKeyToChannelOrNull(publicKey, memberProperties.address, properties);
+            });
+
+        } catch (error) {
+            logger.error(`ERROR: [updateAllMemberChannelsWithNewPublicKey]: ${JSON.stringify(error)}`);
+            throw error;
+        }
+    }
+
+    /**
+     *  @description OBSOLETE!!!!
+     * @param channelAddress
+     * @param memberAccountProperties
+     */
+    async getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties ){
+        logger.verbose(`###################################################################################`);
+        logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
+        logger.verbose(`## `);
+        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
+        logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
+        if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
+        const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
+        const channelAccountPropertiesArray = allMemberChannels.filter( channelAccountProperties => channelAccountProperties.address === channelAddress );
+        if(channelAccountPropertiesArray.length > 0){
+            return channelAccountPropertiesArray[0];
+        }
+
+        throw new Error('doesnt exist!')
+    }
+
+    /**
+     *
+     * @param channelAccountProperties
+     * @returns {Promise<[*]>}
+     */
+    getChannelMembers(channelAccountProperties){
+        logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
+        if(!(channelAccountProperties instanceof GravityAccountProperties )){ throw new Error('channelAccountProperties is invalid')}
+        logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
+        const listTag = channelConfig.channelMemberList;
+        return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
+            .then( messageContainers  => {
+                console.log(`\n\n\n`);
+                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+                console.log('messageContainers');
+                console.log(messageContainers);
+                console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+                return messageContainers.map(messageContainer => messageContainer.message);
+            })
+    }
+
+    /**
+     *
+     * @param userPublicKey
+     * @param userAddress
+     * @param channelAccountProperties
+     * @return {Promise<null|void>}
+     */
+    async addPublicKeyToChannelOrNull(userPublicKey, userAddress, channelAccountProperties){
+        try {
+            return this.addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties);
+        } catch (error){
+            logger.error(`ERROR: [addPublicKeyToChannelOrNull]: ${JSON.stringify(error)}`);
+            return null;
+        }
+    }
+
+    /**
+     *
+     * @param userPublicKey
+     * @param userAddress
+     * @param {GravityAccountProperties} channelAccountProperties
+     */
+    async addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties) {
+        logger.sensitive(`#### addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
+        try {
+            if(channelAccountProperties.isMinimumProperties){
+                await refreshGravityAccountProperties(channelAccountProperties);
+            }
+            const hasPublicKey = await this.hasPublicKeyInChannelAccount(userPublicKey, channelAccountProperties)
+            if (hasPublicKey) {
+                // TODO create an error business handler
+                const error = new Error();
+                error.code = 'PUBLIC-KEY_EXIST';
+                error.message = 'Public key already exists';
+                throw error;
+            }
+            const newUserChannel = {
+                userAddress,
+                userPublicKey,
+                date: Date.now()
+            };
+            logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
+            const encryptedMessage = channelAccountProperties.crypto.encrypt(JSON.stringify(newUserChannel));
+            const checksumPublicKey = gu.generateChecksum(userPublicKey);
+            const channelUserTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
+            const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+            const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+            if (channelAccountProperties.isMinimumProperties) {
+                await refreshGravityAccountProperties(channelAccountProperties);
+            }
+            const newUserTransactionResponse = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+                channelAccountProperties.passphrase,
+                channelAccountProperties.address,
+                encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
+                channelUserTag, // message: 'v1.metis.channel.public-key.JupAccount.checksum'
+                fee,
+                subtype,
+                false,
+                channelAccountProperties.publicKey
+            );
+            const latestPublicKeyTransactionsList = await this.getPublicKeyTransactionsList(channelAccountProperties, channelConfig.channelMemberPublicKeyList);
+            latestPublicKeyTransactionsList.push(newUserTransactionResponse.transaction);
+            const encryptedPublicKeyTransactionList = channelAccountProperties.crypto.encryptJson(latestPublicKeyTransactionsList);
+            const publicKeyList = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+                channelAccountProperties.passphrase,
+                channelAccountProperties.address,
+                encryptedPublicKeyTransactionList,
+                channelConfig.channelMemberPublicKeyList,
+                fee,
+                subtype,
+                false,
+                channelAccountProperties.publicKey
+            );
+        } catch (error) {
+            logger.error(`**** functionName.catch(error)`);
+            logger.error(`** - error= ${error}`)
+            throw error;
+        }
+    }
+
 }
 
 
@@ -812,11 +1059,17 @@ const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {channelConfig, tableConfig, userConfig} = require("../config/constants");
 const metis = require("../config/metis");
-const {instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties, refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {head, stubFalse, has} = require("lodash");
 const {transactionUtils} = require("../gravity/transactionUtils");
+const {BadGravityAccountPropertiesError, ChannelRecordValidatorError, BadJupiterAddressError,
+    InviteRecordValidatorError
+} = require("../errors/metisError");
+// const {channelRecordSchemaV1} = require("../schema/channelRecordSchemaV1");
 // const {BadJupiterAddressError} = require("../errors/metisError");
 // const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
+const {validator} = require("../services/validator");
+const {GravityCrypto} = require("./gravityCrypto");
 
 module.exports.chanService = new ChanService(
     metisGravityAccountProperties,
@@ -827,5 +1080,6 @@ module.exports.chanService = new ChanService(
     tableService,
     gravity,
     gravityService,
-    transactionUtils
+    transactionUtils,
+    validator
 )
