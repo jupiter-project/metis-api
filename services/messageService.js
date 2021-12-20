@@ -1,3 +1,4 @@
+const logger = require('../utils/logger')(module);
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {messagesConfig} = require("../config/constants");
 const {FeeManager} = require("./FeeManager");
@@ -58,26 +59,26 @@ const sendMetisMessage = async (memberAccountProperties, channelAccountPropertie
 };
 
 const sendMessagePushNotifications = async (memberAccountProperties, channelAccountProperties, mentions) => {
+    logger.sensitive(`#### sendMessagePushNotification()`);
     if(!memberAccountProperties instanceof GravityAccountProperties){throw new Error('Invalid memberAccountProperties')}
     if(!channelAccountProperties instanceof GravityAccountProperties){throw new Error('Invalid channelAccountProperties')}
     const senderAlias = memberAccountProperties.getCurrentAliasNameOrNull();
     const {channelName, address: channelAddress} = channelAccountProperties;
-
+    if(channelAccountProperties.isMinimumProperties){
+        await refreshGravityAccountProperties(channelAccountProperties);
+    }
     const {memberProfilePicture} = await metis.getMember({
         channel: channelAccountProperties.address,
         account: channelAccountProperties.publicKey,
         password: channelAccountProperties.password,
     });
-
     let members = memberProfilePicture.map(member => member.accountRS);
     members = members.filter(member => member !== memberAccountProperties.address);
-
     if (Array.isArray(members) && members.length > 0) {
         const pnBody = `${senderAlias} has sent a message`;
         const pnTitle = `${senderAlias}`;
         await getPNTokensAndSendPushNotification(members, [channelAddress], pnBody, pnTitle, {channelAddress});
     }
-
     //TODO get channel name from channel account properties
     if (Array.isArray(mentions) && mentions.length > 0){
         // Push notification for mentioned members

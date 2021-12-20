@@ -40,6 +40,27 @@ class BadJupiterAddressError extends MetisError {
     }
 }
 
+class BadGravityAccountPropertiesError extends MetisError {
+    constructor(message = '') {
+        super(`GravityAccountProperties is not valid (${message}) `)
+        this.name = "BadGravityAccountPropertiesError"
+    }
+}
+
+class ChannelRecordValidatorError extends MetisError {
+    constructor(message = ''){
+        super(`ChannelRecord is not valid: ${message}`);
+        this.name = "ChannelRecordValidatorError"
+    }
+}
+
+class InviteRecordValidatorError extends MetisError {
+    constructor(message = ''){
+        super(`inviteRecord is not valid: ${message}`);
+        this.name = "InviteRecordValidatorError"
+    }
+}
+
 class FundingNotConfirmedError extends MetisError {
     constructor(message = '') {
         super(`Not able to confirm funding confirmation: ` + message)
@@ -69,3 +90,6 @@ class FundingNotConfirmedError extends MetisError {
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
 module.exports.BadJupiterAddressError = BadJupiterAddressError;
+module.exports.BadGravityAccountPropertiesError = BadGravityAccountPropertiesError;
+module.exports.ChannelRecordValidatorError = ChannelRecordValidatorError;
+module.exports.InviteRecordValidatorError = InviteRecordValidatorError;

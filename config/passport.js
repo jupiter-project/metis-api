@@ -3,11 +3,9 @@ import User from '../models/user';
 import {accountRegistration} from "../services/accountRegistrationService";
 import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
-
+const moment = require('moment'); // require
 const LocalStrategy = require('passport-local').Strategy;
-
 const logger = require('../utils/logger')(module);
-
 // Used to serialize the user for the session
 const serializeUser = (passport) => {
   passport.serializeUser((accessData, done) => {
@@ -107,6 +105,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
     logger.info('== metisSignup(passport)');
     logger.info('==');
     logger.info(`======================================================================================\n\n`);
+    const startTime = Date.now();
 
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
@@ -148,19 +147,22 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
         // logger.debug(`job id= ${job.id} for account=${account}`);
 
         job.on('complete', function(result){
-            logger.verbose(`######################################`)
-            logger.verbose(`## passport.job.on(complete(signUpSuccessful))`)
-            logger.verbose(`account=${account}`)
+            logger.verbose(`---- passport.job.on(complete(signUpSuccessful))`)
+            logger.verbose(`account= ${account}`)
             logger.sensitive('Job completed with data ', result);
+            const endTime = Date.now();
+            const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.info(`++ SIGNUP`);
+            logger.info(`++ Processing TIME`);
+            logger.info(`++ ${processingTime}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
             const room = `sign-up-${account}`;
-
             websocket.in(room).allSockets().then((result) => {
                 logger.info(`The number of users connected is: ${result.size}`);
             });
-
             websocket.of('/sign-up').to(room).emit('signUpSuccessful', account);
         });
-
         job.on('failed attempt', function(errorMessage, doneAttempts){
             logger.error(`***********************************************************************************`);
             logger.error(`** passport.job.on(failed_attempt())`);
@@ -188,8 +190,11 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
  * @param passport
  */
 const metisLogin = (passport) => {
-    logger.verbose(`    ########################################################################`);
-    logger.verbose(`    ## metisLogin`);
+    console.log(`\n\n\n`);
+    logger.info('======================================================================================');
+    logger.info('== metisLogin(passport)');
+    logger.info('== ');
+    logger.info(`======================================================================================\n\n\n`);
 
   passport.use('gravity-login', new LocalStrategy({
     usernameField: 'account',
@@ -204,10 +209,7 @@ const metisLogin = (passport) => {
    * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
    * account. This was we can register their current jup account with metis.
    */
-    logger.verbose('#####################################################################################');
-    logger.verbose('## metisLogin(passport)');
-    logger.verbose('##');
-
+    logger.verbose('#### metisLogin(passport)');
       const {
           jupkey,
           public_key,
