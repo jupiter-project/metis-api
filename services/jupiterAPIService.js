@@ -7,6 +7,7 @@ import {BadJupiterAddressError, JupiterApiError, UnknownAliasError} from "../err
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 import {add} from "lodash";
+import {refreshGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 
@@ -87,11 +88,9 @@ class JupiterAPIService {
                     }
 
                     if(response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription')  && response.data.errorDescription) {
-                        logger.error(`****************************************************************`);
-                        logger.error(`** jupiterRequest().then(response) response.data.errorDescription...`);
-                        logger.error(`** - errorDescription= ${response.data.errorDescription}`)
-                        logger.error(`** - errorCode= ${response.data.errorCode}`)
-                        logger.error(`** - error= ${response.data.error}`)
+                        logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`);
+                        logger.error(`errorDescription= ${response.data.errorDescription}`)
+                        logger.error(`errorCode= ${response.data.errorCode}`)
                         logger.sensitive(`url= ${url}`)
                         logger.sensitive(`request data= ${JSON.stringify(data)}`)
 
@@ -559,7 +558,12 @@ class JupiterAPIService {
 
         if(! (requestType == 'sendMessage' || requestType == 'sendMetisMessage' )){ throw new Error('invalid request type') }
         if(requestType == 'sendMetisMessage' && !subtype) {throw new Error('subtype is invalid')}
-
+        if (to.isMinimumProperties) {
+            await refreshGravityAccountProperties(to);
+        }
+        if (from.isMinimumProperties) {
+            await refreshGravityAccountProperties(from);
+        }
         return this.sendMetisMessageOrMessage(
             requestType,
             to.address,
@@ -633,6 +637,12 @@ class JupiterAPIService {
 
         if(requestType == 'sendMetisMessage' && !subtype) {
             throw new Error('subtype is invalid');
+        }
+        if (to.isMinimumProperties) {
+            await refreshGravityAccountProperties(to);
+        }
+        if (from.isMinimumProperties) {
+            await refreshGravityAccountProperties(from);
         }
 
         return this.sendMetisMessageOrMessage(
@@ -1020,15 +1030,11 @@ class JupiterAPIService {
      * @return {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"alias","versionAliasAssignment","uri"},"senderRS","subtype","amountNQT","sender","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
      */
     setAlias(params) {
-        logger.verbose('#####################################################');
-        logger.verbose(`## setAlias(params`);
-        logger.verbose('##');
-        logger.sensitive(`params=${JSON.stringify(params)}`);
+        logger.verbose(`#### setAlias(params`);
+        logger.sensitive(`params= ${JSON.stringify(params)}`);
         if(!params.passphrase) {throw new Error('need a passphrase value')}
         if(!params.alias) {throw new Error('need an alias value')}
         if(!params.account) {throw new Error('need an account value')}
-
-
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
         const newParams = {
             requestType: JupiterAPIService.RequestType.SetAlias,
