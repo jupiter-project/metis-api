@@ -1,9 +1,12 @@
 import gu from '../utils/gravityUtils';
 import {channelConfig, userConfig} from '../config/constants';
-import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {
+    instantiateGravityAccountProperties,
+    refreshGravityAccountProperties
+} from "../gravity/instantiateGravityAccountProperties";
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
-import {BadJupiterAddressError, UnknownAliasError} from "../errors/metisError";
+import {BadGravityAccountPropertiesError, BadJupiterAddressError, UnknownAliasError} from "../errors/metisError";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 
 // metisGravityAccountProperties
@@ -54,13 +57,16 @@ class JupiterAccountService {
         logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`);
 
         return this.generateId(accountProperties, metisUsersTableProperties)
-            .then((transactionId) => {
+            .then(async (transactionId) => {
                 logger.verbose('---------------------------------------------------------------------------------');
                 logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
                 logger.verbose('--');
                 const tag = `${userConfig.metisUserRecord}.${accountProperties.address}`;
                 const userRecord = accountProperties.generateUserRecord(transactionId);
                 const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
+                if (accountProperties.isMinimumProperties) {
+                    await refreshGravityAccountProperties(accountProperties);
+                }
                 return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     metisUsersTableProperties.passphrase,
                     accountProperties.address,
@@ -72,10 +78,10 @@ class JupiterAccountService {
                     .then(response => {
                         return {
                             data: response.data,
-                            transactionsReport:[{name: 'users-table-record', id: response.data.transaction}]
+                            transactionsReport: [{name: 'users-table-record', id: response.data.transaction}]
                         }
                     })
-        });
+            });
     }
 
     /**
@@ -83,7 +89,7 @@ class JupiterAccountService {
      * @param userAccountProperties
      * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
-    addUserRecordToUserAccount(userAccountProperties) {
+    async addUserRecordToUserAccount(userAccountProperties) {
         const tag = `${userConfig.userRecord}.${userAccountProperties.address}`;
         const createdDate = Date.now();
         const userRecord = {
@@ -99,6 +105,9 @@ class JupiterAccountService {
         };
         const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
 
+        if (userAccountProperties.isMinimumProperties) {
+            await refreshGravityAccountProperties(userAccountProperties);
+        }
         return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             userAccountProperties.passphrase,
             userAccountProperties.address,
@@ -283,13 +292,9 @@ class JupiterAccountService {
      * @returns {Promise<unknown>}
      */
     async getPublicKeysFromUserAccount(accountProperties) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getPublicKeysFromUserAccount(accountProperties)`);
-        logger.verbose(`## `);
-        logger.sensitive(`accountProperties=${JSON.stringify(accountProperties)}`);
-
+        logger.verbose(`#### getPublicKeysFromUserAccount(accountProperties)`);
+        // logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
         if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
-
         try {
             return  await this.gravityService.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
         } catch (error) {
@@ -330,59 +335,22 @@ class JupiterAccountService {
 
 
 
-    async updateAllMemberChannelsWithNewPublicKey(memberProperties, publicKey) {
-        try {
-            const memberChannels = await this.getMemberChannels(memberProperties);
+    // async updateAllMemberChannelsWithNewPublicKey(memberProperties, publicKey) {
+    //     try {
+    //         const memberChannels = await this.getMemberChannels(memberProperties);
+    //
+    //         memberChannels.map(async ({passphrase, password}) => {
+    //             const properties = await instantiateGravityAccountProperties(passphrase, password);
+    //             await this.addPublicKeyToChannelOrNull(publicKey, memberProperties.address, properties);
+    //         });
+    //
+    //     } catch (error) {
+    //         logger.error(`ERROR: [updateAllMemberChannelsWithNewPublicKey]: ${JSON.stringify(error)}`);
+    //         throw error;
+    //     }
+    // }
 
-            memberChannels.map(async ({passphrase, password}) => {
-                const properties = await instantiateGravityAccountProperties(passphrase, password);
-                await this.addPublicKeyToChannelOrNull(publicKey, memberProperties.address, properties);
-            });
 
-        } catch (error) {
-            logger.error(`ERROR: [updateAllMemberChannelsWithNewPublicKey]: ${JSON.stringify(error)}`);
-            throw error;
-        }
-    }
-
-    /**
-     * @TODO should use a list of channels
-     * @TODO what if the user removes his/her channel membership?
-     * @Todo what if a user is banned from a channel?
-     *
-     * Returns  a list of GravityAccountProperties.
-     *
-     * @param {GravityAccountProperties} memberProperties
-     * @returns {Promise<*[]|{address,passphrase,password}>}
-     */
-    async getMemberChannels(memberProperties) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getMemberChannels(memberProperties)`);
-        logger.verbose(`## `);
-        if(!(memberProperties instanceof  GravityAccountProperties)){throw new Error('memberProperties is invalid')};
-        try {
-
-            const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(memberProperties.address, channelConfig.channelRecord);
-            const transactions2 = await this.transactionUtils.filterEncryptedMessageTransactionsBySender(transactions, memberProperties.address); //used to be by TableChannel. we are removing the table channel.
-            const transactionIds = this.transactionUtils.extractTransactionIds(transactions2);
-
-            const channelRecords = await this.jupiterTransactionsService.messageService.readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(transactionIds,memberProperties.crypto, memberProperties.passphrase);
-
-            const listOfChannelsAndTheirProperties = channelRecords.map( async message => {
-                    const properties = await  instantiateGravityAccountProperties(message.message.passphrase, message.message.password);
-                     properties.channelName = message.message.channelName; //@TODO make this more robust.
-                     return properties;
-            })
-
-            return await Promise.all(listOfChannelsAndTheirProperties);
-        } catch (error) {
-            logger.error(`***********************************************************************************`);
-            logger.error(`** getAllMemberChannels().catch(error)`);
-            logger.error(`** `);
-            console.log(error);
-            throw error;
-        }
-    }
 
     /**
      *
@@ -404,76 +372,78 @@ class JupiterAccountService {
     }
 
 
-    async addPublicKeyToChannelOrNull(userPublicKey, userAddress, channelAccountProperties){
-        try {
-            return this.addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties);
-        } catch (error){
-            logger.error(`ERROR: [addPublicKeyToChannelOrNull]: ${JSON.stringify(error)}`);
-            return null;
-        }
-    }
+    // async addPublicKeyToChannelOrNull(userPublicKey, userAddress, channelAccountProperties){
+    //     try {
+    //         return this.addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties);
+    //     } catch (error){
+    //         logger.error(`ERROR: [addPublicKeyToChannelOrNull]: ${JSON.stringify(error)}`);
+    //         return null;
+    //     }
+    // }
 
-    /**
-     *
-     * @param userPublicKey
-     * @param userAddress
-     * @param {GravityAccountProperties} channelAccountProperties
-     */
-    async addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties) {
-        try {
-            const hasPublicKey = await this.hasPublicKeyInChannelAccount(userPublicKey, channelAccountProperties)
-            if (hasPublicKey) {
-                // TODO create an error business handler
-                const error = new Error();
-                error.code = 'PUBLIC-KEY_EXIST';
-                error.message = 'Public key already exists';
-                throw error;
-            }
-
-            const newUserChannel = {
-                userAddress,
-                userPublicKey,
-                date: Date.now()
-            };
-
-            logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
-
-            const encryptedMessage = channelAccountProperties.crypto.encrypt(JSON.stringify(newUserChannel));
-            const checksumPublicKey = gu.generateChecksum(userPublicKey);
-            const channelUserTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
-            const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-            const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-
-            const newUserPromise = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
-                channelAccountProperties.passphrase,
-                channelAccountProperties.address,
-                encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
-                channelUserTag, // message: 'v1.metis.channel.public-key.JupAccount.checksum'
-                fee,
-                subtype,
-                false,
-                channelAccountProperties.publicKey
-            );
-
-            const latestPublicKeyTransactionsList = await this.getPublicKeyTransactionsList(channelAccountProperties, channelConfig.channelMemberPublicKeyList);
-            latestPublicKeyTransactionsList.push(newUserPromise.transaction);
-            const encryptedPublicKeyTransactionList = channelAccountProperties.crypto.encryptJson(latestPublicKeyTransactionsList);
-
-            const publicKeyList = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
-                channelAccountProperties.passphrase,
-                channelAccountProperties.address,
-                encryptedPublicKeyTransactionList,
-                channelConfig.channelMemberPublicKeyList,
-                fee,
-                subtype,
-                false,
-                channelAccountProperties.publicKey
-            );
-        } catch (error) {
-            logger.error(`ERROR: [addPublicKeyToChannel]: ${JSON.stringify(error)}`);
-            throw error;
-        }
-    }
+    // /**
+    //  *
+    //  * @param userPublicKey
+    //  * @param userAddress
+    //  * @param {GravityAccountProperties} channelAccountProperties
+    //  */
+    // async addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties) {
+    //     logger.sensitive(`#### addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
+    //     try {
+    //         if(channelAccountProperties.isMinimumProperties){
+    //             await refreshGravityAccountProperties(channelAccountProperties);
+    //         }
+    //         const hasPublicKey = await this.hasPublicKeyInChannelAccount(userPublicKey, channelAccountProperties)
+    //         if (hasPublicKey) {
+    //             // TODO create an error business handler
+    //             const error = new Error();
+    //             error.code = 'PUBLIC-KEY_EXIST';
+    //             error.message = 'Public key already exists';
+    //             throw error;
+    //         }
+    //         const newUserChannel = {
+    //             userAddress,
+    //             userPublicKey,
+    //             date: Date.now()
+    //         };
+    //         logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
+    //         const encryptedMessage = channelAccountProperties.crypto.encrypt(JSON.stringify(newUserChannel));
+    //         const checksumPublicKey = gu.generateChecksum(userPublicKey);
+    //         const channelUserTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
+    //         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+    //         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+    //         if (channelAccountProperties.isMinimumProperties) {
+    //             await refreshGravityAccountProperties(channelAccountProperties);
+    //         }
+    //         const newUserTransactionResponse = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+    //             channelAccountProperties.passphrase,
+    //             channelAccountProperties.address,
+    //             encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
+    //             channelUserTag, // message: 'v1.metis.channel.public-key.JupAccount.checksum'
+    //             fee,
+    //             subtype,
+    //             false,
+    //             channelAccountProperties.publicKey
+    //         );
+    //         const latestPublicKeyTransactionsList = await this.getPublicKeyTransactionsList(channelAccountProperties, channelConfig.channelMemberPublicKeyList);
+    //         latestPublicKeyTransactionsList.push(newUserTransactionResponse.transaction);
+    //         const encryptedPublicKeyTransactionList = channelAccountProperties.crypto.encryptJson(latestPublicKeyTransactionsList);
+    //         const publicKeyList = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+    //             channelAccountProperties.passphrase,
+    //             channelAccountProperties.address,
+    //             encryptedPublicKeyTransactionList,
+    //             channelConfig.channelMemberPublicKeyList,
+    //             fee,
+    //             subtype,
+    //             false,
+    //             channelAccountProperties.publicKey
+    //         );
+    //     } catch (error) {
+    //         logger.error(`**** functionName.catch(error)`);
+    //         logger.error(`** - error= ${error}`)
+    //         throw error;
+    //     }
+    // }
 
     /**
      *
@@ -483,7 +453,7 @@ class JupiterAccountService {
      */
     addPublicKeyToUserAccount(publicKey, gravityAccountProperties) {
         return this.hasPublicKeyInUserAccount(publicKey, gravityAccountProperties)
-            .then(hasPublicKey => {
+            .then(async hasPublicKey => {
                 if (hasPublicKey) {
                     // TODO create an error business handler
                     const error = new Error();
@@ -493,6 +463,9 @@ class JupiterAccountService {
                 }
 
                 const encryptedMessage = gravityAccountProperties.crypto.encrypt(publicKey);
+                if (gravityAccountProperties.isMinimumProperties) {
+                    await refreshGravityAccountProperties(gravityAccountProperties);
+                }
                 const userPublicKeyPromise = jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,
@@ -581,48 +554,48 @@ class JupiterAccountService {
             .then((userPublicKeyArray) => userPublicKeyArray.some((upk) => upk === publicKey));
     }
 
-    /**
-     *  @description OBSOLETE!!!!
-     * @param channelAddress
-     * @param memberAccountProperties
-     */
-    async getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties ){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
-        logger.verbose(`## `);
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
-        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
-        logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
-        if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
-        const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
-        const channelAccountPropertiesArray = allMemberChannels.filter( channelAccountProperties => channelAccountProperties.address === channelAddress );
-        if(channelAccountPropertiesArray.length > 0){
-            return channelAccountPropertiesArray[0];
-        }
-
-        throw new Error('doesnt exist!')
-    }
-
-    /**
-     *
-     * @param channelAccountProperties
-     * @returns {Promise<[*]>}
-     */
-    getChannelMembers(channelAccountProperties){
-        logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
-        if(!(channelAccountProperties instanceof GravityAccountProperties )){ throw new Error('channelAccountProperties is invalid')}
-        logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
-        const listTag = channelConfig.channelMemberList;
-        return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
-            .then( messageContainers  => {
-                console.log(`\n\n\n`);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('messageContainers');
-                console.log(messageContainers);
-                console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
-                return messageContainers.map(messageContainer => messageContainer.message);
-            })
-    }
+    // /**
+    //  *  @description OBSOLETE!!!!
+    //  * @param channelAddress
+    //  * @param memberAccountProperties
+    //  */
+    // async getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties ){
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
+    //     logger.verbose(`## `);
+    //     if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+    //     // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
+    //     logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
+    //     if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
+    //     const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
+    //     const channelAccountPropertiesArray = allMemberChannels.filter( channelAccountProperties => channelAccountProperties.address === channelAddress );
+    //     if(channelAccountPropertiesArray.length > 0){
+    //         return channelAccountPropertiesArray[0];
+    //     }
+    //
+    //     throw new Error('doesnt exist!')
+    // }
+    //
+    // /**
+    //  *
+    //  * @param channelAccountProperties
+    //  * @returns {Promise<[*]>}
+    //  */
+    // getChannelMembers(channelAccountProperties){
+    //     logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
+    //     if(!(channelAccountProperties instanceof GravityAccountProperties )){ throw new Error('channelAccountProperties is invalid')}
+    //     logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
+    //     const listTag = channelConfig.channelMemberList;
+    //     return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
+    //         .then( messageContainers  => {
+    //             console.log(`\n\n\n`);
+    //             console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //             console.log('messageContainers');
+    //             console.log(messageContainers);
+    //             console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+    //             return messageContainers.map(messageContainer => messageContainer.message);
+    //         })
+    // }
 
 
 //     const [latestList] = await jupiterTransactionsService.getBlockChainTransactionsByTag(gravityAccountProperties.address, tag);

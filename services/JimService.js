@@ -1,7 +1,10 @@
 import { gravity } from '../config/gravity';
 import metis from '../config/metis';
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
-import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {
+    instantiateGravityAccountProperties,
+    refreshGravityAccountProperties
+} from "../gravity/instantiateGravityAccountProperties";
 import {chanService} from "./chanService";
 import {generateNewMessageRecordJson, sendMetisMessage} from "./messageService";
 const FormData = require('form-data');
@@ -325,6 +328,10 @@ module.exports = {
     if(!channelAccountProperties){
       return res.status(403).send({message: 'Invalid channel address.'})
     }
+
+      if(channelAccountProperties.isMinimumProperties){
+          await refreshGravityAccountProperties(channelAccountProperties);
+      }
 
     UploadAnImageButFirstCheckForStorageAndCreateIfMissing(
         channelAccountProperties,
