@@ -88,6 +88,4 @@ module.exports.refreshGravityAccountProperties= async (properties) => {
     properties.removeAllAliases();
     properties.addAliases(aliases);
     properties.isMinimumProperties = false;
-
-    // return properties;
 }

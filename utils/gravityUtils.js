@@ -84,14 +84,11 @@ const arrayShiftOrNull = function(array){
  * @returns {boolean}
  */
 const isWellFormedJupiterAddress = function(address){
-
     if(!isNonEmptyString(address)){return false};
-
     const re = /^JUP-\w\w\w\w-\w\w\w\w-\w\w\w\w-\w\w\w\w\w$/;
     if(re.test(address)){
         return true;
     }
-
     return false;
 }
 
@@ -122,12 +119,10 @@ const isWellFormedJupiterAddressOrAlias = function(addressOrAlias){
  */
 const isWellFormedJupiterTransactionId = function(transactionId){
     if(!transactionId){return false}
-
     const re = /^[0-9]{15,25}$/
     if(re.test(transactionId)){
         return true;
     }
-
     return false;
 }
 
