@@ -1,5 +1,6 @@
 const gu = require("../utils/gravityUtils");
 const {BadJupiterAddressError} = require("../errors/metisError");
+const {validator} = require("../services/validator");
 const logger = require('../utils/logger')(module);
 
 class TransactionUtils {
@@ -95,12 +96,19 @@ class TransactionUtils {
                     logger.error(` -- invalid transaction`);
                     logger.sensitive(`this.isValidBaseTransaction(transactions[i]) = ${JSON.stringify(transactions[i])}`)
                     return false;
-                }
+                }// const validationResult = validator.validateBaseTransaction(transactions[i]);
+                // if(!validationResult.isValid){
+                //     console.log(`\n\n\n`);
+                //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+                //     console.log('validateResult.message');
+                //     console.log(validateResult.message);
+                //     console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+                //     logger.error(validationResult.message);
+                //     return false;
+                // }
             }
-
             return true;
         }
-
 
     /**
      *
@@ -108,6 +116,12 @@ class TransactionUtils {
      * @returns {boolean}
      */
     isValidEncryptedMessageTransaction(messageTransaction){
+
+        // const validationResult = validator.validateBaseTransaction(messageTransaction);
+        // if(!validationResult.isValid){
+        //     logger.debug(validationResult.message);
+        //     return false;
+        // }
         if(!this.isValidBaseTransaction(messageTransaction) ){
             return false
         }
@@ -119,6 +133,11 @@ class TransactionUtils {
         return true
     }
 
+    /**
+     *
+     * @param transactionResponse
+     * @return {boolean}
+     */
     isValidEncryptedMessageTransactionResponse(transactionResponse){
         if(!this.isValidBaseTransactionResponse(transactionResponse) ){
             return false
@@ -128,7 +147,11 @@ class TransactionUtils {
             transactionResponse.transactionJSON.attachment.hasOwnProperty('encryptedMessage') &&
             transactionResponse.transactionJSON.attachment.encryptedMessage.hasOwnProperty('data')) ){
             return false
-        }
+        }//if(!transactionResponse.hasOwnProperty('transactionJSON')){
+           // return false
+        //}
+        // const validationResult = validator.validateEncryptedMessageTransaction(transactionResponse.transactionJSON);
+        // return validationResult.isValid;
         return true
     }
 
@@ -201,37 +224,39 @@ class TransactionUtils {
      * @returns {boolean}
      */
     isValidBaseTransactionResponse(responseTransaction) {
-        logger.sensitive(`#### isValidResponseTransaction(t)`);
+        logger.sensitive(`#### isValidBaseTransactionResponse(responseTransaction)`);
+        if(!responseTransaction){
+            logger.warn('transaction is empty')
+            return false
+        }
         try {
             logger.sensitive(`#### isValidResponseTransaction(responseTransaction)`);
-
-            if(!responseTransaction){
-                logger.warn('transaction is empty')
-                return false
-            }
-
             if(!responseTransaction.transactionJSON){
                 logger.warn('transactionJSON doesnt exist')
                 return false
             }
-
             if(!responseTransaction.transaction){
                 logger.warn('transaction doesnt exist')
                 return false
             }
-
+            // const validationResult = validator.validateBaseTransaction(responseTransaction.transactionJSON);
+            // console.log(`\n\n\n`);
+            // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+            // console.log('validationResult.isValid....');
+            // console.log(validationResult.isValid);
+            // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+            // return validationResult.isValid;
             if(!this.isValidBaseTransaction(responseTransaction.transactionJSON)){
                 logger.warn(`transactionJSON is not valid`)
                 return false;
             }
 
-                return true;
-        } catch (error) {
-            logger.error(`****************************************************************`);
-            logger.error(`** isValidResponseTransaction(t).catch(error)`);
-            logger.error(`** `);
-            logger.error(`   error= ${error}`)
+            return true;
 
+
+        } catch (error) {
+            logger.error(`**** isValidResponseTransaction(t).catch(error)`);
+            logger.error(`error= ${error}`)
             return false;
         }
     }
@@ -243,21 +268,31 @@ class TransactionUtils {
      * @returns {*|((storeNames: (string | Iterable<string>), mode?: IDBTransactionMode) => IDBTransaction)|((callback: (transaction: SQLTransactionSync) => void) => void)|((storeNames: (string | string[]), mode?: IDBTransactionMode) => IDBTransaction)|IDBTransaction|((callback: (transaction: SQLTransaction) => void, errorCallback?: (error: SQLError) => void, successCallback?: () => void) => void)}
      */
     extractTransactionId(transaction){
+        logger.sensitive(`#### extractTransactionId(transaction)`);
         if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')}
+
+        // const validatorResult = validator.validateBaseTransaction(transaction);
+        // if(!validatorResult.isValid){
+        //     throw new Error(validatorResult.message);
+        // }
         const transactionId =  transaction.transaction;
         if(!this.isWellFormedJupiterTransactionId(transactionId)){throw new Error('transactionId is not well formed')}
 
         return transactionId;
     }
 
+    /**
+     *
+     * @param transactionResponse
+     * @return {*|(function((string|Iterable<string>), IDBTransactionMode=): IDBTransaction)|(function(function(SQLTransactionSync): void): void)|(function((string|string[]), IDBTransactionMode=): IDBTransaction)|IDBTransaction|(function(function(SQLTransaction): void, function(SQLError): void=, function(): void=): void)}
+     */
     extractTransactionIdFromTransactionResponse(transactionResponse){
+        logger.sensitive(`#### extractTransactionIdFromTransactionResponse(transactionResponse)`);
         if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
         if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
         if(!transactionResponse.data.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
         return this.extractTransactionId(transactionResponse.data.transactionJSON)
     }
-
-
 
     /**
      *
@@ -265,10 +300,8 @@ class TransactionUtils {
      * @returns {*}
      */
     extractTransactionIds(transactions) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## extractTransactionIds(transactions)`);
-        logger.verbose('##');
-        logger.sensitive(`transactions.length=${transactions.length}`);
+        logger.verbose(`#### extractTransactionIds(transactions)`);
+        logger.sensitive(`transactions.length= ${transactions.length}`);
 
         // if (transactions.length === 0) {
         //     logger.warn('empty array passed in!')
@@ -358,13 +391,17 @@ class TransactionUtils {
      * @returns {*}
      */
     filterEncryptedMessageTransactions(transactions) {
-        logger.verbose(`filterEncryptedMessageTransactions(transactions)`);
-        if (transactions.length === 0) {
-            return []
-        }
+        logger.verbose(`#### filterEncryptedMessageTransactions(transactions)`);
+        if(!Array.isArray(transactions)){throw new Error('transactions needs to be an array')};
+        logger.debug(`transactions.length= ${transactions.length}`)
+        if (transactions.length === 0) {return []}
         const messageTransactions = transactions.filter(this.isValidEncryptedMessageTransaction, this)
-        logger.debug(`Total messageTransactions: ${messageTransactions.length}`);
-
+        // const messageTransactions = transactions.filter( transaction => {
+        //         const validationResult = validator.validateEncryptedMessageTransaction(transaction);
+        //         return validationResult.isValid
+        //     }
+        // )
+        logger.debug(`messageTransactions.length= ${messageTransactions.length}`);
         return messageTransactions;
     }
 
