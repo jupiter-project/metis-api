@@ -7,6 +7,7 @@ import {instantiateGravityAccountProperties} from "../gravity/instantiateGravity
 import {jupiterAPIService} from "../services/jupiterAPIService";
 import {JupiterApiError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
+import {chanService} from "../services/chanService";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 
@@ -204,15 +205,12 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     logger.info('== SignUp');
     logger.info('== POST: /v1/api/signup ');
     logger.info(`======================================================================================\n\n`);
-    console.log('');
-
     passport.authenticate('gravity-signup', (error, jobId, _) => {
-
       if (error) {
         console.log(error);
-        return res.status(500).send({ jobId });
+        return res.status(StatusCode.ServerErrorInternal).send({ jobId });
       }
-      return res.status(200).send({ jobId: jobId });
+      return res.status(StatusCode.SuccessOK).send({ jobId: jobId });
     })(req, res, next);
   });
 
@@ -261,7 +259,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
       const userProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
 
      jupiterAccountService.addPublicKeyToUserAccount(userPublicKey, userProperties)
-         .then(() => jupiterAccountService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
+         .then(() => chanService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
          .then(() =>
              res.status(200).send({ successful: true, message: 'Public key was successfully added' })
          )
