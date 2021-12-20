@@ -3,7 +3,7 @@ require('babel-register')({
   presets: ['react'],
 });
 
-const { instantiateGravityAccountProperties } = require('./gravity/instantiateGravityAccountProperties');
+const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
 const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
 const firebaseAdmin = require("firebase-admin");
@@ -298,40 +298,29 @@ jobs.process('user-registration', WORKERS, (job,done) => {
 })
 
 jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
-  logger.verbose(`###########################################`)
-  logger.verbose(`## jobs.process(channel-creation-confirmation)`)
-  logger.verbose(`##`)
-
+  logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
   try {
     const {channelName, memberAccountProperties} = job.data;
 
     if (!gu.isNonEmptyString(channelName)) {
       throw new Error('channelName is EMPTY.')
     }
-
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
-    const memberProperties = await instantiateGravityAccountProperties(
+    const memberProperties = await instantiateMinimumGravityAccountProperties(
         memberAccountProperties.passphrase,
-        memberAccountProperties.password);
-
-    memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
+        memberAccountProperties.password,
+        memberAccountProperties.address);
+    // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
     const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
-
-    // console.log('RESULTS -------->', createNewChannelResults);
-
     return done(null, {
       channelName: channelName,
       channelAccountProperties: createNewChannelResults
     });
   } catch (error){
-    logger.error(`****************************************************************`);
-    logger.error(`** jobs.process(channel-creation-confirmation).catch(error)`);
-    logger.error(`** `);
-    logger.error(`   error= ${error}`)
-
+    logger.error(`**** jobs.process(channel-creation-confirmation).catch(error)`);
+    logger.error(`error= ${error}`)
     return done(error)
   }
-
 })
 
 /* jobs.process('fundAccount', (job, done) => {

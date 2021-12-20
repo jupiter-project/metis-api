@@ -742,10 +742,7 @@ class TableService {
      * @returns {Promise<{data, transactionReport: [{name, id}]}>}
      */
     async createTableListRecord(accountProperties, arrayOfTableNames) {
-        logger.verbose('###################################################################################')
-        logger.verbose(`## tableService.createTableListRecord(accountProperties= ${accountProperties.address}, arrayOfTableNames=${arrayOfTableNames})`)
-        logger.verbose('## ');
-
+        logger.verbose(`#### tableService.createTableListRecord(accountProperties= ${accountProperties.address}, arrayOfTableNames=${arrayOfTableNames})`)
         const tablesList = {
             tables: arrayOfTableNames,
             date: Date.now()
