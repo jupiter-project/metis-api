@@ -16,6 +16,7 @@ import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
 
+var moment = require('moment'); // require
 const gu = require('../utils/gravityUtils');
 const { v4: uuidv4 } = require('uuid');
 const connection = process.env.SOCKET_SERVER;
@@ -43,7 +44,7 @@ module.exports = (app, passport, jobs, websocket) => {
             req.user.password
         )
 
-        const allMemberChannels = await jupiterAccountService.getMemberChannels(memberAccountProperties);
+        const allMemberChannels = await chanService.getMemberChannels(memberAccountProperties);
 
         const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) =>{
              reduced.push({
@@ -115,7 +116,7 @@ module.exports = (app, passport, jobs, websocket) => {
         chanService.acceptInvitation(memberAccountProperties, channelAddress)
             .then(() => {
                 websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
-                res.status(200).send({message: 'Invite accepted'});
+                res.status(StatusCode.SuccessOK).send({message: 'Invite accepted'});
             })
             .catch(error => {
                 logger.error(`*********************************************`)
@@ -335,33 +336,20 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== POST: api/channel/invite');
         logger.info('======================================================================================');
         console.log('');
-
         const {channelAddress, inviteeAddressOrAlias} = req.body;
         const {user} = req;
-
         try {
-
             if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
-            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            // if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
-            // if(!gu.isWellFormedJupiterAddress(inviteeAddress)){throw new Error('inviteeAddress not well formed')}
-
-            // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress not well formed')}
-            // if(!gu.isWellFormedJupiterAddressOrAlias(inviteeAddressOrAlias)){throw new Error(`inviteeAddressOrAlias not well formed ${inviteeAddressOrAlias}`)}
-
-
             const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-            const channelAccountProperties = await jupiterAccountService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
-
-
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
             let inviteeAddress = inviteeAddressOrAlias
             if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias) && gu.isWellFormedJupiterAlias(inviteeAddressOrAlias)){
                 // We need to get the Jup Address
                let getAliasResponse = await  jupiterAPIService.getAlias(inviteeAddressOrAlias)
-
                 inviteeAddress = getAliasResponse.data.accountRS;
-            } else if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){throw new BadJupiterAddressError(inviteeAddressOrAlias)}
-
+            } else if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){
+                throw new BadJupiterAddressError(inviteeAddressOrAlias)
+            }
             return chanService.createInvitation(
                 channelAccountProperties,
                 inviterAccountProperties,
@@ -410,72 +398,59 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== Create a Channel, assigned to the current user');
         logger.info('== app.post(\'/v1/api/channel\')(req,res,next)');
         logger.info(`======================================================================================\n\n\n`);
-
+        const startTime = Date.now();
         const {channelName} = req.body;
         // const { userData: { alias, account } } = req.user;
         if (!channelName) {
-            return res.status(400).send({errorMessage: 'need channelName in body'})
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Need channelName in body'})
         }
-        const memberAccountProperties = await instantiateGravityAccountProperties(
+        const memberAccountProperties = await instantiateMinimumGravityAccountProperties(
             req.user.passphrase,
-            req.user.password);
-
-        // const aliasInfo = {
-        //     aliasName: alias,
-        //     aliasURI: '--',
-        //     accountRS: account,
-        // };
-        // memberAccountProperties.addAlias(aliasInfo); //TODO remove this
-
+            req.user.password,
+            req.user.address
+            );
         const job = jobs.create('channel-creation-confirmation', {channelName, memberAccountProperties})
             .priority('high')
             .removeOnComplete(false)
             .save( error => {
-                logger.verbose(`-----------------------------------------------------------------------------------`);
-                logger.verbose(`-- JobQueue: channel-creation-confirmation.save(error)`);
-                logger.verbose(`-- `);
+                logger.verbose(`---- JobQueue: channel-creation-confirmation.save(error)`);
                 logger.sensitive(`error= ${error}`);
                 if (error) {
                     websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
                     throw new Error('channel-creation-confirmation');
                 }
-
                 logger.verbose(`job.id= ${job.id}`);
-                res.status(200).send({jobId: job.id});
+                res.status(StatusCode.SuccessOK).send({jobId: job.id});
                 websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated', {jobId: job.id});
             });
-
         job.on('complete', function (result) {
-            logger.verbose(`-----------------------------------------------------------------------------------`);
-            logger.verbose(`-- JobQueue: channel-creation-confirmation.on(complete)`);
-            logger.verbose(`-- `);
-            logger.sensitive(`result=${JSON.stringify(result)}`);
-            const payload = {channelName: result.channelName, account: result.channelAccountProperties.address}
+            logger.verbose(`---- JobQueue: channel-creation-confirmation.on(complete)`);
+            logger.sensitive(`result= ${JSON.stringify(result)}`);
+            const endTime = Date.now();
+            const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.info('++ Create a Channel');
+            logger.info(`++ Processing TIME`);
+            logger.info(`++ ${processingTime}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            // const payload = {channelName: result.channelName, account: result.channelAccountProperties.address}
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelSuccessful', {
                 jobId: job.id,
                 channelName: result.channelName,
                 channelAddress: result.channelAccountProperties.address
             });
         });
-
         job.on('failed attempt', function (errorMessage, doneAttempts) {
-            logger.verbose(`-----------------------------------------------------------------------------------`);
-            logger.verbose(`-- JobQueue: channel-creation-confirmation.on(failed attempt)`);
-            logger.verbose(`-- `);
+            logger.verbose(`**** JobQueue: channel-creation-confirmation.on(failed attempt)`);
             logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
             logger.error(`doneAttempts= ${JSON.stringify(doneAttempts)}`);
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
         });
 
         job.on('failed', function (errorMessage) {
-            logger.verbose(`-----------------------------------------------------------------------------------`);
-            logger.verbose(`-- JobQueue: channel-creation-confirmation.on(failed)`);
-            logger.verbose(`-- `);
+            logger.verbose(`**** JobQueue: channel-creation-confirmation.on(failed)`);
             logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
         });
-
-
     })
-
 };
