@@ -1994,9 +1994,10 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   sendMoney(recipient, transferAmount, sender) {
-    logger.verbose('#####################################################################################');
-    logger.verbose(`sendMoney(recipient= ${recipient}, transferAmount= ${transferAmount}, sender)`)
-    logger.verbose('#####################################################################################');
+    console.log(`\n\n\n`);
+    logger.info('======================================================================================');
+    logger.info('== sendMoney(recipient= ${recipient}, transferAmount= ${transferAmount}, sender)');
+    logger.info(`======================================================================================\n\n\n`);
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
     const feeNQT = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
@@ -2667,9 +2668,7 @@ class Gravity {
    * @returns {array}
    */
   extractTableNamesFromTables(tables) {
-    logger.verbose('#####################################################################################');
-    logger.verbose(`## extractTableNamesFromTables(tables= ${!!tables})`)
-    logger.verbose('#####################################################################################');
+    logger.verbose(`#### extractTableNamesFromTables(tables= ${!!tables})`)
 
     if(!tables) {
       return []

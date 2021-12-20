@@ -5,6 +5,7 @@ const {GravityAccountProperties} = require("../gravity/gravityAccountProperties"
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const gu = require("../utils/gravityUtils");
+const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 
 class GravityService{
 
@@ -45,6 +46,9 @@ class GravityService{
             if (metisEncrypt) {
                 payload = gravityAccountProperties.crypto.encryptJson(recordJson);
             }
+            if(gravityAccountProperties.isMinimumProperties){
+                await refreshGravityAccountProperties(gravityAccountProperties);
+            }
             const response = await this.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
                 gravityAccountProperties.address,
@@ -75,6 +79,9 @@ class GravityService{
             if (metisEncrypt) {
                 updatedList = gravityAccountProperties.crypto.encryptJson(updatedList);
             }
+            if(gravityAccountProperties.isMinimumProperties){
+                await refreshGravityAccountProperties(gravityAccountProperties);
+            }
             return this.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
                 gravityAccountProperties.address,
@@ -102,21 +109,23 @@ class GravityService{
      * @returns {Promise<TransactionResponse | null>}
      */
     addItemToTransactionsReferenceList(gravityAccountProperties, newItem, listTag, feeType = FeeManager.feeTypes.account_record, isMetisEncrypted = true){
-
         // return this.jupiterTransactionsService.getReadableTaggedMessageContainers(gravityAccountProperties, listTag)
         return this.getLatestListByTag(gravityAccountProperties,listTag, isMetisEncrypted)
-            .then( list => {
+            .then( async list => {
                 // first: make sure its not already in the list
-                if(list.some(item => item === newItem)){
+                if (list.some(item => item === newItem)) {
                     return null;
                 }
                 // Second: Update the list
                 list.push(newItem);
                 let encryptedList = list;
-                if(isMetisEncrypted){
+                if (isMetisEncrypted) {
                     encryptedList = gravityAccountProperties.crypto.encryptJson(list);
                 }
                 // Third: Send the updated list.
+                if (gravityAccountProperties.isMinimumProperties) {
+                    await refreshGravityAccountProperties(gravityAccountProperties);
+                }
                 return this.messageService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,
@@ -140,14 +149,17 @@ class GravityService{
     removeItemFromTransactionsReferenceList(gravityAccountProperties, itemToRemove, listTag, feeType = FeeManager.feeTypes.account_record, isMetisEncrypted = true){
 
         return this.getLatestListByTag(gravityAccountProperties, listTag,isMetisEncrypted)
-            .then( list => {
+            .then( async list => {
                 //first: filter out the item
                 const newList = list.filter(item => item !== itemToRemove)
                 let encryptedNewList = newList;
-                if(isMetisEncrypted){
+                if (isMetisEncrypted) {
                     encryptedNewList = gravityAccountProperties.crypto.encryptJson(newList);
                 }
                 // Second: Send the updated list.
+                if (gravityAccountProperties.isMinimumProperties) {
+                    await refreshGravityAccountProperties(gravityAccountProperties);
+                }
                 return this.messageService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,

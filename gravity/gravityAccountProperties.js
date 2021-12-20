@@ -6,6 +6,7 @@ const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {metisApplicationAccountProperties} = require("./applicationAccountProperties");
 const {BadJupiterAddressError} = require("../errors/metisError");
+const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 
 /**
  *
@@ -86,7 +87,10 @@ class GravityAccountProperties extends JupiterAccountProperties {
         this.accountCreationFeeNQT = applicationAccountProperties.accountCreationFeeNQT;
     }
 
-
+    /**
+     *
+     * @return {{passphrase: string, publicKey: string, encryptionPassword, account: string}}
+     */
     generateAccessData(){
         return {
             encryptionPassword: this.crypto.decryptionPassword,
@@ -144,6 +148,7 @@ class GravityAccountProperties extends JupiterAccountProperties {
         if(!alias){
             throw new Error('Alias is missing');
         }
+
 
 
         const userRecord = {
