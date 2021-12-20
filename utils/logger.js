@@ -1,6 +1,5 @@
 require('dotenv').config();
 const { S3StreamLogger } = require('s3-streamlogger');
-
 const winston = require('winston');
 require('winston-mongodb');
 const path = require('path');
@@ -97,12 +96,9 @@ const customLevels = {
 
 // Mongo DB transport
 const mongoDbTransport = getMongoDBTransport();
-
 const s3Transport = getS3StreamTransport();
-
 // Transport list Array
 const transportList = [];
-
 if (process.env.LOCAL_FILE_DEBUG_LEVEL) {
   const localFileDebugLevel = process.env.LOCAL_FILE_DEBUG_LEVEL;
   transportList.push(
@@ -112,9 +108,6 @@ if (process.env.LOCAL_FILE_DEBUG_LEVEL) {
       })
   )
 }
-
-
-
 if (process.env.CONSOLE_DEBUG_LEVEL) {
   const consoleDebugLevel = process.env.CONSOLE_DEBUG_LEVEL;
   transportList.push(
@@ -130,16 +123,32 @@ if (process.env.CONSOLE_DEBUG_LEVEL) {
       })
   )
 }
-
 if (s3Transport) {
   transportList.push(s3Transport);
 }
-
 if (mongoDbTransport && process.env.NODE_ENV === 'production') {
   transportList.push(mongoDbTransport);
 }
 
-module.exports = function (callingModule) {
+const localDevLogger = (callingModule) => {
+  const transports = [];
+  transports.push(new winston.transports.Console({level:'sensitive', timestamp: tsFormat}));
+  return winston.createLogger({
+    levels: customLevels.levels,
+    format: winston.format.combine(
+        // winston.format.timestamp({format: 'HH:mm'}),
+        winston.format.printf(({ level, message, label, timestamp }) => {
+          const callingModuleName = `${getLabel(callingModule)}`
+          const paddedCallingModuleName = callingModuleName.padEnd(45, ' ');
+          const output = `${paddedCallingModuleName}|${message}`
+          return output
+        }),
+    ),
+    transports: transports,
+  });
+}
+
+const productionLogger = (callingModule) => {
   const PADDING_DEFAULT = 48;
   return winston.createLogger({
     levels: customLevels.levels,
@@ -161,4 +170,38 @@ module.exports = function (callingModule) {
     ),
     transports: transportList,
   });
+}
+
+const stagingLogger = (callingModule) => {
+  const PADDING_DEFAULT = 48;
+  return winston.createLogger({
+    levels: customLevels.levels,
+    format: winston.format.combine(
+        winston.format.splat(),
+        winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
+        winston.format.label({label:'*'}),
+        winston.format.align(),
+        winston.format.simple(),
+        winston.format.printf(({ level, message, label, timestamp }) => {
+
+          const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
+          const spacing = (pre.length > PADDING_DEFAULT)? 0 : PADDING_DEFAULT - pre.length
+          const padding = generatePadding(spacing);
+          const output = `${pre}${padding}${message}`
+
+          return output
+        }),
+    ),
+    transports: transportList,
+  });
+}
+
+
+module.exports = function (callingModule) {
+  if(process.env.NODE_ENV === 'development'){
+    return localDevLogger(callingModule);
+  } else if( process.env.NODE_ENV === 'staging' ){
+    return stagingLogger(callingModule);
+  }
+  return productionLogger(callingModule);
 };
