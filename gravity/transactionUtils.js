@@ -81,20 +81,15 @@ class TransactionUtils {
          * @returns {boolean}
          */
         areValidTransactions(transactions) {
-            logger.verbose('############################################3');
-            logger.verbose('## areValidTransactions(transactions)');
-            logger.verbose('##');
-            logger.error('use ajv!!!')
-
+            logger.verbose('#### areValidTransactions(transactions)');
             if(!gu.isNonEmptyArray(transactions)){
                 logger.warn('not valid array');
                 return false;
             }
-
             for (let i = 0; i < transactions.length; i++) {
                 if (!this.isValidBaseTransaction(transactions[i])) {
-                    logger.error(` -- invalid transaction`);
-                    logger.sensitive(`this.isValidBaseTransaction(transactions[i]) = ${JSON.stringify(transactions[i])}`)
+                    logger.warn(`* invalid transaction ${transactions[i]}`);
+                    // logger.sensitive(`this.isValidBaseTransaction(transactions[i]) = ${JSON.stringify(transactions[i])}`)
                     return false;
                 }// const validationResult = validator.validateBaseTransaction(transactions[i]);
                 // if(!validationResult.isValid){

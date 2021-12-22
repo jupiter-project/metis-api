@@ -188,10 +188,7 @@ class JupiterAccountService {
      * @returns {Promise<{GravityAccountProperties, balance, records,  attachedTables: []}>}
      */
     async fetchAccountStatement(passphrase, password, statementId = '', accountType = '', params = {}) {
-        console.log(`\n\n\n`)
-        logger.verbose(`#####################################################################################`);
-        logger.verbose(`## fetchAccountStatement(passphrase, password, statementId=${statementId}, accountType=${accountType})`);
-        logger.verbose(`#####################################################################################\n\n\n`);
+        logger.verbose(`#### fetchAccountStatement(passphrase, password, statementId=${statementId}, accountType=${accountType})`);
         if (!gu.isWellFormedPassphrase(passphrase)) {throw new Error('problem with passphrase')}
         if(!gu.isNonEmptyString(password)){throw new Error('password is not valid')}
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
@@ -545,9 +542,7 @@ class JupiterAccountService {
             });
     }
 
-    hasPublicKeyInChannelAccount(publicKey, gravityAccountProperties) {
-        return this.publicKeyMessages(publicKey, gravityAccountProperties, channelConfig.channelMemberPublicKeyList)
-    }
+
 
     hasPublicKeyInUserAccount(publicKey, gravityAccountProperties) {
         return this.publicKeyMessages(publicKey, gravityAccountProperties, userConfig.userPublicKeyList)
@@ -800,16 +795,16 @@ class JupiterAccountService {
      * @returns {Promise<{aliasURI, aliasName, accountRS, alias, account, timestamp}[] | *[]>}
      */
     getAliasesOrEmptyArray(address){
-        logger.sensitive(`#### getAliasesOrEmptyArray(address= ${address})`);
+        logger.sensitive(`##### getAliasesOrEmptyArray(address= ${address})`);
         if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         // if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}
 
         return this.jupiterAPIService.getAliases(address)
             .then(getAliasesResponse => {
-                logger.verbose(`-----------------------------------------------------------------------------------`);
-                logger.verbose(`-- getAliasesOrEmptyArray(address).jupiterAPI().getAliases().then()`);
-                logger.verbose(`-- `);
+                logger.verbose(`---- getAliasesOrEmptyArray(address).jupiterAPI().getAliases().then()`);
+                logger.debug(`address= ${address}`);
                 if(getAliasesResponse.hasOwnProperty('data') && getAliasesResponse.data.hasOwnProperty('aliases')){
+                    logger.debug(`aliases= ${getAliasesResponse.data.aliases}`);
                     return getAliasesResponse.data.aliases;
                 }
                 return [];
@@ -821,10 +816,11 @@ class JupiterAccountService {
                 }
 
                 logger.error(`***********************************************************************************`);
-                logger.error(`** getAliasesOrEmptyArray(address=${address}).catch(error)`);
-                logger.error(`** `);
-                console.log(error);
-                throw new Error('SOMETHING WRONG!!')
+                logger.error(`*** getAliasesOrEmptyArray(address=${address}).catch(error)`);
+                logger.error(`***********************************************************************************`);
+                // console.log(error);
+                logger.error(`${error}`);
+                throw error;
                 // return [];
             })
     }

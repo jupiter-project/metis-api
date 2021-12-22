@@ -6,10 +6,7 @@ const logger = require('../utils/logger')(module);
 //  Verificar Token
 // ============================
 const tokenVerify = (req, res, next) => {
-  logger.verbose(`###################################################################################`);
-  logger.verbose(`## tokenVerify(req, res, next)`);
-  logger.verbose(`## `);
-
+  logger.verbose(`#### tokenVerify(req, res, next)`);
   const token = req.get('Authorization');
   const channelToken = req.get('AuthorizationChannel');
   const omittedUrls = [

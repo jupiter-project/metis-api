@@ -303,7 +303,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<{message: *, transactionId: *}>}
      */
     async getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
-        logger.sensitive(`#### getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)`);
+        // logger.sensitive(`#### getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)`);
         if(!gu.isWellFormedJupiterTransactionId(messageTransactionId)){throw new Error('messageTransactionId is invalid')}
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
         if(!crypto instanceof GravityCrypto){throw new Error('crypto is invalid')}
@@ -315,10 +315,9 @@ class JupiterTransactionMessageService {
             }
             const messageToParse = crypto.decryptOrNull(decryptedMessageContainer.message);
             if (!messageToParse) {
-                logger.sensitive('++++ unable to decrypt message!');
+                logger.warn(`unable to decrypt message: ${decryptedMessageContainer.message.substring(0,10)}`);
                 return ''; // because of Promise.all we should not do reject.
             }
-
             const message = gu.jsonParseOrPassThrough(messageToParse);
             return {message: message, transactionId: messageTransactionId};
         } catch(error) {
@@ -336,7 +335,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<unknown>}
      */
     async getReadableMessageContainerFromMessageTransactionIdAndDecryptOrPassThrough(messageTransactionId, crypto, passphrase) {
-        logger.verbose('#### getReadableMessageContainerFromMessageTransactionIdAndDecryptOrPassThrough(messageTransactionId, crypto, passphrase)');
+        // logger.verbose('#### getReadableMessageContainerFromMessageTransactionIdAndDecryptOrPassThrough(messageTransactionId, crypto, passphrase)');
         return new Promise((resolve, reject) => {
             this.getReadableMessageContainerFromMessageTransactionId(messageTransactionId, passphrase)
                 .then(messageContainer => {
@@ -423,8 +422,8 @@ class JupiterTransactionMessageService {
      */
     async extractMessagesBySender(senderAccountProperties, blockChainTransactions, decipherWith= null){
         logger.verbose(`#### extractMessagesBySender(accountProperties, blockChainTransactions,  decipherWith=null)`);
-        logger.debug(`  ## - blockChainTransactions.length= ${blockChainTransactions.length}`);
-        logger.debug(`  ## - senderAccountProperties.address= ${senderAccountProperties.address}`);
+        logger.debug(`blockChainTransactions.length= ${blockChainTransactions.length}`);
+        logger.debug(`senderAccountProperties.address= ${senderAccountProperties.address}`);
 
         if(!(senderAccountProperties instanceof GravityAccountProperties)) throw new Error('senderAccountProperties is not GravityAccountProperties')
 
@@ -456,14 +455,12 @@ class JupiterTransactionMessageService {
             senderAccountProperties.passphrase
         )
             .then((messageContainers) => {
-                logger.verbose('---------------------------------------------------------------------------------------');
-                logger.verbose(`-- extractMessagesBySender(senderAccountProperties, blockChainTransactions, decipherWith).readMessagesFromMessageTransactionIdsAndDecrypt(filteredTransactionIds).then(messages)`);
-                logger.verbose('--');
-                logger.verbose(`senderAccountProperties.address ${senderAccountProperties.address}`);
-                logger.verbose(`blockChainTransactions.length ${blockChainTransactions.length}`);
+                logger.verbose(`---- extractMessagesBySender(senderAccountProperties, blockChainTransactions, decipherWith).readMessagesFromMessageTransactionIdsAndDecrypt(filteredTransactionIds).then(messages)`);
+                logger.verbose(`senderAccountProperties.address= ${senderAccountProperties.address}`);
+                logger.verbose(`blockChainTransactions.length= ${blockChainTransactions.length}`);
                 logger.verbose(`filterMessageTransactionsBySender.messageTransactions.length= ${messageTransactions.length}`);
-                logger.verbose(`filteredTransactionIds.length ${filteredTransactionIds.length}`);
-                logger.verbose(`messages.length ${messageContainers.length}`);
+                logger.verbose(`filteredTransactionIds.length= ${filteredTransactionIds.length}`);
+                logger.verbose(`messages.length= ${messageContainers.length}`);
                 return messageContainers;
             })
     }
@@ -475,9 +472,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<unknown>}
      */
     async getAllMessagesFromBlockChainAndIncludeTransactionInformation(gravityAccountProperties, blockChainTransactions){
-        logger.verbose('##############################################################################################');
-        logger.verbose(`## getAllMessagesFromBlockChainAndIncludeTransactionInformation(accountProperties, blockChainTransactions)`);
-        logger.verbose('##');
+        logger.verbose(`#### getAllMessagesFromBlockChainAndIncludeTransactionInformation(accountProperties, blockChainTransactions)`);
         logger.verbose(`blockChainTransactions.length= ${JSON.stringify(blockChainTransactions.length)}`);
         // if( !(gravityAccountProperties instanceof GravityAccountProperties) ){throw new Error('invalid gravityAccountProperties')};
         if(!blockChainTransactions){throw new Error('blockChainTransactions is empty')};

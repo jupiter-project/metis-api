@@ -146,10 +146,8 @@ function Metis() {
 
     //@TODO obsolete.
     async function addToMemberList(params) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## addToMemberList(params)`);
-        logger.verbose(`## `);
-        logger.sensitive(`params=${JSON.stringify(params)}`);
+        logger.verbose(`#### addToMemberList(params)`);
+        logger.sensitive(`params= ${JSON.stringify(params)}`);
 
         if (!params.alias) {
             return {error: true, message: 'No alias provided'};

@@ -1,13 +1,8 @@
 const gu = require('../utils/gravityUtils');
 const {feeManagerSingleton, FeeManager} = require("./FeeManager");
-// const {resolve} = require("path");
-// const {reject} = require("lodash");
-// const {gravityCLIReporter} = require("../gravity/gravityCLIReporter");
 const {jupiterAPIService} = require("./jupiterAPIService");
-// const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("../gravity/metisApplicationAccountProperties");
 const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {JupiterAPIService} = require("./jupiterAPIService");
-const {BadJupiterAddressError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -94,9 +89,7 @@ class JupiterFundingService {
      * @returns {Promise<unknown>}
      */
     async provideInitialStandardUserFunds(recipientProperties){
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## provideInitialStandardUserFunds( recipientProperties= ${!!recipientProperties})`);
-        logger.verbose('##');
+        logger.verbose(`#### provideInitialStandardUserFunds( recipientProperties= ${!!recipientProperties})`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('recipientProperties is invalid')}
         const initialAmount = this.defaultNewUserTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
@@ -109,15 +102,10 @@ class JupiterFundingService {
      * @returns {Promise<*>}
      */
     async provideInitialStandardTableFunds(recipientProperties){
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## provideInitialStandardTableFunds( recipientProperties= ${!!recipientProperties})`);
-        logger.verbose('##');
-
+        logger.verbose(`#### provideInitialStandardTableFunds( recipientProperties= ${!!recipientProperties})`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('invalid recipientProperties')};
-
         const initialAmount = this.defaultNewTableTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 

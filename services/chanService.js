@@ -184,11 +184,8 @@ class ChanService {
      *              }]>}
      */
     async getChannelInvitationContainersSentToAccount(sentToMemberAccountProperties) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getChannelInvitationContainersSentToAccount(sentToMemberAccountProperties)`);
-        logger.verbose(`## `);
+        logger.verbose(`#### getChannelInvitationContainersSentToAccount(sentToMemberAccountProperties)`);
         if(!(sentToMemberAccountProperties instanceof GravityAccountProperties)) {throw new Error('sentToMemberAccountProperties is not well formed')};
-
         try {
             // First: Get All Invitations. @TODO later we'll only get invitations for the past X days.
             const recordTag = channelConfig.channelInviteRecord;
@@ -371,12 +368,12 @@ class ChanService {
             // logger.sensitive(`transactions=${JSON.stringify(transactions)}`);
             const transactionsBySelf = transactionUtils.filterEncryptedMessageTransactionsBySender(transactions, memberAccountProperties.address);
             logger.debug(`transactionsBySelf.length= ${transactionsBySelf.length}`);
-            logger.debug(`transactionsBySelf=${JSON.stringify(transactionsBySelf)}`);
+            // logger.debug(`transactionsBySelf=${JSON.stringify(transactionsBySelf)}`);
             if (!gu.isNonEmptyArray(transactionsBySelf)) {
                 return null;
             }
             const [transaction] = transactionsBySelf;
-            logger.debug(`transaction=${JSON.stringify(transaction)}`);
+            // logger.debug(`transaction= ${JSON.stringify(transaction)}`);
             const transactionId = transactionUtils.extractTransactionId(transaction);
             //@TODO wrap the following into something like: fetchChannelRecord();
 
@@ -713,9 +710,7 @@ class ChanService {
      * @return {Promise<boolean>}
      */
     async accountHasReferenceAccountInfo(accountProperties,  referenceAddress, listTag, recordTag){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## accountHasReferenceAccountInfo(accountProperties,  referenceAddress, listTag, recordTag)`);
-        logger.verbose(`## `);
+        logger.verbose(`#### accountHasReferenceAccountInfo(accountProperties,  referenceAddress, listTag, recordTag)`);
         if(!accountProperties instanceof GravityAccountProperties){throw new Error('accountProperties is invalid')}
         if(!gu.isWellFormedJupiterAddress(referenceAddress)){throw new BadJupiterAddressError(referenceAddress)}
         // if(!gu.isWellFormedJupiterAddress(referenceAddress)){throw new Error('referenceAddress is invalid')}
@@ -774,9 +769,10 @@ class ChanService {
      * @return {Promise<{}|{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
     async addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties) {
+        console.log(`\n\n`)
         logger.verbose(`###################################################################################`);
         logger.verbose(`## addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties)`);
-        logger.verbose(`## `);
+        logger.verbose(`###################################################################################`);
         if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
         if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('invalid channelAccountProperties')}
         const accountHasChannelInfo =  await this.accountHasChannelInfo(channelAccountProperties, accountProperties.address);
@@ -961,11 +957,11 @@ class ChanService {
         const listTag = channelConfig.channelMemberList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
             .then( messageContainers  => {
-                console.log(`\n\n\n`);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                console.log('messageContainers');
-                console.log(messageContainers);
-                console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+                // console.log(`\n\n\n`);
+                // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+                // console.log('messageContainers');
+                // console.log(messageContainers);
+                // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
                 return messageContainers.map(messageContainer => messageContainer.message);
             })
     }
@@ -986,10 +982,13 @@ class ChanService {
         }
     }
 
+    hasPublicKeyInChannelAccount(publicKey, gravityAccountProperties) {
+        return this.jupiterAccountService.publicKeyMessages(publicKey, gravityAccountProperties, channelConfig.channelMemberPublicKeyList)
+    }
     /**
      *
-     * @param userPublicKey
-     * @param userAddress
+     * @param {string} userPublicKey
+     * @param {string} userAddress
      * @param {GravityAccountProperties} channelAccountProperties
      */
     async addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties) {
@@ -1000,18 +999,14 @@ class ChanService {
             }
             const hasPublicKey = await this.hasPublicKeyInChannelAccount(userPublicKey, channelAccountProperties)
             if (hasPublicKey) {
-                // TODO create an error business handler
-                const error = new Error();
-                error.code = 'PUBLIC-KEY_EXIST';
-                error.message = 'Public key already exists';
-                throw error;
+                throw new PublicKeyExistsError(userPublicKey);
             }
             const newUserChannel = {
                 userAddress,
                 userPublicKey,
                 date: Date.now()
             };
-            logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
+            logger.sensitive(`newUserChannel= ${JSON.stringify(newUserChannel)}`);
             const encryptedMessage = channelAccountProperties.crypto.encrypt(JSON.stringify(newUserChannel));
             const checksumPublicKey = gu.generateChecksum(userPublicKey);
             const channelUserTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
@@ -1044,15 +1039,16 @@ class ChanService {
                 channelAccountProperties.publicKey
             );
         } catch (error) {
-            logger.error(`**** functionName.catch(error)`);
-            logger.error(`** - error= ${error}`)
+            logger.error(`**** addPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties).catch(error)`);
+            if(error instanceof PublicKeyExistsError){
+                logger.warn(`The PublicKey is already associated with the channel: channel=${channelAccountProperties.address}, user public key: ${userPublicKey}`);
+                return;
+            }
+            console.log(error);
             throw error;
         }
     }
-
 }
-
-
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
@@ -1063,7 +1059,7 @@ const {instantiateGravityAccountProperties, instantiateMinimumGravityAccountProp
 const {head, stubFalse, has} = require("lodash");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {BadGravityAccountPropertiesError, ChannelRecordValidatorError, BadJupiterAddressError,
-    InviteRecordValidatorError
+    InviteRecordValidatorError, PublicKeyExistsError
 } = require("../errors/metisError");
 // const {channelRecordSchemaV1} = require("../schema/channelRecordSchemaV1");
 // const {BadJupiterAddressError} = require("../errors/metisError");

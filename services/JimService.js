@@ -7,6 +7,7 @@ import {
 } from "../gravity/instantiateGravityAccountProperties";
 import {chanService} from "./chanService";
 import {generateNewMessageRecordJson, sendMetisMessage} from "./messageService";
+import {StatusCode} from "../utils/statusCode";
 const FormData = require('form-data');
 const axios = require('axios');
 const { getPNTokensAndSendPushNotification, errorMessageHandler } = require('./PushNotificationMessageService');
@@ -14,6 +15,7 @@ const accountPropertyFee = feeManagerSingleton.getFee(FeeManager.feeTypes.accoun
 const logger = require('../utils/logger')(module);
 
 const getSignInToken = (dataLogin) => {
+    logger.sensitive(`#### getSignInToken(dataLogin)`);
   return axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
       .then((response) => {
         if (!(response && response.data && response.data.token)){
@@ -259,15 +261,17 @@ module.exports = {
         });
   },
   jimSignin: (req, res) =>{
-    const { address, password, passphrase } = req.user;
-    const dataLogin = { account: address, passphrase, password };
-    getSignInToken(dataLogin)
-        .then(token => res.status(200).json(token))
+      logger.sensitive(`#### jimSignIn(req,res)`);
+      const { address, password, passphrase } = req.user;
+      const dataLogin = { account: address, passphrase, password };
+      getSignInToken(dataLogin)
+        .then(token => res.status(StatusCode.SuccessOK).json(token))
         .catch((error) => {
-        logger.debug('Something went wrong whit JIM login', error);
-        res.status(500).json({ msg: 'Something went wrong whit JIM login', error });
+        logger.debug(`Something went wrong whit JIM login: ${error}`);
+        res.status(StatusCode.ServerErrorInternal).json({ msg: 'Something went wrong whit JIM login'});
       });
   },
+
   jimChannelSignIn: async (req, res) => {
     const { passphrase, password } = req.user;
     const { channelAddress } = req.body;

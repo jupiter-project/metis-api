@@ -874,10 +874,7 @@ class JupiterAPIService {
      * @returns {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"versionOrdinaryPayment"},"senderRS","subtype","amountNQT","sender","recipientRS","recipient","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
      */
     async transferMoney(fromAccountProperties, toAccountProperties, amount, feeNQT = this.appProps.feeNQT) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
-        logger.verbose('## ');
-
+        logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
         if (!gu.isNumberGreaterThanZero(amount)) {throw new Error('amount is invalid')}
         if(!fromAccountProperties instanceof GravityAccountProperties){throw new Error('fromAccountProperties is not valid')}
         if(!toAccountProperties instanceof GravityAccountProperties){throw new Error('toAccountProperties is not valid')}
@@ -941,9 +938,7 @@ class JupiterAPIService {
      * @returns {Promise<{"aliasURI","aliasName","accountRS","alias","requestProcessingTime","account","timestamp"}>}
      */
     async getAlias(aliasName) {
-        logger.verbose('#################################################')
-        logger.verbose(`## getAlias(aliasName= ${aliasName})`);
-        logger.verbose('##')
+        logger.verbose(`#### getAlias(aliasName= ${aliasName})`);
         if(!aliasName) {throw new Error('aliasName cannot be empty')}
         const params = {
             aliasName,

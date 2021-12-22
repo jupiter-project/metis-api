@@ -215,9 +215,7 @@ class AccountRegistration {
      * @returns {Promise<{data: {newTables:[]}, transactionsReport}>}
      */
     attachMissingDefaultTables(currentlyAttachedTableStatements, tableOwnerProperties) {
-        logger.verbose('#####################################################################################');
-        logger.verbose('## attachMissingDefaultTables(currentlyAttachedTableStatements, tableOwnerProperties)');
-        logger.verbose('##');
+        logger.verbose('#### attachMissingDefaultTables(currentlyAttachedTableStatements, tableOwnerProperties)');
         if (!tableOwnerProperties) { throw new Error('accountProperties is missing') }
         logger.sensitive(`attaching tables to: ${tableOwnerProperties.address}`)
 
@@ -236,9 +234,7 @@ class AccountRegistration {
             .then( tablesToAttachResults => { // [{name, address, passphrase, publicKey, sendMoneyTransactionId}]
                 return this.tableService.createTableListRecord(tableOwnerProperties, this.defaultTableNames())
                     .then(createTableListRecordResponse => {
-                        logger.verbose('------------------------------------------------------------------');
-                        logger.verbose(`-- attachMissingDefaultTables().createTableListRecord().then()`);
-                        logger.verbose('-- ');
+                        logger.verbose(`---- attachMissingDefaultTables().createTableListRecord().then()`);
                         const transactionsReport = tablesToAttachResults.reduce(  (reduced, tablesToAttachResult) => {
                             reduced = [...reduced, ...tablesToAttachResult.transactions]
                             return reduced;
@@ -257,12 +253,8 @@ class AccountRegistration {
      * @returns {Promise<{name, address, passphrase, publicKey, sendMoneyTransactionId}>}
      */
     async attachTable(tableName, accountProperties) {
-        logger.verbose('#########################################################');
-        logger.verbose(`## attachTable(tableName=${tableName}, accountProperties)`);
-        logger.verbose('##');
-
+        logger.verbose(`#### attachTable(tableName=${tableName}, accountProperties)`);
         // @TODO before attaching make sure the table doesn't yet exist.
-
         return new Promise((resolve, reject) => {
             const accessData = accountProperties.generateAccessData();
             this.gravity.attachTable(accessData, tableName)

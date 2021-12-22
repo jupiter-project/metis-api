@@ -126,10 +126,7 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
             .priority('high')
             .removeOnComplete(false)
             .save( error =>{
-                logger.verbose(`-----------------------------------------------------------------------------------`);
-                logger.verbose(`-- JobQueue: user-registration.save(error)`);
-                logger.verbose(`-- `);
-                logger.sensitive(`error= ${error}`);
+                logger.verbose(`---- JobQueue: user-registration.save()`);
                 if(error){
                     logger.error(`There is a problem saving to redis`);
                     logger.error(`${error}`);
@@ -137,15 +134,9 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
                     throw new Error('user-registration');
                 }
                 logger.verbose(`job.id= ${job.id}`);
-                // res.status(200).send({jobId: job.id});
-
                 websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
-
                 return done(null, job.id);
             });
-
-        // logger.debug(`job id= ${job.id} for account=${account}`);
-
         job.on('complete', function(result){
             logger.verbose(`---- passport.job.on(complete(signUpSuccessful))`)
             logger.verbose(`account= ${account}`)

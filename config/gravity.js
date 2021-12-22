@@ -1100,9 +1100,9 @@ class Gravity {
               // console.log(2)
               // logger.debug(`Transaction payload: ${database[obj].transaction}`)
               if (scope.show_pending !== undefined && scope.show_pending > 0) {
-                console.log(3)
+                // console.log(3)
                 if (blockChainTransactions[transactionsIndex].confirmations <= scope.show_pending) {
-                  console.log(4)
+                  // console.log(4)
                   pendingRecords.push(transactionsIndex.transaction);
                   pendingNumber += 1;
                 } else {
@@ -1127,16 +1127,16 @@ class Gravity {
               // console.log(8)
               recordsFound += 1;
             } else {
-              console.log(9)
+              // console.log(9)
               logger.warn(`${transactionsIndex} : Wrong SenderRs: ${blockChainTransactions[transactionsIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
             }
-            console.log(10)
+            // console.log(10)
           } else {
             // console.log('.')
             // logger.debug(`${transactionsIndex} : Not a MessageTransaction: ${blockChainTransactions[transactionsIndex].transaction}`)
           }
           if (completion) {
-            console.log(12)
+            // console.log(12)
             logger.verbose(`records = ${JSON.stringify(records)}`);
             break;
           }

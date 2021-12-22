@@ -5,9 +5,10 @@ class MetisError extends Error {
      *
      * @param {string} message
      */
-    constructor(message) {
+    constructor(message, code = '') {
         super(message);
         this.name = this.constructor.name;
+        this.code = code
         Error.captureStackTrace(this, this.constructor);
     }
 }
@@ -61,6 +62,14 @@ class InviteRecordValidatorError extends MetisError {
     }
 }
 
+class PublicKeyExistsError extends MetisError {
+    constructor(message = ''){
+        super(`public key already exists: ${message}`);
+        this.code = 'PUBLIC-KEY-EXISTS';
+        this.name = "PublicKeyExistsError";
+    }
+}
+
 class FundingNotConfirmedError extends MetisError {
     constructor(message = '') {
         super(`Not able to confirm funding confirmation: ` + message)
@@ -93,3 +102,4 @@ module.exports.BadJupiterAddressError = BadJupiterAddressError;
 module.exports.BadGravityAccountPropertiesError = BadGravityAccountPropertiesError;
 module.exports.ChannelRecordValidatorError = ChannelRecordValidatorError;
 module.exports.InviteRecordValidatorError = InviteRecordValidatorError;
+module.exports.PublicKeyExistsError = PublicKeyExistsError;

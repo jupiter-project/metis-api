@@ -105,11 +105,11 @@ class JupiterTransactionsService {
             lastIndex
         );
 
-        console.log(`\n\n\n`);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-        console.log('getConfirmedAndUnconfirmedBlockChainTransactionsByTag');
-        console.log(transactions.length);
-        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+        // console.log(`\n\n\n`);
+        // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+        // console.log('getConfirmedAndUnconfirmedBlockChainTransactionsByTag');
+        // console.log(transactions.length);
+        // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
 
 
         return this.messageService.getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted);
@@ -221,36 +221,23 @@ class JupiterTransactionsService {
     async getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null, orderBy = 'desc'){
         logger.sensitive(`#### getConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
-        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is invalid')}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.sensitive(`address= ${JSON.stringify(address)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
-
         const confirmedTransactionsPromise = this.getBlockChainTransactionsByTag(address,tag,firstIndex,lastIndex);
-
         const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag, firstIndex, lastIndex);
-
         const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise]);
         const combinedTransactions = [ ...unconfirmendTransactionsResponse, ...confirmedTransactionsResponse ];
-
-
         combinedTransactions.sort((a,b) => {
             if(orderBy === 'desc'){
                 return new Date(b.timestamp) - new Date(a.timestamp)
             }
-
             if (orderBy === 'asc'){
                 return new Date(a.timestamp) - new Date(b.timestamp);
             }
-
             throw new Error(`orderBy is invalid ${orderBy}`);
         });
-
-
-
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        logger.info(`++ combinedTransactions.length= ${combinedTransactions.length}`);
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        logger.debug(`combinedTransactions.length= ${combinedTransactions.length}`);
         return combinedTransactions.filter(transaction => {
             return transaction.hasOwnProperty('attachment') &&
                 transaction.attachment.hasOwnProperty('message') &&

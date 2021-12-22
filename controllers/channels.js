@@ -171,36 +171,30 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('======================================================================================');
         logger.info('== Get a channel\'s messages');
         logger.info('== GET: /v1/api/data/messages/:firstIndex');
-        logger.info('======================================================================================\n\n\n');
+        logger.info('======================================================================================\n');
         const { user } = req;
         // pageNumber starts at Page 0;
         const { channelAddress, pageNumber: _pageNumber, pageSize: _pageSize } = req.query
-
         if (!channelAddress) {
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'});
         }
         if(!gu.isWellFormedJupiterAddress(channelAddress)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
         }
-
         if(isNaN(_pageNumber)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
         }
         if(isNaN(_pageSize)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'});
         }
-
         const pageNumber = parseInt(_pageNumber);
         const pageSize = parseInt(_pageSize);
-
         if(!(pageSize > 0 && pageSize < 1000)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'});
         }
-
         if(pageNumber < 0){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'});
         }
-
         try{
             const firstIndex = pageNumber * pageSize
             const lastIndex = firstIndex + (pageSize - 1);

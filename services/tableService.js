@@ -425,11 +425,9 @@ class GravityTablesService {
      * @returns {Promise<unknown>}
      */
     async attachTable(database, nameOfTableToAttach, currentTables=[]) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## attachTable(database, nameOfTableToAttach, currentTables=[])`);
-        logger.verbose(`## `);
-        logger.sensitive(`nameOfTableToAttach=${JSON.stringify(nameOfTableToAttach)}`);
-        logger.sensitive(`currentTables=${JSON.stringify(currentTables)}`);
+        logger.verbose(`#### attachTable(database, nameOfTableToAttach, currentTables=[])`);
+        logger.sensitive(`nameOfTableToAttach= ${JSON.stringify(nameOfTableToAttach)}`);
+        logger.sensitive(`currentTables= ${JSON.stringify(currentTables)}`);
         return new Promise((resolve, reject) => {
             this.applicationTransactions.getAccountStatement()
                 .then(accountStatement => {

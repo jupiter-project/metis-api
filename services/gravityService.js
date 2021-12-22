@@ -34,13 +34,12 @@ class GravityService{
         metisEncrypt = true,
         feeType = FeeManager.feeTypes.account_record
     ){
-        logger.verbose(`    ########################################################################`);
-        logger.verbose(`    ## addNewRecordToReferencedDataSet(recordJson,gravityAccountProperties,listTag,recordTag,metisEncrypt = true,feeType)`);
+        logger.verbose(`#### addNewRecordToReferencedDataSet(recordJson,gravityAccountProperties,listTag,recordTag,metisEncrypt = true,feeType)`);
         if(!recordJson){throw new Error('recordJson is not valid')}
         if(!gravityAccountProperties instanceof GravityAccountProperties){throw new Error('gravityAccountProperties is invalid')}
         if(!listTag){throw new Error('listTag is invalid')}
         if(!recordTag){throw new Error('recordTag is invalid')}
-        logger.sensitive(`  ## - recordJson= ${JSON.stringify(recordJson)}`);
+        logger.sensitive(`recordJson= ${JSON.stringify(recordJson)}`);
         try {
             let payload = recordJson;
             if (metisEncrypt) {
@@ -178,11 +177,9 @@ class GravityService{
      * @returns {Promise<[string]>}
      */
     async getLatestListByTag(accountProperties, tag, isMetisEncrypted = true){
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## getLatestListByTag(accountProperties, tag)`);
-        logger.verbose(`## `);
+        logger.verbose(`#### getLatestListByTag(accountProperties, tag)`);
         if(!tag){throw new Error('empty tag')}
-        logger.sensitive(`tag=${JSON.stringify(tag)}`);
+        logger.sensitive(`tag= ${JSON.stringify(tag)}`);
         if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
 
         return this.jupiterTransactionsService.getReadableTaggedMessageContainers(accountProperties,tag,isMetisEncrypted)

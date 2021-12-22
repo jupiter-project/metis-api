@@ -266,14 +266,7 @@ gravity.getFundingMonitor()
 const WORKERS = 100;
 
 jobs.process('user-registration', WORKERS, (job,done) => {
-  console.log('');
-  logger.info('======================================================================================');
-  logger.info('==');
-  logger.info('== jobs.process(user-registration)');
-  logger.info('==');
-  logger.info('======================================================================================');
-  console.log('');
-
+  logger.info('##### jobs.process(user-registration)');
   try {
     const decryptedData = gravity.decrypt(job.data.data)
     const parsedData = JSON.parse(decryptedData);
