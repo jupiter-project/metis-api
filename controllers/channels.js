@@ -11,7 +11,7 @@ import {jupiterTransactionsService} from "../services/jupiterTransactionsService
 import {jupiterAPIService} from "../services/jupiterAPIService";
 
 
-import {generateNewMessageRecordJson, sendMessagePushNotifications, sendMetisMessage} from "../services/messageService";
+import {generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord} from "../services/messageService";
 import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
@@ -200,7 +200,7 @@ module.exports = (app, passport, jobs, websocket) => {
             const lastIndex = firstIndex + (pageSize - 1);
             const memberAccountProperties =  instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
             // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
 
             if(!channelAccountProperties){
                 return res.status(StatusCode.ServerErrorInternal).send({message:`channel is not available: ${channelAddress}`})
@@ -269,17 +269,25 @@ module.exports = (app, passport, jobs, websocket) => {
                 websocket.of('/chat').to(address).emit('newMemberChannel');
             }
             websocket.of('/chat').to(address).emit('createMessage', { message: messageRecord });
-
-
-            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, address);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, address);
             if(!channelAccountProperties){
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
             }
-
-            if(channelAccountProperties.isMinimumProperties){
-                await refreshGravityAccountProperties(channelAccountProperties)
-            }
-            await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+            // if(channelAccountProperties.isMinimumProperties){
+            //     await refreshGravityAccountProperties(channelAccountProperties)
+            // }
+            await createMessageRecord(
+                memberAccountProperties,
+                channelAccountProperties,
+                message,
+                type,
+                replyMessage,
+                replyRecipientAlias,
+                replyRecipientAddress,
+                attachmentUrl,
+                version
+                )
+            // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
             res.send({ message: 'Message successfully sent' });
         }catch(error){
