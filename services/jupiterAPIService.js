@@ -3,7 +3,7 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {jupiterAxios as axios} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {BadJupiterAddressError, JupiterApiError, UnknownAliasError} from "../errors/metisError";
+import {BadJupiterAddressError, JupiterApiError, MetisError, UnknownAliasError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 import {add} from "lodash";
@@ -19,7 +19,7 @@ class JupiterAPIService {
      */
     constructor(jupiterHost, applicationAccountProperties) {
         if(!jupiterHost){throw new Error('missing jupiterHost')}
-        if(! applicationAccountProperties instanceof ApplicationAccountProperties){throw new Error('applicationAccountProperties is not valid')}
+        if(!(applicationAccountProperties instanceof ApplicationAccountProperties)){throw new Error('applicationAccountProperties is not valid')}
 
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
@@ -45,6 +45,7 @@ class JupiterAPIService {
             DecryptFrom: 'decryptFrom',
             SetAlias: 'setAlias',
             GetAlias: 'getAlias',
+            GetAccountPublicKey: 'getAccountPublicKey'
         }
     }
 
@@ -201,6 +202,27 @@ class JupiterAPIService {
         return this.get({
             requestType: JupiterAPIService.RequestType.GetAccountId,
             secretPhrase: passphrase,
+        })
+    }
+
+    /**
+     * @example {
+     *     "publicKey": "8435f67c428f27e3a25de349531ef015027e267fa655860032c1bda324abb068",
+     *     "requestProcessingTime": 0
+     * }
+     * @param {string} address
+     * @return {Promise<{data: {"publicKey","requestProcessingTime"}}>}
+     */
+    getAccountPublicKey(address) {
+        logger.verbose(`#### getAccountPublicKey(address)`);
+
+        if(!gu.isWellFormedJupiterAddress(address)) {
+            throw new Error(`address is not valid.`);
+        }
+
+        return this.get({
+            requestType: JupiterAPIService.RequestType.GetAccountPublicKey,
+            account: address,
         })
     }
 
@@ -496,11 +518,10 @@ class JupiterAPIService {
      * @example {"unconfirmedBalanceNQT":"15175546045487","forgedBalanceNQT":"0","balanceNQT":"15175546045487","requestProcessingTime":0}
      *
      * @param {string} address
-     * @returns {Promise<{"unconfirmedBalanceNQT","forgedBalanceNQT","balanceNQT","requestProcessingTime"}>}
+     * @returns {Promise<{data: {"unconfirmedBalanceNQT","forgedBalanceNQT","balanceNQT","requestProcessingTime"}}>}
      */
     async getBalance(address) {
         if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
-        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
         return this.get( {
             requestType: JupiterAPIService.RequestType.GetBalance,
             account: address
@@ -876,15 +897,15 @@ class JupiterAPIService {
     async transferMoney(fromAccountProperties, toAccountProperties, amount, feeNQT = this.appProps.feeNQT) {
         logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
         if (!gu.isNumberGreaterThanZero(amount)) {throw new Error('amount is invalid')}
-        if(!fromAccountProperties instanceof GravityAccountProperties){throw new Error('fromAccountProperties is not valid')}
-        if(!toAccountProperties instanceof GravityAccountProperties){throw new Error('toAccountProperties is not valid')}
+        if(!(fromAccountProperties instanceof GravityAccountProperties)){throw new Error('fromAccountProperties is not valid')}
+        if(!(toAccountProperties instanceof GravityAccountProperties)){throw new Error('toAccountProperties is not valid')}
 
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         logger.info(`++ Transferring Money`);
         logger.info(`++ from: ${fromAccountProperties.address}`);
         logger.info(`++ to: ${toAccountProperties.address}`);
-        logger.info(`++ amount: ${amount}`);
-        logger.info(`++ feeNQT: ${feeNQT}`);
+        logger.info(`++ amount: ${gu.formatNQT(amount)}`);
+        logger.info(`++ fee: ${ gu.formatNQT(feeNQT)}`);
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
 
         return this.post( {
@@ -1021,27 +1042,39 @@ class JupiterAPIService {
      *           }
      *
      *
-     * @param {{alias,passphrase,account}} params
+     * @param {string} address
+     * @param {string} passphrase
+     * @param {string} alias
      * @return {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"alias","versionAliasAssignment","uri"},"senderRS","subtype","amountNQT","sender","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
      */
-    setAlias(params) {
-        logger.verbose(`#### setAlias(params`);
-        logger.sensitive(`params= ${JSON.stringify(params)}`);
-        if(!params.passphrase) {throw new Error('need a passphrase value')}
-        if(!params.alias) {throw new Error('need an alias value')}
-        if(!params.account) {throw new Error('need an account value')}
+    setAlias(address,passphrase, alias) {
+        logger.verbose(`#### setAlias(address,passphrase, alias)`);
+        if(!gu.isWellFormedJupiterAddress(address)){throw new MetisError(address)};
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new MetisError(passphrase)};
+        if(!alias) {throw new MetisError('need an alias value')}
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
         const newParams = {
             requestType: JupiterAPIService.RequestType.SetAlias,
-            aliasName: params.alias,
-            secretPhrase: params.passphrase,
-            aliasURI: `acct:${params.account}@nxt`,
+            aliasName: alias,
+            secretPhrase: passphrase,
+            aliasURI: `acct:${address}@nxt`,
             feeNQT: fee,
             deadline: this.appProps.deadline
         }
 
         return this.post(newParams)
     }
+
+    /**
+     * {"jupiter":{"usd":0.00833142}}
+     * @return {*}
+     */
+    getCurrentJupiterValue(){
+        const url = 'https://api.coingecko.com/api/v3/simple/price?ids=jupiter&vs_currencies=usd'
+        return axios({url: url, method: 'GET'})
+    }
+
+
 
 }
 
