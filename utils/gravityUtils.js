@@ -2,6 +2,7 @@ const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
 import bcrypt from 'bcrypt-nodejs';
+import _ from 'lodash';
 
 
 /**
@@ -78,9 +79,7 @@ const arrayShiftOrNull = function(array){
 }
 
 /**
- * example JUP-NFVU-KKGE-FFQF-7WT5G
- *         JUP-7WMJ-S9N6-3LQV-A3VCK
- * @param {string}  address
+ * @param {any} address - for example JUP-NFVU-KKGE-FFQF-7WT5G
  * @returns {boolean}
  */
 const isWellFormedJupiterAddress = function(address){
@@ -93,9 +92,14 @@ const isWellFormedJupiterAddress = function(address){
 }
 
 
-// must contain only digits and latin letters)
+/**
+ *
+ * @param {any} alias
+ * @return {boolean}
+ */
 const isWellFormedJupiterAlias = function(alias){
     if(!isNonEmptyString(alias)){return false};
+    // must contain only digits and latin letters)
     const re = /^([a-zA-Z]|[0-9])*$/;
     if(re.test(alias)){
         return true;
@@ -104,7 +108,11 @@ const isWellFormedJupiterAlias = function(alias){
     return false;
 }
 
-
+/**
+ *
+ * @param {any} addressOrAlias
+ * @return {boolean}
+ */
 const isWellFormedJupiterAddressOrAlias = function(addressOrAlias){
     if(isWellFormedJupiterAlias(addressOrAlias) || isWellFormedJupiterAddress(addressOrAlias)){
         return true
@@ -114,7 +122,7 @@ const isWellFormedJupiterAddressOrAlias = function(addressOrAlias){
 
 /**
  * 503065877100931330
- * @param {number} transactionId
+ * @param {any} transactionId
  * @returns {boolean}
  */
 const isWellFormedJupiterTransactionId = function(transactionId){
@@ -285,6 +293,31 @@ const jsonParseOrNull = function (stringToParse) {
     return json;
 };
 
+const formatNQT = function(NQT){
+    const formatter = Intl.NumberFormat(
+        'de-DE',
+        {
+            style: 'currency',
+            currency: 'NQT',
+            minimumFractionDigits: 0
+        }
+    );
+    return formatter.format(NQT);
+}
+
+
+/**
+ * @TODO come up with a strategy to ensure strong passwords
+ * @param password
+ * @return {boolean}
+ */
+const isStrongPassword = function(password){
+    if(_.isEmpty(password)){
+        return false;
+    }
+    return true;
+}
+
 /**
  *
  * @param promises
@@ -327,7 +360,9 @@ module.exports = {
     isString,
     isNonEmptyArray,
     arrayShiftOrNull: arrayShiftOrNull,
-    filterPromisesByRemovingEmptyResults
+    filterPromisesByRemovingEmptyResults,
+    isStrongPassword,
+    formatNQT
 };
 
 
