@@ -6,7 +6,12 @@ import {
 } from "../gravity/instantiateGravityAccountProperties";
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
-import {BadGravityAccountPropertiesError, BadJupiterAddressError, UnknownAliasError} from "../errors/metisError";
+import {
+    BadGravityAccountPropertiesError,
+    BadJupiterAddressError,
+    MetisError,
+    UnknownAliasError
+} from "../errors/metisError";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 
 // metisGravityAccountProperties
@@ -51,8 +56,8 @@ class JupiterAccountService {
         logger.verbose('###########################################################################');
         logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
         logger.verbose('##');
-        if(!accountProperties instanceof GravityAccountProperties){throw new Error('accountProperties is not valid')}
-        if(!metisUsersTableProperties instanceof GravityAccountProperties){throw new Error('metisUsersTableProperties is not valid')}
+        if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('accountProperties is not valid')}
+        if(!(metisUsersTableProperties instanceof GravityAccountProperties)){throw new Error('metisUsersTableProperties is not valid')}
         logger.verbose(`  accountProperties.address= ${accountProperties.address}`);
         logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`);
 
@@ -64,9 +69,7 @@ class JupiterAccountService {
                 const tag = `${userConfig.metisUserRecord}.${accountProperties.address}`;
                 const userRecord = accountProperties.generateUserRecord(transactionId);
                 const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
-                if (accountProperties.isMinimumProperties) {
-                    await refreshGravityAccountProperties(accountProperties);
-                }
+
                 return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     metisUsersTableProperties.passphrase,
                     accountProperties.address,
@@ -104,10 +107,6 @@ class JupiterAccountService {
             version: 1
         };
         const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
-
-        if (userAccountProperties.isMinimumProperties) {
-            await refreshGravityAccountProperties(userAccountProperties);
-        }
         return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             userAccountProperties.passphrase,
             userAccountProperties.address,
@@ -166,16 +165,7 @@ class JupiterAccountService {
             });
     }
 
-    /**
-     *
-     * @param passphrase
-     * @returns {Promise<{accountRS,publicKey, requestProcessingTime, account }>}
-     */
-    async getAccountId(passphrase) {
-        return this.jupiterAPIService.getAccountId(passphrase).then((response) => {
-            return response.data;
-        });
-    }
+
 
     /**
      *
@@ -460,9 +450,9 @@ class JupiterAccountService {
                 }
 
                 const encryptedMessage = gravityAccountProperties.crypto.encrypt(publicKey);
-                if (gravityAccountProperties.isMinimumProperties) {
-                    await refreshGravityAccountProperties(gravityAccountProperties);
-                }
+                // if (gravityAccountProperties.isMinimumProperties) {
+                //     await refreshGravityAccountProperties(gravityAccountProperties);
+                // }
                 const userPublicKeyPromise = jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,
@@ -667,19 +657,19 @@ class JupiterAccountService {
     //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
     //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
     //
-    //     return jupiterAPIService.getAccountId(passphrase)
+    //     return jupiterAPIService.fetchAccountId(passphrase)
     //         .then(accountIdResponse => {
     //
     //             if( !(accountIdResponse.data.hasOwnProperty('accountRS') &&  gu.isWellFormedJupiterAddress(accountIdResponse.data.accountRS))){
-    //                 throw new Error('theres a problem with getAccountId.accountRS')
+    //                 throw new Error('theres a problem with fetchAccountId.accountRS')
     //             }
     //
     //             if( !(accountIdResponse.data.hasOwnProperty('account') &&  gu.isWellFormedJupiterTransactionId(accountIdResponse.data.account))){
-    //                 throw new Error('theres a problem with getAccountId.account')
+    //                 throw new Error('theres a problem with fetchAccountId.account')
     //             }
     //
     //             if( !(accountIdResponse.data.hasOwnProperty('publicKey') &&  gu.isWellFormedPublicKey(accountIdResponse.data.publicKey))){
-    //                 throw new Error('theres a problem with getAccountId.publicKey')
+    //                 throw new Error('theres a problem with fetchAccountId.publicKey')
     //             }
     //
     //
@@ -701,11 +691,22 @@ class JupiterAccountService {
     //         })
     //         .catch( error => {
     //             logger.error(`***********************************************************************************`);
-    //             logger.error(`** getAccountIdOrNewAccount().getAccountId()catch(error)`);
+    //             logger.error(`** getAccountIdOrNewAccount().fetchAccountId()catch(error)`);
     //             logger.error(`** `);
     //             console.log(error);
     //             throw error;
     //         })
+    // }
+
+    /**
+     *
+     * @param {string} passphrase
+     * @returns {Promise<{accountRS,publicKey,requestProcessingTime, account }>}
+     */
+    // async fetchAccountId(passphrase) {
+    //     return this.jupiterAPIService.getAccountId(passphrase).then((response) => {
+    //         return response.data;
+    //     });
     // }
 
     /**
@@ -716,7 +717,6 @@ class JupiterAccountService {
     async fetchAccountInfo(passphrase) {
         logger.verbose(`#### fetchAccountInfo(passphrase)`);
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
-
         return this.jupiterAPIService.getAccountId(passphrase)
             .then(response => {
                 return {
@@ -728,8 +728,8 @@ class JupiterAccountService {
             })
             .catch( error => {
                 logger.error(`********************************************`)
-                logger.error('** fetchAccountInfo().getAccountId(passphrase).catch(error)')
-                logger.error('**')
+                logger.error('** fetchAccountInfo().fetchAccountId(passphrase).catch(error)')
+                logger.error(`********************************************`)
                 logger.error(`${error}`);
                 throw error
             })
@@ -747,10 +747,10 @@ class JupiterAccountService {
     //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
     //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
     //
-    //     return jupiterAPIService.getAccountId(passphrase)
+    //     return jupiterAPIService.fetchAccountId(passphrase)
     //         .then(accountIdResponse => {
     //             if (!accountIdResponse) {
-    //                 throw new Error('theres a problem with getAccountId')
+    //                 throw new Error('theres a problem with fetchAccountId')
     //             }
     //
     //             return {
@@ -890,14 +890,21 @@ class JupiterAccountService {
     /**
      *
      * @param {string} memberPassphrase
-     * @param {strin=} memberPassword
+     * @param {string} memberPassword
      * @return {Promise<null|GravityAccountProperties>}
      */
     async getMemberAccountPropertiesFromPersistedUserRecordOrNull(memberPassphrase, memberPassword) {
+        if(!gu.isWellFormedPassphrase(memberPassphrase)){throw new MetisError('memberPassphrase is invalid')}
+        if(!gu.isNonEmptyString(memberPassword)){throw new MetisError('memberPassword is empty')}
         const memberAccountProperties =  await instantiateGravityAccountProperties(memberPassphrase, memberPassword);
         const messageContainers = await jupiterTransactionsService.getReadableTaggedMessageContainers(
             memberAccountProperties,
-            `${userConfig.userRecord}.${memberAccountProperties.address}`
+            `${userConfig.userRecord}.${memberAccountProperties.address}`,
+            true,
+            null,
+            null,
+            transaction => transaction.senderRS === memberAccountProperties.address
+
         );
         if(messageContainers.length === 0){ return null }
         const messageContainer = messageContainers[0] //{recordType, password, email, firstName, lastName, status, createdAt, updatedAt, version}
@@ -941,6 +948,14 @@ class JupiterAccountService {
     //     })
     //
     // }
+
+
+    // generateNewJupiterAccount(){
+    //     const newPassphrase = gu.generatePassphrase();
+    //     const newPassword = gu.generateRandomPassword();
+    //     const accountInfoResponse = this.fetchAccountInfo(newPassphrase);
+    // }
+
 
 }
 
