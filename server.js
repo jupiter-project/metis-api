@@ -25,7 +25,7 @@ module.exports.firebaseAdmin =  firebaseAdmin.initializeApp({
    credential: firebaseAdmin.credential.cert(firebaseServiceAccount)
 });
 const url = require('url');
-const kue = require('kue');
+// const kue = require('kue');
 const fs = require('fs');
 const cors = require('cors');
 
@@ -43,15 +43,20 @@ const port = process.env.PORT || 4000;
 const pingTimeout = 9000000;
 const pingInterval = 30000;
 
-// Loads job queue modules and variables
-//@TODO redis needs a password!!!!
-const jobs = kue.createQueue({
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || '6379',
-    auth: process.env.REDIS_PASSWORD || undefined,
-  },
-});
+
+const {jobQueue, kue} = require('./config/configJobQueue');
+
+// // Loads job queue modules and variables
+// //@TODO redis needs a password!!!!
+// const jobs = kue.createQueue({
+//   redis: {
+//     host: process.env.REDIS_HOST || 'localhost',
+//     port: process.env.REDIS_PORT || '6379',
+//     auth: process.env.REDIS_PASSWORD || undefined,
+//   },
+// });
+
+// module.exports.metisJobQueue = jobs;
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -198,35 +203,23 @@ const {
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
 
-metisSignup(passport,jobs,io); //  pass passport for configuration
+metisSignup(passport,jobQueue,io); //  pass passport for configuration
 metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, jobs, io);
+  require(file)(app, passport, jobQueue, io);
 });
 
-// Route any invalid routes black to the root page
-app.get('/*', (req, res) => {
-  console.log('');
-  logger.info('======================================================================================');
-  logger.info('==');
-  logger.info('== Invalid Route');
-  logger.info('== GET: ');
-  logger.info('==');
-  logger.info('======================================================================================');
-  console.log('');
-
-  res.status(500).send({message: `Invalid Route`, errorCode: '1101'});
-});
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./services/accountRegistrationService");
+// const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
-const {jupiterFundingService} = require("./services/jupiterFundingService");
+// const {jupiterFundingService} = require("./services/jupiterFundingService");
 const {chanService} = require("./services/chanService");
-const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+// const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+const {StatusCode} = require("./utils/statusCode");
 // const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
 
 jobScheduleService.init(kue);
@@ -265,7 +258,7 @@ gravity.getFundingMonitor()
 
 const WORKERS = 100;
 
-jobs.process('user-registration', WORKERS, (job,done) => {
+jobQueue.process('user-registration', WORKERS, (job,done) => {
   logger.info('##### jobs.process(user-registration)');
   try {
     const decryptedData = gravity.decrypt(job.data.data)
@@ -290,7 +283,7 @@ jobs.process('user-registration', WORKERS, (job,done) => {
   }
 })
 
-jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
+jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
   logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
   try {
     const {channelName, memberAccountProperties} = job.data;
@@ -316,6 +309,9 @@ jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
   }
 })
 
+
+// require('./jobs/registrationJob');
+
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);
 }); */
@@ -329,6 +325,23 @@ mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
 
 server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
+
+
+// NEW METIS SERVER CODE
+require('./src/metis/app')(app,jobQueue,io);
+// JIM SERVER
+require('./src/jim/app')(app,jobQueue,io);
+
+
+// Route any invalid routes black to the root page
+app.get('/*', (req, res) => {
+  logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+  logger.info(`++ INVALID ROUTE`);
+  logger.info(`++ ${JSON.stringify(req.url)}`);
+  logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+  res.status(StatusCode.ClientErrorBadRequest).send({message: `Invalid Route`, errorCode: '1101'});
+});
+
 server.listen(port, () => {
   logger.info(JSON.stringify(process.memoryUsage()));
   logger.info('');
@@ -350,6 +363,6 @@ server.listen(port, () => {
   logger.info(`Jupiter Node running on ${process.env.JUPITERSERVER}`);
 });
 
-kue.app.listen(4001, () => {
-  logger.info('Job queue server running on port 4001');
-});
+// kue.app.listen(4001, () => {
+//   logger.info('Job queue server running on port 4001');
+// });
