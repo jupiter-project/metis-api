@@ -63,20 +63,6 @@ class FeeManager {
             subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountRecord
         })
 
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.table_account_record,
-        //     fee: accountRecordFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
-        // })
-
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.account_info,
-        //     fee: accountInfoFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountInfo
-        // })
-
         this.fees.push({
             feeType: FeeManager.feeTypes.invitation_to_channel,
             fee: invitationToChannelFee,
@@ -89,12 +75,6 @@ class FeeManager {
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelMember
         });
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.arbitrary_message,
-        //     fee: arbitraryMessageFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
-        // });
         this.fees.push({
             feeType: FeeManager.feeTypes.alias_assignment,
             fee: aliasAssigmentFee,
