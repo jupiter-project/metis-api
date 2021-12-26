@@ -4,9 +4,7 @@ const gu = require("../utils/gravityUtils");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
-const {metisApplicationAccountProperties} = require("./applicationAccountProperties");
-const {BadJupiterAddressError} = require("../errors/metisError");
-const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("./applicationAccountProperties");
 
 /**
  *
@@ -62,6 +60,43 @@ class GravityAccountProperties extends JupiterAccountProperties {
         }
     }
 
+    /**
+     *
+     * @param gravityAccountProperties
+     * @return {GravityAccountProperties}
+     * @constructor
+     */
+    static Clone(gravityAccountProperties){
+        let applicationProperties = null;
+        if(gravityAccountProperties.hasOwnProperty('applicationAccountProperties') && gravityAccountProperties.applicationAccountProperties){
+            applicationProperties = new ApplicationAccountProperties(
+                gravityAccountProperties.applicationAccountProperties.deadline,
+                gravityAccountProperties.applicationAccountProperties.feeNQT,
+                gravityAccountProperties.applicationAccountProperties.accountCreationFeeNQT,
+                gravityAccountProperties.applicationAccountProperties.transferFeeNQT,
+                gravityAccountProperties.applicationAccountProperties.minimumTableBalance,
+                gravityAccountProperties.applicationAccountProperties.minimumAppBalance,
+                gravityAccountProperties.applicationAccountProperties.moneyDecimals
+            )
+        }
+        const properties =  new GravityAccountProperties(
+            gravityAccountProperties.address,
+            gravityAccountProperties.accountId,
+            gravityAccountProperties.publicKey,
+            gravityAccountProperties.passphrase,
+            gravityAccountProperties.passwordHash,
+            gravityAccountProperties.password,
+            gravityAccountProperties.algorithm,
+            gravityAccountProperties.email,
+            gravityAccountProperties.firstName,
+            gravityAccountProperties.lastName,
+            applicationProperties
+        );
+
+        properties.addAliases(gravityAccountProperties.aliasList)
+
+        return properties;
+    }
 
     setCrypto(password, algorithm = 'aes-256-cbc'){
         if(algorithm && password){
@@ -149,8 +184,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
             throw new Error('Alias is missing');
         }
 
-
-
         const userRecord = {
             id: generatingTransactionId,
             user_record: {
@@ -180,8 +213,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
-
-module.exports.myTest = {me: 'test'};
 
 module.exports.metisGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,
