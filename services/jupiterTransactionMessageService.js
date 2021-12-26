@@ -35,7 +35,7 @@ class JupiterTransactionMessageService {
         logger.verbose(`## putReadableMessagesIntoMessageTransactionsAndReturnTransactions(messageTransactions.length= ${messageTransactions.length}, accountProperties)`)
         logger.verbose(`##`)
         if(!transactionUtils.areValidTransactions(messageTransactions)){throw new Error('messageTransactions is invalid')}
-        if(! accountProperties instanceof GravityAccountProperties){throw new Error('accountProperties is invalid')}
+        if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('accountProperties is invalid')}
         logger.sensitive(`accountProperties.address= ${accountProperties.address}`)
 
         return new Promise((resolve, reject) => {
@@ -127,7 +127,7 @@ class JupiterTransactionMessageService {
     readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase) {
         logger.sensitive(`#### readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase)`);
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
-        if(!crypto instanceof GravityCrypto){throw new Error('crypto is not valid')}
+        if(!(crypto instanceof GravityCrypto)){throw new Error('crypto is not valid')}
         if(!Array.isArray(messageTransactionIds)){throw new Error(`messageTransactionIds is not array`)}
         // logger.verbose(`#### readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase): messageTransactionIds.length=${messageTransactionIds.length}`);
         logger.verbose(`ids: ${JSON.stringify(messageTransactionIds)}`);
@@ -272,21 +272,21 @@ class JupiterTransactionMessageService {
         if(!Array.isArray(transactions)){throw new Error('transactions is not an array')}
         logger.verbose(`- transactions.length= ${transactions.length}`);
         if(!gu.isNonEmptyArray(transactions)){return []}
-        if (!gravityAccountProperties instanceof GravityAccountProperties){
+        if (!(gravityAccountProperties instanceof GravityAccountProperties)){
             throw new Error('memberAccountProperties is invalid')
         }
         if(!transactionUtils.areValidTransactions(transactions)){ throw new Error('transactions are not valid')}
         // logger.sensitive(`- gravityAccountProperties.length= ${JSON.stringify(gravityAccountProperties.length)}`);
         const transactionIds = this.transactionUtils.extractTransactionIds(transactions);
-
         const messages = isMetisEncrypted ?
             await this.readMessagesFromMessageTransactionIdsAndDecryptOrNullAndReturnMessageContainer(transactionIds, gravityAccountProperties.crypto, gravityAccountProperties.passphrase) :
             await this.readMessagesFromMessageTransactionIdsAndReturnMessageContainers(transactionIds, gravityAccountProperties.passphrase)
 
         if(messages === null) {
+            logger.debug(`No messages were extracted from transactions: ${transactions.length}`)
             return []
         }
-        logger.verbose(`- messages.length= ${messages.length}`);
+        logger.verbose(`messages.length= ${messages.length}`);
         if(!gu.isNonEmptyArray(messages)) {
             return []
         }
@@ -306,7 +306,7 @@ class JupiterTransactionMessageService {
         // logger.sensitive(`#### getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)`);
         if(!gu.isWellFormedJupiterTransactionId(messageTransactionId)){throw new Error('messageTransactionId is invalid')}
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
-        if(!crypto instanceof GravityCrypto){throw new Error('crypto is invalid')}
+        if(!(crypto instanceof GravityCrypto)){throw new Error('crypto is invalid')}
         try {
             const decryptedMessageContainer = await this.getReadableMessageContainerFromMessageTransactionId(messageTransactionId, passphrase);
             if (!decryptedMessageContainer.message) {
@@ -525,29 +525,42 @@ class JupiterTransactionMessageService {
 
     /**
      *
-     * @param fromPassphrase
-     * @param toAddress
+     * @param {string} fromPassphrase
+     * @param {string} toAddress
      * @param metisMessage
-     * @param tag
+     * @param {string} tag
      * @param feeType
      * @param recipientPublicKey
      * @param prunable
-     * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+     * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
-    sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable=false ) {
+    async sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey = null, prunable= false ) {
         logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
         if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
         if(!gu.isWellFormedJupiterAddress(toAddress)){throw new BadJupiterAddressError(toAddress)}
-        // if(!gu.isWellFormedJupiterAddress(toAddress)){throw new Error(`toAddress is not valid: ${toAddress}`)}
-        if(!gu.isWellFormedPublicKey(recipientPublicKey)){throw new Error(`recipientPublicKey is not valid: ${recipientPublicKey}`)}
-
+        logger.sensitive(`fromPassphrase= ${fromPassphrase}`);
+        logger.debug(`toAddress= ${toAddress}`);
+        logger.debug(`tag= ${tag}`);
+        logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
+        let _recipientPublicKey = recipientPublicKey;
+        if(!gu.isWellFormedPublicKey(recipientPublicKey)){
+            const toPublicKeyResponse = await this.jupiterAPIService.getAccountPublicKey(toAddress);
+            if( toPublicKeyResponse.hasOwnProperty('data') &&  toPublicKeyResponse.data.hasOwnProperty('publicKey')){
+                _recipientPublicKey = toPublicKeyResponse.data.publicKey;
+            }
+        }
+        if(!gu.isWellFormedPublicKey(_recipientPublicKey)){
+            throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
+        }
         const fee = feeManagerSingleton.getFee(feeType);
-        const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
+        const {subtype,type} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
+        logger.debug(`subtype= ${subtype}`);
+        logger.debug(`type= ${type}`);
 
         return this.jupiterAPIService.sendMetisMessageOrMessage(
             JupiterAPIService.RequestType.SendMetisMessage,
             toAddress,
-            recipientPublicKey,
+            _recipientPublicKey,
             fromPassphrase,
             null,
             fee,
