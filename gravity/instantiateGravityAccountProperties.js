@@ -31,21 +31,21 @@ module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password
     );
 }
 
+
 /**
- *
- * @param passphrase
- * @param password
+ * @description Using the passphrase fetch the jupiter account information from the blockchain along with any aliases associated with
+ * this account.
+ * @param {string} passphrase
+ * @param {string} password
  * @return {Promise<GravityAccountProperties>}
  */
 module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
-    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password=${password})`);
+    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password)`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
-
     return jupiterAccountService.fetchAccountInfo(passphrase)
         .then(accountInfo => {
             if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new BadJupiterAddressError(accountInfo.address)}
-            // if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new Error('address is invalid')}
             if(!gu.isWellFormedPublicKey(accountInfo.publicKey)){throw new Error('publicKey is invalid')}
             if(!gu.isWellFormedAccountId(accountInfo.accountId)){throw new Error('accountId is invalid')}
             const properties =  new GravityAccountProperties(
@@ -57,7 +57,6 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
                 password,
                 encryptAlgorithm
             );
-
             return jupiterAccountService.getAliasesOrEmptyArray(accountInfo.address)
                 .then(aliases => {
                     properties.addAliases(aliases);
@@ -66,7 +65,7 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
         }).catch( error => {
             logger.error(`***********************************************************************************`);
             logger.error(`** instantiateGravityAccountProperties().catch(error)`);
-            logger.error(`** `);
+            logger.error(`***********************************************************************************`);
             logger.error(`${error}`)
 
             throw error;
