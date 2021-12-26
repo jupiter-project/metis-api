@@ -358,7 +358,7 @@ class TransactionUtils {
     }
 
     /**
-     *
+     * @todo retire this function.
      * @param {array} transactions
      * @param {string} senderAddress
      * @returns {*}
