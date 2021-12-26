@@ -6,7 +6,7 @@ import {
     refreshGravityAccountProperties
 } from "../gravity/instantiateGravityAccountProperties";
 import {chanService} from "./chanService";
-import {generateNewMessageRecordJson, sendMetisMessage} from "./messageService";
+import {generateNewMessageRecordJson, createMessageRecord} from "./messageService";
 import {StatusCode} from "../utils/statusCode";
 const FormData = require('form-data');
 const axios = require('axios');
@@ -180,7 +180,7 @@ module.exports = {
       }
 
       const memberAccountProperties = await instantiateGravityAccountProperties(passphrase, password);
-      const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+      const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
 
       if(!channelAccountProperties){
           return res.status(403).send({message: 'Invalid channel address.'})
@@ -277,7 +277,7 @@ module.exports = {
     const { channelAddress } = req.body;
 
     const memberAccountProperties = await instantiateGravityAccountProperties(passphrase, password);
-    const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+    const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
 
     if(!channelAccountProperties){
       return res.status(403).send({message: 'Invalid channel address.'})
@@ -327,7 +327,7 @@ module.exports = {
     }
 
     const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-    const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+    const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
 
     if(!channelAccountProperties){
       return res.status(403).send({message: 'Invalid channel address.'})
@@ -350,18 +350,19 @@ module.exports = {
           throw new Error('Error trying to save image');
         }
 
-          const messageRecord = generateNewMessageRecordJson(
-              memberAccountProperties,
-              messageObj.message,
-              messageObj.type,
-              messageObj.replyMessage,
-              messageObj.replyRecipientAlias,
-              null,
-              response.data,
-              messageObj.version,
+        return createMessageRecord(
+            memberAccountProperties,
+            channelAccountProperties,
+            messageObj.message,
+            messageObj.type,
+             messageObj.replyMessage,
+             messageObj.replyRecipientAlias,
+             null,
+             response.data,
+             messageObj.version,
           );
         // websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord })
-        return sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+        // return sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
       })
       .then(() => metis.getMember({
         channel: channelAccountProperties.address,
