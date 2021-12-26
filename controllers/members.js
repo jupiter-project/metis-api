@@ -24,7 +24,7 @@ module.exports = (app) => {
             }
             const memberAccountProperties = await instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
             // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNull(memberAccountProperties, channelAddress);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
             if (!channelAccountProperties) {
                 return res.status(StatusCode.ServerErrorInternal).send({message: `The channel is not available: ${channelAddress}`})
             }
