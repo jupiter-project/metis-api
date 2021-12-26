@@ -3,6 +3,7 @@ const {feeManagerSingleton, FeeManager} = require("./FeeManager");
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {JupiterAPIService} = require("./jupiterAPIService");
+const {MetisError} = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -52,28 +53,28 @@ class JupiterFundingService {
 
     /**
      *
-     * @param transactionId
+     * @param {string} transactionId
      * @returns {Promise<unknown>}
      */
     async waitForTransactionConfirmation(transactionId){
-        if(!gu.isWellFormedJupiterTransactionId(transactionId)){throw new Error('transactionId is not valid')}
-
+        if(!gu.isWellFormedJupiterTransactionId(transactionId)){throw new Error(`transactionId is not valid: ${transactionId}`)}
         return new Promise(async (resolve, reject) => {
             let workTime = 0;
             const milliseconds = this.intervalTimeInSeconds * 1000;
-
+            console.log(`waiting for transaction confirmation`);
             let timerId = setInterval(async () => {
-                console.log(`workTime= ${workTime}`);
+                console.log(`tid:${transactionId} -- waiting ${workTime/1000} secs...`);
                 const getTransactionResponse = await this.jupiterAPIService.getTransaction(transactionId)
                 const confirmations = (getTransactionResponse.data.confirmations) ? getTransactionResponse.data.confirmations : 0;
-                // console.log('confirmations count: ', confirmations)
                 if(confirmations > 0){
                     clearInterval(timerId);
+                    console.log('confirmed!')
                     return resolve('confirmed')
                 }
 
                 if(workTime > this.maxWaitTimeLimitInSeconds * 1000){
                     clearInterval(timerId);
+                    console.log('not confirmed')
                     return reject('not confirmed')
                 }
                 workTime += milliseconds;
@@ -85,12 +86,11 @@ class JupiterFundingService {
     /**
      *
      * @param recipientProperties
-     * @param fee
-     * @returns {Promise<unknown>}
+     * @return {Promise<*>}
      */
     async provideInitialStandardUserFunds(recipientProperties){
-        logger.verbose(`#### provideInitialStandardUserFunds( recipientProperties= ${!!recipientProperties})`);
-        if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('recipientProperties is invalid')}
+        logger.verbose(`#### provideInitialStandardUserFunds( recipientProperties)`);
+        if(!(recipientProperties instanceof GravityAccountProperties)){throw new MetisError('recipientProperties is invalid')}
         const initialAmount = this.defaultNewUserTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
@@ -109,6 +109,18 @@ class JupiterFundingService {
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
 
+
+    /**
+     *
+     * @param address
+     * @return {Promise<*>}
+     */
+    async getBalance(address){
+        const senderBalanceResponse = await this.jupiterAPIService.getBalance(address);
+        return +senderBalanceResponse.data.unconfirmedBalanceNQT;
+    }
+
+
     /**
      *
      * @param {GravityAccountProperties } senderProperties
@@ -117,14 +129,24 @@ class JupiterFundingService {
      * @param {number} fee
      * @returns {Promise<unknown>}
      */
-     transfer(senderProperties, recipientProperties, transferAmount, fee ) {
+     async transfer(senderProperties, recipientProperties, transferAmount, fee ) {
          logger.sensitive(`#### transfer(senderProperties, recipientProperties, transferAmount=${transferAmount}, fee=${fee} )`);
-        if (!transferAmount) {throw new Error('transfer amount missing');}
-        if( !recipientProperties instanceof GravityAccountProperties){throw new Error('recipientProperties is invalid')}
-        if( !senderProperties instanceof GravityAccountProperties){throw new Error('senderProperties is invalid')}
-
+        if (!transferAmount) {throw new Error('transfer amount missing')}
+        if(isNaN(fee)){
+            throw new MetisError(`fee is not a number`)
+        }
+        const _fee = +fee
+        if(isNaN(transferAmount)){ throw new MetisError(`transferAmount is not a number`)};
+        const _transferAmount = +transferAmount
+        if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('recipientProperties is invalid')}
+        if(!(senderProperties instanceof GravityAccountProperties)){throw new Error('senderProperties is invalid')}
+        const senderBalance = await this.getBalance(senderProperties.address);
+        const totalNeeded = _fee + _transferAmount;
+        if(senderBalance < totalNeeded){
+            throw new MetisError(`Not enough funds. Need at least ${totalNeeded}. Current balance: ${senderBalance}`);
+        }
         //@Todo this should not return the Response. Try changing to return Response.data?
-        return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, transferAmount, fee )
+        return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, _transferAmount, _fee )
     }
 
 }
