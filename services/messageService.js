@@ -6,6 +6,8 @@ const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageS
 const {getPNTokensAndSendPushNotification} = require("../services/PushNotificationMessageService");
 const metis = require("../config/metis");
 const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {chanService} = require("./chanService");
+const {StatusCode} = require("../utils/statusCode");
 
 const generateNewMessageRecordJson = (
     senderAccountProperties,
@@ -38,30 +40,80 @@ const generateNewMessageRecordJson = (
     };
 };
 
+/**
+ *
+ * @param fromAccountProperties
+ * @param toAccountProperties
+ * @param message
+ * @param type
+ * @param replyMessage
+ * @param replyRecipientAlias
+ * @param replyRecipientAddress
+ * @param attachmentUrl
+ * @param version
+ * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+ */
+const createMessageRecord = async (fromAccountProperties, toAccountProperties, message, type, replyMessage, replyRecipientAlias, replyRecipientAddress,attachmentUrl,version) => {
+    try{
+        const messageRecord = generateNewMessageRecordJson(
+            fromAccountProperties,
+            message,
+            type,
+            replyMessage,
+            replyRecipientAlias,
+            replyRecipientAddress,
+            attachmentUrl,
+            version,
+        );
 
-const sendMetisMessage = async (memberAccountProperties, channelAccountProperties, messageRecord) => {
-    const messageRecordString = JSON.stringify(messageRecord);
-    const tag = messagesConfig.messageRecord;
-    const feeType = FeeManager.feeTypes.account_record;
-    if(channelAccountProperties.isMinimumProperties){
-        await refreshGravityAccountProperties(channelAccountProperties);
+        const messageRecordString = JSON.stringify(messageRecord);
+        const tag = messagesConfig.messageRecord;
+        const feeType = FeeManager.feeTypes.account_record;
+        return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
+            fromAccountProperties.passphrase,
+            toAccountProperties.address,
+            messageRecordString,
+            tag,
+            feeType,
+            toAccountProperties.publicKey
+        );
+    }catch(error){
+        logger.error('Error creating messageRecord:')
+        logger.error(`${error}`);
+        throw error
     }
+}
 
-    return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
-        memberAccountProperties.passphrase,
-        channelAccountProperties.address,
-        messageRecordString,
-        tag,
-        feeType,
-        channelAccountProperties.publicKey
-    );
-
-};
+/**
+ *
+ * @param memberAccountProperties
+ * @param channelAccountProperties
+ * @param messageRecord
+ * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+ */
+// const sendMetisMessage = async (memberAccountProperties, channelAccountProperties, messageRecord) => {
+//     const messageRecordString = JSON.stringify(messageRecord);
+//     const tag = messagesConfig.messageRecord;
+//     const feeType = FeeManager.feeTypes.account_record;
+//     if(channelAccountProperties.isMinimumProperties){
+//         await refreshGravityAccountProperties(channelAccountProperties);
+//     }
+//
+//     return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
+//         memberAccountProperties.passphrase,
+//         channelAccountProperties.address,
+//         messageRecordString,
+//         tag,
+//         feeType,
+//         channelAccountProperties.publicKey
+//     );
+//
+// };
 
 const sendMessagePushNotifications = async (memberAccountProperties, channelAccountProperties, mentions) => {
     logger.sensitive(`#### sendMessagePushNotification()`);
-    if(!memberAccountProperties instanceof GravityAccountProperties){throw new Error('Invalid memberAccountProperties')}
-    if(!channelAccountProperties instanceof GravityAccountProperties){throw new Error('Invalid channelAccountProperties')}
+    if(!(memberAccountProperties instanceof GravityAccountProperties)){throw new Error('Invalid memberAccountProperties')}
+    if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('Invalid channelAccountProperties')}
     const senderAlias = memberAccountProperties.getCurrentAliasNameOrNull();
     const {channelName, address: channelAddress} = channelAccountProperties;
     if(channelAccountProperties.isMinimumProperties){
@@ -89,4 +141,4 @@ const sendMessagePushNotifications = async (memberAccountProperties, channelAcco
 }
 
 
-module.exports = { generateNewMessageRecordJson, sendMetisMessage, sendMessagePushNotifications };
+module.exports = { generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord };
