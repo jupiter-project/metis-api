@@ -1,6 +1,6 @@
 const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
-const {metisGravityAccountProperties} = require("../gravity/gravityAccountProperties");
+const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {jupiterAccountService} = require("./jupiterAccountService");
 const {tableService} = require("./tableService");
 
@@ -25,7 +25,10 @@ class AccountRegistration {
     jupiterFundingService,
     jupiterAccountService,
     tableService,
-    gravity) {
+    gravity,
+    binaryAccountJob
+    ) {
+      if(!(binaryAccountJob instanceof BinaryAccountJob)){throw new Error('binaryAccountJob is invalid')}
       if(!applicationGravityAccountProperties){throw new Error('missing applicationGravityAccountProperties')}
       if(!jupApi){throw new Error('missing jupiterAPIService')}
       if(!jupiterTransactionsService){throw new Error('missing jupiterTransactionsService')}
@@ -40,13 +43,24 @@ class AccountRegistration {
       this.jupiterAccountService = jupiterAccountService;
       this.tableService = tableService;
       this.gravity = gravity;
+      this.binaryAccountJob = binaryAccountJob;
   }
 
+    /**
+     *
+     * @return {string[]}
+     */
   defaultTableNames() {
     return ['storage'];
   }
 
 
+    /**
+     *
+     * @param tableName
+     * @param tables
+     * @return {*}
+     */
   findTableByName(tableName, tables) {
     const filtered = tables.filter(table => table.name == tableName);
     if (filtered.length > 0) {
@@ -114,28 +128,7 @@ class AccountRegistration {
             const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newUserAccountProperties);
             const allTransactionIds = [...attachMissingDefaultTablesResponse.transactions,{name: 'user-record', id: addUserRecordToUserAccountResponse.transaction}]
             await this.jupiterFundingService.waitForAllTransactionConfirmations(allTransactionIds);
-            await this.jupApi.setAlias({
-                alias: newAccountAliasName,
-                passphrase: newAccountPassphrase,
-                account: newAccountAddress
-            });
-            // const aliasObject = {
-            //     "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
-            //     "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
-            //     "accountRS": setAliasResponse.data.transactionJSON.senderRS,
-            // }
-            // newUserAccountProperties.addAlias(aliasObject);
-
-
-            // const fundedAccountStatement = await this.jupiterAccountService.fetchAccountStatement(
-            //     newAccountPassphrase,
-            //     newAccountPassword,
-            //     'new-user-account',
-            //     'user'
-            // );
-            // fundedAccountStatement.properties.addAlias(aliasObject);
-            // const metisAppRegistrationData = this.printRegistrationData(fundedAccountStatement)
-            // logger.sensitive(metisAppRegistrationData);
+            await this.jupApi.setAlias(newAccountAddress, newAccountPassphrase, newAccountAliasName);
             console.log('DONE.');
         }catch(error){
             console.log(error);
@@ -180,11 +173,7 @@ class AccountRegistration {
             await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
             const attachMissingDefaultTablesResponse = await this.attachMissingDefaultTables(newUserAccountData.attachedTables, newUserAccountProperties);
             await this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions);
-            const setAliasResponse = await this.jupApi.setAlias({
-                alias: newAccountAliasName,
-                passphrase: newAccountPassphrase,
-                account: newAccountAddress
-            });
+            const setAliasResponse = await this.jupApi.setAlias(newAccountAddress,newAccountPassphrase, newAccountAliasName);
             const aliasObject = {
                 "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
                 "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
@@ -207,6 +196,71 @@ class AccountRegistration {
             throw error;
         }
   }
+
+
+    /**
+     * @Description This is for brand new jupiter accounts in contrast to an existing jupiter account that needs to be
+     * registered with Metis.
+     *
+     * @TODO What if the account was already created by a different Metis Node?
+     * @param {string} newAccountPassword
+     * @return {Promise<GravityAccountProperties>}
+     */
+  async createNewAccount(newAccountPassword) {
+        logger.verbose('#### createNewAccount(newAccountAliasName, newAccountPassword))');
+        if(!gu.isStrongPassword(newAccountPassword)){throw new MetisErrorWeakPassword()}
+        try {
+            const newAccountProperties = await instantiateGravityAccountProperties(gu.generatePassphrase(),newAccountPassword);
+            return newAccountProperties;
+        }catch(error){
+            logger.error(`****************************************************************`);
+            logger.error(`** createNewAccountAndRegister(newAccountAliasName, newAccountPassword).catch(error)`);
+            logger.error(`****************************************************************`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
+    }
+
+    /**
+     *
+     * @param {GravityAccountProperties} newAccountProperties
+     * @param {string} newAccountAliasName
+     * @return {Promise<void>}
+     */
+    async register3(newAccountProperties, newAccountAliasName) {
+        logger.verbose('#### register3(newAccountProperties, newAccountAliasName))');
+        if(!(newAccountProperties instanceof GravityAccountProperties)){ throw new MetisError('newAccountProperties is invalid')}
+        if(!gu.isNonEmptyString(newAccountAliasName)){
+            throw new MetisError('Alias is empty');
+        }
+        try {
+            //First: Make sure the alias is available
+            const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
+            if (!isAliasAvailable) {
+                throw new MetisError('alias is already in user')
+            }
+            //Second: Provide Funds to the new user account
+            const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountProperties);
+            const transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
+            await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
+            //Third: Add the UserRecord transaction
+            await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
+            // const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
+            //Fourth: Set The Alias
+            this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
+            //Fifth: Create the binaryAccount
+            this.binaryAccountJob.create(newAccountProperties);
+
+
+            return;
+        }catch(error){
+            logger.error(`****************************************************************`);
+            logger.error(`** createNewAccountAndRegister(newAccountAliasName, newAccountPassword).catch(error)`);
+            logger.error(`****************************************************************`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
+    }
 
     /**
      *
@@ -405,13 +459,13 @@ the end.
     }
 }
 
-
 const {jupiterAPIService} = require("./jupiterAPIService");
 const { gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const {BadJupiterAddressError, MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
+const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");
 
 module.exports.AccountRegistration = AccountRegistration;
 module.exports.accountRegistration = new AccountRegistration(
@@ -421,5 +475,6 @@ module.exports.accountRegistration = new AccountRegistration(
     jupiterFundingService,
     jupiterAccountService,
     tableService,
-    gravity
+    gravity,
+    binaryAccountJob
 )
