@@ -5,24 +5,15 @@ import {jobScheduleService} from '../services/jobScheduleService';
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterAPIService} from "../services/jupiterAPIService";
-import {JupiterApiError} from "../errors/metisError";
+import {JupiterApiError, MetisError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {chanService} from "../services/chanService";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
+const moment = require('moment'); // require
 
-// This files handles the app's different pages and how they are routed by the system
+module.exports = (app, passport, jobs, websocket) => {
 
-module.exports = (app, passport, React, ReactDOMServer) => {
-  /* var bcrypt = require('bcrypt-nodejs');
-    var session = require('express-session');
-    var flash = require('connect-flash');
-    var Queue = require('bull'); */
-
-  // ===========================================================
-  // This constains constants needed to connect with Jupiter
-  // ===========================================================
-  // Loads Gravity module
   let page;
 
   const connection = process.env.SOCKET_SERVER;
@@ -31,10 +22,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     res.send({ success: true });
   });
 
-  // ===========================================================
-  // This constains the versions
-  // ===========================================================
-  // Loads versions
   app.get('/v1/api/version', (req, res) => {
     console.log('');
     logger.info('======================================================================================');
@@ -197,7 +184,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
 
   /**
-   * SIGNUP
+   * SIGNUP V1
    */
   app.post('/v1/api/signup', (req, res, next) => {
     console.log(`\n\n`);
@@ -208,7 +195,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     passport.authenticate('gravity-signup', (error, jobId, _) => {
       if (error) {
         console.log(error);
-        return res.status(StatusCode.ServerErrorInternal).send({ jobId });
+        return res.status(StatusCode.ServerErrorInternal).send({ jobId: jobId });
       }
       return res.status(StatusCode.SuccessOK).send({ jobId: jobId });
     })(req, res, next);
@@ -279,26 +266,21 @@ module.exports = (app, passport, React, ReactDOMServer) => {
    *  Login
    */
   app.post('/v1/api/appLogin', (req, res, next) => {
-    console.log('');
     logger.info(`\n\n`)
     logger.info(`======================================================================================`);
     logger.info('== Login');
     logger.info('== POST: /v1/api/appLogin');
     logger.info(`======================================================================================/n/n`);
-    console.log('');
-
     logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
-
     passport.authenticate('gravity-login', (error, user, message) => {
       logger.debug('passport.authentication(CALLBACK).');
-
       if (error) {
         logger.error(`Error! ${error}`);
         return res.status(500).json({message: error.message})
       }
 
       if (!user) {
-        const errorMessage = 'There was an error in verifying the passphrase with the Blockchain';
+        const errorMessage = 'There was an error in verifying the passphrase with the Blockchain.';
         logger.error(errorMessage);
         return res.status(400).json({message: errorMessage});
       }
