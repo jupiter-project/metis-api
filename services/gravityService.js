@@ -36,7 +36,7 @@ class GravityService{
     ){
         logger.verbose(`#### addNewRecordToReferencedDataSet(recordJson,gravityAccountProperties,listTag,recordTag,metisEncrypt = true,feeType)`);
         if(!recordJson){throw new Error('recordJson is not valid')}
-        if(!gravityAccountProperties instanceof GravityAccountProperties){throw new Error('gravityAccountProperties is invalid')}
+        if(!(gravityAccountProperties instanceof GravityAccountProperties)){throw new Error('gravityAccountProperties is invalid')}
         if(!listTag){throw new Error('listTag is invalid')}
         if(!recordTag){throw new Error('recordTag is invalid')}
         logger.sensitive(`recordJson= ${JSON.stringify(recordJson)}`);
@@ -44,9 +44,6 @@ class GravityService{
             let payload = recordJson;
             if (metisEncrypt) {
                 payload = gravityAccountProperties.crypto.encryptJson(recordJson);
-            }
-            if(gravityAccountProperties.isMinimumProperties){
-                await refreshGravityAccountProperties(gravityAccountProperties);
             }
             const response = await this.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
@@ -77,9 +74,6 @@ class GravityService{
             updatedList.push(responseTransactionId);
             if (metisEncrypt) {
                 updatedList = gravityAccountProperties.crypto.encryptJson(updatedList);
-            }
-            if(gravityAccountProperties.isMinimumProperties){
-                await refreshGravityAccountProperties(gravityAccountProperties);
             }
             return this.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
@@ -122,9 +116,9 @@ class GravityService{
                     encryptedList = gravityAccountProperties.crypto.encryptJson(list);
                 }
                 // Third: Send the updated list.
-                if (gravityAccountProperties.isMinimumProperties) {
-                    await refreshGravityAccountProperties(gravityAccountProperties);
-                }
+                // if (gravityAccountProperties.isMinimumProperties) {
+                //     await refreshGravityAccountProperties(gravityAccountProperties);
+                // }
                 return this.messageService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,
@@ -156,9 +150,6 @@ class GravityService{
                     encryptedNewList = gravityAccountProperties.crypto.encryptJson(newList);
                 }
                 // Second: Send the updated list.
-                if (gravityAccountProperties.isMinimumProperties) {
-                    await refreshGravityAccountProperties(gravityAccountProperties);
-                }
                 return this.messageService.sendTaggedAndEncipheredMetisMessage(
                     gravityAccountProperties.passphrase,
                     gravityAccountProperties.address,
