@@ -3,9 +3,11 @@ import User from '../models/user';
 import {accountRegistration} from "../services/accountRegistrationService";
 import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const moment = require('moment'); // require
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
+const gu = require('../utils/gravityUtils');
 // Used to serialize the user for the session
 const serializeUser = (passport) => {
   passport.serializeUser((accessData, done) => {
@@ -188,8 +190,8 @@ const metisLogin = (passport) => {
     logger.info(`======================================================================================\n\n\n`);
 
   passport.use('gravity-login', new LocalStrategy({
-    usernameField: 'account',
-    passwordField: 'accounthash',
+    usernameField: 'account', //jupiter address
+    passwordField: 'accounthash', //?
     passReqToCallback: 'true',
   },
   async (req, account, accounthash, done) => {
