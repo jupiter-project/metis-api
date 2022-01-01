@@ -2,10 +2,9 @@ const find = require('find');
 const logger = require('../../utils/logger')(module);
 
 // Initialize all Jim Routes
-console.log(`\n\n\n`);
 logger.info('======================================================================================');
 logger.info('== Initializing Jim Routes');
-logger.info(`======================================================================================\n\n\n`);
+logger.info(`======================================================================================`);
 
 module.exports = (app, jobs, io) => {
     find.fileSync(/\.js$/, `${__dirname}/routes`).forEach((routerFile) => {
@@ -14,10 +13,9 @@ module.exports = (app, jobs, io) => {
 }
 
 // Initialize all Jim jobs
-console.log(`\n\n\n`);
 logger.info('======================================================================================');
 logger.info('== initializing Jim Jobs');
-logger.info(`======================================================================================\n\n\n`);
+logger.info(`======================================================================================`);
 
 find.fileSync(/\.js$/, `${__dirname}/jobs`).forEach((filePath) => {
     require(filePath);
