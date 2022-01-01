@@ -1,6 +1,6 @@
 const gu = require("../utils/gravityUtils");
 const channelRecordSchemaV1 = {
-    $id: 'channelRecordSchemaV1',
+    $id: 'http://jup.io/schemas/channelRecordSchemaV1.json',
     type: "object",
     properties: {
         version: {
@@ -14,33 +14,30 @@ const channelRecordSchemaV1 = {
         },
         address: {
             type: "string",
-            validate: (_,data)=>gu.isWellFormedJupiterAddress(data)
+            pattern: '^JUP-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w\\w$'
         },
         passphrase: {
             type: "string",
-            validate: (_,data)=>gu.isWellFormedPassphrase(data)
+            pattern: '^(\\w+\\s){11}\\w+$'
         },
         password: {
             type: "string"
         },
         publicKey: {
             type: "string",
-            validate:(_,data)=>gu.isWellFormedPublicKey(data)
+            pattern: '^[0-9A-Fa-f]{64}'
         },
         accountId: {
-            type: "string",
-            validate: (_,data)=>gu.isWellFormedAccountId(data)
+            type: "string"
         },
         sender: {type: "string"},
         createdBy: {type: "string"},
         status: {type: "string"},
         createdAt: {
-            type: "integer",
-            format: "date-time"
+            type: "integer"
         },
         updatedAt: {
-            type: "integer",
-            format: "date-time"
+            type: "integer"
         },
     },
     required: [

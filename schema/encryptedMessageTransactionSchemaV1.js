@@ -2,35 +2,15 @@
 // const {baseTransactionSchemaV1} = require("./baseTransactionSchemaV1");
 
 module.exports.encryptedMessageTransactionSchemaV1 = {
-    $id: 'encryptedMessageTransactionSchemaV1',
+    $id: 'http://jup.io/schemas/encryptedMessageTransactionSchemaV1.json',
     $patch: {
-        source: {$ref: "baseTransactionSchemaV1"},
+        'source': {$ref: 'baseTransactionSchemaV1.json'},
         with: [
-            {
-                op: 'replace',
-                path: '/properties/attachment',
-                value: {$ref: '#/definitions/Attachment'}
-            },
-            {
-                op: 'add',
-                path: '/required/-',
-                value: 'attachment'
-            }
-        ]
-    },
-    definitions: {
-        Attachment: {
-            type: 'object',
-            properties: {
-                encryptedMessage: {
-                    type: 'object',
-                    properties: {
-                        data: {
-                            type: 'string'
-                        }
-                    }
+                {
+                    op: 'replace',
+                    path: '/properties/attachment',
+                    value: {$ref: '#/definitions/Attachment'}
                 }
-            }
+            ]
         }
-    }
 }

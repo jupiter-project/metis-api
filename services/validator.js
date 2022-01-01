@@ -1,8 +1,13 @@
-const Ajv = require("ajv");
+// import Ajv2019 from "ajv/dist/2019"
+// const Ajv = new Ajv2019()
+// const Ajv = require("ajv");
+// const Ajv = require("ajv").default
 const {channelRecordSchemaV1} = require("../schema/channelRecordSchemaV1");
 const {inviteRecordSchemaV1} = require("../schema/inviteRecordSchemaV1");
 const {baseTransactionSchemaV1} = require("../schema/baseTransactionSchemaV1");
 const {encryptedMessageTransactionSchemaV1} = require("../schema/encryptedMessageTransactionSchemaV1");
+// const {ajvConf} = require("../config/ajvConf");
+const {ajvService} = require("./ajvService");
 const logger = require('../utils/logger')(module);
 
 class Validator {
@@ -57,29 +62,20 @@ class Validator {
     validate(validator, data){
         logger.sensitive(`#### validate(schema,data)`);
         const valid = validator(data);
-        // const valid = this.ajv.validate(schema,data);
-        const errorText =
-            ajv.errorsText() && ajv.errorsText().toLocaleLowerCase() !== "no errors"
-                ? ajv.errorsText()
-                : "";
+        const message = validator.errors ? `There are ${validator.errors.length} errors.` : '';
         return {
             isValid: !!valid,
-            message: errorText
+            message: message,
+            errors: validator.errors
         }
     }
 }
 
-const ajv = new Ajv({
-    schemas: [
-        channelRecordSchemaV1,
-        inviteRecordSchemaV1
-    ],
-    allErrors: true });
 
-const channelRecordValidator = ajv.compile(channelRecordSchemaV1);
-const inviteRecordValidator = ajv.compile(channelRecordSchemaV1);
-const baseTransactionValidator = ajv.compile(baseTransactionSchemaV1);
-const encryptedMessageTransactionValidator = ajv.compile(encryptedMessageTransactionSchemaV1);
+const channelRecordValidator = ajvService.compile(channelRecordSchemaV1);
+const inviteRecordValidator = ajvService.compile(inviteRecordSchemaV1);
+const baseTransactionValidator = ajvService.compile(baseTransactionSchemaV1);
+const encryptedMessageTransactionValidator = ajvService.compile(encryptedMessageTransactionSchemaV1);
 module.exports.validator = new Validator(
     channelRecordValidator,
     inviteRecordValidator,

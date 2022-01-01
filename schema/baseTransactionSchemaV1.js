@@ -1,8 +1,23 @@
 const gu = require("../utils/gravityUtils")
 
 module.exports.baseTransactionSchemaV1 = {
-    $id: 'baseTransactionSchemaV1',
+    $id: 'http://jup.io/schemas/baseTransactionSchemaV1.json',
     type: "object",
+    definitions: {
+        Attachment: {
+            type: 'object',
+            properties: {
+                encryptedMessage: {
+                    type: 'object',
+                    properties: {
+                        data: {
+                            type: 'string'
+                        }
+                    }
+                }
+            }
+        }
+    },
     properties: {
         senderPublicKey: {
             type: "string"
@@ -35,8 +50,7 @@ module.exports.baseTransactionSchemaV1 = {
             type: "string"
         },
         senderRS: {
-            type: "string",
-            validate: (_,data)=>gu.isWellFormedJupiterAddress(data)
+            type: "string"
         },
         subtype: {
             type: "string"
@@ -57,35 +71,33 @@ module.exports.baseTransactionSchemaV1 = {
             type: "string"
         },
         timestamp: {
-            type: "integer",
-            format: "date-time"
+            type: "integer"
         },
         height: {
             type: "string"
         }
     },
-    required: [
-        "senderPublicKey",
-        "signature",
-        "feeNQT",
-        "type",
-        "fullHash",
-        "version",
-        "phased",
-        "ecBlockId",
-        "signatureHash",
-        "attachment",
-        'senderRS',
-        "subtype",
-        "amountNQT",
-        "sender",
-        // "recipientRS", // type1 subtype 1 doesnt have a recipient: ie alias assignment
-        // "recipient", // type1 subtype 1 doesnt have recipient
-        "ecBlockHeight",
-        "deadline",
-        "transaction",
-        "timestamp",
-        "height"
-    ],
     additionalProperties: false,
 }
+
+// required: [
+//     "senderPublicKey",
+//     "signature",
+//     "feeNQT",
+//     "type",
+//     "fullHash",
+//     "version",
+//     "phased",
+//     "ecBlockId",
+//     "signatureHash",
+//     "attachment",
+//     'senderRS',
+//     "subtype",
+//     "amountNQT",
+//     "sender",
+//     "ecBlockHeight",
+//     "deadline",
+//     "transaction",
+//     "timestamp",
+//     "height"
+// ],
