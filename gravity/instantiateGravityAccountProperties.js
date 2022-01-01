@@ -15,11 +15,11 @@ const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
  * @return {GravityAccountProperties}
  */
 module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password,address) => {
-    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password=${password})`);
+    logger.verbose(`#### instantiateGravityAccountProperties(passphrase, password)`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
     if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
-
+    logger.sensitive(`password=${password}`);
     return new GravityAccountProperties(
         address,
         null,

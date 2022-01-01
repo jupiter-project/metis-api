@@ -1,3 +1,5 @@
+// const multer = require('multer');
+
 
 require('babel-register')({
   presets: ['react'],
@@ -220,6 +222,8 @@ const { jobScheduleService } = require('./services/jobScheduleService');
 const {chanService} = require("./services/chanService");
 // const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
 const {StatusCode} = require("./utils/statusCode");
+const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
 // const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
 
 jobScheduleService.init(kue);
@@ -287,20 +291,17 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
   logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
   try {
     const {channelName, memberAccountProperties} = job.data;
-
     if (!gu.isNonEmptyString(channelName)) {
       throw new Error('channelName is EMPTY.')
     }
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
-    const memberProperties = await instantiateMinimumGravityAccountProperties(
-        memberAccountProperties.passphrase,
-        memberAccountProperties.password,
-        memberAccountProperties.address);
-    // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
-    const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+    const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
+    const newChannelAccountProperties = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+    binaryAccountJob.create(newChannelAccountProperties);
+
     return done(null, {
       channelName: channelName,
-      channelAccountProperties: createNewChannelResults
+      channelAccountProperties: newChannelAccountProperties
     });
   } catch (error){
     logger.error(`**** jobs.process(channel-creation-confirmation).catch(error)`);

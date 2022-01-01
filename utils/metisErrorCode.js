@@ -17,5 +17,10 @@ module.exports.MetisErrorCode = {
     BinaryAccountExistsError: 16008,
     FundingNotConfirmedError: 16009,
     MetisErrorWeakPassword: 16010,
-    MetisErrorSaveJobQueue: 16011
+    MetisErrorSaveJobQueue: 16011,
+    MetisErrorNoBinaryAccountFound: 16012,
+    MetisErrorBadGravityAccountProperties: 16013,
+    MetisErrorBadJupiterAddress: 16014,
+    MetisErrorBadJupiterPassphrase: 16015,
+    MetisErrorBadJupiterPublicKey: 16016,
 }

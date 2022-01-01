@@ -122,9 +122,51 @@ class MetisErrorSaveJobQueue extends MetisError {
     }
 }
 
+class MetisErrorNoBinaryAccountFound extends MetisError {
+    constructor(message = '') {
+        super(`No binary account found: ` + message)
+        this.name = "MetisErrorNoBinaryAccountFound"
+        this.code = MetisErrorCode.MetisErrorNoBinaryAccountFound;
+        Object.setPrototypeOf(this, MetisErrorNoBinaryAccountFound.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorBadGravityAccountProperties extends MetisError {
+    constructor(message = '') {
+        super(`GravityAccountProperties is invalid: ` + message)
+        this.name = "MetisErrorBadGravityAccountProperties"
+        this.code = MetisErrorCode.MetisErrorNoBinaryAccountFound;
+        Object.setPrototypeOf(this, MetisErrorBadGravityAccountProperties.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorBadJupiterAddress extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter Address is invalid: ` + message)
+        this.name = "MetisErrorBadJupiterAddress"
+        this.code = MetisErrorCode.MetisErrorNoBinaryAccountFound;
+        Object.setPrototypeOf(this, MetisErrorBadJupiterAddress.prototype); //fixes a problem with instanceof
+    }
+}
 
 
+class MetisErrorBadJupiterPassphrase extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter Passphrase is invalid: ` + message)
+        this.name = "MetisErrorBadJupiterPassphrase"
+        this.code = MetisErrorCode.MetisErrorBadJupiterPassphrase;
+        Object.setPrototypeOf(this, MetisErrorBadJupiterPassphrase.prototype); //fixes a problem with instanceof
+    }
+}
 
+class MetisErrorBadJupiterPublicKey extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter Public Key is invalid: ` + message)
+        this.name = "MetisErrorBadJupiterPublicKey"
+        this.code = MetisErrorCode.MetisErrorBadJupiterPublicKey;
+        Object.setPrototypeOf(this, MetisErrorBadJupiterPublicKey.prototype); //fixes a problem with instanceof
+    }
+}
 
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
@@ -138,3 +180,8 @@ module.exports.BinaryAccountExistsError = BinaryAccountExistsError;
 module.exports.FundingNotConfirmedError = FundingNotConfirmedError;
 module.exports.MetisErrorWeakPassword = MetisErrorWeakPassword;
 module.exports.MetisErrorSaveJobQueue = MetisErrorSaveJobQueue;
+module.exports.MetisErrorNoBinaryAccountFound = MetisErrorNoBinaryAccountFound;
+module.exports.MetisErrorBadGravityAccountProperties = MetisErrorBadGravityAccountProperties;
+module.exports.MetisErrorBadJupiterAddress = MetisErrorBadJupiterAddress;
+module.exports.MetisErrorBadJupiterPassphrase = MetisErrorBadJupiterPassphrase;
+module.exports.MetisErrorBadJupiterPublicKey = MetisErrorBadJupiterPublicKey;

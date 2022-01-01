@@ -6,6 +6,7 @@ const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const gu = require("../utils/gravityUtils");
 const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {axiosDefault} = require("../config/axiosConf");
 
 class GravityService{
 
@@ -54,11 +55,11 @@ class GravityService{
                 gravityAccountProperties.publicKey
             );
 
-            if (!transactionUtils.isValidEncryptedMessageTransactionResponse(response.data)) {
+            if (!transactionUtils.isValidEncryptedMessageTransactionResponse(response)) {
                 throw new Error(`Response.data is not a valid transaction response object`);
             }
 
-            const transaction = response.data.transactionJSON;
+            const transaction = response.transactionJSON;
             const responseTransactionId = transactionUtils.extractTransactionId(transaction);
             // Update the List.
             const messageContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(gravityAccountProperties, listTag);
@@ -86,8 +87,8 @@ class GravityService{
         } catch (error) {
             logger.error(`****************************************************************`);
             logger.error(`** addNewRecordToReferencedDataSet().catch(error)`);
-            logger.error(`** - error= ${error}`)
-
+            logger.error(`****************************************************************`);
+            logger.error(`error= ${error}`)
             throw error;
         }
     }
@@ -137,10 +138,9 @@ class GravityService{
      * @param listTag
      * @param feeType
      * @param isMetisEncrypted
-     * @returns {Promise<TransactionResponse>}
+     * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
      */
     removeItemFromTransactionsReferenceList(gravityAccountProperties, itemToRemove, listTag, feeType = FeeManager.feeTypes.account_record, isMetisEncrypted = true){
-
         return this.getLatestListByTag(gravityAccountProperties, listTag,isMetisEncrypted)
             .then( async list => {
                 //first: filter out the item

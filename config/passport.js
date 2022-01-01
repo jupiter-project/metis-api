@@ -101,12 +101,9 @@ const metisRegistration = async (address, requestBody) => {
  * @param websocket
  */
 const metisSignup = (passport, jobsQueue, websocket ) => {
-    logger.info(`\n\n`);
     logger.info('======================================================================================');
-    logger.info('==');
     logger.info('== metisSignup(passport)');
-    logger.info('==');
-    logger.info(`======================================================================================\n\n`);
+    logger.info(`======================================================================================`);
     const startTime = Date.now();
 
   passport.use('gravity-signup', new LocalStrategy({
@@ -183,11 +180,9 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
  * @param passport
  */
 const metisLogin = (passport) => {
-    console.log(`\n\n\n`);
     logger.info('======================================================================================');
     logger.info('== metisLogin(passport)');
-    logger.info('== ');
-    logger.info(`======================================================================================\n\n\n`);
+    logger.info(`======================================================================================`);
 
   passport.use('gravity-login', new LocalStrategy({
     usernameField: 'account', //jupiter address

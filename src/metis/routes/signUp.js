@@ -19,12 +19,8 @@ module.exports = (app, jobs, websocket) => {
         const startTime = Date.now();
         const password = req.body.password;
         const alias = req.body.alias;
-        if (!password) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide a password'})
-        }
-        if (!alias) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide an alias'})
-        }
+        if (!password) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide a password'})
+        if (!alias) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide an alias'})
         const newAccountProperties = await accountRegistration.createNewAccount(password);
         const job = jobs.create('MetisJobRegisterJupiterAccount', {userAccountProperties: newAccountProperties, userAlias: alias})
             .priority('high')
@@ -67,11 +63,13 @@ module.exports = (app, jobs, websocket) => {
             const newAccountProperties = jobData.newAccountProperties;
             const endTime = Date.now();
             const processingTime = `${moment.duration(endTime - startTime).minutes()}:${moment.duration(endTime - startTime).seconds()}`
+
+            console.log('');
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            logger.info(`++ SIGNUP`);
+            logger.info(`++ SIGNUP COMPLETE. Sending Websocket Event`);
             logger.info(`++ Processing TIME`);
             logger.info(`++ ${processingTime}`);
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n');
             const room = `sign-up-${job.created_at}`;
             logger.debug(`room= ${room}`);
             websocket.in(room).allSockets().then((result) => {

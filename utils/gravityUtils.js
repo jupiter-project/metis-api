@@ -1,8 +1,11 @@
+import {randomFillSync} from "crypto";
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
+const Decimal = require("decimal.js");
 import bcrypt from 'bcrypt-nodejs';
 import _ from 'lodash';
+import axios from 'axios';
 
 
 /**
@@ -90,7 +93,6 @@ const isWellFormedJupiterAddress = function(address){
     }
     return false;
 }
-
 
 /**
  *
@@ -263,6 +265,12 @@ const generatePassphrase = function() {
     return wordsString.trim();
 }
 
+const generateRandomBytes = function(size= 16){
+    const buf = Buffer.alloc(size);
+    return randomFillSync(buf).toString('hex');
+}
+
+
 const generateRandomPassword = function () {
     return Math.random()// Generate random number, eg: 0.123456
         .toString(36) // Convert  to base-36 : "0.4fzyo82mvyr"
@@ -293,7 +301,7 @@ const jsonParseOrNull = function (stringToParse) {
     return json;
 };
 
-const formatNQT = function(NQT){
+const formatNqt = function(nqt){
     const formatter = Intl.NumberFormat(
         'de-DE',
         {
@@ -302,9 +310,50 @@ const formatNQT = function(NQT){
             minimumFractionDigits: 0
         }
     );
-    return formatter.format(NQT);
+    return formatter.format(nqt);
 }
 
+const formatJup = function(jup){
+    const formatter = Intl.NumberFormat(
+        'de-DE',
+        {
+            style: 'currency',
+            currency: 'JUP',
+            minimumFractionDigits: 0
+        }
+    );
+    return formatter.format(jup);
+}
+
+const formatUsd = function(usd){
+    const formatter = Intl.NumberFormat(
+        'en-US',
+        {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0
+        }
+    );
+    return formatter.format(usd);
+}
+
+const convertNqtToJup = function(nqt, decimalPlaces){
+    const bigNqt = new Decimal(nqt);
+    const bigJup = bigNqt.div(Decimal.pow(10,decimalPlaces))
+    return bigJup.toFixed();
+}
+
+const convertJupToNqt = function(jup, decimalPlaces){
+    return jup * Math.pow(10, decimalPlaces);
+}
+
+const convertNqtToUsd = async function(nqt, decimalPlaces){
+    const jup = convertNqtToJup(nqt, decimalPlaces);
+    const oneJupToUsd = await getCurrentJupiterValueOrNull();
+    const bigOneJupToUsd = new Decimal(oneJupToUsd);
+    const usd = bigOneJupToUsd.times(jup)
+    return usd.toFixed();
+}
 
 /**
  * @TODO come up with a strategy to ensure strong passwords
@@ -338,6 +387,16 @@ const filterPromisesByRemovingEmptyResults = function(promises){
         })
 }
 
+
+const getCurrentJupiterValueOrNull = async function (){
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=jupiter&vs_currencies=usd'
+    const response = await axios({url: url, method: 'GET'})
+    if(response.hasOwnProperty('data') && response.data.hasOwnProperty('jupiter') && response.data.jupiter.hasOwnProperty('usd')){
+        return response.data.jupiter.usd
+    }
+    return null
+}
+
 module.exports = {
     isObject,
     jsonPropertyIsNonEmptyArray,
@@ -362,7 +421,14 @@ module.exports = {
     arrayShiftOrNull: arrayShiftOrNull,
     filterPromisesByRemovingEmptyResults,
     isStrongPassword,
-    formatNQT
+    formatJup,
+    formatNqt,
+    generateRandomBytes,
+    convertNqtToJup,
+    convertJupToNqt,
+    convertNqtToUsd,
+    formatUsd,
+    getCurrentJupiterValueOrNull
 };
 
 

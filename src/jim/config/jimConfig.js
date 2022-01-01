@@ -7,7 +7,7 @@ module.exports.jimConfig = {
         },
     },
     // jwtSecret: process.env.JWT_SECRET,
-    // maxMbSize: process.env.MAX_FILE_SIZE_MB,
+    maxMbSize: process.env.JIMSRV_MAX_FILE_SIZE_MB,
     // feeMultiplier: 1.2,
     // host: process.env.HOST,
     // loggerLevel: process.env.LOGGER_LEVEL,

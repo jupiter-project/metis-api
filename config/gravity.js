@@ -2524,7 +2524,7 @@ class Gravity {
         //   response = { error: true, fullError: e };
         // }
 
-        if (sendRecordResponse.data.broadcasted && !sendRecordResponse.error) {
+        if (sendRecordResponse.broadcasted) {
           const sendTableListResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
               accountCredentials.passphrase,
               accountCredentials.account,
@@ -2547,13 +2547,13 @@ class Gravity {
           //   sendRecordResponse = { error: true, fullError: e };
           // }
 
-          if (sendTableListResponse.data && sendTableListResponse.data.broadcasted) {
+          if (sendTableListResponse.broadcasted) {
             eventEmitter.emit('table_created');
-          } else if (sendRecordResponse.data && sendRecordResponse.data.errorDescription != null) {
+          } else if (sendRecordResponse.errorDescription != null) {
             reject({
               success: false,
-              message: sendRecordResponse.data.errorDescription,
-              jupiter_response: sendRecordResponse.data,
+              message: sendRecordResponse.errorDescription,
+              jupiter_response: sendRecordResponse,
             });
           } else {
             reject({
@@ -2562,16 +2562,16 @@ class Gravity {
               fullError: sendRecordResponse,
             });
           }
-        } else if (sendRecordResponse.data.errorDescription != null) {
-          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
+        } else if (sendRecordResponse.errorDescription != null) {
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse)}`);
           reject({
             success: false,
-            message: sendRecordResponse.data.errorDescription,
-            jupiter_response: sendRecordResponse.data,
+            message: sendRecordResponse.errorDescription,
+            jupiter_response: sendRecordResponse,
           });
         } else {
-          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
-          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: sendRecordResponse.data });
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse)}`);
+          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: sendRecordResponse });
         }
       });
 

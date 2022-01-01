@@ -1,48 +1,59 @@
 const gu = require("../utils/gravityUtils")
 const inviteRecordSchemaV1 = {
-    $id: 'inviteRecordSchemaV1',
+    $id: 'http://jup.io/schemas/inviteRecordSchemaV1.json',
     type: "object",
+    additionalProperties: false,
     properties: {
+
         version: {
             type: "integer"
         },
         recordType: {
-            type: "string"
+            type: "string",
+            const: 'channelInvite'
         },
         inviteeAddress: {
             type: "string",
-            validate: (_,data)=>gu.isWellFormedJupiterAddress(data)
+            pattern: '^JUP-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w\\w$'
+        },
+        inviteePublicKey: {
+            type: "string",
+            pattern: '^[0-9A-Fa-f]{64}'
         },
         inviterAddress: {
             type: "string",
-            validate: (_,data)=>gu.isWellFormedJupiterAddress(data)
+            pattern: '^JUP-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w\\w$'
         },
         channelRecord: {
-             "$ref": 'channelRecordSchemaV1'
+             "$ref": 'channelRecordSchemaV1.json'
         },
-        createdBy: {type: "string"},
-        status: {type: "string"},
+        createdBy: {
+            type: "string",
+            pattern: '^JUP-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w\\w$'
+        },
+        status: {
+            type: "string",
+            enum: ['active']
+        },
         updatedAt: {
-            type: "integer",
-            format: "date-time"
+            type: "integer"
         },
         createdAt: {
-            type: "integer",
-            format: "date-time"
+            type: "integer"
         },
     },
     required: [
         'version',
         'recordType',
         'inviteeAddress',
+        'inviteePublicKey',
         'inviterAddress',
         'channelRecord',
         'createdBy',
         'status',
         'createdAt',
         'updatedAt'
-    ],
-    additionalProperties: false,
+    ]
 }
 
 module.exports.inviteRecordSchemaV1 = inviteRecordSchemaV1;

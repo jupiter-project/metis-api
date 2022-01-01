@@ -22,7 +22,7 @@ class BinaryAccountJob{
             }
             try {
                 const _userAccountProperties = job.data.userAccountProperties;
-                const userAccountProperties = GravityAccountProperties.Clone(_userAccountProperties);
+                const userAccountProperties = await GravityAccountProperties.Clone(_userAccountProperties);
                 const newBinaryAccountProperties = await storageService.createBinaryAccount(userAccountProperties);
 
                 console.log('done');

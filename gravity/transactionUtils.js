@@ -1,4 +1,5 @@
 const gu = require("../utils/gravityUtils");
+const mError = require("../errors/metisError");
 const {BadJupiterAddressError} = require("../errors/metisError");
 const {validator} = require("../services/validator");
 const logger = require('../utils/logger')(module);
@@ -128,27 +129,7 @@ class TransactionUtils {
         return true
     }
 
-    /**
-     *
-     * @param transactionResponse
-     * @return {boolean}
-     */
-    isValidEncryptedMessageTransactionResponse(transactionResponse){
-        if(!this.isValidBaseTransactionResponse(transactionResponse) ){
-            return false
-        }
-        if(!( transactionResponse.hasOwnProperty('transactionJSON') &&
-            transactionResponse.transactionJSON.hasOwnProperty('attachment') &&
-            transactionResponse.transactionJSON.attachment.hasOwnProperty('encryptedMessage') &&
-            transactionResponse.transactionJSON.attachment.encryptedMessage.hasOwnProperty('data')) ){
-            return false
-        }//if(!transactionResponse.hasOwnProperty('transactionJSON')){
-           // return false
-        //}
-        // const validationResult = validator.validateEncryptedMessageTransaction(transactionResponse.transactionJSON);
-        // return validationResult.isValid;
-        return true
-    }
+
 
     /**
      *
@@ -215,6 +196,28 @@ class TransactionUtils {
 
     /**
      *
+     * @param transactionResponse
+     * @return {boolean}
+     */
+    isValidEncryptedMessageTransactionResponse(transactionResponse){
+        if(!this.isValidBaseTransactionResponse(transactionResponse) ){
+            return false
+        }
+        if(!( transactionResponse.hasOwnProperty('transactionJSON') &&
+            transactionResponse.transactionJSON.hasOwnProperty('attachment') &&
+            transactionResponse.transactionJSON.attachment.hasOwnProperty('encryptedMessage') &&
+            transactionResponse.transactionJSON.attachment.encryptedMessage.hasOwnProperty('data')) ){
+            return false
+        }//if(!transactionResponse.hasOwnProperty('transactionJSON')){
+        // return false
+        //}
+        // const validationResult = validator.validateEncryptedMessageTransaction(transactionResponse.transactionJSON);
+        // return validationResult.isValid;
+        return true
+    }
+
+    /**
+     *
      * @param responseTransaction
      * @returns {boolean}
      */
@@ -265,7 +268,6 @@ class TransactionUtils {
     extractTransactionId(transaction){
         logger.sensitive(`#### extractTransactionId(transaction)`);
         if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')}
-
         // const validatorResult = validator.validateBaseTransaction(transaction);
         // if(!validatorResult.isValid){
         //     throw new Error(validatorResult.message);
@@ -284,9 +286,17 @@ class TransactionUtils {
     extractTransactionIdFromTransactionResponse(transactionResponse){
         logger.sensitive(`#### extractTransactionIdFromTransactionResponse(transactionResponse)`);
         if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
-        if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
-        if(!transactionResponse.data.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
-        return this.extractTransactionId(transactionResponse.data.transactionJSON)
+        // if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
+        if(!transactionResponse.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
+        return this.extractTransactionId(transactionResponse.transactionJSON)
+    }
+
+    extractTransactionIdsFromTransactionResponses(transactionResponses){
+        logger.sensitive(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
+        if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
+        return transactionResponses.map(transactionResponse => {
+            return this.extractTransactionIdFromTransactionResponse(transactionResponse)
+        })
     }
 
     /**
@@ -297,17 +307,13 @@ class TransactionUtils {
     extractTransactionIds(transactions) {
         logger.verbose(`#### extractTransactionIds(transactions)`);
         logger.sensitive(`transactions.length= ${transactions.length}`);
-
-        // if (transactions.length === 0) {
-        //     logger.warn('empty array passed in!')
-        //     return []
-        // }
-        //
-        // if(!this.areValidTransactions(transactions)){throw new Error('transactions are invalid')}
-
+        if (transactions.length === 0) {
+            logger.warn('empty array passed in!')
+            return []
+        }
+        if(!this.areValidTransactions(transactions)){throw new Error('transactions are invalid')}
         const transactionsIds = transactions.map(transaction => transaction.transaction);
         logger.debug(`transactionsIds.length= ${transactionsIds.length}`);
-
         return transactionsIds;
     }
 
@@ -316,10 +322,10 @@ class TransactionUtils {
      * @param transactions
      * @returns {*}
      */
-    extractTransactionIdsFromTransactions(transactions){
-        if(!this.areValidTransactions(transactions)){throw new Error('not all are valid transactions')}
-        return transactions.map(transaction => transaction.transaction);
-    }
+    // extractTransactionIdsFromTransactions(transactions){
+    //     if(!this.areValidTransactions(transactions)){throw new Error('not all are valid transactions')}
+    //     return transactions.map(transaction => transaction.transaction);
+    // }
 
     filterMessageTransactionsByCallback(transactions, callback){
         logger.verbose(`#### filterMessageTransactionsByCallback(transactions, callback): transactions.length = ${transactions.length} `);

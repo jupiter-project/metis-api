@@ -1,15 +1,16 @@
 import gu from "../utils/gravityUtils";
 import {ApplicationAccountProperties, metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
-import {jupiterAxios as axios} from "../config/axiosConf";
+import {axiosData, axiosDefault} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {BadJupiterAddressError, JupiterApiError, MetisError, UnknownAliasError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
-import {add} from "lodash";
+// import {add} from "lodash";
 import {refreshGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
+
 
 class JupiterAPIService {
     /**
@@ -51,16 +52,21 @@ class JupiterAPIService {
 
     /**
      *
-     * @param {object} givenParams
-     * @returns {string}
+     * @param {string} rtype
+     * @param {object} params
+     * @param {object} data
+     * @return {*}
+     * @private
      */
-      jupiterUrl(givenParams) {
-        const params = givenParams;
-        const url = `${this.jupiterHost}/nxt?`;
-        const query = params ? queryString.stringify(params) : '';
-
-        return url + query;
+      _jupiterRequest(rtype, params, data = {}){
+          // const url = this.jupiterUrl(params);
+        const url = `${this.jupiterHost}/nxt`;
+        if(rtype===HttpMethod.POST){
+              return axiosData({url:url, method: rtype, data:  queryString.stringify(data), params: params})
         }
+        return axiosDefault({url:url, method: rtype, data: data, params: params})
+      }
+
 
     /**
      * @example  { data: { errorDescription: 'org.h2.jdbc.JdbcSQLException: Database may be already in use: "Locked by another process: /root/jupiter/nxt_test_db/nxt.lock.db". Possible solutions: close all other connection(s); use the server mode [90020-195]',
@@ -74,61 +80,56 @@ class JupiterAPIService {
      * @param {object} data [data={}] - the payload to send
      * @returns {Promise<*>}
      */
-    jupiterRequest(rtype, params, data = {}) {
-        const url = this.jupiterUrl(params);
-        return new Promise((resolve, reject) => {
-            return axios({url: url, method: rtype, data: data})
-                .then(response => {
-                    if(response.error) {
-                        logger.error(`jupiterRequest().response.error`)
-                        logger.error(`error= ${JSON.stringify(response.error)}`)
-                        logger.sensitive(`url= ${url}`)
-                        logger.sensitive(`request data= ${JSON.stringify(data)}`)
-
-                        return reject(new JupiterApiError(response.error, StatusCode.ServerErrorInternal))
-                    }
-
-                    if(response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription')  && response.data.errorDescription) {
-                        logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`);
-                        logger.error(`errorDescription= ${response.data.errorDescription}`)
-                        logger.error(`errorCode= ${response.data.errorCode}`)
-                        logger.sensitive(`url= ${url}`)
-                        logger.sensitive(`request data= ${JSON.stringify(data)}`)
-
-                        return reject(new JupiterApiError(response.data.errorDescription, StatusCode.ServerErrorInternal))
-                    }
-
-                    return resolve(response);
-                })
-                .catch( error => {
-                    logger.error(`****************************************************************`);
-                    logger.error(`** jupiterRequest().axios.catch(error)`)
-                    logger.sensitive(`** url= ${url}`);
-
-                    if (error.response) {
-                        // The request was made and the server responded with a status code
-                        // that falls out of the range of 2xx
-                        // console.log(error.response.data);
-                        // console.log(error.response.status);
-                        // console.log(error.response.headers);
-                        const httpResponseStatus = error.response.status;
-                        const message = error.response.data;
-                        return reject(new JupiterApiError(message, httpResponseStatus))
-                    } else if (error.request) {
-                        // The request was made but no response was received
-                        // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
-                        // http.ClientRequest in node.js
-                        console.log(error.request);
-                        const message = 'The request was made but no response was received';
-                        // const httpResponseStatus = 500;
-                        return reject(new JupiterApiError(message, StatusCode.ServerErrorInternal))
-                    }
-                    // Something happened in setting up the request that triggered an Error
-                    // console.log('Error', error.message);
-                    // const httpResponseStatus = 500;
-                    return reject(new JupiterApiError(error.message, StatusCode.ServerErrorInternal))
-                })
-        } )
+    async jupiterRequest(rtype, params, data = {}) {
+        // const url = this.jupiterUrl(params);
+        const url = `${this.jupiterHost}/nxt`;
+        try {
+            const response = await this._jupiterRequest(rtype, params, data);
+            if (response.error) {
+                logger.error(`jupiterRequest().response.error`)
+                logger.error(`error= ${JSON.stringify(response.error)}`)
+                // logger.sensitive(`url= ${url}`)
+                // logger.sensitive(`request data= ${JSON.stringify(data)}`)
+                throw new JupiterApiError(response.error, StatusCode.ServerErrorInternal)
+            }
+            if (response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription') && response.data.errorDescription) {
+                logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`);
+                logger.error(`errorDescription= ${response.data.errorDescription}`)
+                logger.error(`errorCode= ${response.data.errorCode}`)
+                // logger.sensitive(`url= ${url}`)
+                // logger.sensitive(`request data= ${JSON.stringify(data)}`)
+                throw new JupiterApiError(response.data.errorDescription, StatusCode.ServerErrorInternal)
+            }
+            return response;
+        } catch(error){
+            logger.error(`****************************************************************`);
+            logger.error(`** jupiterRequest().axios.catch(error)`)
+            logger.error(`****************************************************************`);
+            logger.sensitive(`rtype= ${rtype}`);
+            logger.sensitive(`url= ${url}`);
+            if (error.response) {
+                // The request was made and the server responded with a status code
+                // that falls out of the range of 2xx
+                // console.log(error.response.data);
+                // console.log(error.response.status);
+                // console.log(error.response.headers);
+                const httpResponseStatus = error.response.status;
+                const message = error.response.data;
+                throw new JupiterApiError(message, httpResponseStatus)
+            } else if (error.request) {
+                // The request was made but no response was received
+                // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
+                // http.ClientRequest in node.js
+                console.log(error.request);
+                const message = 'The request was made but no response was received';
+                throw new JupiterApiError(message, StatusCode.ServerErrorInternal)
+            }
+            // Something happened in setting up the request that triggered an Error
+            // console.log('Error', error.message);
+            // const httpResponseStatus = 500;
+            // return reject(new JupiterApiError(error.message, StatusCode.ServerErrorInternal))
+            throw error;
+        }
     }
 
     /**
@@ -794,42 +795,41 @@ class JupiterAPIService {
         subtype
     ) {
         logger.verbose(`### jupiterApiService.sendMetisMessageOrMessage(*)`);
+        if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )) throw new Error('invalid request type')
+        if(requestType === 'sendMetisMessage' && !subtype) throw new Error('subtype is invalid')
+        if(!secretPhrase)throw new Error('secretPhrase is required')
+        if(!recipient) throw new Error('recipient is required')
+        if(!feeNQT) throw new Error('feeNQT is required')
+        if(!deadline) throw new Error('deadline is required')
+
         let params = {}
+        params.requestType = requestType;
+        let data = {}
+        data.secretPhrase = secretPhrase;
+        data.subtype = subtype
+        data.recipient = recipient
+        if(recipientPublicKey){ data.recipientPublicKey = recipientPublicKey }
+        // if(publicKey){ data.publicKey = publicKey } else { throw new Error('publicKey is required')}
+        data.feeNQT = feeNQT
+        data.deadline = deadline
+        if(referencedTransactionFullHash){ data.referencedTransactionFullHash = referencedTransactionFullHash }
+        if(broadcast){ data.broadcast = broadcast }
+        if(message){ data.message = message }
+        if(messageIsText || messageIsText === 'true'){ data.messageIsText = 'true'}
+        if(messageIsPrunable){ data.messageIsPrunable = 'true'}
+        if(messageToEncrypt){ data.messageToEncrypt = messageToEncrypt}
+        if(messageToEncryptIsText){ data.messageToEncryptIsText = 'true'}
+        if(encryptedMessageData){ data.encryptedMessageData = encryptedMessageData}
+        if(encryptedMessageNonce){ data.encryptedMessageNonce = encryptedMessageNonce}
+        if(encryptedMessageIsPrunable || encryptedMessageIsPrunable === 'true'){ data.encryptedMessageIsPrunable = 'true'}
+        if(compressMessageToEncrypt || compressMessageToEncrypt == 'true' ){ data.compressMessageToEncrypt = 'true'}
+        if(messageToEncryptToSelf){ data.messageToEncryptToSelf = messageToEncryptToSelf }
+        if(messageToEncryptToSelfIsText){ data.messageToEncryptToSelfIsText = 'true'}
+        if(encryptToSelfMessageData){ data.encryptToSelfMessageData = encryptToSelfMessageData}
+        if(encryptToSelfMessageNonce){ data.encryptToSelfMessageNonce = encryptToSelfMessageNonce}
+        if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ data.compressMessageToEncryptToSelf = 'true'}
 
-        if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )){
-            throw new Error('invalid request type')
-        } else {
-            params.requestType = requestType;
-        }
-        if(requestType === 'sendMetisMessage' && !subtype) {
-            throw new Error('subtype is invalid');
-        } else {
-            params.subtype = subtype
-        }
-        if(recipient){ params.recipient = recipient } else { throw new Error('recipient is required') }
-        if(recipientPublicKey){ params.recipientPublicKey = recipientPublicKey }
-        if(secretPhrase){ params.secretPhrase = secretPhrase } else { throw new Error('secretPhrase is required')}
-        // if(publicKey){ params.publicKey = publicKey } else { throw new Error('publicKey is required')}
-        if(feeNQT){ params.feeNQT = feeNQT } else { throw new Error('feeNQT is required')}
-        if(deadline){ params.deadline = deadline } else { throw new Error('deadline is required')}
-        if(referencedTransactionFullHash){ params.referencedTransactionFullHash = referencedTransactionFullHash }
-        if(broadcast){ params.broadcast = broadcast }
-        if(message){ params.message = message }
-        if(messageIsText || messageIsText === 'true'){ params.messageIsText = 'true'}
-        if(messageIsPrunable){ params.messageIsPrunable = 'true'}
-        if(messageToEncrypt){ params.messageToEncrypt = messageToEncrypt}
-        if(messageToEncryptIsText){ params.messageToEncryptIsText = 'true'}
-        if(encryptedMessageData){ params.encryptedMessageData = encryptedMessageData}
-        if(encryptedMessageNonce){ params.encryptedMessageNonce = encryptedMessageNonce}
-        if(encryptedMessageIsPrunable || encryptedMessageIsPrunable === 'true'){ params.encryptedMessageIsPrunable = 'true'}
-        if(compressMessageToEncrypt || compressMessageToEncrypt == 'true' ){ params.compressMessageToEncrypt = 'true'}
-        if(messageToEncryptToSelf){ params.messageToEncryptToSelf = messageToEncryptToSelf }
-        if(messageToEncryptToSelfIsText){ params.messageToEncryptToSelfIsText = 'true'}
-        if(encryptToSelfMessageData){ params.encryptToSelfMessageData = encryptToSelfMessageData}
-        if(encryptToSelfMessageNonce){ params.encryptToSelfMessageNonce = encryptToSelfMessageNonce}
-        if(compressMessageToEncryptToSelf  || compressMessageToEncryptToSelf == 'true' ){ params.compressMessageToEncryptToSelf = 'true'}
-
-        return this.post(params)
+        return this.post(params,data)
     }
 
 
@@ -890,30 +890,33 @@ class JupiterAPIService {
      *
      * @param {GravityAccountProperties} fromAccountProperties
      * @param {GravityAccountProperties} toAccountProperties
-     * @param {int} amount
-     * @param {number} feeNQT
+     * @param {int} amountNqt
+     * @param {number} feeNqt
      * @returns {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"versionOrdinaryPayment"},"senderRS","subtype","amountNQT","sender","recipientRS","recipient","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
      */
-    async transferMoney(fromAccountProperties, toAccountProperties, amount, feeNQT = this.appProps.feeNQT) {
+    async transferMoney(fromAccountProperties, toAccountProperties, amountNqt, feeNqt = this.appProps.feeNQT) {
         logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
-        if (!gu.isNumberGreaterThanZero(amount)) {throw new Error('amount is invalid')}
+        if (!gu.isNumberGreaterThanZero(amountNqt)) {throw new Error('amount is invalid')}
         if(!(fromAccountProperties instanceof GravityAccountProperties)){throw new Error('fromAccountProperties is not valid')}
         if(!(toAccountProperties instanceof GravityAccountProperties)){throw new Error('toAccountProperties is not valid')}
 
+        const amountJup = gu.convertNqtToJup(amountNqt, this.appProps.moneyDecimals)
+        const feeJup = gu.convertNqtToJup(feeNqt, this.appProps.moneyDecimals)
+        const amountUsd = await gu.convertNqtToUsd(amountNqt, this.appProps.moneyDecimals)
+        const feeUsd = await gu.convertNqtToUsd(feeNqt, this.appProps.moneyDecimals)
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         logger.info(`++ Transferring Money`);
         logger.info(`++ from: ${fromAccountProperties.address}`);
         logger.info(`++ to: ${toAccountProperties.address}`);
-        logger.info(`++ amount: ${gu.formatNQT(amount)}`);
-        logger.info(`++ fee: ${ gu.formatNQT(feeNQT)}`);
+        logger.info(`++ amount: ${gu.formatNqt(amountNqt)} | JUP ${amountJup} | USD $${amountUsd}`);
+        logger.info(`++ fee: ${ gu.formatNqt(feeNqt)} | JUP ${feeJup} | USD $${feeUsd} `);
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-
         return this.post( {
             requestType: JupiterAPIService.RequestType.SendMoney,
             recipient: toAccountProperties.address,
             secretPhrase: fromAccountProperties.passphrase, //fromAccount
-            amountNQT:amount,
-            feeNQT: feeNQT,
+            amountNQT:amountNqt,
+            feeNQT: feeNqt,
             deadline: this.appProps.deadline //60
         })
     }
@@ -1064,17 +1067,6 @@ class JupiterAPIService {
 
         return this.post(newParams)
     }
-
-    /**
-     * {"jupiter":{"usd":0.00833142}}
-     * @return {*}
-     */
-    getCurrentJupiterValue(){
-        const url = 'https://api.coingecko.com/api/v3/simple/price?ids=jupiter&vs_currencies=usd'
-        return axios({url: url, method: 'GET'})
-    }
-
-
 
 }
 

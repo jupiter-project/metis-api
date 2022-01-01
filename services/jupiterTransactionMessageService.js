@@ -532,9 +532,9 @@ class JupiterTransactionMessageService {
      * @param feeType
      * @param recipientPublicKey
      * @param prunable
-     * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+     * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
      */
-    async sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey = null, prunable= false ) {
+    async sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable= false ) {
         logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
         if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
         if(!gu.isWellFormedJupiterAddress(toAddress)){throw new BadJupiterAddressError(toAddress)}
@@ -543,21 +543,33 @@ class JupiterTransactionMessageService {
         logger.debug(`tag= ${tag}`);
         logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
         let _recipientPublicKey = recipientPublicKey;
-        if(!gu.isWellFormedPublicKey(recipientPublicKey)){
-            const toPublicKeyResponse = await this.jupiterAPIService.getAccountPublicKey(toAddress);
-            if( toPublicKeyResponse.hasOwnProperty('data') &&  toPublicKeyResponse.data.hasOwnProperty('publicKey')){
-                _recipientPublicKey = toPublicKeyResponse.data.publicKey;
-            }
-        }
+        // if(!gu.isWellFormedPublicKey(recipientPublicKey)){
+            // this.jupiterAccountService.getAccountInformation()
+            // const toPublicKeyResponse = await this.jupiterAPIService.getAccountId();
+            // resolve({
+            //     address,
+            //     accountId: response.data.account,
+            //     publicKey: response.data.publicKey,
+            //     success: true,
+            // });
+            // this.jupiterAccountService.getAccountInformation()
+
+            // const toPublicKeyResponse = await this.jupiterAPIService.getAccountPublicKey(toAddress);
+            // if(!(toPublicKeyResponse.hasOwnProperty('data') &&  toPublicKeyResponse.data.hasOwnProperty('publicKey'))){
+            //     throw new Error(`${toAddress} does not have a publicKey`)
+            // }
+            // _recipientPublicKey = toPublicKeyResponse.data.publicKey;
+        // }
         if(!gu.isWellFormedPublicKey(_recipientPublicKey)){
             throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
         }
-        const fee = feeManagerSingleton.getFee(feeType);
+        const fee = feeManagerSingleton.getCalculatedMessageFee(metisMessage);
+        // const fee = feeManagerSingleton.getFee(feeType);
         const {subtype,type} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
         logger.debug(`subtype= ${subtype}`);
         logger.debug(`type= ${type}`);
 
-        return this.jupiterAPIService.sendMetisMessageOrMessage(
+        const response = await this.jupiterAPIService.sendMetisMessageOrMessage(
             JupiterAPIService.RequestType.SendMetisMessage,
             toAddress,
             _recipientPublicKey,
@@ -583,6 +595,8 @@ class JupiterTransactionMessageService {
             null,
             subtype
         );
+
+        return response.data
     }
 
 }

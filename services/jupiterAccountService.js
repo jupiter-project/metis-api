@@ -12,6 +12,7 @@ import {
     MetisError,
     UnknownAliasError
 } from "../errors/metisError";
+import {axiosDefault} from "../config/axiosConf";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 
 // metisGravityAccountProperties
@@ -80,8 +81,8 @@ class JupiterAccountService {
                 )
                     .then(response => {
                         return {
-                            data: response.data,
-                            transactionsReport: [{name: 'users-table-record', id: response.data.transaction}]
+                            data: response,
+                            transactionsReport: [{name: 'users-table-record', id: response.transaction}]
                         }
                     })
             });
@@ -115,7 +116,7 @@ class JupiterAccountService {
             FeeManager.feeTypes.account_record,
             userAccountProperties.publicKey
         ).then(response => {
-            return response.data.transactionJSON;
+            return response.transactionJSON;
         })
     }
 
@@ -143,11 +144,16 @@ class JupiterAccountService {
     }
 
     /**
+     * @example {"unconfirmedBalanceNQT": "4999920","accountRS": "JUP-BSFE-VJKA-7HSM-DK2HZ","forgedBalanceNQT": "0",
+     * "balanceNQT": "4999920","publicKey": "8e545ea2919fb3ec68879ac3afed497ae4d28e8441002175a7595456a8a4a62c",
+     * "requestProcessingTime": 6372,"account": "13815937394035450284"}
      *
      * @param address
      * @returns {Promise<{unconfirmedBalanceNQT,accountRS,forgedBalanceNQT,balanceNQT,publicKey, requestProcessingTime, account}>}
      */
-    async getAccountOrNull(address) {
+    async fetchAccountOrNull(address) {
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address`)
+
         return this.jupiterAPIService
             .getAccount(address)
             .then((response) => {
@@ -195,7 +201,7 @@ class JupiterAccountService {
             const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(accountProperties.address);
             logger.sensitive(`allBlockChainTransactions.length= ${allBlockChainTransactions.length}`);
             const promises = [];
-            promises.push(this.getAccountOrNull(accountProperties.address));
+            promises.push(this.fetchAccountOrNull(accountProperties.address));
             promises.push(this.jupiterTransactionsService.messageService.extractMessagesBySender(accountProperties, allBlockChainTransactions));
             const [account, _transactionMessages] = await Promise.all(promises);
             const transactionMessages = _transactionMessages.map((message) => message.message);
@@ -916,6 +922,41 @@ class JupiterAccountService {
         memberAccountProperties.updatedAt = messageContainer.message.updatedAt;
 
         return memberAccountProperties //get latest userRecord version
+    }
+
+
+    /**
+     *
+     * @param {string} aliasOrAddress
+     * @return {Promise<{unconfirmedBalanceNQT, address: (string|*), publicKey, account}>}
+     */
+    async fetchAccountInfoFromAliasOrAddress(aliasOrAddress){
+        if(!gu.isNonEmptyString(aliasOrAddress)) throw new MetisError(`empty: aliasOrAddress`)
+        let fetchAccountResponse = null;
+        if(gu.isWellFormedJupiterAddress(aliasOrAddress)){
+            fetchAccountResponse = await this.fetchAccountOrNull(aliasOrAddress);
+        } else if (gu.isWellFormedJupiterAlias(aliasOrAddress)){
+            // It's an alias so lets get the address
+            const getAliasResponse = await jupiterAPIService.getAlias(aliasOrAddress)
+            const address = getAliasResponse.data.accountRS;
+            if(address){
+                fetchAccountResponse = await this.fetchAccountOrNull(address);
+            }
+        } else {
+            throw new MetisError(`Account Not Found`);
+        }
+
+        if(fetchAccountResponse === null){
+            throw new MetisError(`Account Not Found`);
+        }
+
+        return {
+            address: fetchAccountResponse.accountRS,
+            publicKey: fetchAccountResponse.publicKey,
+            account: fetchAccountResponse.account,
+            unconfirmedBalanceNQT: fetchAccountResponse.unconfirmedBalanceNQT
+        }
+
     }
 
     // getStatement(address, moneyDecimals, minimumAppBalance, minimumTableBalance, isApp = false) {

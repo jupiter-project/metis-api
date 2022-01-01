@@ -5,6 +5,8 @@ const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("./applicationAccountProperties");
+const mError = require("../errors/metisError");
+// const {instantiateGravityAccountProperties} = require("./instantiateGravityAccountProperties");
 
 /**
  *
@@ -62,14 +64,28 @@ class GravityAccountProperties extends JupiterAccountProperties {
 
     /**
      *
-     * @param gravityAccountProperties
+     * @param {object} gravityAccountProperties
      * @return {GravityAccountProperties}
      * @constructor
      */
-    static Clone(gravityAccountProperties){
-        let applicationProperties = null;
-        if(gravityAccountProperties.hasOwnProperty('applicationAccountProperties') && gravityAccountProperties.applicationAccountProperties){
-            applicationProperties = new ApplicationAccountProperties(
+    static async Clone(gravityAccountProperties) {
+        if (gravityAccountProperties === null) throw new mError.MetisError(`gravityAccountProperties is empty`);
+        // if (!gu.isWellFormedJupiterAddress(gravityAccountProperties.address)) throw new mError.MetisErrorBadJupiterAddress(`gravityAccountProperties.address`)
+        if (!gu.isWellFormedPassphrase(gravityAccountProperties.passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(`gravityAccountProperties.passphrase`)
+        if (!gu.isNonEmptyString(gravityAccountProperties.password)) throw new mError.MetisError(`gravityAccountProperties.password is invalid`)
+
+        const instantiateGAP = require("./instantiateGravityAccountProperties").instantiateGravityAccountProperties
+
+        const newProperties = await instantiateGAP(
+            gravityAccountProperties.passphrase,
+            gravityAccountProperties.password
+        )
+
+        newProperties.email = gravityAccountProperties.email;
+        newProperties.firstName = gravityAccountProperties.firstName;
+        newProperties.lastName = gravityAccountProperties.lastName;
+        if (gravityAccountProperties.hasOwnProperty('applicationAccountProperties') && gravityAccountProperties.applicationAccountProperties) {
+            const applicationProperties = new ApplicationAccountProperties(
                 gravityAccountProperties.applicationAccountProperties.deadline,
                 gravityAccountProperties.applicationAccountProperties.feeNQT,
                 gravityAccountProperties.applicationAccountProperties.accountCreationFeeNQT,
@@ -78,24 +94,10 @@ class GravityAccountProperties extends JupiterAccountProperties {
                 gravityAccountProperties.applicationAccountProperties.minimumAppBalance,
                 gravityAccountProperties.applicationAccountProperties.moneyDecimals
             )
+            newProperties.addApplicationAccountProperties(applicationProperties);
         }
-        const properties =  new GravityAccountProperties(
-            gravityAccountProperties.address,
-            gravityAccountProperties.accountId,
-            gravityAccountProperties.publicKey,
-            gravityAccountProperties.passphrase,
-            gravityAccountProperties.passwordHash,
-            gravityAccountProperties.password,
-            gravityAccountProperties.algorithm,
-            gravityAccountProperties.email,
-            gravityAccountProperties.firstName,
-            gravityAccountProperties.lastName,
-            applicationProperties
-        );
 
-        properties.addAliases(gravityAccountProperties.aliasList)
-
-        return properties;
+        return newProperties;
     }
 
     setCrypto(password, algorithm = 'aes-256-cbc'){

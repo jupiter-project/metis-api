@@ -15,6 +15,7 @@ import {generateNewMessageRecordJson, sendMessagePushNotifications, createMessag
 import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
+import {MetisErrorCode} from "../utils/metisErrorCode";
 
 var moment = require('moment'); // require
 const gu = require('../utils/gravityUtils');
@@ -307,25 +308,30 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== GET: /v1/api/channel/invites');
         logger.info('======================================================================================');
         console.log('');
+        try {
+            const memberAccountProperties = await instantiateGravityAccountProperties(
+                req.user.passphrase,
+                req.user.password
+            )
+            await chanService.getChannelInvitationContainersSentToAccount(memberAccountProperties)
+                .then(channelInvitations => {
+                    const payload = channelInvitations.map(channelInvitationContainer => {
 
-        const memberAccountProperties = await instantiateGravityAccountProperties(
-            req.user.passphrase,
-            req.user.password
-        )
-        chanService.getChannelInvitationContainersSentToAccount(memberAccountProperties)
-            .then(channelInvitations => {
-                const payload = channelInvitations.map( channelInvitationContainer => {
-                    return {
-                        invitationId: channelInvitationContainer.transactionId,
-                        channelName: channelInvitationContainer.message.channelRecord.channelName,
-                        channelAddress: channelInvitationContainer.message.channelRecord.address,
-                        inviterAddress: channelInvitationContainer.message.inviterAddress,
-                        invitationSentAt: channelInvitationContainer.message.createdAt
-                    }
+                        return {
+                            invitationId: channelInvitationContainer.transactionId,
+                            channelName: channelInvitationContainer.message.channelRecord.channelName,
+                            channelAddress: channelInvitationContainer.message.channelRecord.address,
+                            inviterAddress: channelInvitationContainer.message.inviterAddress,
+                            invitationSentAt: channelInvitationContainer.message.createdAt
+                        }
+                    })
+
+                    res.send(payload);
                 })
-
-                res.send(payload);
-            })
+        } catch(error) {
+            console.log(error);
+            res.status(StatusCode.ServerErrorInternal).send({message: `Internal Error`, code: error.code});
+        }
     });
 
     /**
@@ -340,53 +346,56 @@ module.exports = (app, passport, jobs, websocket) => {
         console.log('');
         const {channelAddress, inviteeAddressOrAlias} = req.body;
         const {user} = req;
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: `channelAddress is invalid`, code: MetisErrorCode.MetisErrorBadJupiterAddress});
+        }
         try {
-            if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
-            const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-            const channelAccountProperties = await chanService.getChannelAccountPropertiesBelongingToMember(channelAddress, inviterAccountProperties);
-            let inviteeAddress = inviteeAddressOrAlias
-            if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias) && gu.isWellFormedJupiterAlias(inviteeAddressOrAlias)){
-                // We need to get the Jup Address
-               let getAliasResponse = await  jupiterAPIService.getAlias(inviteeAddressOrAlias)
-                inviteeAddress = getAliasResponse.data.accountRS;
-            } else if(!gu.isWellFormedJupiterAddress(inviteeAddressOrAlias)){
-                throw new BadJupiterAddressError(inviteeAddressOrAlias)
+            const inviteeAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(inviteeAddressOrAlias);
+            const inviteeAddress = inviteeAccountInfo.address;
+            const inviteePublicKey = inviteeAccountInfo.publicKey;
+            const inviterAccountProperties = user.gravityAccountProperties;
+            // const inviterAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(inviterAccountProperties, channelAddress);
+            if(channelAccountProperties === null){
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: `channelAddress is invalid`, code: MetisErrorCode.MetisErrorBadJupiterAddress});
             }
-            return chanService.createInvitation(
+            const newInvitation = await chanService.createInvitation(
                 channelAccountProperties,
                 inviterAccountProperties,
-                inviteeAddress)
-                .then(response => {
-                    const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
-                    const message = `${inviterAlias} invited you to join a channel`;
-                    const metadata = {isInvitation: 'true'};
-                    // getPNTokensAndSendPushNotification: async (recipientAddressArray, channelAddress, message, title, metadata) => {
-                    // getPNTokensAndSendPushNotification: async (recipientAddressArray, mutedChannelsToExclude, message, title, metadata) => {
-                    getPNTokensAndSendPushNotification(
-                        [inviteeAddress],
-                        [],
-                        message,
-                        'Invitation',
-                        metadata
-                    );
+                inviteeAddress,
+                inviteePublicKey
+                )
 
-                    // const createInvitationResponse = {
-                    //     invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,
-                    //     channelAddress: channelAccountProperties.address,
-                    //     channelName: channelAccountProperties.channelName,
-                    //     inviteeAddressOrAlias: inviteeAddressOrAlias.address,
-                    // }
+            const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
+            const message = `${inviterAlias} invited you to join a channel`;
+            const metadata = {isInvitation: 'true'};
+            // getPNTokensAndSendPushNotification: async (recipientAddressArray, channelAddress, message, title, metadata) => {
+            // getPNTokensAndSendPushNotification: async (recipientAddressArray, mutedChannelsToExclude, message, title, metadata) => {
+            getPNTokensAndSendPushNotification(
+                [inviteeAddress],
+                [],
+                message,
+                'Invitation',
+                metadata
+            );
 
-                    res.send(response);
+            // const createInvitationResponse = {
+            //     invitationId: sendTaggedAndEncipheredMetisMessageResponse.data.transaction,
+            //     channelAddress: channelAccountProperties.address,
+            //     channelName: channelAccountProperties.channelName,
+            //     inviteeAddressOrAlias: inviteeAddressOrAlias.address,
+            // }
 
-                })
-                .catch(error => {
-                    logger.error(`${error}`);
-                    res.sendStatus(500);
-                })
+            res.status(StatusCode.SuccessOK).send(newInvitation);
+
+
+                // .catch(error => {
+                //     logger.error(`${error}`);
+                //     res.sendStatus(500);
+                // })
         } catch (error) {
-            logger.error(`${error}`);
-            res.sendStatus(500);
+            console.log(error);
+            res.status(StatusCode.ServerErrorInternal).send({message: `Internal Error`, code: error.code});
         }
     });
 
@@ -443,16 +452,25 @@ module.exports = (app, passport, jobs, websocket) => {
             });
         });
         job.on('failed attempt', function (errorMessage, doneAttempts) {
-            logger.verbose(`**** JobQueue: channel-creation-confirmation.on(failed attempt)`);
-            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
-            logger.error(`doneAttempts= ${JSON.stringify(doneAttempts)}`);
+            logger.error(`****************************************************************`);
+            logger.error(`** JobQueue: channel-creation-confirmation.on(failed attempt))`);
+            logger.error(`****************************************************************`);
+            // logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
+            // logger.error(`doneAttempts= ${JSON.stringify(doneAttempts)}`);
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+            console.log(errorMessage)
+            console.log(doneAttempts)
         });
 
         job.on('failed', function (errorMessage) {
-            logger.verbose(`**** JobQueue: channel-creation-confirmation.on(failed)`);
-            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
+            logger.error(`****************************************************************`);
+            logger.error(`** JobQueue: channel-creation-confirmation.on(failed))`);
+            logger.error(`****************************************************************`);
+            // logger.error(`error= ${error}`)
+            // logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+            // throw new Error(errorMessage);
+            console.log(errorMessage)
         });
     })
 };

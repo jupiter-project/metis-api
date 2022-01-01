@@ -51,7 +51,7 @@ const generateNewMessageRecordJson = (
  * @param replyRecipientAddress
  * @param attachmentUrl
  * @param version
- * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+ * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
  */
 const createMessageRecord = async (fromAccountProperties, toAccountProperties, message, type, replyMessage, replyRecipientAlias, replyRecipientAddress,attachmentUrl,version) => {
     try{
@@ -65,7 +65,6 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
             attachmentUrl,
             version,
         );
-
         const messageRecordString = JSON.stringify(messageRecord);
         const tag = messagesConfig.messageRecord;
         const feeType = FeeManager.feeTypes.account_record;
