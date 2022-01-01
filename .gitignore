@@ -36,3 +36,5 @@ dev
 /.scannerwork
 v1/api/
 metis-api.log
+
+/tmp
