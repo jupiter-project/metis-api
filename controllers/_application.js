@@ -8,16 +8,15 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 import {JupiterApiError, MetisError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {chanService} from "../services/chanService";
+import {axiosDefault} from "../config/axiosConf";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 const moment = require('moment'); // require
+const gu = require('../utils/gravityUtils');
+const mError = require("../errors/metisError");
 
 module.exports = (app, passport, jobs, websocket) => {
-
-  let page;
-
-  const connection = process.env.SOCKET_SERVER;
-
+  // const connection = process.env.SOCKET_SERVER;
   app.get('/test', (req, res) => {
     res.send({ success: true });
   });
@@ -101,7 +100,7 @@ module.exports = (app, passport, jobs, websocket) => {
   // JUPITER CALLS
   // ===============================================================================
 
-  app.post('/v1/api/get_jupiter_account', (req, res) => {
+  app.post('/v1/api/get-jupiter-account', (req, res) => {
     console.log('');
     logger.info('======================================================================================');
     logger.info('==');
@@ -133,12 +132,12 @@ module.exports = (app, passport, jobs, websocket) => {
   // NEW ACCOUNT GENERATION
   // ===============================================================================
 
-  app.post('/v1/api/create_jupiter_account', async (req, res) => {
+  app.post('/v1/api/create-jupiter-account', async (req, res) => {
       logger.info(`\n\n`);
       logger.info('======================================================================================');
       logger.info('==');
       logger.info('== New Account Generation');
-      logger.info('== POST: /v1/api/create_jupiter_account');
+      logger.info('== POST: /v1/api/create-jupiter-account');
       logger.info('==');
       logger.info(`======================================================================================\n\n`);
 
@@ -171,7 +170,7 @@ module.exports = (app, passport, jobs, websocket) => {
         }
       } catch(error) {
         logger.error(`****************************************************************`);
-        logger.error(`** /v1/api/create_jupiter_account.catch(error)`);
+        logger.error(`** /v1/api/create-jupiter-account.catch(error)`);
         console.log(error)
 
         if(error instanceof JupiterApiError){
@@ -197,70 +196,16 @@ module.exports = (app, passport, jobs, websocket) => {
         console.log(error);
         return res.status(StatusCode.ServerErrorInternal).send({ jobId: jobId });
       }
-      return res.status(StatusCode.SuccessOK).send({ jobId: jobId });
+      return res.status(StatusCode.SuccessOK).send({
+        job: {
+          id: jobId,
+          href: `/v1/api/job/status?jobId=${jobId}`,
+        }
+      });
     })(req, res, next);
   });
 
-   /**
-   *
-   */
-    app.get('/v1/api/job/status', (req, res, next) => {
-      console.log('');
-      logger.info('======================================================================================');
-      logger.info('==');
-      logger.info('== Job Status');
-      logger.info('== GET: /v1/api/job/status ');
-      logger.info('==');
-      logger.info('======================================================================================');
-      console.log('');
 
-      const {jobId} = req.query;
-      const callback = function(err, job) {
-        if(!err){
-          return res.status(200).send({ success: true, status: job.state() });
-        } else {
-          console.log(err);
-          return res.status(404).send({ success: false, status: `Problem with job id: ${jobId}` });
-        }
-      }
-      jobScheduleService.checkJobStatus(jobId, callback);
-    });
-
-    app.put('/v1/api/publicKey', async (req, res) => {
-      console.log('');
-      logger.info('======================================================================================');
-      logger.info('==');
-      logger.info('== Add Publickey');
-      logger.info('== PUT: /v1/api/publicKey ');
-      logger.info('==');
-      logger.info('======================================================================================');
-      console.log('');
-
-      const { user } = req;
-      const { userPublicKey } = req.body;
-
-      if (!userPublicKey){
-        return res.status(400).send({ successful: false, message: 'User public key is required' });
-      }
-
-      const userProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-
-     jupiterAccountService.addPublicKeyToUserAccount(userPublicKey, userProperties)
-         .then(() => chanService.updateAllMemberChannelsWithNewPublicKey(userProperties, userPublicKey))
-         .then(() =>
-             res.status(200).send({ successful: true, message: 'Public key was successfully added' })
-         )
-         .catch(error => {
-           // TODO move 'PUBLIC-KEY_EXIST' to constants file
-           if (error && error.code && error.code === 'PUBLIC-KEY_EXIST'){
-             return res.status(200).send({ successful: true, message: error.message })
-           }
-
-           logger.error('Error adding public key');
-           console.log(error);
-           res.status(500).send({successful: false, message: `${error}`})
-         })
-    });
 
   /**
    *  Login
@@ -273,10 +218,17 @@ module.exports = (app, passport, jobs, websocket) => {
     logger.info(`======================================================================================/n/n`);
     logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
     passport.authenticate('gravity-login', (error, user, message) => {
-      logger.debug('passport.authentication(CALLBACK).');
+      logger.sensitive(`#### /v1/api/appLogin > passport.authenticate('gravity-login', CALLBACK(*)`);
       if (error) {
-        logger.error(`Error! ${error}`);
-        return res.status(500).json({message: error.message})
+        if(error instanceof mError.MetisErrorFailedUserAuthentication){
+          return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Not able to authenticate.', code: error.code});
+        }
+        console.log('\n')
+        logger.error(`************************* ERROR ***************************************`);
+        logger.error(`* ** /v1/api/appLogin > passport.authenticate() catch(error)`);
+        logger.error(`************************* ERROR ***************************************\n`);
+        console.log(error)
+        return res.status(StatusCode.ServerErrorInternal).json({message: error.message, code: error.code})
       }
 
       if (!user) {
