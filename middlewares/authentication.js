@@ -13,20 +13,22 @@ const tokenVerify = (req, res, next) => {
   const channelToken = req.get('AuthorizationChannel');
   const noAuthenticationRouteList = [
     '/create_passphrase',
-    '/v1/api/create_jupiter_account',
+    '/v1/api/create-jupiter-account',
     '/v1/api/appLogin',
     '/v1/api/signup',
-    '/v1/api/get_jupiter_account',
+    '/v1/api/get-jupiter-account',
     '/v1/api/jupiter/alias/',
     '/v1/api/version',
-    '/v1/api/pn/badge_counter',
+    '/v1/api/pn/badge-counter',
     '/v1/api/job/status',
     '/api-docs',
     '/jim/v1/api/ping',
     '/metis/v2/api/signup'
   ];
+
   const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
   if (routeDoesntNeedAuthentication.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token')) {
+    logger.debug(`No Authentication Needed.`);
     return next();
   }
   if (!token) {
@@ -37,6 +39,8 @@ const tokenVerify = (req, res, next) => {
   if (token.startsWith('Bearer')) {
     updatedToken = updatedToken.substring(7);
   }
+
+
   jwt.verify(updatedToken, process.env.SESSION_SECRET, async (err, decodedToken) => {
     logger.debug('tokenVerify().verify(updatedToken, session, CALLBACK(err, decodedUser))');
     if (err) {

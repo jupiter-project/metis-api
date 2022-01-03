@@ -3,13 +3,14 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {axiosData, axiosDefault} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {BadJupiterAddressError, JupiterApiError, MetisError, UnknownAliasError} from "../errors/metisError";
+import {JupiterApiError, MetisError, UnknownAliasError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 // import {add} from "lodash";
 import {refreshGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
+const mError = require("../errors/metisError");
 
 
 class JupiterAPIService {
@@ -46,7 +47,8 @@ class JupiterAPIService {
             DecryptFrom: 'decryptFrom',
             SetAlias: 'setAlias',
             GetAlias: 'getAlias',
-            GetAccountPublicKey: 'getAccountPublicKey'
+            GetAccountPublicKey: 'getAccountPublicKey',
+            GetState: 'getState',
         }
     }
 
@@ -105,18 +107,23 @@ class JupiterAPIService {
             logger.error(`****************************************************************`);
             logger.error(`** jupiterRequest().axios.catch(error)`)
             logger.error(`****************************************************************`);
-            logger.sensitive(`rtype= ${rtype}`);
-            logger.sensitive(`url= ${url}`);
+            logger.error(`rtype= ${rtype}`);
+            logger.error(`url= ${url}`);
             if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
                 // console.log(error.response.data);
                 // console.log(error.response.status);
                 // console.log(error.response.headers);
+                if(error.response.status === 502){
+                    throw new mError.MetisErrorBadJupiterGateway()
+                }
+                logger.error(`response.status= ${error.response.status}`);
                 const httpResponseStatus = error.response.status;
                 const message = error.response.data;
                 throw new JupiterApiError(message, httpResponseStatus)
             } else if (error.request) {
+                logger.error(`No response received`);
                 // The request was made but no response was received
                 // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
                 // http.ClientRequest in node.js
@@ -171,9 +178,10 @@ class JupiterAPIService {
      * @returns {Promise<{"recipientRS","recipient","requestProcessingTime","properties":[]}>}
      */
      getAccountProperties(address) {
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new BadJupiterAddressError(address);
-        };
+         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){
+        //     throw new BadJupiterAddressError(address);
+        // };
 
         return this.get({
             requestType: JupiterAPIService.RequestType.GetAccountProperties,
@@ -272,10 +280,11 @@ class JupiterAPIService {
      * @returns {Promise<{"unconfirmedBalanceNQT","accountRS","forgedBalanceNQT","balanceNQT","publicKey","requestProcessingTime","account":""}>}
      */
     async getAccount(address) {
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new BadJupiterAddressError(address);
-            // throw new Error(`Jupiter Address is not valid: ${address}`);
-        }
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){
+        //     throw new BadJupiterAddressError(address);
+        //     // throw new Error(`Jupiter Address is not valid: ${address}`);
+        // }
 
         return this.post( {
             requestType: JupiterAPIService.RequestType.GetAccount,
@@ -302,7 +311,7 @@ class JupiterAPIService {
      *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
      *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
      */
-    async getBlockChainTransactions(
+    getBlockChainTransactions(
         address,
         message = null ,
         withMessage = false,
@@ -311,10 +320,9 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-
+        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         const requestType = JupiterAPIService.RequestType.GetBlockchainTransactions;
-
         return this._getConfirmedOrUnconfirmedBlockChainTransactions(
             requestType,
             address,
@@ -326,7 +334,6 @@ class JupiterAPIService {
             lastIndex
         )
     }
-
 
 
     /**
@@ -401,12 +408,12 @@ class JupiterAPIService {
         return this._getConfirmedOrUnconfirmedBlockChainTransactions(
             JupiterAPIService.RequestType.GetUnconfirmedTransactions,
             address,
-            message = null ,
-            withMessage = false,
-            type = 1 ,
-            includeExpiredPrunable = true,
-            firstIndex = null,
-            lastIndex = null
+            message,
+            withMessage,
+            type,
+            includeExpiredPrunable,
+            firstIndex,
+            lastIndex
         )
     }
 
@@ -417,9 +424,9 @@ class JupiterAPIService {
      *
      * @param {string} requestType - confirmed or unconfirmed
      * @param {string} address - JUP-123
-     * @param {string} [message=null] - Usually the tag message
+     * @param {string|null} [message=null] - Usually the tag message
      * @param {boolean} [withMessage=false] - when true its used as a tag
-     * @param {boolean} [type=1]
+     * @param {number} [type=1]
      * @param {boolean} [includeExpiredPrunable=true]
      * @param {number|null} [firstIndex=null]
      * @param {number|null} [lastIndex=null]
@@ -438,16 +445,11 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### getBlockChainTransactions(requestType = ${requestType},address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable)`);
-        if(! (requestType === JupiterAPIService.RequestType.GetBlockchainTransactions || requestType === JupiterAPIService.RequestType.GetUnconfirmedTransactions)){
+        logger.sensitive(`#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType =${requestType}, address= ${address}, message= ${message}, witMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        if(!(requestType === JupiterAPIService.RequestType.GetBlockchainTransactions || requestType === JupiterAPIService.RequestType.GetUnconfirmedTransactions)){
             throw new Error(`requestType is invalid: ${requestType}`)
         }
-
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new BadJupiterAddressError(address);
-            // throw new Error(`Jupiter address not valid: ${address}`);
-        }
-
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         let params = {
             requestType: requestType,
             account: address,
@@ -522,7 +524,8 @@ class JupiterAPIService {
      * @returns {Promise<{data: {"unconfirmedBalanceNQT","forgedBalanceNQT","balanceNQT","requestProcessingTime"}}>}
      */
     async getBalance(address) {
-        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         return this.get( {
             requestType: JupiterAPIService.RequestType.GetBalance,
             account: address
@@ -996,10 +999,11 @@ class JupiterAPIService {
      */
     async getAliases(address){
         logger.verbose(`#### getAliases(address=${address})`);
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new BadJupiterAddressError(address);
-            // throw new Error(`Jupiter Address is not valid: ${address}`);
-        }
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){
+        //     throw new BadJupiterAddressError(address);
+        //     // throw new Error(`Jupiter Address is not valid: ${address}`);
+        // }
         const params = {
             requestType: JupiterAPIService.RequestType.GetAliases,
             account: address
@@ -1066,6 +1070,12 @@ class JupiterAPIService {
         }
 
         return this.post(newParams)
+    }
+
+    getState(){
+        logger.sensitive(`#### getState()`);
+        const params = {requestType: JupiterAPIService.RequestType.GetState}
+        return this.get(params);
     }
 
 }

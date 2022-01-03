@@ -29,16 +29,16 @@ module.exports.baseTransactionSchemaV1 = {
             type: "string"
         },
         type: {
-            type: "string"
+            type: "number"
         },
         fullHash: {
             type: "string"
         },
         version: {
-            type: "string"
+            type: "number"
         },
         phased: {
-            type: "string"
+            type: "boolean"
         },
         ecBlockId: {
             type: "string"
@@ -47,13 +47,13 @@ module.exports.baseTransactionSchemaV1 = {
             type: "string"
         },
         attachment: {
-            type: "string"
+            type: "object"
         },
         senderRS: {
             type: "string"
         },
         subtype: {
-            type: "string"
+            type: "number"
         },
         amountNQT: {
             type: "string"
@@ -62,10 +62,10 @@ module.exports.baseTransactionSchemaV1 = {
             type: "string"
         },
         ecBlockHeight: {
-            type: "string"
+            type: "number"
         },
         deadline: {
-            type: "string"
+            type: "number"
         },
         transaction: {
             type: "string"
@@ -74,10 +74,10 @@ module.exports.baseTransactionSchemaV1 = {
             type: "integer"
         },
         height: {
-            type: "string"
+            type: "number"
         }
     },
-    additionalProperties: false,
+    additionalProperties: true,
 }
 
 // required: [

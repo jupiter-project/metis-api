@@ -1,5 +1,7 @@
 import mError from "../../../errors/metisError";
 import PQueue from 'p-queue';
+import {storageService} from "../services/storageService";
+import {chanService} from "../../../services/chanService";
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
 const fs = require('fs');
@@ -15,10 +17,53 @@ const meter = require('stream-meter');
 const asyncHandler = require('express-async-handler');
 
 module.exports = (app, jobs, websocket) => {
-    app.post('/jim/v1/api/file'  , asyncHandler(async (req, res,next) => {
+
+    // app.get('/v1/api/jupiter/alias/:aliasName', async (req, res) => {
+    //     const aliasCheckup = await gravity.getAlias(req.params.aliasName);
+
+        app.get('/jim/v1/api/files'  , async (req, res,next) => {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
-        logger.info('== POST: /jim/v1/api/register');
+        logger.info('== GET: /jim/v1/api/files');
+        logger.info(`======================================================================================\n\n\n`);
+
+        try {
+            const userAccountProperties =  req.user.gravityAccountProperties;
+            const {channelAddress} = req.query;
+            // const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
+            // if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`${userAccountProperties.address} doesnt have a channel account`)
+            // const binaryAccountProperties = await storageService.getBinaryAccountPropertiesOrNull(channelAccountProperties);
+            // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
+            // if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
+
+            const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress);
+
+            //async fetchChannelFilesList(userAccountProperties, channelAddress){
+            res.status(StatusCode.SuccessOK).send({
+                message: `${filesList.length} files found for ${channelAddress}`,
+                files: [
+                    {
+                        uuid: '123',
+                        href: `/jim/v1/api/files/123`,
+                        filename: 'pando',
+                        more: 'more'
+                    }
+                ]
+            })
+        } catch(error) {
+            logger.error(`********************** ERROR ******************************************`);
+            logger.error(`** GET /jim/v1/api/files`);
+            logger.error(`********************** ERROR ******************************************`);
+            console.log(error);
+            res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
+        }
+
+    })
+
+    app.post('/jim/v1/api/files'  , asyncHandler(async (req, res,next) => {
+        console.log(`\n\n\n`);
+        logger.info('======================================================================================');
+        logger.info('== POST: /jim/v1/api/files');
         logger.info(`======================================================================================\n\n\n`);
 
         const fileUploadData = new Map();
@@ -35,6 +80,7 @@ module.exports = (app, jobs, websocket) => {
         });
 
         const abort = () => {
+            logger.sensitive(`#### abort()`);
             req.unpipe(bb);
             workQueue.pause();
             if (!req.aborted) {
@@ -44,6 +90,7 @@ module.exports = (app, jobs, websocket) => {
         }
 
         const abortOnError = async (fn) => {
+            logger.sensitive(`#### abortOnError()`);
             workQueue.add( async () => {
                 try {
                     await fn();
@@ -76,10 +123,22 @@ module.exports = (app, jobs, websocket) => {
                     }
                     fileUploadData.set('attachToJupiterAddress', value);
                 }
+                logger.debug('DONE--on.field()')
             })
 
             bb.on('file', (formDataKey,file,info) => {
+                logger.sensitive(`---- bb.on(file)`);
+                if(formDataKey !== 'file') {
+                    return res.status(StatusCode.ClientErrorNotAcceptable).send({
+                        message: `file key needs to be (file) not: ${formDataKey}`,
+                        code: MetisErrorCode.MetisError
+                    });
+                }
+
                 abortOnError( ()=> {
+
+
+
                     if(formDataKey === 'file') {
                         logger.verbose(`---- bb.on(file)`);
                         if (!gu.isNonEmptyString(info.filename)) {
@@ -113,6 +172,8 @@ module.exports = (app, jobs, websocket) => {
                         })
                         // fsStream.on('close', async ()=>{})
                     }
+
+
                 })
             })
             bb.on('close', async () => {
@@ -156,7 +217,7 @@ module.exports = (app, jobs, websocket) => {
                             createdAt: job.created_at,
                             href: `/v1/api/job/status?jobId=${job.id}`,
                         },
-                        fileUrl: `/v1/api/file/${fileUuid}`
+                        fileUrl: `/v1/api/files/${fileUuid}`
                     })
                 } catch(error) {
                     logger.error(`****************************************************************`);

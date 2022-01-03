@@ -9,11 +9,11 @@ module.exports.MetisErrorCode = {
     MetisError: 16000,
     JupiterApiError: 16001,
     UnknownAliasError: 16002,
-    BadJupiterAddressError: 16003,
+    MetisErrorNoChannelAccountFound: 16003,
     BadGravityAccountPropertiesError: 16004,
     ChannelRecordValidatorError: 16005,
     InviteRecordValidatorError: 16006,
-    PublicKeyExistsError: 16007,
+    MetisErrorPublicKeyExists: 16007,
     BinaryAccountExistsError: 16008,
     FundingNotConfirmedError: 16009,
     MetisErrorWeakPassword: 16010,
@@ -23,4 +23,7 @@ module.exports.MetisErrorCode = {
     MetisErrorBadJupiterAddress: 16014,
     MetisErrorBadJupiterPassphrase: 16015,
     MetisErrorBadJupiterPublicKey: 16016,
+    MetisErrorBadJupiterGateway: 16017,
+    MetisErrorFailedUserAuthentication: 16018,
+
 }

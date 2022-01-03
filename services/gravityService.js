@@ -180,7 +180,7 @@ class GravityService{
                 const listOfTransactions =  messageContainer.message;
                 return listOfTransactions;
             })
-        // const transactions = await this.jupiterTransactionsService.getConfirmedAndUnconfirmedBlockChainTransactionsByTag(accountProperties.address, tag);
+        // const transactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(accountProperties.address, tag);
         // const mostRecentTransaction = this.jupiterTransactionsService.getMostRecentTransactionOrNull(transactions);
         // if(!mostRecentTransaction) {return []}
         // const mostRecentTransactionId = this.transactionUtils.extractTransactionId(mostRecentTransaction);
@@ -206,7 +206,7 @@ class GravityService{
      getAllMessageContainersReferencedByList(accountProperties, recordTag, listTag, isMetisEncrypted = true){
         return this.getLatestListByTag(accountProperties,listTag)
             .then(transactions => {
-                return this.messageService.getReadableMessageContainers(transactions,accountProperties, isMetisEncrypted);
+                return this.messageService.getReadableMessageContainersFromTransactions(transactions,accountProperties, isMetisEncrypted);
             })
 
     }

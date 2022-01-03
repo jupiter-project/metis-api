@@ -4,10 +4,11 @@ import {
   findOneNotificationAndUpdate,
   findOneNotificationAndRemovePNToken, upsertNotificationDocumentWithNewToken
 } from './notificationService';
-import {BadJupiterAddressError} from "../errors/metisError";
+// import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
+const mError = require('../errors/metisError');
 
 module.exports = {
 

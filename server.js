@@ -1,5 +1,4 @@
-// const multer = require('multer');
-
+const logger = require('./utils/logger')(module);
 
 require('babel-register')({
   presets: ['react'],
@@ -8,6 +7,7 @@ require('babel-register')({
 const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
 const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
+const {externalResourcesCheck} = require('./middlewares/externalResourcesCheck');
 const firebaseAdmin = require("firebase-admin");
 // Firebase Service initializer
 const firebaseServiceAccount = {
@@ -76,7 +76,7 @@ const passport = require('passport');
 const flash = require('connect-flash');
 
 // Request logger
-const morgan = require('morgan');
+// const morgan = require('morgan');
 
 const swaggerUi = require('swagger-ui-express');
 
@@ -91,11 +91,12 @@ const mongoose = require('mongoose');
 const swaggerDocument = require('./swagger.json');
 
 app.use(cors());
-app.use(morgan('dev')); // log every request to the console
+// app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
 
 app.use((req, res, next) => {
+  logger.sensitive(`#### middleware...`);
   if (req.url !== '/favicon.ico') {
     return next();
   }
@@ -109,6 +110,8 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
+
+app.use(externalResourcesCheck);
 app.use(tokenVerify);
 
 // Sets public directory
@@ -194,8 +197,6 @@ server.on('upgrade', (request, socket, head) => {
 // is not called everytime we make an api call to them
 require('./config/api.js')(app);
 
-const logger = require('./utils/logger')(module);
-
 const mongoDBOptions = { useNewUrlParser: true, useFindAndModify: false, useUnifiedTopology: true };
 
 const {
@@ -229,22 +230,22 @@ const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
 jobScheduleService.init(kue);
 
 
-gravity.getFundingMonitor()
-  .then(async (monitorResponse) => {
-    const { monitors } = monitorResponse;
-    if (monitors && monitors.length === 0) {
-      logger.info('Funding property not set for app. Setting it now...');
-      const fundingResponse = await gravity.setFundingProperty({
-        passphrase: process.env.APP_ACCOUNT,
-      });
-
-      logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
-    }
-  })
-    .catch( error => {
-      logger.error(`getFundingError: ${error}`)
-      throw error;
-    });
+// gravity.getFundingMonitor()
+//   .then(async (monitorResponse) => {
+//     const { monitors } = monitorResponse;
+//     if (monitors && monitors.length === 0) {
+//       logger.info('Funding property not set for app. Setting it now...');
+//       const fundingResponse = await gravity.setFundingProperty({
+//         passphrase: process.env.APP_ACCOUNT,
+//       });
+//
+//       logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
+//     }
+//   })
+//     .catch( error => {
+//       logger.error(`getFundingError: ${error}`)
+//       throw error;
+//     });
 
 // Worker methods
 // const RegistrationWorker = require('./workers/registration.js');

@@ -12,7 +12,7 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 
 
 import {generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord} from "../services/messageService";
-import {BadJupiterAddressError} from "../errors/metisError";
+const mError = require("../errors/metisError");
 import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
 import {MetisErrorCode} from "../utils/metisErrorCode";
@@ -108,7 +108,8 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info(`======================================================================================\n\n`);
 
         const {channelAddress} = req.body
-        if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
+        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
         const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
@@ -431,7 +432,13 @@ module.exports = (app, passport, jobs, websocket) => {
                     throw new Error('channel-creation-confirmation');
                 }
                 logger.verbose(`job.id= ${job.id}`);
-                res.status(StatusCode.SuccessOK).send({jobId: job.id});
+                res.status(StatusCode.SuccessOK).send({
+                    job: {
+                        id: job.id,
+                        createdAt: job.created_at,
+                        href: `/v1/api/job/status?jobId=${job.id}`,
+                    }
+                });
                 websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated', {jobId: job.id});
             });
         job.on('complete', function (result) {

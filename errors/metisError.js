@@ -40,14 +40,6 @@ class UnknownAliasError extends Error {
     }
 }
 
-class BadJupiterAddressError extends MetisError {
-    constructor(message = '') {
-        super(`Jupiter Address is not valid (${message}) `)
-        this.name = "BadJupiterAddressError"
-        this.code = MetisErrorCode.BadJupiterAddressError;
-        Object.setPrototypeOf(this, BadJupiterAddressError.prototype); //fixes a problem with instanceof
-    }
-}
 
 class BadGravityAccountPropertiesError extends MetisError {
     constructor(message = '') {
@@ -76,12 +68,12 @@ class InviteRecordValidatorError extends MetisError {
     }
 }
 
-class PublicKeyExistsError extends MetisError {
-    constructor(message = '') {
-        super(`public key already exists: ${message}`);
-        this.name = "PublicKeyExistsError";
-        this.code = MetisErrorCode.PublicKeyExistsError;
-        Object.setPrototypeOf(this, PublicKeyExistsError.prototype); //fixes a problem with instanceof
+class MetisErrorPublicKeyExists extends MetisError {
+    constructor(message = '', publicKey = null) {
+        super(`public key already exists: ${message} -- publicKey: ${publicKey}`);
+        this.name = "MetisErrorPublicKeyExists";
+        this.code = MetisErrorCode.MetisErrorPublicKeyExists;
+        Object.setPrototypeOf(this, MetisErrorPublicKeyExists.prototype); //fixes a problem with instanceof
     }
 }
 
@@ -131,6 +123,17 @@ class MetisErrorNoBinaryAccountFound extends MetisError {
     }
 }
 
+class MetisErrorNoChannelAccountFound extends MetisError {
+    constructor(message = '') {
+        super(`No channel account found: ` + message)
+        this.name = "MetisErrorNoChannelAccountFound"
+        this.code = MetisErrorCode.MetisErrorNoChannelAccountFound;
+        Object.setPrototypeOf(this, MetisErrorNoChannelAccountFound.prototype); //fixes a problem with instanceof
+    }
+}
+
+
+
 class MetisErrorBadGravityAccountProperties extends MetisError {
     constructor(message = '') {
         super(`GravityAccountProperties is invalid: ` + message)
@@ -142,12 +145,20 @@ class MetisErrorBadGravityAccountProperties extends MetisError {
 
 class MetisErrorBadJupiterAddress extends MetisError {
     constructor(message = '') {
-        super(`Jupiter Address is invalid: ` + message)
+        super(`Jupiter Address is invalid -- ` + message)
         this.name = "MetisErrorBadJupiterAddress"
         this.code = MetisErrorCode.MetisErrorNoBinaryAccountFound;
         Object.setPrototypeOf(this, MetisErrorBadJupiterAddress.prototype); //fixes a problem with instanceof
     }
 }
+// class BadJupiterAddressError extends MetisError {
+//     constructor(message = '') {
+//         super(`Jupiter Address is not valid (${message}) `)
+//         this.name = "BadJupiterAddressError"
+//         this.code = MetisErrorCode.BadJupiterAddressError;
+//         Object.setPrototypeOf(this, BadJupiterAddressError.prototype); //fixes a problem with instanceof
+//     }
+// }
 
 
 class MetisErrorBadJupiterPassphrase extends MetisError {
@@ -168,14 +179,32 @@ class MetisErrorBadJupiterPublicKey extends MetisError {
     }
 }
 
+class MetisErrorBadJupiterGateway extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter is down. (Bad Gateway) ` + message)
+        this.name = "MetisErrorBadJupiterGateway"
+        this.code = MetisErrorCode.MetisErrorBadJupiterGateway;
+        Object.setPrototypeOf(this, MetisErrorBadJupiterGateway.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorFailedUserAuthentication extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter is down. (Bad Gateway) ` + message)
+        this.name = "MetisErrorFailedUserAuthentication"
+        this.code = MetisErrorCode.MetisErrorFailedUserAuthentication;
+        Object.setPrototypeOf(this, MetisErrorFailedUserAuthentication.prototype); //fixes a problem with instanceof
+    }
+}
+
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
-module.exports.BadJupiterAddressError = BadJupiterAddressError;
+// module.exports.BadJupiterAddressError = BadJupiterAddressError;
 module.exports.BadGravityAccountPropertiesError = BadGravityAccountPropertiesError;
 module.exports.ChannelRecordValidatorError = ChannelRecordValidatorError;
 module.exports.InviteRecordValidatorError = InviteRecordValidatorError;
-module.exports.PublicKeyExistsError = PublicKeyExistsError;
+module.exports.MetisErrorPublicKeyExists = MetisErrorPublicKeyExists;
 module.exports.BinaryAccountExistsError = BinaryAccountExistsError;
 module.exports.FundingNotConfirmedError = FundingNotConfirmedError;
 module.exports.MetisErrorWeakPassword = MetisErrorWeakPassword;
@@ -185,3 +214,6 @@ module.exports.MetisErrorBadGravityAccountProperties = MetisErrorBadGravityAccou
 module.exports.MetisErrorBadJupiterAddress = MetisErrorBadJupiterAddress;
 module.exports.MetisErrorBadJupiterPassphrase = MetisErrorBadJupiterPassphrase;
 module.exports.MetisErrorBadJupiterPublicKey = MetisErrorBadJupiterPublicKey;
+module.exports.MetisErrorNoChannelAccountFound = MetisErrorNoChannelAccountFound;
+module.exports.MetisErrorBadJupiterGateway = MetisErrorBadJupiterGateway;
+module.exports.MetisErrorFailedUserAuthentication = MetisErrorFailedUserAuthentication;

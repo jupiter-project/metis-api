@@ -5,6 +5,7 @@ const {GravityAccountProperties} = require("../../../gravity/gravityAccountPrope
 // const Buffer = require('buffer').Buffer;
 const zlib = require('zlib');
 const uuidv1 = require('uuidv1')
+import {chanService} from "../../../services/chanService";
 /**
  *
  */
@@ -22,7 +23,8 @@ class StorageService {
         jupiterFundingService,
         jupiterAccountService,
         jimConfig,
-        transactionUtils
+        transactionUtils,
+        chanService
         ) {
         if(!(jupiterAPIService instanceof JupiterAPIService)){throw new Error('missing jupiterAPIService')}
         if(!(jupiterTransactionsService instanceof JupiterTransactionsService)){throw new Error('missing jupiterTransactionsService')}
@@ -34,6 +36,7 @@ class StorageService {
         this.jupiterAccountService = jupiterAccountService;
         this.jimConfig = jimConfig;
         this.transactionUtils = transactionUtils;
+        this.chanService = chanService;
     }
 
     /**
@@ -133,7 +136,7 @@ class StorageService {
     async fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties){
         logger.sensitive(`#### fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties)`);
         if(!(userAccountProperties instanceof GravityAccountProperties)){throw new Error(`userAccountProperties is invalid`)}
-        const tag = transactionTags.jimServerTags.binaryRecord;
+        const tag = transactionTags.jimServerTags.binaryAccountRecord;
         const binaryRecordContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
             userAccountProperties,
             tag,
@@ -194,7 +197,7 @@ class StorageService {
 
             const encryptedChannelRecordPayload = ownerAccountProperties.crypto.encryptJson(binaryRecordPayload);
             const feeType = FeeManager.feeTypes.metisMessage;
-            const recordTag = `${transactionTags.jimServerTags.binaryRecord}.${binaryAccountProperties.address}`;
+            const recordTag = `${transactionTags.jimServerTags.binaryAccountRecord}.${binaryAccountProperties.address}`;
             return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 ownerAccountProperties.passphrase,
                 ownerAccountProperties.address,
@@ -211,6 +214,67 @@ class StorageService {
             throw error;
         }
     }
+
+    async fetchChannelFilesList(userAccountProperties, channelAddress){
+        const channelAccountProperties = await this.chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
+        if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`)
+        const binaryAccountProperties = await this.getBinaryAccountPropertiesOrNull(channelAccountProperties);
+        if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
+        const blackListTag =  `${transactionTags.jimServerTags.binaryFileBlackList}`;
+        const blackList = await this.jupiterTransactionsService.fetchLatestReferenceList(binaryAccountProperties,blackListTag);
+        const fileTag = `${transactionTags.jimServerTags.binaryFile}`;
+        const allFileRecordTransactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
+            binaryAccountProperties.address,
+            fileTag
+        )
+
+
+        if(allFileRecordTransactions.length === 0){
+            return []
+        }
+
+
+
+        const filteredFileRecordTransactions = this.transactionUtils.filterTransactionsByTransactionIds(
+            allFileRecordTransactions,
+            blackList
+        )
+        const messageContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromTransactions(
+            filteredFileRecordTransactions,
+            binaryAccountProperties
+        )
+
+        const channelFilesList = messageContainers.map(containers => containers.message);
+
+        console.log(`\n\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`channelFilesList:`);
+        console.log(channelFilesList);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+
+        return channelFilesList;
+    }
+
+    /**
+     *
+     * @param {GravityAccountProperties} ownerAccountProperties
+     * @return {Promise<[{fileUuid: string}]>}
+     */
+    async fetchFilesList(ownerAccountProperties){
+        logger.sensitive(`#### fetchFilesList(ownerAccountProperties,fileOwnerAddress)`);
+        const binaryAccountProperties = await this.getBinaryAccountPropertiesOrNull(ownerAccountProperties);
+        if (binaryAccountProperties === null) {
+            throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
+        }
+        return [{
+            uuid: '123',
+            filename: '',
+            fileOwnerAddress: fileOwnerAddress,
+            href: `/jim/v1/api/files/123`,
+        }]
+    }
+
 
 
 
@@ -403,5 +467,6 @@ module.exports.storageService = new StorageService(
     jupiterFundingService,
     jupiterAccountService,
     jimConfig,
-    transactionUtils
+    transactionUtils,
+    chanService
 )

@@ -2,7 +2,7 @@
 const gu = require("../utils/gravityUtils");
 const {GravityAccountProperties} = require("./gravityAccountProperties");
 const {jupiterAccountService} = require("../services/jupiterAccountService");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 const {GravityCrypto} = require("../services/gravityCrypto");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
@@ -18,7 +18,8 @@ module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password
     logger.verbose(`#### instantiateGravityAccountProperties(passphrase, password)`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
-    if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+    if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+    // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
     logger.sensitive(`password=${password}`);
     return new GravityAccountProperties(
         address,
@@ -45,7 +46,8 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
     return jupiterAccountService.fetchAccountInfo(passphrase)
         .then(accountInfo => {
-            if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new BadJupiterAddressError(accountInfo.address)}
+            // if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new BadJupiterAddressError(accountInfo.address)}
+            if(!gu.isWellFormedJupiterAddress(accountInfo.address)) throw new mError.MetisErrorBadJupiterAddress(`accountInfo.address: ${accountInfo.address}`)
             if(!gu.isWellFormedPublicKey(accountInfo.publicKey)){throw new Error('publicKey is invalid')}
             if(!gu.isWellFormedAccountId(accountInfo.accountId)){throw new Error('accountId is invalid')}
             const properties =  new GravityAccountProperties(

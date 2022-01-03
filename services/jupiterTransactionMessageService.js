@@ -7,7 +7,7 @@ const {feeManagerSingleton} = require("./FeeManager");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const assert = require("assert");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 
 class JupiterTransactionMessageService {
 
@@ -261,33 +261,35 @@ class JupiterTransactionMessageService {
 
 
     /**
+     *  Fetch transaction messages from 'transactions' list.
      *
-     * @param transactions
-     * @param {GravityAccountProperties} gravityAccountProperties
+     * @param {array | null} transactions
+     * @param {GravityAccountProperties} ownerAccountProperties
      * @param {boolean} isMetisEncrypted
      * @return {Promise<Array|{message, transactionId}[]|*[]>}
      */
-    async getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted = true){
-        logger.verbose(`#### getReadableMessageContainers(transactions, gravityAccountProperties, isMetisEncrypted= ${isMetisEncrypted})`);
+    async getReadableMessageContainersFromTransactions(transactions, ownerAccountProperties, isMetisEncrypted = true){
+        logger.verbose(`#### getReadableMessageContainersFromTransactions(transactions, gravityAccountProperties, isMetisEncrypted= ${isMetisEncrypted})`);
         if(!Array.isArray(transactions)){throw new Error('transactions is not an array')}
         logger.verbose(`- transactions.length= ${transactions.length}`);
         if(!gu.isNonEmptyArray(transactions)){return []}
-        if (!(gravityAccountProperties instanceof GravityAccountProperties)){
+        if (!(ownerAccountProperties instanceof GravityAccountProperties)){
             throw new Error('memberAccountProperties is invalid')
         }
         if(!transactionUtils.areValidTransactions(transactions)){ throw new Error('transactions are not valid')}
         // logger.sensitive(`- gravityAccountProperties.length= ${JSON.stringify(gravityAccountProperties.length)}`);
         const transactionIds = this.transactionUtils.extractTransactionIds(transactions);
         const messages = isMetisEncrypted ?
-            await this.readMessagesFromMessageTransactionIdsAndDecryptOrNullAndReturnMessageContainer(transactionIds, gravityAccountProperties.crypto, gravityAccountProperties.passphrase) :
-            await this.readMessagesFromMessageTransactionIdsAndReturnMessageContainers(transactionIds, gravityAccountProperties.passphrase)
+            await this.readMessagesFromMessageTransactionIdsAndDecryptOrNullAndReturnMessageContainer(transactionIds, ownerAccountProperties.crypto, ownerAccountProperties.passphrase) :
+            await this.readMessagesFromMessageTransactionIdsAndReturnMessageContainers(transactionIds, ownerAccountProperties.passphrase)
 
         if(messages === null) {
-            logger.debug(`No messages were extracted from transactions: ${transactions.length}`)
+            logger.warn(`No messages were extracted from transactions: ${transactions.length}`)
             return []
         }
         logger.verbose(`messages.length= ${messages.length}`);
         if(!gu.isNonEmptyArray(messages)) {
+            logger.warn(`No messages were extracted from transactions: ${transactions.length}`)
             return []
         }
 
@@ -537,7 +539,8 @@ class JupiterTransactionMessageService {
     async sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable= false ) {
         logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
         if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
-        if(!gu.isWellFormedJupiterAddress(toAddress)){throw new BadJupiterAddressError(toAddress)}
+        if(!gu.isWellFormedJupiterAddress(toAddress)) throw new mError.MetisErrorBadJupiterAddress(`toAddress: ${toAddress}`)
+        // if(!gu.isWellFormedJupiterAddress(toAddress)){throw new BadJupiterAddressError(toAddress)}
         logger.sensitive(`fromPassphrase= ${fromPassphrase}`);
         logger.debug(`toAddress= ${toAddress}`);
         logger.debug(`tag= ${tag}`);

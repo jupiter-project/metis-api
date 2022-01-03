@@ -4,6 +4,8 @@ import {accountRegistration} from "../services/accountRegistrationService";
 import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
 import {jupiterAccountService} from "../services/jupiterAccountService";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+// import mError from "../../../errors/metisError";
+import mError from "../errors/metisError";
 const moment = require('moment'); // require
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
@@ -359,17 +361,15 @@ const metisLogin = (passport) => {
 
         return done(doneResponse.error, doneResponse.user, doneResponse.message);
       })
-      .catch((err) => {
-        logger.error('-- getUser(account, jupkey, containedDatabase).error(err)');
-        logger.error('Unable to query your user list. Please make sure you have a users table in your database.');
-        logger.error(err);
+      .catch( err => {
+          console.log('\n')
+          logger.error(`************************* ERROR ***************************************`);
+          logger.error(`* ** metisLogin().gravity.getUser().catch(error)`);
+          logger.error(`************************* ERROR ***************************************\n`);
+          logger.error(`error= ${err}`)
+          const error = new mError.MetisErrorFailedUserAuthentication(`${err}`);
 
-        const doneResponse = {
-          error: err,
-          user: false,
-          message: req.flash('loginMessage', 'Login Error'),
-        };
-        return done(doneResponse.error, doneResponse.user, doneResponse.message);
+          return done(error,null)
       });
   }));
 };

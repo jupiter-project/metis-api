@@ -138,6 +138,10 @@ const isWellFormedJupiterTransactionId = function(transactionId){
 
 
 
+const isWellFormedE2EPublicKey = function(e2ePublicKey){
+    return !!e2ePublicKey;
+}
+
 
 /**
  *          d7eb6f6854193941a7d45738e763331c28bd947956d7fe96b6b5969dea9af967
@@ -428,7 +432,8 @@ module.exports = {
     convertJupToNqt,
     convertNqtToUsd,
     formatUsd,
-    getCurrentJupiterValueOrNull
+    getCurrentJupiterValueOrNull,
+    isWellFormedE2EPublicKey
 };
 
 
