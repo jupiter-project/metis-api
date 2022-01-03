@@ -75,7 +75,8 @@ class AccountRegistration {
      * @return {boolean}
      */
   isAccountRegisteredWithApp(clientAddress, appRecords){
-      if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new BadJupiterAddressError(clientAddress)}
+      if(!gu.isWellFormedJupiterAddress(clientAddress)) throw new mError.MetisErrorBadJupiterAddress(`clientAddress: ${clientAddress}`)
+      // if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new BadJupiterAddressError(clientAddress)}
       // if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new Error('clientAddress is not valid')}
       if(!Array.isArray(appRecords)){throw new Error('appRecords is not an array')}
       if(!appRecords.hasOwnProperty('account')){throw new Error('records is not valid. missing property: account')}
@@ -464,7 +465,8 @@ const { gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
-const {BadJupiterAddressError, MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
+const {MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");
 
 module.exports.AccountRegistration = AccountRegistration;
