@@ -173,7 +173,8 @@ io.of('/sign-up').on('connection', socketService.signUpConnection);
 
 // channel creation
 io.of('/channels').on('connection', socketService.channelCreationConnection);
-// io.of('/channels').on('connection', socketService.channelCreationConnection(this));
+
+io.of('/invite').on('connection', socketService.channelCreationConnection);
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
@@ -217,6 +218,7 @@ find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
+
 // const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
 // const {jupiterFundingService} = require("./services/jupiterFundingService");
@@ -226,6 +228,10 @@ const {StatusCode} = require("./utils/statusCode");
 const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
 const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
 // const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
+
+// const { jobScheduleService } = require('./services/jobScheduleService');
+// const {chanService} = require("./services/chanService");
+
 
 jobScheduleService.init(kue);
 
@@ -296,9 +302,18 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
       throw new Error('channelName is EMPTY.')
     }
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
+
     const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
     const newChannelAccountProperties = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
     binaryAccountJob.create(newChannelAccountProperties);
+
+    // const memberProperties = await instantiateGravityAccountProperties(
+    //     memberAccountProperties.passphrase,
+    //     memberAccountProperties.password);
+
+    // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
+    // const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+
 
     return done(null, {
       channelName: channelName,
@@ -309,6 +324,7 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
     logger.error(`error= ${error}`)
     return done(error)
   }
+
 })
 
 
@@ -317,6 +333,7 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);
 }); */
+
 
 mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   if (err) {
