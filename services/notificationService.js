@@ -1,6 +1,6 @@
 const Notifications = require('../models/notifications');
 const gu = require('../utils/gravityUtils');
-const {BadJupiterAddressError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 
 module.exports = {
   findOneNotificationAndUpdate: (filter, updateData) => {
@@ -145,12 +145,14 @@ module.exports = {
   findNotifications: (userAddresses, mutedUserAddresses = []) => {
       if(!gu.isNonEmptyArray(userAddresses)){throw new Error('addressList needs to be an array with values')}
       userAddresses.forEach(userAddress => {
-          if(!gu.isWellFormedJupiterAddress(userAddress)){throw new BadJupiterAddressError(userAddress)}
+          if(!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(`userAddress: ${userAddress}`)
+          // if(!gu.isWellFormedJupiterAddress(userAddress)){throw new BadJupiterAddressError(userAddress)}
       })
 
       if(!Array.isArray(mutedUserAddresses)){throw new Error(`mutedUserAddresses needs to be an array`)}
       mutedUserAddresses.forEach(mutedUserAddress => {
-          if(!gu.isWellFormedJupiterAddress(mutedUserAddress)){throw new BadJupiterAddressError(mutedUserAddress)}
+          if(!gu.isWellFormedJupiterAddress(mutedUserAddress)) throw new mError.MetisErrorBadJupiterAddress(`mutedUserAddress: ${mutedUserAddress}`)
+          // if(!gu.isWellFormedJupiterAddress(mutedUserAddress)){throw new BadJupiterAddressError(mutedUserAddress)}
       })
 
       // if(mutedUserAddresses && !gu.isWellFormedJupiterAddress(mutedUserAddresses)){ throw new Error(`excludeChannelAdddress needs to be null or valid address`)}

@@ -1,7 +1,11 @@
+import {randomFillSync} from "crypto";
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
+const Decimal = require("decimal.js");
 import bcrypt from 'bcrypt-nodejs';
+import _ from 'lodash';
+import axios from 'axios';
 
 
 /**
@@ -78,27 +82,26 @@ const arrayShiftOrNull = function(array){
 }
 
 /**
- * example JUP-NFVU-KKGE-FFQF-7WT5G
- *         JUP-7WMJ-S9N6-3LQV-A3VCK
- * @param {string}  address
+ * @param {any} address - for example JUP-NFVU-KKGE-FFQF-7WT5G
  * @returns {boolean}
  */
 const isWellFormedJupiterAddress = function(address){
-
     if(!isNonEmptyString(address)){return false};
-
     const re = /^JUP-\w\w\w\w-\w\w\w\w-\w\w\w\w-\w\w\w\w\w$/;
     if(re.test(address)){
         return true;
     }
-
     return false;
 }
 
-
-// must contain only digits and latin letters)
+/**
+ *
+ * @param {any} alias
+ * @return {boolean}
+ */
 const isWellFormedJupiterAlias = function(alias){
     if(!isNonEmptyString(alias)){return false};
+    // must contain only digits and latin letters)
     const re = /^([a-zA-Z]|[0-9])*$/;
     if(re.test(alias)){
         return true;
@@ -107,7 +110,11 @@ const isWellFormedJupiterAlias = function(alias){
     return false;
 }
 
-
+/**
+ *
+ * @param {any} addressOrAlias
+ * @return {boolean}
+ */
 const isWellFormedJupiterAddressOrAlias = function(addressOrAlias){
     if(isWellFormedJupiterAlias(addressOrAlias) || isWellFormedJupiterAddress(addressOrAlias)){
         return true
@@ -117,21 +124,23 @@ const isWellFormedJupiterAddressOrAlias = function(addressOrAlias){
 
 /**
  * 503065877100931330
- * @param {number} transactionId
+ * @param {any} transactionId
  * @returns {boolean}
  */
 const isWellFormedJupiterTransactionId = function(transactionId){
     if(!transactionId){return false}
-
     const re = /^[0-9]{15,25}$/
     if(re.test(transactionId)){
         return true;
     }
-
     return false;
 }
 
 
+
+const isWellFormedE2EPublicKey = function(e2ePublicKey){
+    return !!e2ePublicKey;
+}
 
 
 /**
@@ -260,6 +269,12 @@ const generatePassphrase = function() {
     return wordsString.trim();
 }
 
+const generateRandomBytes = function(size= 16){
+    const buf = Buffer.alloc(size);
+    return randomFillSync(buf).toString('hex');
+}
+
+
 const generateRandomPassword = function () {
     return Math.random()// Generate random number, eg: 0.123456
         .toString(36) // Convert  to base-36 : "0.4fzyo82mvyr"
@@ -290,6 +305,72 @@ const jsonParseOrNull = function (stringToParse) {
     return json;
 };
 
+const formatNqt = function(nqt){
+    const formatter = Intl.NumberFormat(
+        'de-DE',
+        {
+            style: 'currency',
+            currency: 'NQT',
+            minimumFractionDigits: 0
+        }
+    );
+    return formatter.format(nqt);
+}
+
+const formatJup = function(jup){
+    const formatter = Intl.NumberFormat(
+        'de-DE',
+        {
+            style: 'currency',
+            currency: 'JUP',
+            minimumFractionDigits: 0
+        }
+    );
+    return formatter.format(jup);
+}
+
+const formatUsd = function(usd){
+    const formatter = Intl.NumberFormat(
+        'en-US',
+        {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0
+        }
+    );
+    return formatter.format(usd);
+}
+
+const convertNqtToJup = function(nqt, decimalPlaces){
+    const bigNqt = new Decimal(nqt);
+    const bigJup = bigNqt.div(Decimal.pow(10,decimalPlaces))
+    return bigJup.toFixed();
+}
+
+const convertJupToNqt = function(jup, decimalPlaces){
+    return jup * Math.pow(10, decimalPlaces);
+}
+
+const convertNqtToUsd = async function(nqt, decimalPlaces){
+    const jup = convertNqtToJup(nqt, decimalPlaces);
+    const oneJupToUsd = await getCurrentJupiterValueOrNull();
+    const bigOneJupToUsd = new Decimal(oneJupToUsd);
+    const usd = bigOneJupToUsd.times(jup)
+    return usd.toFixed();
+}
+
+/**
+ * @TODO come up with a strategy to ensure strong passwords
+ * @param password
+ * @return {boolean}
+ */
+const isStrongPassword = function(password){
+    if(_.isEmpty(password)){
+        return false;
+    }
+    return true;
+}
+
 /**
  *
  * @param promises
@@ -308,6 +389,16 @@ const filterPromisesByRemovingEmptyResults = function(promises){
             logger.verbose(`filtered promises.length= ${reduced.length}`)
             return reduced;
         })
+}
+
+
+const getCurrentJupiterValueOrNull = async function (){
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=jupiter&vs_currencies=usd'
+    const response = await axios({url: url, method: 'GET'})
+    if(response.hasOwnProperty('data') && response.data.hasOwnProperty('jupiter') && response.data.jupiter.hasOwnProperty('usd')){
+        return response.data.jupiter.usd
+    }
+    return null
 }
 
 module.exports = {
@@ -332,7 +423,17 @@ module.exports = {
     isString,
     isNonEmptyArray,
     arrayShiftOrNull: arrayShiftOrNull,
-    filterPromisesByRemovingEmptyResults
+    filterPromisesByRemovingEmptyResults,
+    isStrongPassword,
+    formatJup,
+    formatNqt,
+    generateRandomBytes,
+    convertNqtToJup,
+    convertJupToNqt,
+    convertNqtToUsd,
+    formatUsd,
+    getCurrentJupiterValueOrNull,
+    isWellFormedE2EPublicKey
 };
 
 

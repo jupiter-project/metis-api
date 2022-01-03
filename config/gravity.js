@@ -1100,9 +1100,9 @@ class Gravity {
               // console.log(2)
               // logger.debug(`Transaction payload: ${database[obj].transaction}`)
               if (scope.show_pending !== undefined && scope.show_pending > 0) {
-                console.log(3)
+                // console.log(3)
                 if (blockChainTransactions[transactionsIndex].confirmations <= scope.show_pending) {
-                  console.log(4)
+                  // console.log(4)
                   pendingRecords.push(transactionsIndex.transaction);
                   pendingNumber += 1;
                 } else {
@@ -1127,16 +1127,16 @@ class Gravity {
               // console.log(8)
               recordsFound += 1;
             } else {
-              console.log(9)
+              // console.log(9)
               logger.warn(`${transactionsIndex} : Wrong SenderRs: ${blockChainTransactions[transactionsIndex].senderRS}. Needs to be by the transactionSender ${transactionSender}`)
             }
-            console.log(10)
+            // console.log(10)
           } else {
             // console.log('.')
             // logger.debug(`${transactionsIndex} : Not a MessageTransaction: ${blockChainTransactions[transactionsIndex].transaction}`)
           }
           if (completion) {
-            console.log(12)
+            // console.log(12)
             logger.verbose(`records = ${JSON.stringify(records)}`);
             break;
           }
@@ -1994,9 +1994,10 @@ class Gravity {
    * @returns {Promise<unknown>}
    */
   sendMoney(recipient, transferAmount, sender) {
-    logger.verbose('#####################################################################################');
-    logger.verbose(`sendMoney(recipient= ${recipient}, transferAmount= ${transferAmount}, sender)`)
-    logger.verbose('#####################################################################################');
+    console.log(`\n\n\n`);
+    logger.info('======================================================================================');
+    logger.info('== sendMoney(recipient= ${recipient}, transferAmount= ${transferAmount}, sender)');
+    logger.info(`======================================================================================\n\n\n`);
     // This is the variable that will be used to send Jupiter from the app address to the address
     // that will be used as a database table or will serve a purpose in the Gravity infrastructure
     const feeNQT = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
@@ -2523,7 +2524,7 @@ class Gravity {
         //   response = { error: true, fullError: e };
         // }
 
-        if (sendRecordResponse.data.broadcasted && !sendRecordResponse.error) {
+        if (sendRecordResponse.broadcasted) {
           const sendTableListResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
               accountCredentials.passphrase,
               accountCredentials.account,
@@ -2546,13 +2547,13 @@ class Gravity {
           //   sendRecordResponse = { error: true, fullError: e };
           // }
 
-          if (sendTableListResponse.data && sendTableListResponse.data.broadcasted) {
+          if (sendTableListResponse.broadcasted) {
             eventEmitter.emit('table_created');
-          } else if (sendRecordResponse.data && sendRecordResponse.data.errorDescription != null) {
+          } else if (sendRecordResponse.errorDescription != null) {
             reject({
               success: false,
-              message: sendRecordResponse.data.errorDescription,
-              jupiter_response: sendRecordResponse.data,
+              message: sendRecordResponse.errorDescription,
+              jupiter_response: sendRecordResponse,
             });
           } else {
             reject({
@@ -2561,16 +2562,16 @@ class Gravity {
               fullError: sendRecordResponse,
             });
           }
-        } else if (sendRecordResponse.data.errorDescription != null) {
-          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
+        } else if (sendRecordResponse.errorDescription != null) {
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse)}`);
           reject({
             success: false,
-            message: sendRecordResponse.data.errorDescription,
-            jupiter_response: sendRecordResponse.data,
+            message: sendRecordResponse.errorDescription,
+            jupiter_response: sendRecordResponse,
           });
         } else {
-          logger.error(`Error: ${JSON.stringify(sendRecordResponse.data)}`);
-          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: sendRecordResponse.data });
+          logger.error(`Error: ${JSON.stringify(sendRecordResponse)}`);
+          reject({ success: false, message: 'Unable to save data in the blockchain', jupiter_response: sendRecordResponse });
         }
       });
 
@@ -2667,9 +2668,7 @@ class Gravity {
    * @returns {array}
    */
   extractTableNamesFromTables(tables) {
-    logger.verbose('#####################################################################################');
-    logger.verbose(`## extractTableNamesFromTables(tables= ${!!tables})`)
-    logger.verbose('#####################################################################################');
+    logger.verbose(`#### extractTableNamesFromTables(tables= ${!!tables})`)
 
     if(!tables) {
       return []

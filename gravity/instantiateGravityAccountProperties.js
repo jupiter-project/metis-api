@@ -2,7 +2,7 @@
 const gu = require("../utils/gravityUtils");
 const {GravityAccountProperties} = require("./gravityAccountProperties");
 const {jupiterAccountService} = require("../services/jupiterAccountService");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 const {GravityCrypto} = require("../services/gravityCrypto");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
@@ -15,11 +15,12 @@ const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
  * @return {GravityAccountProperties}
  */
 module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password,address) => {
-    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password=${password})`);
+    logger.verbose(`#### instantiateGravityAccountProperties(passphrase, password)`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
-    if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
-
+    if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+    // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+    logger.sensitive(`password=${password}`);
     return new GravityAccountProperties(
         address,
         null,
@@ -31,21 +32,22 @@ module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password
     );
 }
 
+
 /**
- *
- * @param passphrase
- * @param password
+ * @description Using the passphrase fetch the jupiter account information from the blockchain along with any aliases associated with
+ * this account.
+ * @param {string} passphrase
+ * @param {string} password
  * @return {Promise<GravityAccountProperties>}
  */
 module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
-    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password=${password})`);
+    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password)`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
-
     return jupiterAccountService.fetchAccountInfo(passphrase)
         .then(accountInfo => {
-            if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new BadJupiterAddressError(accountInfo.address)}
-            // if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new Error('address is invalid')}
+            // if(!gu.isWellFormedJupiterAddress(accountInfo.address)){throw new BadJupiterAddressError(accountInfo.address)}
+            if(!gu.isWellFormedJupiterAddress(accountInfo.address)) throw new mError.MetisErrorBadJupiterAddress(`accountInfo.address: ${accountInfo.address}`)
             if(!gu.isWellFormedPublicKey(accountInfo.publicKey)){throw new Error('publicKey is invalid')}
             if(!gu.isWellFormedAccountId(accountInfo.accountId)){throw new Error('accountId is invalid')}
             const properties =  new GravityAccountProperties(
@@ -57,7 +59,6 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
                 password,
                 encryptAlgorithm
             );
-
             return jupiterAccountService.getAliasesOrEmptyArray(accountInfo.address)
                 .then(aliases => {
                     properties.addAliases(aliases);
@@ -66,7 +67,7 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
         }).catch( error => {
             logger.error(`***********************************************************************************`);
             logger.error(`** instantiateGravityAccountProperties().catch(error)`);
-            logger.error(`** `);
+            logger.error(`***********************************************************************************`);
             logger.error(`${error}`)
 
             throw error;
@@ -88,6 +89,4 @@ module.exports.refreshGravityAccountProperties= async (properties) => {
     properties.removeAllAliases();
     properties.addAliases(aliases);
     properties.isMinimumProperties = false;
-
-    // return properties;
 }

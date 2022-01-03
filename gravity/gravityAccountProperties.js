@@ -4,8 +4,9 @@ const gu = require("../utils/gravityUtils");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
-const {metisApplicationAccountProperties} = require("./applicationAccountProperties");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("./applicationAccountProperties");
+const mError = require("../errors/metisError");
+// const {instantiateGravityAccountProperties} = require("./instantiateGravityAccountProperties");
 
 /**
  *
@@ -61,6 +62,43 @@ class GravityAccountProperties extends JupiterAccountProperties {
         }
     }
 
+    /**
+     *
+     * @param {object} gravityAccountProperties
+     * @return {GravityAccountProperties}
+     * @constructor
+     */
+    static async Clone(gravityAccountProperties) {
+        if (gravityAccountProperties === null) throw new mError.MetisError(`gravityAccountProperties is empty`);
+        // if (!gu.isWellFormedJupiterAddress(gravityAccountProperties.address)) throw new mError.MetisErrorBadJupiterAddress(`gravityAccountProperties.address`)
+        if (!gu.isWellFormedPassphrase(gravityAccountProperties.passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(`gravityAccountProperties.passphrase`)
+        if (!gu.isNonEmptyString(gravityAccountProperties.password)) throw new mError.MetisError(`gravityAccountProperties.password is invalid`)
+
+        const instantiateGAP = require("./instantiateGravityAccountProperties").instantiateGravityAccountProperties
+
+        const newProperties = await instantiateGAP(
+            gravityAccountProperties.passphrase,
+            gravityAccountProperties.password
+        )
+
+        newProperties.email = gravityAccountProperties.email;
+        newProperties.firstName = gravityAccountProperties.firstName;
+        newProperties.lastName = gravityAccountProperties.lastName;
+        if (gravityAccountProperties.hasOwnProperty('applicationAccountProperties') && gravityAccountProperties.applicationAccountProperties) {
+            const applicationProperties = new ApplicationAccountProperties(
+                gravityAccountProperties.applicationAccountProperties.deadline,
+                gravityAccountProperties.applicationAccountProperties.feeNQT,
+                gravityAccountProperties.applicationAccountProperties.accountCreationFeeNQT,
+                gravityAccountProperties.applicationAccountProperties.transferFeeNQT,
+                gravityAccountProperties.applicationAccountProperties.minimumTableBalance,
+                gravityAccountProperties.applicationAccountProperties.minimumAppBalance,
+                gravityAccountProperties.applicationAccountProperties.moneyDecimals
+            )
+            newProperties.addApplicationAccountProperties(applicationProperties);
+        }
+
+        return newProperties;
+    }
 
     setCrypto(password, algorithm = 'aes-256-cbc'){
         if(algorithm && password){
@@ -86,7 +124,10 @@ class GravityAccountProperties extends JupiterAccountProperties {
         this.accountCreationFeeNQT = applicationAccountProperties.accountCreationFeeNQT;
     }
 
-
+    /**
+     *
+     * @return {{passphrase: string, publicKey: string, encryptionPassword, account: string}}
+     */
     generateAccessData(){
         return {
             encryptionPassword: this.crypto.decryptionPassword,
@@ -145,7 +186,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
             throw new Error('Alias is missing');
         }
 
-
         const userRecord = {
             id: generatingTransactionId,
             user_record: {
@@ -175,8 +215,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
 }
 
 module.exports.GravityAccountProperties = GravityAccountProperties;
-
-module.exports.myTest = {me: 'test'};
 
 module.exports.metisGravityAccountProperties = new GravityAccountProperties(
     process.env.APP_ACCOUNT_ADDRESS,

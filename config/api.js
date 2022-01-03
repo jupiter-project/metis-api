@@ -37,139 +37,139 @@ module.exports = (app) => {
   /**
    * Get a table associated with a user
    */
-  app.get('/v1/api/users/:id/:tableName', (req, res, next) => {
-    const { user } = req;
-    const { tableName } = req.params;
-    const exceptions = ['users'];
-    let model = '';
-
-    logger.info(req.user);
-
-    // If table in route is in the exception list, then it goes lower in the route list
-    if (exceptions.includes(tableName)) {
-      next();
-    } else {
-      find.fileSync(/\.js$/, './models').forEach((file) => {
-        const modelName = file.replace('models/', '').replace('.js', '');
-        let isIncluded = tableName.includes(modelName);
-        if (tableName.includes('_')) {
-          if (!modelName.includes('_')) {
-            isIncluded = false;
-          }
-        }
-        if (isIncluded) {
-          model = modelName;
-        }
-      });
-
-      const file = `../models/${model}.js`;
-
-      const Record = require(file);
-
-      // We verify the user data here
-      const recordObject = new Record({
-        user_id: user.id,
-        public_key: user.publicKey,
-        user_api_key: user.publicKey,
-      });
-
-      logger.info('\n\nGRAVITY DECRYPT\n\n\n');
-
-      recordObject.loadRecords(JSON.parse(gravity.decrypt(user.accountData)))
-        .then((response) => {
-          const { records } = response;
-
-          gravity.sortByDate(records);
-          res.send({ success: true, [tableName]: records, [`total_${tableName}_number`]: response.records_found });
-        })
-        .catch((error) => {
-          logger.error('[loadRecords]:');
-          logger.error(`${error}`);
-          res.send({ success: false, errors: `${error}` });
-        });
-    }
-  });
-
-
-  /**
-   * Get channel records associated with a user
-   */
-  app.get('/v1/api/users/channels', (req, res, next) => {
-    const { user } = req;
-    const { tableName } = req.params;
-    const exceptions = ['users'];
-    // If table in route is in the exception list, then it goes lower in the route list
-    if (exceptions.includes(tableName)) {
-      next();
-    } else {
-      const ChannelRecord = require('../models/channel.js');
-
-      // We verify the user data here
-      const channelRecord = new ChannelRecord({
-        user_id: user.id,
-        public_key: user.publicKey,
-        user_api_key: user.publicKey,
-      });
-
-      const userData = JSON.parse(gravity.decrypt(user.accountData));
-      channelRecord.loadRecords(userData)
-        .then((response) => {
-          const { records } = response;
-          gravity.sortByDate(records);
-          if (records) {
-            return records.map((channel) => {
-              const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
-              return { ...channel, token };
-            });
-          }
-          return records;
-        })
-        .then((channelList) => {
-          res.status(200).send({
-            success: true,
-            channels: channelList,
-            total_channels_number: channelList.length,
-          });
-        })
-        .catch((error) => {
-          logger.error('[loadRecords]:');
-          logger.error(`${error}`);
-          res.status(500).send({
-            success: false,
-            errors: `${error}`
-          });
-        });
-    }
-  });
+  // app.get('/v1/api/users/:id/:tableName', (req, res, next) => {
+  //   const { user } = req;
+  //   const { tableName } = req.params;
+  //   const exceptions = ['users'];
+  //   let model = '';
+  //
+  //   logger.info(req.user);
+  //
+  //   // If table in route is in the exception list, then it goes lower in the route list
+  //   if (exceptions.includes(tableName)) {
+  //     next();
+  //   } else {
+  //     find.fileSync(/\.js$/, './models').forEach((file) => {
+  //       const modelName = file.replace('models/', '').replace('.js', '');
+  //       let isIncluded = tableName.includes(modelName);
+  //       if (tableName.includes('_')) {
+  //         if (!modelName.includes('_')) {
+  //           isIncluded = false;
+  //         }
+  //       }
+  //       if (isIncluded) {
+  //         model = modelName;
+  //       }
+  //     });
+  //
+  //     const file = `../models/${model}.js`;
+  //
+  //     const Record = require(file);
+  //
+  //     // We verify the user data here
+  //     const recordObject = new Record({
+  //       user_id: user.id,
+  //       public_key: user.publicKey,
+  //       user_api_key: user.publicKey,
+  //     });
+  //
+  //     logger.info('\n\nGRAVITY DECRYPT\n\n\n');
+  //
+  //     recordObject.loadRecords(JSON.parse(gravity.decrypt(user.accountData)))
+  //       .then((response) => {
+  //         const { records } = response;
+  //
+  //         gravity.sortByDate(records);
+  //         res.send({ success: true, [tableName]: records, [`total_${tableName}_number`]: response.records_found });
+  //       })
+  //       .catch((error) => {
+  //         logger.error('[loadRecords]:');
+  //         logger.error(`${error}`);
+  //         res.send({ success: false, errors: `${error}` });
+  //       });
+  //   }
+  // });
 
 
   /**
    * Get channel records associated with a user
    */
-  app.get('/v1/api/:account/channel', (req, res, next) => {
-    const { user } = req;
-    const { account } = req.params;
+  // app.get('/v1/api/users/channels', (req, res, next) => {
+  //   const { user } = req;
+  //   const { tableName } = req.params;
+  //   const exceptions = ['users'];
+  //   // If table in route is in the exception list, then it goes lower in the route list
+  //   if (exceptions.includes(tableName)) {
+  //     next();
+  //   } else {
+  //     const ChannelRecord = require('../models/channel.js');
+  //
+  //     // We verify the user data here
+  //     const channelRecord = new ChannelRecord({
+  //       user_id: user.id,
+  //       public_key: user.publicKey,
+  //       user_api_key: user.publicKey,
+  //     });
+  //
+  //     const userData = JSON.parse(gravity.decrypt(user.accountData));
+  //     channelRecord.loadRecords(userData)
+  //       .then((response) => {
+  //         const { records } = response;
+  //         gravity.sortByDate(records);
+  //         if (records) {
+  //           return records.map((channel) => {
+  //             const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
+  //             return { ...channel, token };
+  //           });
+  //         }
+  //         return records;
+  //       })
+  //       .then((channelList) => {
+  //         res.status(200).send({
+  //           success: true,
+  //           channels: channelList,
+  //           total_channels_number: channelList.length,
+  //         });
+  //       })
+  //       .catch((error) => {
+  //         logger.error('[loadRecords]:');
+  //         logger.error(`${error}`);
+  //         res.status(500).send({
+  //           success: false,
+  //           errors: `${error}`
+  //         });
+  //       });
+  //   }
+  // });
 
-    // We verify the user data here
-    const channelRecord = new ChannelRecord({
-      user_id: user.id,
-      public_key: user.publicKey,
-      user_api_key: user.publicKey,
-    });
 
-    const userData = JSON.parse(gravity.decrypt(user.accountData));
-    channelRecord.loadChannelByAddress(account, userData)
-        .then(channel => {
-          const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
-          return { ...channel, token };
-        })
-        .then(channel => res.status(200).send({ success: true, channel }))
-        .catch((error) => {
-          logger.error('[Channel id]->[loadRecords]:');
-          logger.error(`${error}`);
-          res.status(500).send({ success: false, error });
-        });
-  });
+  /**
+   * Get channel records associated with a user
+   */
+  // app.get('/v1/api/:account/channel', (req, res, next) => {
+  //   const { user } = req;
+  //   const { account } = req.params;
+  //
+  //   // We verify the user data here
+  //   const channelRecord = new ChannelRecord({
+  //     user_id: user.id,
+  //     public_key: user.publicKey,
+  //     user_api_key: user.publicKey,
+  //   });
+  //
+  //   const userData = JSON.parse(gravity.decrypt(user.accountData));
+  //   channelRecord.loadChannelByAddress(account, userData)
+  //       .then(channel => {
+  //         const token = jwt.sign({ ...channel }, process.env.SESSION_SECRET);
+  //         return { ...channel, token };
+  //       })
+  //       .then(channel => res.status(200).send({ success: true, channel }))
+  //       .catch((error) => {
+  //         logger.error('[Channel id]->[loadRecords]:');
+  //         logger.error(`${error}`);
+  //         res.status(500).send({ success: false, error });
+  //       });
+  // });
 
 
   /**

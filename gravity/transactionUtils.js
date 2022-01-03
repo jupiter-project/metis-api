@@ -1,8 +1,14 @@
 const gu = require("../utils/gravityUtils");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
+// const {BadJupiterAddressError} = require("../errors/metisError");
+const {validator} = require("../services/validator");
 const logger = require('../utils/logger')(module);
 
 class TransactionUtils {
+
+    constructor(validator) {
+        this.validator = validator;
+    }
 
     /**
      *
@@ -75,32 +81,19 @@ class TransactionUtils {
         }
 
         /**
-
-         * @param transactions
+         * @param {array} transactions
          * @returns {boolean}
          */
         areValidTransactions(transactions) {
-            logger.verbose('############################################3');
-            logger.verbose('## areValidTransactions(transactions)');
-            logger.verbose('##');
-            logger.error('use ajv!!!')
-
+            logger.verbose('#### areValidTransactions(transactions)');
             if(!gu.isNonEmptyArray(transactions)){
-                logger.warn('not valid array');
+                logger.warn('transactions is not an array with values');
+                console.log(transactions);
                 return false;
             }
 
-            for (let i = 0; i < transactions.length; i++) {
-                if (!this.isValidBaseTransaction(transactions[i])) {
-                    logger.error(` -- invalid transaction`);
-                    logger.sensitive(`this.isValidBaseTransaction(transactions[i]) = ${JSON.stringify(transactions[i])}`)
-                    return false;
-                }
-            }
-
-            return true;
+            return transactions.every(t => this.isValidBaseTransaction(t))
         }
-
 
     /**
      *
@@ -108,6 +101,12 @@ class TransactionUtils {
      * @returns {boolean}
      */
     isValidEncryptedMessageTransaction(messageTransaction){
+
+        // const validationResult = validator.validateBaseTransaction(messageTransaction);
+        // if(!validationResult.isValid){
+        //     logger.debug(validationResult.message);
+        //     return false;
+        // }
         if(!this.isValidBaseTransaction(messageTransaction) ){
             return false
         }
@@ -119,6 +118,90 @@ class TransactionUtils {
         return true
     }
 
+
+
+    /**
+     *
+     * @param transaction
+     * @returns {boolean}
+     */
+    isValidBaseTransaction(transaction) {
+        if(!transaction){
+            logger.warn('transaction is empty')
+            return false
+        }
+
+
+        const valid = validator.validateBaseTransaction(transaction);
+        if(!valid.isValid){
+            console.log(transaction);
+            logger.debug(`transaction is not valid ${valid.message}`);
+            console.log(valid.errors);
+        }
+        return valid.isValid;
+        //
+        // // const validatorResult = validator.validateBaseTransaction(transaction);
+        // // if(!validatorResult.isValid){
+        // //     throw new Error(validatorResult.message);
+        // // }
+        //
+        //
+        //
+        // const transactionProperties = [
+        //     "senderPublicKey",
+        //     "signature",
+        //     "feeNQT",
+        //     "type",
+        //     "fullHash",
+        //     "version",
+        //     "phased",
+        //     "ecBlockId",
+        //     "signatureHash",
+        //     "attachment",
+        //     'senderRS',
+        //     "subtype",
+        //     "amountNQT",
+        //     "sender",
+        //     // "recipientRS", // type1 subtype 1 doesnt have a recipient: ie alias assignment
+        //     // "recipient", // type1 subtype 1 doesnt have recipient
+        //     "ecBlockHeight",
+        //     "deadline",
+        //     "transaction",
+        //     "timestamp",
+        //     "height"
+        // ]
+        //
+        // try {
+        //     const transactionKeys = Object.keys(transaction);
+        //
+        //     for (let i = 0; i < transactionProperties.length; i++) {
+        //         if (transactionKeys.indexOf(transactionProperties[i]) === -1) {
+        //             logger.warn('INVALID BaseTransaction');
+        //             logger.warn(`missing property:  ${transactionProperties[i]}`)
+        //             console.log(transaction)
+        //             return false;
+        //         }
+        //     }
+        //
+        //
+        //     return true;
+        // } catch (error) {
+        //     logger.error(`****************************************************************`);
+        //     logger.error(`** isValidBaseTransaction(t).catch(error)`);
+        //     logger.error(`** `);
+        //     logger.error(`   error= ${error}`)
+        //     throw error;
+        //
+        //     return false;
+        // }
+    }
+
+
+    /**
+     *
+     * @param transactionResponse
+     * @return {boolean}
+     */
     isValidEncryptedMessageTransactionResponse(transactionResponse){
         if(!this.isValidBaseTransactionResponse(transactionResponse) ){
             return false
@@ -128,72 +211,13 @@ class TransactionUtils {
             transactionResponse.transactionJSON.attachment.hasOwnProperty('encryptedMessage') &&
             transactionResponse.transactionJSON.attachment.encryptedMessage.hasOwnProperty('data')) ){
             return false
-        }
+        }//if(!transactionResponse.hasOwnProperty('transactionJSON')){
+        // return false
+        //}
+        // const validationResult = validator.validateEncryptedMessageTransaction(transactionResponse.transactionJSON);
+        // return validationResult.isValid;
         return true
     }
-
-    /**
-     *
-     * @param transaction
-     * @returns {boolean}
-     */
-    isValidBaseTransaction(transaction) {
-        // logger.sensitive(`#### isValidBaseTransaction(transaction)`);
-
-        if(!transaction){
-            logger.warn('transaction is empty')
-            return false
-        }
-
-        const transactionProperties = [
-            "senderPublicKey",
-            "signature",
-            "feeNQT",
-            "type",
-            "fullHash",
-            "version",
-            "phased",
-            "ecBlockId",
-            "signatureHash",
-            "attachment",
-            'senderRS',
-            "subtype",
-            "amountNQT",
-            "sender",
-            // "recipientRS", // type1 subtype 1 doesnt have a recipient: ie alias assignment
-            // "recipient", // type1 subtype 1 doesnt have recipient
-            "ecBlockHeight",
-            "deadline",
-            "transaction",
-            "timestamp",
-            "height"
-        ]
-
-        try {
-            const transactionKeys = Object.keys(transaction);
-
-            for (let i = 0; i < transactionProperties.length; i++) {
-                if (transactionKeys.indexOf(transactionProperties[i]) === -1) {
-                    logger.warn('INVALID BaseTransaction');
-                    logger.warn(`missing property:  ${transactionProperties[i]}`)
-                    console.log(transaction)
-                    return false;
-                }
-            }
-
-
-            return true;
-        } catch (error) {
-            logger.error(`****************************************************************`);
-            logger.error(`** isValidBaseTransaction(t).catch(error)`);
-            logger.error(`** `);
-            logger.error(`   error= ${error}`)
-            throw error;
-
-            return false;
-        }
-    }
-
 
     /**
      *
@@ -201,37 +225,39 @@ class TransactionUtils {
      * @returns {boolean}
      */
     isValidBaseTransactionResponse(responseTransaction) {
-        logger.sensitive(`#### isValidResponseTransaction(t)`);
+        logger.sensitive(`#### isValidBaseTransactionResponse(responseTransaction)`);
+        if(!responseTransaction){
+            logger.warn('transaction is empty')
+            return false
+        }
         try {
             logger.sensitive(`#### isValidResponseTransaction(responseTransaction)`);
-
-            if(!responseTransaction){
-                logger.warn('transaction is empty')
-                return false
-            }
-
             if(!responseTransaction.transactionJSON){
                 logger.warn('transactionJSON doesnt exist')
                 return false
             }
-
             if(!responseTransaction.transaction){
                 logger.warn('transaction doesnt exist')
                 return false
             }
-
+            // const validationResult = validator.validateBaseTransaction(responseTransaction.transactionJSON);
+            // console.log(`\n\n\n`);
+            // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+            // console.log('validationResult.isValid....');
+            // console.log(validationResult.isValid);
+            // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+            // return validationResult.isValid;
             if(!this.isValidBaseTransaction(responseTransaction.transactionJSON)){
                 logger.warn(`transactionJSON is not valid`)
                 return false;
             }
 
-                return true;
-        } catch (error) {
-            logger.error(`****************************************************************`);
-            logger.error(`** isValidResponseTransaction(t).catch(error)`);
-            logger.error(`** `);
-            logger.error(`   error= ${error}`)
+            return true;
 
+
+        } catch (error) {
+            logger.error(`**** isValidResponseTransaction(t).catch(error)`);
+            logger.error(`error= ${error}`)
             return false;
         }
     }
@@ -243,21 +269,38 @@ class TransactionUtils {
      * @returns {*|((storeNames: (string | Iterable<string>), mode?: IDBTransactionMode) => IDBTransaction)|((callback: (transaction: SQLTransactionSync) => void) => void)|((storeNames: (string | string[]), mode?: IDBTransactionMode) => IDBTransaction)|IDBTransaction|((callback: (transaction: SQLTransaction) => void, errorCallback?: (error: SQLError) => void, successCallback?: () => void) => void)}
      */
     extractTransactionId(transaction){
+        logger.sensitive(`#### extractTransactionId(transaction)`);
         if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')}
+        // const validatorResult = validator.validateBaseTransaction(transaction);
+        // if(!validatorResult.isValid){
+        //     throw new Error(validatorResult.message);
+        // }
         const transactionId =  transaction.transaction;
         if(!this.isWellFormedJupiterTransactionId(transactionId)){throw new Error('transactionId is not well formed')}
 
         return transactionId;
     }
 
+    /**
+     *
+     * @param transactionResponse
+     * @return {*|(function((string|Iterable<string>), IDBTransactionMode=): IDBTransaction)|(function(function(SQLTransactionSync): void): void)|(function((string|string[]), IDBTransactionMode=): IDBTransaction)|IDBTransaction|(function(function(SQLTransaction): void, function(SQLError): void=, function(): void=): void)}
+     */
     extractTransactionIdFromTransactionResponse(transactionResponse){
+        logger.sensitive(`#### extractTransactionIdFromTransactionResponse(transactionResponse)`);
         if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
-        if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
-        if(!transactionResponse.data.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
-        return this.extractTransactionId(transactionResponse.data.transactionJSON)
+        // if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
+        if(!transactionResponse.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
+        return this.extractTransactionId(transactionResponse.transactionJSON)
     }
 
-
+    extractTransactionIdsFromTransactionResponses(transactionResponses){
+        logger.sensitive(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
+        if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
+        return transactionResponses.map(transactionResponse => {
+            return this.extractTransactionIdFromTransactionResponse(transactionResponse)
+        })
+    }
 
     /**
      *
@@ -265,22 +308,48 @@ class TransactionUtils {
      * @returns {*}
      */
     extractTransactionIds(transactions) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## extractTransactionIds(transactions)`);
-        logger.verbose('##');
-        logger.sensitive(`transactions.length=${transactions.length}`);
-
-        // if (transactions.length === 0) {
-        //     logger.warn('empty array passed in!')
-        //     return []
-        // }
-        //
-        // if(!this.areValidTransactions(transactions)){throw new Error('transactions are invalid')}
-
+        logger.verbose(`#### extractTransactionIds(transactions)`);
+        logger.sensitive(`transactions.length= ${transactions.length}`);
+        if (transactions.length === 0) {
+            logger.warn('empty array passed in!')
+            return []
+        }
+        if(!this.areValidTransactions(transactions)){throw new Error('transactions are invalid')}
         const transactionsIds = transactions.map(transaction => transaction.transaction);
         logger.debug(`transactionsIds.length= ${transactionsIds.length}`);
-
         return transactionsIds;
+    }
+
+    /**
+     *
+     * @param transactions
+     * @param blackList
+     * @param whiteList
+     * @return {*[]|*}
+     */
+    filterTransactionsByTransactionIds(transactions, blackList = [], whiteList = []){
+        logger.sensitive(`#### filterTransactionsByTransactionIds(transactions, blackList , whiteLis)`);
+        if (blackList === null && whiteList === null) return transactions;
+        if(!this.areValidTransactions(transactions)) throw new mError.MetisError(`transactions are invalid`);
+        if(!(Array.isArray(blackList) )) throw new mError.MetisError(`blacklist is not an array`)
+        if(!(Array.isArray(whiteList) )) throw new mError.MetisError(`whiteList is not an array`)
+
+        let filteredTransactions = []
+        if(blackList.length > 0){
+            filteredTransactions = transactions.filter(transaction => {
+                const transactionId = transaction.transaction;
+                return ! blackList.some(item => item === transactionId); // if in black list then return false;
+            })
+        }
+
+        if(whiteList.length > 0) {
+            filteredTransactions = filteredTransactions.filter(transaction => {
+                const transactionId = transaction.transaction;
+                return whiteList.some(item => item === transactionId); // if in white list then return true;
+            })
+        }
+
+        return filteredTransactions;
     }
 
     /**
@@ -288,10 +357,10 @@ class TransactionUtils {
      * @param transactions
      * @returns {*}
      */
-    extractTransactionIdsFromTransactions(transactions){
-        if(!this.areValidTransactions(transactions)){throw new Error('not all are valid transactions')}
-        return transactions.map(transaction => transaction.transaction);
-    }
+    // extractTransactionIdsFromTransactions(transactions){
+    //     if(!this.areValidTransactions(transactions)){throw new Error('not all are valid transactions')}
+    //     return transactions.map(transaction => transaction.transaction);
+    // }
 
     filterMessageTransactionsByCallback(transactions, callback){
         logger.verbose(`#### filterMessageTransactionsByCallback(transactions, callback): transactions.length = ${transactions.length} `);
@@ -330,13 +399,14 @@ class TransactionUtils {
     }
 
     /**
-     *
+     * @todo retire this function.
      * @param {array} transactions
      * @param {string} senderAddress
      * @returns {*}
      */
     filterEncryptedMessageTransactionsBySender(transactions, senderAddress) {
-        if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new BadJupiterAddressError(senderAddress)}
+        if(!gu.isWellFormedJupiterAddress(senderAddress)) throw new mError.MetisErrorBadJupiterAddress(`senderAddress: ${senderAddress}`)
+        // if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new BadJupiterAddressError(senderAddress)}
         // if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new Error('senderAddress is wrong')}
         if(!Array.isArray(transactions)){throw new Error('Not array')};
         return  this.filterMessageTransactionsByCallback(transactions, (transaction) =>
@@ -358,13 +428,17 @@ class TransactionUtils {
      * @returns {*}
      */
     filterEncryptedMessageTransactions(transactions) {
-        logger.verbose(`filterEncryptedMessageTransactions(transactions)`);
-        if (transactions.length === 0) {
-            return []
-        }
+        logger.verbose(`#### filterEncryptedMessageTransactions(transactions)`);
+        if(!Array.isArray(transactions)){throw new Error('transactions needs to be an array')};
+        logger.debug(`transactions.length= ${transactions.length}`)
+        if (transactions.length === 0) {return []}
         const messageTransactions = transactions.filter(this.isValidEncryptedMessageTransaction, this)
-        logger.debug(`Total messageTransactions: ${messageTransactions.length}`);
-
+        // const messageTransactions = transactions.filter( transaction => {
+        //         const validationResult = validator.validateEncryptedMessageTransaction(transaction);
+        //         return validationResult.isValid
+        //     }
+        // )
+        logger.debug(`messageTransactions.length= ${messageTransactions.length}`);
         return messageTransactions;
     }
 
@@ -373,14 +447,30 @@ class TransactionUtils {
      * @param transactions
      * @returns {*[]|*}
      */
-    getMostRecentTransactionOrNull(transactions){
-        //@TODO still need to implement this!
+    extractLatestTransaction(transactions){
         if(!Array.isArray(transactions)){throw new Error('not array')}
-        if(transactions.length === 0) {return null}
+        if(transactions.length === 0) {
+            return null;
+        }
+        const allTransactionsAreGood = transactions.every(t => {
+            const valid = this.validator.validateBaseTransaction(t);
+            if(!valid.isValid){
+                console.log(valid.errors);
+            }
+            return valid.isValid;
+        })
 
-        return transactions.shift();
+        if(!allTransactionsAreGood){
+            throw new mError.MetisError(`Transactions are invalid!`);
+        }
+
+        //@TODO use transaction timestamp!!!
+        const latestTransaction = transactions.shift();
+
+
+        return latestTransaction;
     }
 
 }
 
-module.exports.transactionUtils = new TransactionUtils();
+module.exports.transactionUtils = new TransactionUtils(validator);

@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import {findNotifications, incrementBadgeCounter} from './notificationService';
-import {BadJupiterAddressError} from "../errors/metisError";
-
+const mError = require("../errors/metisError");
 const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
 const { sendFirebasePN, sendApplePN } = require('../config/notifications');
@@ -33,16 +32,16 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
   if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
   if(notificationsCollection.length === 0 ){return []}
 
-  console.log(`\n\n\n`);
-  console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-  console.log(`notificationsCollection: `, notificationsCollection);
-  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+  // console.log(`\n\n\n`);
+  // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+  // console.log(`notificationsCollection: `, notificationsCollection);
+  // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
   const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts);
-
-  console.log(`\n\n\n`);
-  console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-  console.log(`pnAccountsArrayOfArrays: `, pnAccountsArrayOfArrays);
-  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+  //
+  // console.log(`\n\n\n`);
+  // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+  // console.log(`pnAccountsArrayOfArrays: `, pnAccountsArrayOfArrays);
+  // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
 
   // if(pnAccountsArrayOfArrays.length === 0 ){return []}
 
@@ -51,10 +50,10 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
     pnAccounts = [...pnAccounts, ..._pnAccounts]
   })
 
-  console.log(`\n\n\n`);
-  console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-  console.log(`pnAccounts: `, pnAccounts);
-  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+  // console.log(`\n\n\n`);
+  // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+  // console.log(`pnAccounts: `, pnAccounts);
+  // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
 
   return pnAccounts;
 }
@@ -122,14 +121,16 @@ module.exports = {
     // if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
      if(!Array.isArray(mutedChannelAddressesToExclude)){throw new Error(`mutedChannelsToExclude is not an Array`)}
     mutedChannelAddressesToExclude.forEach(mutedChannelAddress => {
-      if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)){throw new BadJupiterAddressError(mutedChannelAddress)}
+      if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)) throw new mError.MetisErrorBadJupiterAddress(`mutedChannelAddress: ${mutedChannelAddress}`)
+      // if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)){throw new BadJupiterAddressError(mutedChannelAddress)}
     })
     if(!message){throw new Error(`message is empty`)}
     if(!title){throw new Error(`title is empty`)}
     // If not recipientAddress then just return. Do nothing.
     if(!gu.isNonEmptyArray(recipientAddresses)){return}
     recipientAddresses.forEach(recipientAddress => {
-      if(!gu.isWellFormedJupiterAddress(recipientAddress)){throw new BadJupiterAddressError(recipientAddress)};
+      if(!gu.isWellFormedJupiterAddress(recipientAddress)) throw new mError.MetisErrorBadJupiterAddress(`recipientAddress: ${recipientAddress}`)
+      // if(!gu.isWellFormedJupiterAddress(recipientAddress)){throw new BadJupiterAddressError(recipientAddress)};
     })
 
     const notificationsCollection = await findNotifications(recipientAddresses, mutedChannelAddressesToExclude);

@@ -1,11 +1,13 @@
+const logger = require('./utils/logger')(module);
 
 require('babel-register')({
   presets: ['react'],
 });
 
-const { instantiateGravityAccountProperties } = require('./gravity/instantiateGravityAccountProperties');
+const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
 const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
+const {externalResourcesCheck} = require('./middlewares/externalResourcesCheck');
 const firebaseAdmin = require("firebase-admin");
 // Firebase Service initializer
 const firebaseServiceAccount = {
@@ -25,7 +27,7 @@ module.exports.firebaseAdmin =  firebaseAdmin.initializeApp({
    credential: firebaseAdmin.credential.cert(firebaseServiceAccount)
 });
 const url = require('url');
-const kue = require('kue');
+// const kue = require('kue');
 const fs = require('fs');
 const cors = require('cors');
 
@@ -43,15 +45,20 @@ const port = process.env.PORT || 4000;
 const pingTimeout = 9000000;
 const pingInterval = 30000;
 
-// Loads job queue modules and variables
-//@TODO redis needs a password!!!!
-const jobs = kue.createQueue({
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || '6379',
-    auth: process.env.REDIS_PASSWORD || undefined,
-  },
-});
+
+const {jobQueue, kue} = require('./config/configJobQueue');
+
+// // Loads job queue modules and variables
+// //@TODO redis needs a password!!!!
+// const jobs = kue.createQueue({
+//   redis: {
+//     host: process.env.REDIS_HOST || 'localhost',
+//     port: process.env.REDIS_PORT || '6379',
+//     auth: process.env.REDIS_PASSWORD || undefined,
+//   },
+// });
+
+// module.exports.metisJobQueue = jobs;
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -69,7 +76,7 @@ const passport = require('passport');
 const flash = require('connect-flash');
 
 // Request logger
-const morgan = require('morgan');
+// const morgan = require('morgan');
 
 const swaggerUi = require('swagger-ui-express');
 
@@ -84,11 +91,12 @@ const mongoose = require('mongoose');
 const swaggerDocument = require('./swagger.json');
 
 app.use(cors());
-app.use(morgan('dev')); // log every request to the console
+// app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
 
 app.use((req, res, next) => {
+  logger.sensitive(`#### middleware...`);
   if (req.url !== '/favicon.ico') {
     return next();
   }
@@ -102,6 +110,8 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
+
+app.use(externalResourcesCheck);
 app.use(tokenVerify);
 
 // Sets public directory
@@ -188,8 +198,6 @@ server.on('upgrade', (request, socket, head) => {
 // is not called everytime we make an api call to them
 require('./config/api.js')(app);
 
-const logger = require('./utils/logger')(module);
-
 const mongoDBOptions = { useNewUrlParser: true, useFindAndModify: false, useUnifiedTopology: true };
 
 const {
@@ -199,52 +207,51 @@ const {
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
 
-metisSignup(passport,jobs,io); //  pass passport for configuration
+metisSignup(passport,jobQueue,io); //  pass passport for configuration
 metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, jobs, io);
+  require(file)(app, passport, jobQueue, io);
 });
 
-// Route any invalid routes black to the root page
-app.get('/*', (req, res) => {
-  console.log('');
-  logger.info('======================================================================================');
-  logger.info('==');
-  logger.info('== Invalid Route');
-  logger.info('== GET: ');
-  logger.info('==');
-  logger.info('======================================================================================');
-  console.log('');
-
-  res.status(500).send({message: `Invalid Route`, errorCode: '1101'});
-});
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
+
+// const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
+// const {jupiterFundingService} = require("./services/jupiterFundingService");
 const {chanService} = require("./services/chanService");
+// const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+const {StatusCode} = require("./utils/statusCode");
+const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
+// const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
+
+// const { jobScheduleService } = require('./services/jobScheduleService');
+// const {chanService} = require("./services/chanService");
+
 
 jobScheduleService.init(kue);
 
 
-gravity.getFundingMonitor()
-  .then(async (monitorResponse) => {
-    const { monitors } = monitorResponse;
-    if (monitors && monitors.length === 0) {
-      logger.info('Funding property not set for app. Setting it now...');
-      const fundingResponse = await gravity.setFundingProperty({
-        passphrase: process.env.APP_ACCOUNT,
-      });
-
-      logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
-    }
-  })
-    .catch( error => {
-      logger.error(`getFundingError: ${error}`)
-      throw error;
-    });
+// gravity.getFundingMonitor()
+//   .then(async (monitorResponse) => {
+//     const { monitors } = monitorResponse;
+//     if (monitors && monitors.length === 0) {
+//       logger.info('Funding property not set for app. Setting it now...');
+//       const fundingResponse = await gravity.setFundingProperty({
+//         passphrase: process.env.APP_ACCOUNT,
+//       });
+//
+//       logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
+//     }
+//   })
+//     .catch( error => {
+//       logger.error(`getFundingError: ${error}`)
+//       throw error;
+//     });
 
 // Worker methods
 // const RegistrationWorker = require('./workers/registration.js');
@@ -262,15 +269,8 @@ gravity.getFundingMonitor()
 
 const WORKERS = 100;
 
-jobs.process('user-registration', WORKERS, (job,done) => {
-  console.log('');
-  logger.info('======================================================================================');
-  logger.info('==');
-  logger.info('== jobs.process(user-registration)');
-  logger.info('==');
-  logger.info('======================================================================================');
-  console.log('');
-
+jobQueue.process('user-registration', WORKERS, (job,done) => {
+  logger.info('##### jobs.process(user-registration)');
   try {
     const decryptedData = gravity.decrypt(job.data.data)
     const parsedData = JSON.parse(decryptedData);
@@ -294,40 +294,46 @@ jobs.process('user-registration', WORKERS, (job,done) => {
   }
 })
 
-jobs.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
-  logger.verbose(`###########################################`)
-  logger.verbose(`## jobs.process(channel-creation-confirmation)`)
-  logger.verbose(`##`)
-
+jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
+  logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
   try {
     const {channelName, memberAccountProperties} = job.data;
-
     if (!gu.isNonEmptyString(channelName)) {
       throw new Error('channelName is EMPTY.')
     }
-
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
-    const memberProperties = await instantiateGravityAccountProperties(
-        memberAccountProperties.passphrase,
-        memberAccountProperties.password);
 
-    memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
-    const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+    const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
+    const newChannelAccountProperties = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+    binaryAccountJob.create(newChannelAccountProperties);
+
+    // const memberProperties = await instantiateGravityAccountProperties(
+    //     memberAccountProperties.passphrase,
+    //     memberAccountProperties.password);
+
+    // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
+    // const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+
 
     return done(null, {
       channelName: channelName,
-      channelAccountProperties: createNewChannelResults
+      channelAccountProperties: newChannelAccountProperties
     });
   } catch (error){
-    logger.error(`****************************************************************`);
-    logger.error(`** jobs.process(channel-creation-confirmation).catch(error)`);
-    logger.error(`** `);
-    logger.error(`   error= ${error}`)
-
+    logger.error(`**** jobs.process(channel-creation-confirmation).catch(error)`);
+    logger.error(`error= ${error}`)
     return done(error)
   }
 
-});
+})
+
+
+// require('./jobs/registrationJob');
+
+/* jobs.process('fundAccount', (job, done) => {
+  transferWorker.fundAccount(job.data, job.id, done);
+}); */
+
 
 mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
   if (err) {
@@ -338,6 +344,23 @@ mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
 
 server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
+
+
+// NEW METIS SERVER CODE
+require('./src/metis/app')(app,jobQueue,io);
+// JIM SERVER
+require('./src/jim/app')(app,jobQueue,io);
+
+
+// Route any invalid routes black to the root page
+app.get('/*', (req, res) => {
+  logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+  logger.info(`++ INVALID ROUTE`);
+  logger.info(`++ ${JSON.stringify(req.url)}`);
+  logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+  res.status(StatusCode.ClientErrorBadRequest).send({message: `Invalid Route`, errorCode: '1101'});
+});
+
 server.listen(port, () => {
   logger.info(JSON.stringify(process.memoryUsage()));
   logger.info('');
@@ -359,6 +382,6 @@ server.listen(port, () => {
   logger.info(`Jupiter Node running on ${process.env.JUPITERSERVER}`);
 });
 
-kue.app.listen(4001, () => {
-  logger.info('Job queue server running on port 4001');
-});
+// kue.app.listen(4001, () => {
+//   logger.info('Job queue server running on port 4001');
+// });

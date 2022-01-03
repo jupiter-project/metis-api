@@ -63,20 +63,6 @@ class FeeManager {
             subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountRecord
         })
 
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.table_account_record,
-        //     fee: accountRecordFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.accountInfo
-        // })
-
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.account_info,
-        //     fee: accountInfoFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountInfo
-        // })
-
         this.fees.push({
             feeType: FeeManager.feeTypes.invitation_to_channel,
             fee: invitationToChannelFee,
@@ -89,12 +75,6 @@ class FeeManager {
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelMember
         });
-        // this.fees.push({
-        //     feeType: FeeManager.feeTypes.arbitrary_message,
-        //     fee: arbitraryMessageFee,
-        //     type: FeeManager.TransactionTypes.messaging_voting_aliases,
-        //     subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
-        // });
         this.fees.push({
             feeType: FeeManager.feeTypes.alias_assignment,
             fee: aliasAssigmentFee,
@@ -226,10 +206,37 @@ class FeeManager {
 
         return typeSubType[0]
     }
+
+    getTotalDataFee(bufferData){
+        const total =  bufferData.reduce( (reduced,item)=>{
+            reduced = reduced + this.getCalculatedMessageFee(item);
+        }, 0 )
+
+        return total * 1.03
+    }
+
+    getCalculatedMessageFee(message) {
+        const size = message.length;
+        const fee = this.getFee(FeeManager.feeTypes.metisMessage);
+        if (size === 0) return fee
+        if (size <= 5000) return 800000
+        if (size <= 10000) return 1600000
+        if (size <= 15000) return 2300000
+        if (size <= 20000) return 3100000
+        if (size <= 25000) return 3900000
+        if (size <= 30000) return 4700000
+        if (size <= 35000) return 5500000
+        if (size <= 40000) return 6300000
+        return 6500000
+    }
+    // export function calculateExpectedFees(data: Array<string>): number {
+    //     let expectedFees = 0;
+    //     data.forEach((data) => expectedFees += calculateMessageFee(data.length));
+    //     return expectedFees*1.03;
+    // }
 }
 
 module.exports.FeeManager = FeeManager;
-
 module.exports.feeManagerSingleton = new FeeManager(
     process.env.REGULAR_TRANSACTION_FEE,
     process.env.INVITATION_TO_CHANNEL_FEE,
@@ -242,5 +249,5 @@ module.exports.feeManagerSingleton = new FeeManager(
     process.env.NEW_TABLE_FUNDING_FEE,
     process.env.ACCOUNT_RECORD_FEE,
     process.env.ORDINARY_PAYMENT_FEE,
-    process.env.METIS_MESSAGE_FEE,
+    process.env.METIS_MESSAGE_FEE
 );

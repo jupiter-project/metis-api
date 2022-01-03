@@ -11,7 +11,7 @@ const gu = require('../utils/gravityUtils');
 const {jupiterAPIService} = require("./jupiterAPIService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
-const {BadJupiterAddressError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 // const {jupiterAPIService} = require("./jupiterAPIService");
 // const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 
@@ -425,11 +425,9 @@ class GravityTablesService {
      * @returns {Promise<unknown>}
      */
     async attachTable(database, nameOfTableToAttach, currentTables=[]) {
-        logger.verbose(`###################################################################################`);
-        logger.verbose(`## attachTable(database, nameOfTableToAttach, currentTables=[])`);
-        logger.verbose(`## `);
-        logger.sensitive(`nameOfTableToAttach=${JSON.stringify(nameOfTableToAttach)}`);
-        logger.sensitive(`currentTables=${JSON.stringify(currentTables)}`);
+        logger.verbose(`#### attachTable(database, nameOfTableToAttach, currentTables=[])`);
+        logger.sensitive(`nameOfTableToAttach= ${JSON.stringify(nameOfTableToAttach)}`);
+        logger.sensitive(`currentTables= ${JSON.stringify(currentTables)}`);
         return new Promise((resolve, reject) => {
             this.applicationTransactions.getAccountStatement()
                 .then(accountStatement => {
@@ -742,10 +740,7 @@ class TableService {
      * @returns {Promise<{data, transactionReport: [{name, id}]}>}
      */
     async createTableListRecord(accountProperties, arrayOfTableNames) {
-        logger.verbose('###################################################################################')
-        logger.verbose(`## tableService.createTableListRecord(accountProperties= ${accountProperties.address}, arrayOfTableNames=${arrayOfTableNames})`)
-        logger.verbose('## ');
-
+        logger.verbose(`#### tableService.createTableListRecord(accountProperties= ${accountProperties.address}, arrayOfTableNames=${arrayOfTableNames})`)
         const tablesList = {
             tables: arrayOfTableNames,
             date: Date.now()
@@ -986,7 +981,8 @@ class TableService {
      * @returns {null | GravityAccountProperties}
      */
     extractUserPropertiesFromRecordsOrNull(address, records){
-        if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         // if(!gu.isWellFormedJupiterAddress(address)){throw new Error('address is not valid')}
         if(!Array.isArray(records)){throw new Error('records is not valid')}
         if(!records.hasOwnProperty('account')){throw new Error('records is not valid')}
