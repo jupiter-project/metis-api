@@ -208,6 +208,17 @@ const isWellFormedJupiterAccountData = function(jupiterAccountData) {
 }
 
 
+const isWellFormedUuid = function(uuid){
+    if(!uuid){
+        return false
+    }
+    const re = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/
+    if(re.test(uuid)){
+        return true;
+    }
+    return false;
+}
+
 /**
  *
  * @param passphrase
@@ -215,7 +226,6 @@ const isWellFormedJupiterAccountData = function(jupiterAccountData) {
  */
 const isWellFormedPassphrase = function(passphrase){
     if(!passphrase){
-        logger.sensitive(`passphrase not well formed! : ${passphrase}`)
         return false
     }
     const re = /^(\w+\s){11}\w+$/
@@ -433,7 +443,8 @@ module.exports = {
     convertNqtToUsd,
     formatUsd,
     getCurrentJupiterValueOrNull,
-    isWellFormedE2EPublicKey
+    isWellFormedE2EPublicKey,
+    isWellFormedUuid
 };
 
 

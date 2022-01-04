@@ -461,6 +461,10 @@ module.exports = (app, passport, jobs, websocket) => {
             req.user.password,
             req.user.address
             );
+
+
+        //Check Funding. If not then reject
+
         const job = jobs.create('channel-creation-confirmation', {channelName, memberAccountProperties})
             .priority('high')
             .removeOnComplete(false)

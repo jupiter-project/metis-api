@@ -215,43 +215,49 @@ class StorageService {
         }
     }
 
+    /**
+     *
+     * @param userAccountProperties
+     * @param channelAddress
+     * @return {Promise<*[]>}
+     */
     async fetchChannelFilesList(userAccountProperties, channelAddress){
+        logger.debug(`#### fetchChannelFilesList(userAccountProperties, channelAddress)`);
+        logger.info(`- Getting ready to get the files for ${channelAddress}`);
         const channelAccountProperties = await this.chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
         if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`)
+        logger.info(`- Confirmed user has permission to access this channel`);
         const binaryAccountProperties = await this.getBinaryAccountPropertiesOrNull(channelAccountProperties);
         if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
         if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
         const blackListTag =  `${transactionTags.jimServerTags.binaryFileBlackList}`;
         const blackList = await this.jupiterTransactionsService.fetchLatestReferenceList(binaryAccountProperties,blackListTag);
-        const fileTag = `${transactionTags.jimServerTags.binaryFile}`;
+        const fileTag = `${transactionTags.jimServerTags.binaryFileRecord}`;
         const allFileRecordTransactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
             binaryAccountProperties.address,
             fileTag
         )
 
-
+        logger.info(`- Queried binary account for files. Found a total of ${allFileRecordTransactions.length}`);
         if(allFileRecordTransactions.length === 0){
             return []
         }
-
-
-
         const filteredFileRecordTransactions = this.transactionUtils.filterTransactionsByTransactionIds(
             allFileRecordTransactions,
             blackList
         )
+        logger.info(`- Applied the blacklist resulting in  ${filteredFileRecordTransactions.length}`);
+        if(filteredFileRecordTransactions.length === 0){
+            return []
+        }
+
+        // @info The message was mEncrypted using the owner(ie channel) password.
         const messageContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromTransactions(
             filteredFileRecordTransactions,
-            binaryAccountProperties
+            channelAccountProperties
         )
 
         const channelFilesList = messageContainers.map(containers => containers.message);
-
-        console.log(`\n\n`);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-        console.log(`channelFilesList:`);
-        console.log(channelFilesList);
-        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
 
         return channelFilesList;
     }
@@ -276,6 +282,57 @@ class StorageService {
     }
 
 
+    async fetchFile(ownerAccountProperties, fileUuid){
+        if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
+        if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
+        const binaryAccountProperties = await this.getBinaryAccountPropertiesOrNull(ownerAccountProperties);
+        if (binaryAccountProperties === null) {
+            throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
+        }
+        const fileRecordTag = `${transactionTags.jimServerTags.binaryFileRecord}.${fileUuid}`;
+        const fileRecordMessageContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
+            binaryAccountProperties,
+            fileRecordTag
+        )
+        const fileRecordMessageContainer = fileRecordMessageContainers[0]
+        const chunkTransactionIds = fileRecordMessageContainer.message.chunkTransactionIds;
+
+
+        const chunkContainers = await this.jupiterTransactionsService.getReadableContainersFromMessageTransactionIdsAndDecrypt(chunkTransactionIds, binaryAccountProperties.passphrase, ownerAccountProperties.crypto)
+
+        const file = chunkContainers.reduce((reduced, chunkContainer)=> {
+                reduced += chunkContainer.message;
+                return reduced;
+            },'')
+
+
+        console.log(`\n\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`file:`);
+        console.log(file);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+
+
+
+        const bufferData = zlib.inflateSync(Buffer.from(file, 'base64')).toString()
+        // const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
+        // var deflated = zlib.deflateSync(input).toString('base64');
+        // var inflated = zlib.inflateSync(Buffer.from(deflated, 'base64')).toString()
+
+        return bufferData;
+
+        // Next: zlib.inflate base64  to bufferData
+        //Next: send bufferData.
+
+        //outside of here we need to save to OS
+        //Next send the job.
+
+
+
+
+
+
+    }
 
 
     /**
@@ -322,6 +379,7 @@ class StorageService {
             }
             // compress the binary data before to convert to base64
             const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
+            // var inflated = zlib.inflateSync(Buffer.from(deflated, 'base64')).toString()
 
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
             logger.sensitive(`chunks.length=${JSON.stringify(chunks.length)}`);
@@ -349,18 +407,20 @@ class StorageService {
             console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
             const fileRecord = this.generateFileRecordJson(
                 fileUuid,
+                fileCat,
                 fileName,
                 mimeType,
                 fileSizeInBytes,
                 allChunkTransactionIds,
-                originalSenderAddress
+                originalSenderAddress,
+                linkedFileRecords
             )
             const encryptedFileRecord = ownerAccountProperties.crypto.encryptJson(fileRecord);
             const sendMessageResponseBinaryFile = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 ownerAccountProperties.passphrase,
                 binaryAccountProperties.address,
                 encryptedFileRecord,
-                `${transactionTags.jimServerTags.binaryFile}.${fileUuid}`,
+                `${transactionTags.jimServerTags.binaryFileRecord}.${fileUuid}`,
                 FeeManager.feeTypes.metisMessage,
                 binaryAccountProperties.publicKey
             )
@@ -375,24 +435,25 @@ class StorageService {
 
 
     /**
-     *
      * @param {string} fileUuid
+     * @param {('raw'|'thumbnail')} fileCat
      * @param {string} fileName
      * @param {string} mimeType
      * @param {number} size
      * @param chunkTransactionIds
      * @param {string} originalSenderAddress
-     * @param {null|string}transactionIdOfPreviousVersion
-     * @return {Promise<{fileName, size, recordType: string, transactionIdOfPreviousVersion: string, chunkTransactionIds: string, mimeType, originalSenderAddress, version: number, fileUuid, status: string}>}
+     * @param {null|object[]} linkedFileRecords
+     * @return {{fileName, fileCat, recordType: string, chunkTransactionIds, mimeType, sizeInKb, originalSenderAddress, linkedFileRecord, version: number, fileUuid, url: string, status: string}}
      */
-    async generateFileRecordJson(
+    generateFileRecordJson(
         fileUuid,
+        fileCat,
         fileName,
         mimeType,
         size,
         chunkTransactionIds,
         originalSenderAddress,
-        transactionIdOfPreviousVersion = null
+        linkedFileRecords,
     ){
         logger.sensitive(`#### generateFileRecordJson()`);
         if(!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`empty fileUuid`)
@@ -403,16 +464,18 @@ class StorageService {
         if(!gu.isWellFormedJupiterAddress(originalSenderAddress)) throw new mError.MetisErrorBadJupiterAddress(`originalSenderAddress`)
         const _transactionIdOfPreviousVersion = (transactionIdOfPreviousVersion===null)?'':transactionIdOfPreviousVersion;
         return {
+            version: 1,
             recordType: 'fileRecord',
+            fileCat: fileCat,
             fileUuid: fileUuid,
             fileName: fileName,
             mimeType: mimeType,
-            size: size,
+            sizeInKb: size,
             chunkTransactionIds: chunkTransactionIds,
             originalSenderAddress: originalSenderAddress,
+            url: `v1/jim/files/${fileUuid}`,
             status: 'active',
-            transactionIdOfPreviousVersion: _transactionIdOfPreviousVersion,
-            version: 1
+            linkedFileRecords: linkedFileRecords
         }
     }
 

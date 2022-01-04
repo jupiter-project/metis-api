@@ -9,6 +9,7 @@ import {JupiterApiError, MetisError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {chanService} from "../services/chanService";
 import {axiosDefault} from "../config/axiosConf";
+import {MetisErrorCode} from "../utils/metisErrorCode";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 const moment = require('moment'); // require
@@ -217,6 +218,19 @@ module.exports = (app, passport, jobs, websocket) => {
     logger.info('== POST: /v1/api/appLogin');
     logger.info(`======================================================================================/n/n`);
     logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
+
+    const {account,encryptionPassword, jupkey} = req.body;
+
+    if(!gu.isWellFormedPassphrase(jupkey)) {
+      return res.status(StatusCode.ClientErrorBadRequest).send({message: 'account is missing', code: MetisErrorCode.MetisError});
+    }
+    if(!gu.isWellFormedJupiterAddress(account)) {
+      return res.status(StatusCode.ClientErrorBadRequest).send({message: 'jupkey is missing', code: MetisErrorCode.MetisError});
+    }
+    if(!encryptionPassword) {
+      return res.status(StatusCode.ClientErrorBadRequest).send({message: 'encryptionPassword is missing', code: MetisErrorCode.MetisError});
+    }
+
     passport.authenticate('gravity-login', (error, user, message) => {
       logger.sensitive(`#### /v1/api/appLogin > passport.authenticate('gravity-login', CALLBACK(*)`);
       if (error) {
@@ -232,9 +246,9 @@ module.exports = (app, passport, jobs, websocket) => {
       }
 
       if (!user) {
-        const errorMessage = 'There was an error in verifying the passphrase with the Blockchain.';
+        const errorMessage = 'There was an error in verifying the passphrase with the Blockchain..';
         logger.error(errorMessage);
-        return res.status(400).json({message: errorMessage});
+        return res.status(StatusCode.ClientErrorUnauthorized).json({message: errorMessage});
       }
 
       const userInfo = {

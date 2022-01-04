@@ -170,6 +170,15 @@ class MetisErrorBadJupiterPassphrase extends MetisError {
     }
 }
 
+class MetisErrorBadUuid extends MetisError {
+    constructor(message = '') {
+        super(`UUIDV1 is invalid: ` + message)
+        this.name = "MetisErrorBadUuid"
+        this.code = MetisErrorCode.MetisErrorBadUuid;
+        Object.setPrototypeOf(this, MetisErrorBadUuid.prototype); //fixes a problem with instanceof
+    }
+}
+
 class MetisErrorBadJupiterPublicKey extends MetisError {
     constructor(message = '') {
         super(`Jupiter Public Key is invalid: ` + message)
@@ -197,6 +206,15 @@ class MetisErrorFailedUserAuthentication extends MetisError {
     }
 }
 
+class MetisErrorJupiterNoResponse extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter is down. (Bad Gateway) ` + message)
+        this.name = "MetisErrorJupiterNoResponse"
+        this.code = MetisErrorCode.MetisErrorJupiterNoResponse;
+        Object.setPrototypeOf(this, MetisErrorJupiterNoResponse.prototype); //fixes a problem with instanceof
+    }
+}
+
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -217,3 +235,5 @@ module.exports.MetisErrorBadJupiterPublicKey = MetisErrorBadJupiterPublicKey;
 module.exports.MetisErrorNoChannelAccountFound = MetisErrorNoChannelAccountFound;
 module.exports.MetisErrorBadJupiterGateway = MetisErrorBadJupiterGateway;
 module.exports.MetisErrorFailedUserAuthentication = MetisErrorFailedUserAuthentication;
+module.exports.MetisErrorJupiterNoResponse = MetisErrorJupiterNoResponse;
+module.exports.MetisErrorBadUuid = MetisErrorBadUuid;

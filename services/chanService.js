@@ -530,9 +530,9 @@ class ChanService {
         if(!messageContainer.hasOwnProperty('message')) {
             throw new Error(`invalid channelRecord transaction: ${messageContainer}`)
         }
-        const validatorResult = this.validator.validateChannelRecord(messageContainer.message);
-        if(!validatorResult.isValid){
-            throw new ChannelRecordValidatorError(validatorResult.message);
+        const valid = this.validator.validateChannelRecord(messageContainer.message);
+        if(!valid.isValid){
+            throw new ChannelRecordValidatorError(valid.message);
         }
 
         return messageContainer.message;
@@ -612,7 +612,7 @@ class ChanService {
         const channelAccountProperties = await instantiateGravityAccountProperties(channelPassphrase, channelPassword);
         channelAccountProperties.channelName = channelName;
         try {
-            const fundingResponse = await jupiterFundingService.provideInitialStandardTableFunds(channelAccountProperties);
+            const fundingResponse = await jupiterFundingService.provideInitialChannelAccountFunds(channelAccountProperties);
             const transactionWaitResponse = await jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction);  //need to wait for confirmation in order for account to send transactions.
             const processNewMemberResponse = await this.processNewMember(firstMemberProperties, channelAccountProperties, 'creator');
 

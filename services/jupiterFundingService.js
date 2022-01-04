@@ -4,6 +4,7 @@ const {jupiterAPIService} = require("./jupiterAPIService");
 const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {JupiterAPIService} = require("./jupiterAPIService");
 const {MetisError} = require("../errors/metisError");
+const mError = require("../errors/metisError");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -22,8 +23,8 @@ class JupiterFundingService {
         // this.tableCreation = parseInt(applicationProperties.accountCreationFeeNQT)
         this.defaultNewUserTransferAmount = parseInt(applicationProperties.minimumAppBalance)
         if(!this.defaultNewUserTransferAmount){throw new Error(' problem with defaultNewUserTransferAmount')}
-        this.defaultNewTableTransferAmount = parseInt(applicationProperties.minimumTableBalance)
-        if(!this.defaultNewTableTransferAmount){throw new Error('problem with defaultNewTableTransferAmount')}
+        this.defaultNewChannelTransferAmount = parseInt(applicationProperties.minimumTableBalance)
+        if(!this.defaultNewChannelTransferAmount){throw new Error('problem with defaultNewChannelTransferAmount')}
         this.jupiterAPIService = jupiterAPIService;
         this.applicationProperties = applicationProperties;
         this.intervalTimeInSeconds = 8;
@@ -64,20 +65,29 @@ class JupiterFundingService {
             console.log(`waiting for transaction confirmation`);
             let timerId = setInterval(async () => {
                 console.log(`tid:${transactionId} -- waiting ${workTime/1000} secs...`);
-                const getTransactionResponse = await this.jupiterAPIService.getTransaction(transactionId)
-                const confirmations = (getTransactionResponse.data.confirmations) ? getTransactionResponse.data.confirmations : 0;
-                if(confirmations > 0){
-                    clearInterval(timerId);
-                    console.log('confirmed!')
-                    return resolve('confirmed')
-                }
+                try {
+                    const getTransactionResponse = await this.jupiterAPIService.getTransaction(transactionId)
+                    const confirmations = (getTransactionResponse.data.confirmations) ? getTransactionResponse.data.confirmations : 0;
+                    if (confirmations > 0) {
+                        clearInterval(timerId);
+                        console.log('confirmed!')
+                        return resolve('confirmed')
+                    }
 
-                if(workTime > this.maxWaitTimeLimitInSeconds * 1000){
-                    clearInterval(timerId);
-                    console.log('not confirmed')
-                    return reject('not confirmed')
+                    if (workTime > this.maxWaitTimeLimitInSeconds * 1000) {
+                        clearInterval(timerId);
+                        console.log('not confirmed')
+                        return reject('not confirmed')
+                    }
+                    workTime += milliseconds;
+                } catch (error){
+                    if(error instanceof mError.MetisErrorJupiterNoResponse){
+                        workTime += milliseconds;
+                        return; // Continue the countdown.
+                    }
+
+                    throw error;
                 }
-                workTime += milliseconds;
             }, milliseconds);
         })
     }
@@ -101,10 +111,10 @@ class JupiterFundingService {
      * @param {GravityAccountProperties} recipientProperties
      * @returns {Promise<*>}
      */
-    async provideInitialStandardTableFunds(recipientProperties){
-        logger.verbose(`#### provideInitialStandardTableFunds( recipientProperties= ${!!recipientProperties})`);
+    async provideInitialChannelAccountFunds(recipientProperties){
+        logger.verbose(`#### provideInitialChannelAccountFunds( recipientProperties= ${!!recipientProperties})`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('invalid recipientProperties')};
-        const initialAmount = this.defaultNewTableTransferAmount;
+        const initialAmount = this.defaultNewChannelTransferAmount;
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
         return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
     }
