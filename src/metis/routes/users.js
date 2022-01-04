@@ -31,8 +31,6 @@ module.exports = (app, jobs, websocket) => {
 
             const userProperties = req.user.gravityAccountProperties;
 
-
-
             if(!(userProperties.address === userAddress)){
                 logger.error(`The userAddress is not the same as currently logged in user userAddress: ${userAddress}, currently: ${userProperties.address}`)
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: 'bad user address'});
