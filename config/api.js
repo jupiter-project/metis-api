@@ -29,8 +29,15 @@ module.exports = (app) => {
    * Get alias
    */
   app.get('/v1/api/jupiter/alias/:aliasName', async (req, res) => {
+    console.log('');
+    logger.info('======================================================================================');
+    logger.info('==');
+    logger.info('== Validate alias availability');
+    logger.info('== GET');
+    logger.info('==');
+    logger.info('======================================================================================');
     const aliasCheckup = await gravity.getAlias(req.params.aliasName);
-
+    logger.debug('Is alias available', JSON.stringify(aliasCheckup))
     res.send(aliasCheckup);
   });
 

@@ -1047,7 +1047,7 @@ class ChanService {
         logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
         if(!(channelAccountProperties instanceof GravityAccountProperties )){ throw new Error('channelAccountProperties is invalid')}
         logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
-        const listTag = channelConfig.channelMemberList;
+        const listTag = channelConfig.channelMemberPublicKeyList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
             .then( messageContainers  => {
                 // console.log(`\n\n\n`);

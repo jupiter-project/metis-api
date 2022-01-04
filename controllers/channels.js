@@ -454,7 +454,7 @@ module.exports = (app, passport, jobs, websocket) => {
         const {channelName} = req.body;
         // const { userData: { alias, account } } = req.user;
         if (!channelName) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Need channelName in body'})
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Need channelName in body'});
         }
         const memberAccountProperties = await instantiateMinimumGravityAccountProperties(
             req.user.passphrase,

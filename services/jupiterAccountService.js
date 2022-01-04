@@ -290,7 +290,15 @@ class JupiterAccountService {
         // logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
         if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
         try {
-            return  await this.gravityService.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
+            const publicKeyContainers = await this.jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(accountProperties, userConfig.userPublicKeyList);
+            return publicKeyContainers.map(pkc => {
+                const {e2ePublicKey} = pkc.message;
+                if(!gu.isWellFormedE2EPublicKey(e2ePublicKey)){
+                    throw new mError.MetisErrorBadJupiterPublicKey(e2ePublicKey);
+                }
+                return e2ePublicKey;
+            });
+            // return  await this.gravityService.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
         } catch (error) {
             error.message = `getPublicKeysFromUserAccount: ${error.message}`;
             logger.error(`${error}`);
