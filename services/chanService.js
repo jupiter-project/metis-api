@@ -1005,6 +1005,8 @@ class ChanService {
             const listOfChannelsAndTheirProperties = multiChannelRecords.map( async channelRecord => {
                 const properties = await instantiateGravityAccountProperties(channelRecord.passphrase, channelRecord.password);
                 properties.channelName = channelRecord.channelName; //@TODO make this more robust.
+                properties.createdBy = channelRecord.createdBy; //@TODO make this more robust.
+                properties.createdAt = channelRecord.createdAt; //@TODO make this more robust.
                 return properties;
             })
             return await Promise.all(listOfChannelsAndTheirProperties);

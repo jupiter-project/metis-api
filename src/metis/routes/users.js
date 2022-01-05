@@ -54,6 +54,6 @@ module.exports = (app, jobs, websocket) => {
     });
 
     app.get('/v1/api/users/:userAddress/e2e-public-keys', async (req, res) => {
-        res.status(StatusCode.SuccessOK).send({message: 'all-good'});
+        res.status(StatusCode.ClientErrorImATeapot).send({message: 'NEEDS TO BE IMPLEMENTED'});
     })
 };

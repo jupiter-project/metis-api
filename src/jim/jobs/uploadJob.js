@@ -33,9 +33,19 @@ class UploadJob {
                 if(!fileMimeType) throw new mError.MetisError('fileMimeType is invalid');
                 const userAccountProperties = await GravityAccountProperties.Clone(_userAccountProperties);
                 const attachToAccountProperties = await this.channelService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,attachToJupiterAddress);
-                const binaryAccountProperties = await this.storageService.getBinaryAccountPropertiesOrNull(userAccountProperties);
                 if(attachToAccountProperties === null) throw new  mError.MetisError(`No channel address found`)
+                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                logger.info(`++ Channel Properties`);
+                logger.info(`address: ${attachToAccountProperties.address}`)
+                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+
+                const binaryAccountProperties = await this.storageService.fetchBinaryAccountPropertiesOrNull(userAccountProperties);
                 if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound('userAccountProperties.address')
+                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                logger.info(`++ Binary Account Properties`);
+                logger.info(`address: ${binaryAccountProperties.address}`)
+                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+
                 fs.readFile(filePath, async (error, bufferData) => {
                     try {
                         await this.storageService.sendFileToBlockchain(

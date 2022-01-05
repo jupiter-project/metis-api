@@ -77,12 +77,12 @@ class MetisErrorPublicKeyExists extends MetisError {
     }
 }
 
-class BinaryAccountExistsError extends MetisError {
+class MetisErrorBinaryAccountExistsError extends MetisError {
     constructor(message = '') {
         super(`binary account already exists: ${message}`);
-        this.name = "BinaryAccountExistsError";
-        this.code = MetisErrorCode.BinaryAccountExistsError;
-        Object.setPrototypeOf(this, BinaryAccountExistsError.prototype); //fixes a problem with instanceof
+        this.name = "MetisErrorBinaryAccountExistsError";
+        this.code = MetisErrorCode.MetisErrorBinaryAccountExistsError;
+        Object.setPrototypeOf(this, MetisErrorBinaryAccountExistsError.prototype); //fixes a problem with instanceof
     }
 }
 
@@ -223,7 +223,7 @@ module.exports.BadGravityAccountPropertiesError = BadGravityAccountPropertiesErr
 module.exports.ChannelRecordValidatorError = ChannelRecordValidatorError;
 module.exports.InviteRecordValidatorError = InviteRecordValidatorError;
 module.exports.MetisErrorPublicKeyExists = MetisErrorPublicKeyExists;
-module.exports.BinaryAccountExistsError = BinaryAccountExistsError;
+module.exports.MetisErrorBinaryAccountExistsError = MetisErrorBinaryAccountExistsError;
 module.exports.FundingNotConfirmedError = FundingNotConfirmedError;
 module.exports.MetisErrorWeakPassword = MetisErrorWeakPassword;
 module.exports.MetisErrorSaveJobQueue = MetisErrorSaveJobQueue;

@@ -336,7 +336,7 @@ class JupiterTransactionMessageService {
             }
             const messageToParse = crypto.decryptOrNull(decryptedMessageContainer.message);
             if (!messageToParse) {
-                logger.warn(`unable to mDecrypt message: ${decryptedMessageContainer.message.substring(0,15)}`);
+                logger.warn(`unable to mDecrypt message: ${decryptedMessageContainer.message.substring(0,30)}  --- SIZE: ${decryptedMessageContainer.message.length}`);
                 return ''; // because of Promise.all we should not do reject.
             }
             const message = gu.jsonParseOrPassThrough(messageToParse);

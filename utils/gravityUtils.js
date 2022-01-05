@@ -406,7 +406,8 @@ const getCurrentJupiterValueOrNull = async function (){
     const url = 'https://api.coingecko.com/api/v3/simple/price?ids=jupiter&vs_currencies=usd'
     const response = await axios({url: url, method: 'GET'})
     if(response.hasOwnProperty('data') && response.data.hasOwnProperty('jupiter') && response.data.jupiter.hasOwnProperty('usd')){
-        return response.data.jupiter.usd
+        const usd = parseFloat(response.data.jupiter.usd);
+        return usd;
     }
     return null
 }

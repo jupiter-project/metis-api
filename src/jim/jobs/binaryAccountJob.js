@@ -1,7 +1,7 @@
 import {MetisError, MetisErrorSaveJobQueue} from "../../../errors/metisError";
 // import {metisJobQueue} from "../../../server";
 import {storageService} from "../services/storageService";
-import {GravityAccountProperties} from "../../../gravity/gravityAccountProperties";
+import {GravityAccountProperties} from "../../../gravity/GravityAccountProperties";
 import {jobQueue} from "../../../config/configJobQueue";
 const logger = require('../../../utils/logger')(module);
 const WORKERS = 100;
@@ -17,13 +17,13 @@ class BinaryAccountJob{
     initialize(){
         this.jobQueue.process(this.jobName, WORKERS, async (job,done) => {
             logger.info('##### metisJobQueue.process(JimJobCreateBinaryAccount)');
-            if(!job.data.hasOwnProperty('userAccountProperties')){
-                throw new  MetisError(`userAccountProperties is empty`);
+            if(!job.data.hasOwnProperty('ownerAccountProperties')){
+                throw new  MetisError(`ownerAccountProperties is empty`);
             }
             try {
-                const _userAccountProperties = job.data.userAccountProperties;
-                const userAccountProperties = await GravityAccountProperties.Clone(_userAccountProperties);
-                const newBinaryAccountProperties = await storageService.createBinaryAccount(userAccountProperties);
+                const _ownerAccountProperties = job.data.ownerAccountProperties;
+                const ownerAccountProperties = await GravityAccountProperties.Clone(_ownerAccountProperties);
+                const newBinaryAccountProperties = await storageService.createBinaryAccount(ownerAccountProperties);
 
                 console.log('done');
                 return done(null, newBinaryAccountProperties)
@@ -37,9 +37,9 @@ class BinaryAccountJob{
         })
     }
 
-    create(userAccountProperties){
+    create(ownerAccountProperties){
         return new Promise((resolve, reject) => {
-            const job = this.jobQueue.create(this.jobName, {userAccountProperties})
+            const job = this.jobQueue.create(this.jobName, {ownerAccountProperties: ownerAccountProperties})
                 .priority('high')
                 .removeOnComplete(false)
                 .save(error => {

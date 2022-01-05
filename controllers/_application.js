@@ -10,6 +10,7 @@ import {MetisErrorCode} from "../utils/metisErrorCode";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 const mError = require("../errors/metisError");
+const gu = require("../utils/gravityUtils");
 
 module.exports = (app, passport, jobs, websocket) => {
   // const connection = process.env.SOCKET_SERVER;
