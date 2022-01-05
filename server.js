@@ -1,9 +1,9 @@
 const logger = require('./utils/logger')(module);
-
 require('babel-register')({
   presets: ['react'],
 });
 
+const mError = require('./errors/metisError');
 const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
 const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
@@ -73,7 +73,7 @@ const ReactDOMServer = require('react-dom/server');
 // Loads passport for authentication
 const passport = require('passport');
 
-const flash = require('connect-flash');
+// const flash = require('connect-flash');
 
 // Request logger
 // const morgan = require('morgan');
@@ -89,6 +89,27 @@ const find = require('find');
 
 const mongoose = require('mongoose');
 const swaggerDocument = require('./swagger.json');
+
+// https://medium.com/@SigniorGratiano/express-error-handling-674bfdd86139
+// app.all('*', (req,res,next) =>{
+//   next(new mError.MetisError(`TEST`))
+// })
+process.on('uncaughtException', error => {
+  console.log(`\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+  console.log(`Uncaught Exception!:`);
+  console.log(error);
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+})
+
+process.on('unhandledRejection', error => {
+  console.log(`\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+  console.log(`unhandledRejection!:`);
+  console.log(error);
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+})
+
 
 app.use(cors());
 // app.use(morgan('dev')); // log every request to the console
@@ -115,7 +136,7 @@ app.use(externalResourcesCheck);
 app.use(tokenVerify);
 
 // Sets public directory
-app.use(express.static(`${__dirname}/public`));
+// app.use(express.static(`${__dirname}/public`));
 
 // required for passport
 const sessionSecret = process.env.SESSION_SECRET !== undefined ? process.env.SESSION_SECRET : 'undefined';
@@ -143,8 +164,8 @@ app.use(session({
 }));
 
 app.use(passport.initialize());
-app.use(passport.session()); // persistent login sessions
-app.use(flash()); // use connect-flash for flash messages stored in session
+// app.use(passport.session()); // persistent login sessions
+// app.use(flash()); // use connect-flash for flash messages stored in session
 
 // If both cert and key files env vars exist use https,
 // otherwise use http
@@ -214,6 +235,7 @@ metisLogin(passport); //  pass passport for configuration
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
   require(file)(app, passport, jobQueue, io);
 });
+
 
 
 // Gravity call to check app account properties
@@ -302,7 +324,6 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
       throw new Error('channelName is EMPTY.')
     }
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
-
     const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
     const newChannelAccountProperties = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
     binaryAccountJob.create(newChannelAccountProperties);

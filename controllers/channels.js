@@ -50,7 +50,10 @@ module.exports = (app, passport, jobs, websocket) => {
         const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) => {
             reduced.push({
                 channelAddress: channelAccountProperties.address,
-                channelName: channelAccountProperties.channelName
+                channelPublicKey: channelAccountProperties.publicKey,
+                channelName: channelAccountProperties.channelName,
+                createdBy: channelAccountProperties.createdBy,
+                createdAt: channelAccountProperties.createdAt
             });
             return reduced;
         }, [])
@@ -461,6 +464,9 @@ module.exports = (app, passport, jobs, websocket) => {
             req.user.password,
             req.user.address
             );
+
+        //Check Funding. If not then reject
+
         const job = jobs.create('channel-creation-confirmation', {channelName, memberAccountProperties})
             .priority('high')
             .removeOnComplete(false)

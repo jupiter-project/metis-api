@@ -13,28 +13,37 @@
 # Ignore temp swap files
 *.swp
 
+# Ignore OSX files
+.DS_Store
+
 # Ignore node modules
 /node_modules
-
-# Ignore bower components
-/bower_components
 
 # Ignore enviroment variables
 .env
 .serviceAccountKey.json
 ./serviceAccountKey.json
 
-# Ignore gravity development files
-dev
-.gravity*.js
 
+# Ignore Intellij/WebStorm Project files
 .idea
+
+# Ignore Log Files
+./metis-api.log
+
 /logs/log-api.log
 *.log
 /data
-/mongodb_data
+
+# Ignore Mongo Data
+./data/db
+
+# Ignore Refin Data
+./redis-data
+
+# Ignore JIM tmp directory
+/tmp
+
 /.scannerwork
 v1/api/
-metis-api.log
 
-/tmp

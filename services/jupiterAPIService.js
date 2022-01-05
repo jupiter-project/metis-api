@@ -109,6 +109,7 @@ class JupiterAPIService {
             logger.error(`****************************************************************`);
             logger.error(`rtype= ${rtype}`);
             logger.error(`url= ${url}`);
+            logger.error(`params= ${params}`);
             if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
@@ -128,8 +129,8 @@ class JupiterAPIService {
                 // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
                 // http.ClientRequest in node.js
                 console.log(error.request);
-                const message = 'The request was made but no response was received';
-                throw new JupiterApiError(message, StatusCode.ServerErrorInternal)
+                // const message = 'The request was made but no response was received';
+                throw new mError.MetisErrorJupiterNoResponse()
             }
             // Something happened in setting up the request that triggered an Error
             // console.log('Error', error.message);

@@ -9,7 +9,7 @@ module.exports = {
 
     if (req.isAuthenticated() && req.user && !req.user.record.admin) {
       // console.log('Admin account');
-      req.flash('loginMessage', 'Invalid Access');
+      // req.flash('loginMessage', 'Invalid Access');
       res.redirect('/');
     } else if (
       (req.isAuthenticated()
