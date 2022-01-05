@@ -42,7 +42,7 @@
 ./redis-data
 
 # Ignore JIM tmp directory
-./tmp
+/tmp
 
 /.scannerwork
 v1/api/
