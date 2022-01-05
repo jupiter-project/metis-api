@@ -2,6 +2,7 @@ import mError from "../../../errors/metisError";
 import PQueue from 'p-queue';
 import {storageService} from "../services/storageService";
 import {chanService} from "../../../services/chanService";
+import FormData from "form-data";
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
 const fs = require('fs');
@@ -68,14 +69,25 @@ module.exports = (app, jobs, websocket) => {
 
         const fileUploadData = new Map();
         const fileUuid = uuidv1();
-        fileUploadData.set('fileUuid', fileUuid)
-        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties)
+        fileUploadData.set('fileUuid', fileUuid);
+        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties);
+        fileUploadData.set('attachToJupiterAddress', req.body.attachToJupiterAddress);
+        fileUploadData.set('fileName', 'testfile');
+        fileUploadData.set('fileEncoding', req.body.file.data);
+        fileUploadData.set('fileMimeType', req.body.file.type);
         const filePath = path.join(os.tmpdir(), `jim-${fileUuid}`);
         fileUploadData.set('filePath', filePath)
         const workQueue = new PQueue({ concurrency: 1 });
 
+
+        const buffer = Buffer.from(req.body.file.data, 'base64');
+        const form = new FormData();
+        const formOptions = { filename: 'testfile', contentType: req.body.file.type };
+        form.append('file', buffer, formOptions);
+
+
         const bb = busboy({
-            headers: req.headers,
+            headers: {'content-type': `multipart/form-data; boundary=${form.getBoundary()}`},
             limits: {files: 1, fileSize: jimConfig.maxMbSize}
         });
 
@@ -136,8 +148,6 @@ module.exports = (app, jobs, websocket) => {
                 }
 
                 abortOnError( ()=> {
-
-
 
                     if(formDataKey === 'file') {
                         logger.verbose(`---- bb.on(file)`);
