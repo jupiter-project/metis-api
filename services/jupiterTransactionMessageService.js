@@ -298,6 +298,25 @@ class JupiterTransactionMessageService {
 
 
     /**
+     *
+     * @param transactionIds
+     * @param passphrase
+     * @param crypto
+     * @return {Promise<unknown[]>}
+     */
+    async getReadableContainersFromMessageTransactionIdsAndDecrypt(transactionIds, passphrase, crypto){
+        const promises = transactionIds.map( transactionId => {
+            return this.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+                transactionId,
+                crypto,
+                passphrase
+            )
+        } )
+
+        return Promise.all(promises)
+    }
+
+    /**
      * Don't return rejections cause we are doing Promise.all()
      * @param messageTransactionId
      * @param crypto
@@ -317,7 +336,7 @@ class JupiterTransactionMessageService {
             }
             const messageToParse = crypto.decryptOrNull(decryptedMessageContainer.message);
             if (!messageToParse) {
-                logger.warn(`unable to decrypt message: ${decryptedMessageContainer.message.substring(0,10)}`);
+                logger.warn(`unable to mDecrypt message: ${decryptedMessageContainer.message.substring(0,30)}  --- SIZE: ${decryptedMessageContainer.message.length}`);
                 return ''; // because of Promise.all we should not do reject.
             }
             const message = gu.jsonParseOrPassThrough(messageToParse);

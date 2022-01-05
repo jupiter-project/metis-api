@@ -268,7 +268,7 @@ const metisLogin = (passport) => {
           const doneResponse = {
             error: null,
             user: false,
-            message: req.flash('loginMessage', 'Account is not registered or has not been confirmed in the blockchain.'),
+            message: 'Account is not registered or has not been confirmed in the blockchain.',
           };
           return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }
@@ -288,7 +288,7 @@ const metisLogin = (passport) => {
           const doneResponse = {
             error: null,
             user: false,
-            message: req.flash('loginMessage', 'Account is not registered'),
+            message: 'Account is not registered',
           };
           return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }
@@ -310,7 +310,7 @@ const metisLogin = (passport) => {
           const doneResponse = {
             error: null,
             user: false,
-            message: req.flash('loginMessage', 'Wrong hashphrase'),
+            message: 'Wrong hashphrase',
           };
           return done(doneResponse.error, doneResponse.user, doneResponse.message);
         }

@@ -1,6 +1,6 @@
 const {storageService} = require(`../services/storageService`);
 const {StatusCode} = require("../../../utils/statusCode");
-const {BinaryAccountExistsError, MetisErrorSaveJobQueue} = require("../../../errors/metisError");
+const {MetisErrorBinaryAccountExistsError, MetisErrorSaveJobQueue} = require("../../../errors/metisError");
 const {MetisErrorCode} = require("../../../utils/metisErrorCode");
 const {binaryAccountJob} = require("../jobs/binaryAccountJob");
 const logger = require('../../../utils/logger')(module);
@@ -38,7 +38,7 @@ module.exports = (app, jobs, websocket) => {
                 });
             }
 
-            if(error instanceof BinaryAccountExistsError){
+            if(error instanceof MetisErrorBinaryAccountExistsError){
                 return res.status(StatusCode.ClientErrorNotAcceptable).json({message: 'This account already has a binary account associated to it.', code:error.code})
             }
 
@@ -95,7 +95,7 @@ module.exports = (app, jobs, websocket) => {
         logger.info(`======================================================================================\n\n\n`);
         try {
             const userAccountProperties = req.user.gravityAccountProperties
-            const binaryAccountProperties = await storageService.getBinaryAccountPropertiesOrNull(userAccountProperties);
+            const binaryAccountProperties = await storageService.fetchBinaryAccountPropertiesOrNull(userAccountProperties);
             if(binaryAccountProperties === null){
                 return res.status(StatusCode.ClientErrorNotFound).json({message: 'Binary Account Not Found', code: MetisErrorCode.MetisError })
             }
@@ -105,7 +105,7 @@ module.exports = (app, jobs, websocket) => {
             logger.error(`** GET: /jim/v1/api/register -- .catch(error)`);
             logger.error(`****************************************************************`);
             console.log(error);
-            if(error instanceof BinaryAccountExistsError){
+            if(error instanceof MetisErrorBinaryAccountExistsError){
                 return res.status(StatusCode.ClientErrorNotAcceptable).json({message: 'This account already has a binary account associated to it.', code:error.code})
             }
             return res.status(StatusCode.ServerErrorInternal).json({message: 'internal error. please try again later.'})

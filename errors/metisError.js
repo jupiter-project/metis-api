@@ -77,12 +77,12 @@ class MetisErrorPublicKeyExists extends MetisError {
     }
 }
 
-class BinaryAccountExistsError extends MetisError {
+class MetisErrorBinaryAccountExistsError extends MetisError {
     constructor(message = '') {
         super(`binary account already exists: ${message}`);
-        this.name = "BinaryAccountExistsError";
-        this.code = MetisErrorCode.BinaryAccountExistsError;
-        Object.setPrototypeOf(this, BinaryAccountExistsError.prototype); //fixes a problem with instanceof
+        this.name = "MetisErrorBinaryAccountExistsError";
+        this.code = MetisErrorCode.MetisErrorBinaryAccountExistsError;
+        Object.setPrototypeOf(this, MetisErrorBinaryAccountExistsError.prototype); //fixes a problem with instanceof
     }
 }
 
@@ -170,6 +170,15 @@ class MetisErrorBadJupiterPassphrase extends MetisError {
     }
 }
 
+class MetisErrorBadUuid extends MetisError {
+    constructor(message = '') {
+        super(`UUIDV1 is invalid: ` + message)
+        this.name = "MetisErrorBadUuid"
+        this.code = MetisErrorCode.MetisErrorBadUuid;
+        Object.setPrototypeOf(this, MetisErrorBadUuid.prototype); //fixes a problem with instanceof
+    }
+}
+
 class MetisErrorBadJupiterPublicKey extends MetisError {
     constructor(message = '') {
         super(`Jupiter Public Key is invalid: ` + message)
@@ -197,6 +206,15 @@ class MetisErrorFailedUserAuthentication extends MetisError {
     }
 }
 
+class MetisErrorJupiterNoResponse extends MetisError {
+    constructor(message = '') {
+        super(`Jupiter is down. (Bad Gateway) ` + message)
+        this.name = "MetisErrorJupiterNoResponse"
+        this.code = MetisErrorCode.MetisErrorJupiterNoResponse;
+        Object.setPrototypeOf(this, MetisErrorJupiterNoResponse.prototype); //fixes a problem with instanceof
+    }
+}
+
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -205,7 +223,7 @@ module.exports.BadGravityAccountPropertiesError = BadGravityAccountPropertiesErr
 module.exports.ChannelRecordValidatorError = ChannelRecordValidatorError;
 module.exports.InviteRecordValidatorError = InviteRecordValidatorError;
 module.exports.MetisErrorPublicKeyExists = MetisErrorPublicKeyExists;
-module.exports.BinaryAccountExistsError = BinaryAccountExistsError;
+module.exports.MetisErrorBinaryAccountExistsError = MetisErrorBinaryAccountExistsError;
 module.exports.FundingNotConfirmedError = FundingNotConfirmedError;
 module.exports.MetisErrorWeakPassword = MetisErrorWeakPassword;
 module.exports.MetisErrorSaveJobQueue = MetisErrorSaveJobQueue;
@@ -217,3 +235,5 @@ module.exports.MetisErrorBadJupiterPublicKey = MetisErrorBadJupiterPublicKey;
 module.exports.MetisErrorNoChannelAccountFound = MetisErrorNoChannelAccountFound;
 module.exports.MetisErrorBadJupiterGateway = MetisErrorBadJupiterGateway;
 module.exports.MetisErrorFailedUserAuthentication = MetisErrorFailedUserAuthentication;
+module.exports.MetisErrorJupiterNoResponse = MetisErrorJupiterNoResponse;
+module.exports.MetisErrorBadUuid = MetisErrorBadUuid;

@@ -503,26 +503,9 @@ class JupiterAccountService {
             )
             const latestUserE2EPublicKeys = latestE2EPublicKeysContainers.map(containers => containers.message);
             const latestUserE2ETransactionIds = latestE2EPublicKeysContainers.map(containers => containers.transactionId);
-
-
-            console.log(`\n\n`);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-            console.log(`e2ePublicKey:`);
-            console.log(e2ePublicKey);
-            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-
-            console.log(`\n\n`);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-            console.log(`latestUserE2EPublicKeys:`);
-            console.log(latestUserE2EPublicKeys);
-            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-
             if (latestUserE2EPublicKeys.some(pk => pk.e2ePublicKey === e2ePublicKey)) {
                 throw new mError.MetisErrorPublicKeyExists('', e2ePublicKey);
             }
-
-
-
             //Send A New PublicKey Transaction
             const encryptedMessage = gravityAccountProperties.crypto.encryptJson(payload);
             const userE2EPublicKeyResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(

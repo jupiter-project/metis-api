@@ -21,7 +21,72 @@ module.exports = (app, jobs, websocket) => {
     // app.get('/v1/api/jupiter/alias/:aliasName', async (req, res) => {
     //     const aliasCheckup = await gravity.getAlias(req.params.aliasName);
 
-        app.get('/jim/v1/api/files'  , async (req, res,next) => {
+    app.get('/jim/v1/api/channels/:channelAddress/files/:fileUuid'  , async (req, res,next) => {
+        console.log(`\n\n\n`);
+        logger.info('======================================================================================');
+        logger.info('== GET: /jim/v1/api/files/:fileUuid');
+        logger.info(`======================================================================================\n\n\n`);
+
+        const userAccountProperties =  req.user.gravityAccountProperties;
+        const {fileUuid, channelAddress} = req.params;
+        if(!gu.isWellFormedUuid(fileUuid)) {
+            const message = `fileUuid is invalid: ${fileUuid}`;
+            const error = new mError.MetisErrorBadJupiterAddress(message);
+            return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
+        }
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
+            const message = `channelAddress is invalid: ${channelAddress}`
+            const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
+            return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
+        }
+        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
+        if(channelAccountProperties === null) {
+            const error = new mError.MetisErrorNoChannelAccountFound(`User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`)
+            console.log(error);
+            return res.status(StatusCode.ClientErrorNotAcceptable).send({message: `User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`, code: error.code});
+        }
+
+        // {
+        //    file: {
+        //     fileCat: fileCat,
+        //     fileUuid: fileUuid,
+        //     fileName: fileName,
+        //     mimeType: mimeType,
+        //     sizeInKb: size,
+        //     originalSenderAddress: originalSenderAddress,
+        //     url: `v1/jim/channels/JUP-123/files/${fileUuid}`,
+        //     buffer: 'here',
+        //     linkedFileRecords: [{
+        //         version: 1,
+        //         fileCat: fileCat,
+        //         fileUuid: fileUuid,
+        //         fileName: fileName,
+        //         mimeType: mimeType,
+        //         sizeInKb: size,
+        //         originalSenderAddress: originalSenderAddress,
+        //         url: `v1/jim/channels/JUP-123/files/${fileUuid}`,
+        //         status: 'active',
+        //     }]
+        // }
+        // })
+        const fileJson = await storageService.fetchFile(channelAccountProperties, fileUuid);
+
+
+
+        //
+        //
+        // res.setHeader('Content-Type', mimetype);
+        // res.setHeader('Content-Disposition', `inline; filename="${originalname}"`);
+        // const readable = Readable.from(buffer);
+        // readable.pipe(res);
+        //
+
+
+        // return res.status(StatusCode.SuccessOK).send(
+
+    })
+
+    app.get('/jim/v1/api/files'  , async (req, res,next) => {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
         logger.info('== GET: /jim/v1/api/files');
@@ -32,24 +97,24 @@ module.exports = (app, jobs, websocket) => {
             const {channelAddress} = req.query;
             // const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
             // if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`${userAccountProperties.address} doesnt have a channel account`)
-            // const binaryAccountProperties = await storageService.getBinaryAccountPropertiesOrNull(channelAccountProperties);
+            // const binaryAccountProperties = await storageService.fetchBinaryAccountPropertiesOrNull(channelAccountProperties);
             // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
             // if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
 
             const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress);
-
             //async fetchChannelFilesList(userAccountProperties, channelAddress){
             res.status(StatusCode.SuccessOK).send({
-                message: `${filesList.length} files found for ${channelAddress}`,
-                files: [
-                    {
-                        uuid: '123',
-                        href: `/jim/v1/api/files/123`,
-                        filename: 'pando',
-                        more: 'more'
-                    }
-                ]
+                message: `${filesList.length} file(s) found for ${channelAddress}`,
+                files: filesList
             })
+                // [
+                // {
+                //     uuid: '123',
+                //     href: `/jim/v1/api/files/123`,
+                //     filename: 'pando',
+                //     more: 'more'
+                // }
+                // ]
         } catch(error) {
             logger.error(`********************** ERROR ******************************************`);
             logger.error(`** GET /jim/v1/api/files`);
@@ -134,11 +199,7 @@ module.exports = (app, jobs, websocket) => {
                         code: MetisErrorCode.MetisError
                     });
                 }
-
                 abortOnError( ()=> {
-
-
-
                     if(formDataKey === 'file') {
                         logger.verbose(`---- bb.on(file)`);
                         if (!gu.isNonEmptyString(info.filename)) {
@@ -172,8 +233,6 @@ module.exports = (app, jobs, websocket) => {
                         })
                         // fsStream.on('close', async ()=>{})
                     }
-
-
                 })
             })
             bb.on('close', async () => {
@@ -188,9 +247,10 @@ module.exports = (app, jobs, websocket) => {
                     }
                     // res.status(StatusCode.ClientErrorBadRequest).send({message:`file is too large. Limit is ${jimConfig.maxMbSize} MB` })
 
+
+                    //@TODO not needed. confirm before removing.
                     if (!gu.isWellFormedJupiterAddress(fileUploadData.get('attachToJupiterAddress'))) {
                         throw new mError.MetisError(`attachToJupiterAddress is invalid: ${fileUploadData.get('attachToJupiterAddress')}`)
-                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `attachToJupiterAddress is invalid: ${fileUploadData.get('attachToJupiterAddress')}`})
                     }
                     if (fileUploadData.get('fileName') === undefined) {
                         throw new mError.MetisError(`fileName is invalid: ${fileUploadData.get('fileName')}`)
@@ -215,8 +275,9 @@ module.exports = (app, jobs, websocket) => {
                         job: {
                             id: job.id,
                             createdAt: job.created_at,
-                            href: `/v1/api/job/status?jobId=${job.id}`,
+                            url: `/v1/api/job/status?jobId=${job.id}`,
                         },
+                        fileUuid: fileUuid,
                         fileUrl: `/v1/api/files/${fileUuid}`
                     })
                 } catch(error) {

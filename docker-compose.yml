@@ -9,8 +9,12 @@ services:
       - 28017:28017
   redis:
     image: "redis"
+    volumes:
+      - $PWD/redis-data:/var/lib/redis
+      - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
     ports:
       - "6380:6379"
+    restart: on-failure
   metis:
     build: .
     depends_on:

@@ -85,14 +85,14 @@ class TransactionUtils {
          * @returns {boolean}
          */
         areValidTransactions(transactions) {
-            logger.verbose('#### areValidTransactions(transactions)');
             if(!gu.isNonEmptyArray(transactions)){
                 logger.warn('transactions is not an array with values');
                 console.log(transactions);
                 return false;
             }
-
-            return transactions.every(t => this.isValidBaseTransaction(t))
+            return transactions.every(t => {
+                return this.isValidBaseTransaction(t)
+            })
         }
 
     /**
@@ -130,70 +130,14 @@ class TransactionUtils {
             logger.warn('transaction is empty')
             return false
         }
-
-
         const valid = validator.validateBaseTransaction(transaction);
         if(!valid.isValid){
-            console.log(transaction);
-            logger.debug(`transaction is not valid ${valid.message}`);
+            logger.debug(`Validation: Transaction is not valid ${valid.message}`);
             console.log(valid.errors);
         }
+
+        logger.debug(`Validation: Transaction is valid`);
         return valid.isValid;
-        //
-        // // const validatorResult = validator.validateBaseTransaction(transaction);
-        // // if(!validatorResult.isValid){
-        // //     throw new Error(validatorResult.message);
-        // // }
-        //
-        //
-        //
-        // const transactionProperties = [
-        //     "senderPublicKey",
-        //     "signature",
-        //     "feeNQT",
-        //     "type",
-        //     "fullHash",
-        //     "version",
-        //     "phased",
-        //     "ecBlockId",
-        //     "signatureHash",
-        //     "attachment",
-        //     'senderRS',
-        //     "subtype",
-        //     "amountNQT",
-        //     "sender",
-        //     // "recipientRS", // type1 subtype 1 doesnt have a recipient: ie alias assignment
-        //     // "recipient", // type1 subtype 1 doesnt have recipient
-        //     "ecBlockHeight",
-        //     "deadline",
-        //     "transaction",
-        //     "timestamp",
-        //     "height"
-        // ]
-        //
-        // try {
-        //     const transactionKeys = Object.keys(transaction);
-        //
-        //     for (let i = 0; i < transactionProperties.length; i++) {
-        //         if (transactionKeys.indexOf(transactionProperties[i]) === -1) {
-        //             logger.warn('INVALID BaseTransaction');
-        //             logger.warn(`missing property:  ${transactionProperties[i]}`)
-        //             console.log(transaction)
-        //             return false;
-        //         }
-        //     }
-        //
-        //
-        //     return true;
-        // } catch (error) {
-        //     logger.error(`****************************************************************`);
-        //     logger.error(`** isValidBaseTransaction(t).catch(error)`);
-        //     logger.error(`** `);
-        //     logger.error(`   error= ${error}`)
-        //     throw error;
-        //
-        //     return false;
-        // }
     }
 
 
@@ -329,19 +273,17 @@ class TransactionUtils {
      */
     filterTransactionsByTransactionIds(transactions, blackList = [], whiteList = []){
         logger.sensitive(`#### filterTransactionsByTransactionIds(transactions, blackList , whiteLis)`);
-        if (blackList === null && whiteList === null) return transactions;
         if(!this.areValidTransactions(transactions)) throw new mError.MetisError(`transactions are invalid`);
         if(!(Array.isArray(blackList) )) throw new mError.MetisError(`blacklist is not an array`)
         if(!(Array.isArray(whiteList) )) throw new mError.MetisError(`whiteList is not an array`)
-
-        let filteredTransactions = []
+        let filteredTransactions = [...transactions];
         if(blackList.length > 0){
+            logger.info(`- Blacklist count ${blackList.length}`);
             filteredTransactions = transactions.filter(transaction => {
                 const transactionId = transaction.transaction;
                 return ! blackList.some(item => item === transactionId); // if in black list then return false;
             })
         }
-
         if(whiteList.length > 0) {
             filteredTransactions = filteredTransactions.filter(transaction => {
                 const transactionId = transaction.transaction;
