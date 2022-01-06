@@ -35,6 +35,11 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').load();
 }
 
+
+// index.js
+const path = require('path');
+global.appRoot = path.resolve(__dirname);
+
 const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
 const express = require('express');
