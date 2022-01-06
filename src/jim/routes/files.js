@@ -71,8 +71,24 @@ module.exports = (app, jobs, websocket) => {
         // })
 
         try {
-            const fileJson = await storageService.fetchFile(channelAccountProperties, fileUuid);
+            const buffer = await storageService.fetchFile(channelAccountProperties, fileUuid);
+            // const bb = busboy({
+            //     headers: req.headers,
+            //     limits: {files: 1, fileSize: jimConfig.maxMbSize}
+            // });
+
+            // res.setHeader('Content-Type', mimetype);
+            res.setHeader('Content-Disposition', `inline; filename="test"`);
+            res.send(buffer);
+            // const readable = Readable.from(buffer);
+            // readable.pipe(res);
+
         } catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** /jim/v1/api/channels/:channelAddress/files/:fileUuid.catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            console.log(error);
             if(error instanceof mError.MetisErrorNoBinaryFileFound){
                 return res.status(StatusCode.ClientErrorNotFound).send({message: 'File Not Found', code: error.code, fileUuid: error.fileUuid});
             }
