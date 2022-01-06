@@ -97,6 +97,28 @@ class TransactionUtils {
 
     /**
      *
+     * @param transactions
+     * @param orderBy
+     * @return {*[]|*}
+     */
+        sortTransactionsByTimestamp(transactions, orderBy = 'desc'){
+            if(!(orderBy === 'desc' || orderBy === 'asc')) throw mError.MetisError(`orderby is invalid`);
+            if(!Array.isArray(transactions)) throw mError.MetisError('transactions not an Array');
+            const sortedTransactions = [...transactions];
+            if(sortedTransactions.length === 0 ) return transactions;
+            const valid = transactions.every(t => t.hasOwnProperty('timestamp'));
+            if(!valid) throw new mError.MetisError(`Transactions are not valid`);
+            sortedTransactions.sort((a,b) => {
+                if(orderBy === 'desc') return new Date(b.timestamp) - new Date(a.timestamp)
+                if (orderBy === 'asc') return new Date(a.timestamp) - new Date(b.timestamp);
+                throw new Error(`orderBy is invalid ${orderBy}`);
+            });
+            return  sortedTransactions;
+        }
+
+
+    /**
+     *
      * @param messageTransaction
      * @returns {boolean}
      */
