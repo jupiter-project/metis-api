@@ -136,23 +136,14 @@ module.exports = (app, jobs, websocket) => {
         const fileUuid = uuidv1();
         fileUploadData.set('fileUuid', fileUuid);
         fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties);
-        fileUploadData.set('attachToJupiterAddress', req.body.attachToJupiterAddress);
-        fileUploadData.set('fileName', 'testfile');
-        fileUploadData.set('fileEncoding', req.body.file.data);
-        fileUploadData.set('fileMimeType', req.body.file.type);
         const filePath = path.join(os.tmpdir(), `jim-${fileUuid}`);
+        console.log('File path:', filePath);
         fileUploadData.set('filePath', filePath)
         const workQueue = new PQueue({ concurrency: 1 });
 
 
-        const buffer = Buffer.from(req.body.file.data, 'base64');
-        const form = new FormData();
-        const formOptions = { filename: 'testfile', contentType: req.body.file.type };
-        form.append('file', buffer, formOptions);
-
-
         const bb = busboy({
-            headers: {'content-type': `multipart/form-data; boundary=${form.getBoundary()}`},
+            headers: req.headers,
             limits: {files: 1, fileSize: jimConfig.maxMbSize}
         });
 
@@ -239,6 +230,13 @@ module.exports = (app, jobs, websocket) => {
                             console.log(`CHUNK got ${data.length} bytes`);
                         })
                         const fsStream = fs.createWriteStream(filePath);
+                        fsStream.on( 'error', error => {
+                            logger.error(`Error writing file ${error}`);
+                            return res.status(StatusCode.ServerErrorInternal).send({
+                                message: 'Internal server error',
+                                code: MetisErrorCode.MetisError
+                            });
+                        });
                         const m = meter();
                         file.pipe(m).pipe(fsStream).on('finish', () => {
                             fileUploadData.set('fileSize', m.bytes)

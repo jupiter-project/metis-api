@@ -250,7 +250,7 @@ class AccountRegistration {
             //Fourth: Set The Alias
             this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
             //Fifth: Create the binaryAccount
-            this.binaryAccountJob.create(newAccountProperties);
+            // this.binaryAccountJob.create(newAccountProperties);
 
 
             return;

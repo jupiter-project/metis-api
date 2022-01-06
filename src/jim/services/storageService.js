@@ -129,27 +129,34 @@ class StorageService {
     async fetchBinaryRecordAssociatedToAccountOrNull(gravityAccountProperties){
         logger.sensitive(`#### fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties)`);
         if(!(gravityAccountProperties instanceof GravityAccountProperties)){throw new Error(`userAccountProperties is invalid`)}
-        const tag = transactionTags.jimServerTags.binaryAccountRecord;
-        const binaryRecordContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
-            gravityAccountProperties,
-            tag,
-            true,
-            null,
-            null,
-            tns => tns.senderRS === gravityAccountProperties.address
+        try{
+            const tag = transactionTags.jimServerTags.binaryAccountRecord;
+            const binaryRecordContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
+                gravityAccountProperties,
+                tag,
+                true,
+                null,
+                null,
+                tns => tns.senderRS === gravityAccountProperties.address
 
-        );
-        if(binaryRecordContainers.length > 1){
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            logger.info(`++ There are more than 1 binaryRecords: ${binaryRecordContainers.length}`);
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        }
-        const firstBinaryAccountContainer = gu.arrayShiftOrNull(binaryRecordContainers);
-        if(!firstBinaryAccountContainer) {
-            return null
-        }
+            );
+            if(binaryRecordContainers.length > 1){
+                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                logger.info(`++ There are more than 1 binaryRecords: ${binaryRecordContainers.length}`);
+                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            }
+            const firstBinaryAccountContainer = gu.arrayShiftOrNull(binaryRecordContainers);
+            if(!firstBinaryAccountContainer) {
+                logger.debug(`Null binary found: ${gravityAccountProperties.address}`);
+                return null
+            }
 
-        return firstBinaryAccountContainer.message;
+            return firstBinaryAccountContainer.message;
+        } catch (error){
+            logger.error(`Error-> [fetchBinaryRecordAssociatedToAccountOrNull]: ${gravityAccountProperties.address}`);
+            console.log(error);
+            throw error;
+        }
     }
 
     /**
@@ -305,15 +312,15 @@ class StorageService {
             binaryAccountProperties,
             fileRecordTag
         )
-        
+
         console.log(`\n\n`);
         console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
         console.log(`fileRecordMessageContainers:`);
         console.log(fileRecordMessageContainers);
         console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-        
-        
-        
+
+
+
         const fileRecordMessageContainer = fileRecordMessageContainers[0]
         const chunkTransactionIds = fileRecordMessageContainer.message.chunkTransactionIds;
 
