@@ -103,10 +103,7 @@ const isWellFormedJupiterAlias = function(alias){
     if(!isNonEmptyString(alias)){return false};
     // must contain only digits and latin letters)
     const re = /^([a-zA-Z]|[0-9])*$/;
-    if(re.test(alias)){
-        return true;
-    }
-
+    if(re.test(alias)) return true;
     return false;
 }
 
@@ -241,14 +238,8 @@ const isWellFormedPassphrase = function(passphrase){
  * @return {boolean}
  */
 const isNumberGreaterThanZero = function(number) {
-    if(typeof number !== 'number'){
-        return false;
-    }
-
-    if(number > 0){
-        return true;
-    }
-
+    if(typeof number !== 'number') return false;
+    if(number > 0) return true;
     return false
 }
 

@@ -27,4 +27,6 @@ module.exports.MetisErrorCode = {
     MetisErrorFailedUserAuthentication: 16018,
     MetisErrorJupiterNoResponse: 16019,
     MetisErrorBadUuid: 16021,
+    MetisErrorNoBinaryFileFound: 16022,
+    MetisErrorBadJupiterAlias: 16023,
 }

@@ -5,6 +5,7 @@ const moment = require('moment'); // require
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const bcrypt = require("bcrypt-nodejs");
+const mError = require("../../../errors/metisError");
 
 module.exports = (app, jobs, websocket) => {
     /**
@@ -21,6 +22,15 @@ module.exports = (app, jobs, websocket) => {
         const alias = req.body.alias;
         if (!password) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide a password'})
         if (!alias) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide an alias'})
+        if(!gu.isWellFormedJupiterAlias(alias)){
+            const error =  new mError.MetisErrorBadJupiterAlias(alias);
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** /metis/v2/api/signup.catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            console.log(error)
+            res.status(StatusCode.ClientErrorBadRequest).send({message: 'alias is invalid', code: error.code});
+        }
         const newAccountProperties = await accountRegistration.createNewAccount(password);
         const job = jobs.create('MetisJobRegisterJupiterAccount', {userAccountProperties: newAccountProperties, userAlias: alias})
             .priority('high')

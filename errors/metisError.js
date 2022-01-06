@@ -199,7 +199,7 @@ class MetisErrorBadJupiterGateway extends MetisError {
 
 class MetisErrorFailedUserAuthentication extends MetisError {
     constructor(message = '') {
-        super(`Jupiter is down. (Bad Gateway) ` + message)
+        super(`User Authentication Problem ` + message)
         this.name = "MetisErrorFailedUserAuthentication"
         this.code = MetisErrorCode.MetisErrorFailedUserAuthentication;
         Object.setPrototypeOf(this, MetisErrorFailedUserAuthentication.prototype); //fixes a problem with instanceof
@@ -208,10 +208,30 @@ class MetisErrorFailedUserAuthentication extends MetisError {
 
 class MetisErrorJupiterNoResponse extends MetisError {
     constructor(message = '') {
-        super(`Jupiter is down. (Bad Gateway) ` + message)
+        super(`No Response From Jupiter ` + message)
         this.name = "MetisErrorJupiterNoResponse"
         this.code = MetisErrorCode.MetisErrorJupiterNoResponse;
         Object.setPrototypeOf(this, MetisErrorJupiterNoResponse.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorNoBinaryFileFound extends MetisError {
+    constructor(message = '', fileUuid = '') {
+        super(`No File Found: ${message} - file uuid: ${fileUuid}`)
+        this.name = "MetisErrorNoBinaryFileFound"
+        this.fileUuid = fileUuid;
+        this.code = MetisErrorCode.MetisErrorNoBinaryFileFound;
+        Object.setPrototypeOf(this, MetisErrorNoBinaryFileFound.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorBadJupiterAlias extends MetisError {
+    constructor(message = '', alias = '') {
+        super(`Alias is invalid: ${alias}`)
+        this.name = "MetisErrorBadJupiterAlias"
+        this.alias = alias;
+        this.code = MetisErrorCode.MetisErrorBadJupiterAlias;
+        Object.setPrototypeOf(this, MetisErrorBadJupiterAlias.prototype); //fixes a problem with instanceof
     }
 }
 
@@ -237,3 +257,5 @@ module.exports.MetisErrorBadJupiterGateway = MetisErrorBadJupiterGateway;
 module.exports.MetisErrorFailedUserAuthentication = MetisErrorFailedUserAuthentication;
 module.exports.MetisErrorJupiterNoResponse = MetisErrorJupiterNoResponse;
 module.exports.MetisErrorBadUuid = MetisErrorBadUuid;
+module.exports.MetisErrorNoBinaryFileFound = MetisErrorNoBinaryFileFound;
+module.exports.MetisErrorBadJupiterAlias = MetisErrorBadJupiterAlias;

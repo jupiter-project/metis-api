@@ -70,10 +70,15 @@ module.exports = (app, jobs, websocket) => {
         //     }]
         // }
         // })
-        const fileJson = await storageService.fetchFile(channelAccountProperties, fileUuid);
 
-
-
+        try {
+            const fileJson = await storageService.fetchFile(channelAccountProperties, fileUuid);
+        } catch(error){
+            if(error instanceof mError.MetisErrorNoBinaryFileFound){
+                return res.status(StatusCode.ClientErrorNotFound).send({message: 'File Not Found', code: error.code, fileUuid: error.fileUuid});
+            }
+            res.status(StatusCode.ServerErrorInternal).send({message: 'Server Error.', code: error.code});
+        }
         //
         //
         // res.setHeader('Content-Type', mimetype);
@@ -81,8 +86,6 @@ module.exports = (app, jobs, websocket) => {
         // const readable = Readable.from(buffer);
         // readable.pipe(res);
         //
-
-
         // return res.status(StatusCode.SuccessOK).send(
 
     })
@@ -104,18 +107,23 @@ module.exports = (app, jobs, websocket) => {
 
             const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress);
             //async fetchChannelFilesList(userAccountProperties, channelAddress){
+            const mappedFileList = filesList.map(file => {
+                return {
+                    fileUuid: file.fileUuid,
+                    fileCategory: file.fileCat,
+                    fileName: file.fileName,
+                    mimeType: file.mimeType,
+                    sizeInBytes: file.sizeInBytes,
+                    url: file.url,
+                    createdAt: file.createdAt,
+                    createdBy: file.createdBy,
+                    version: file.version
+                }
+            })
             res.status(StatusCode.SuccessOK).send({
                 message: `${filesList.length} file(s) found for ${channelAddress}`,
                 files: filesList
             })
-                // [
-                // {
-                //     uuid: '123',
-                //     href: `/jim/v1/api/files/123`,
-                //     filename: 'pando',
-                //     more: 'more'
-                // }
-                // ]
         } catch(error) {
             logger.error(`********************** ERROR ******************************************`);
             logger.error(`** GET /jim/v1/api/files`);
