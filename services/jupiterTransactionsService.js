@@ -104,12 +104,16 @@ class JupiterTransactionsService {
         lastIndex = null,
         transactionFilterCallback = null
     ){
-        logger.verbose(`#### getReadableTaggedMessageContainers(gravityAccountProperties, tag=${tag}, isMetisEncrypted=${isMetisEncrypted})`);
-        if (!(gravityAccountProperties instanceof GravityAccountProperties)){
-            throw new MetisError('memberAccountProperties is invalid')
-        }
-        logger.verbose(`gravityAccountProperties.address= ${gravityAccountProperties.address}`);
+        console.log(`\n`)
+        logger.verbose(`########################################################################`);
+        logger.verbose(`## getReadableTaggedMessageContainers(gravityAccountProperties, tag, isMetisEncrypted)`);
+        logger.verbose(`########################################################################\n`);
+        if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`)
         if(!gu.isNonEmptyString(tag)){throw new MetisError('tag is invalid')};
+        logger.verbose(`tag= ${tag}`);
+        logger.verbose(`isMetisEncrypted= ${isMetisEncrypted}`);
+        logger.verbose(`gravityAccountProperties.address= ${gravityAccountProperties.address}`);
+
         const transactions = await this.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
             gravityAccountProperties.address,
             tag,
@@ -256,18 +260,31 @@ class JupiterTransactionsService {
         if(!hasInvalidTransactions){
             throw new mError.MetisError(`Transactions from Jupiter are invalid!`);
         }
-        combinedTransactions.sort((a,b) => {
-            if(orderBy === 'desc'){
-                return new Date(b.timestamp) - new Date(a.timestamp)
-            }
-            if (orderBy === 'asc'){
-                return new Date(a.timestamp) - new Date(b.timestamp);
-            }
-            throw new Error(`orderBy is invalid ${orderBy}`);
-        });
-        logger.debug(`combinedTransactions.length= ${combinedTransactions.length}`);
+        const sortedCombinedTransactions = this.transactionUtils.sortTransactionsByTimestamp(combinedTransactions, orderBy);
+        // combinedTransactions.sort((a,b) => {
+        //     if(orderBy === 'desc'){
+        //         return new Date(b.timestamp) - new Date(a.timestamp)
+        //     }
+        //     if (orderBy === 'asc'){
+        //         return new Date(a.timestamp) - new Date(b.timestamp);
+        //     }
+        //     throw new Error(`orderBy is invalid ${orderBy}`);
+        // });
+        logger.debug(`sortedCombinedTransactions.length= ${sortedCombinedTransactions.length}`);
 
-        // @TODO the following is prob not needed anymore.
+        // sortedCombinedTransactions.forEach(t=>{
+        //      if(!(t.hasOwnProperty('attachment') && t.attachment.hasOwnProperty('message'))){
+        //          logger.warn(`Tags arent working! this transaction doesnt belong, Json not well formed`);
+        //          logger.warn(`tag= ${tag}`);
+        //          console.log(t);
+        //      } else if(!t.attachment.message.includes(tag)){
+        //          logger.warn(`Tags arent working! this transaction doesnt belong. Tag is missing`);
+        //          logger.warn(`tag= ${tag}`);
+        //          console.log(t);
+        //      }
+        // })
+
+        // @TODO Jupiter needs to be fixed!
         return combinedTransactions.filter(transaction => {
             return transaction.hasOwnProperty('attachment') &&
                 transaction.attachment.hasOwnProperty('message') &&
@@ -283,7 +300,16 @@ class JupiterTransactionsService {
      * @param {number|null} [lastIndex=null]
      * @return {Promise<{unconfirmedTransactions: {senderPublicKey, signature, feeNQT, type, fullHash, version, phased, ecBlockId, signatureHash, attachment: {versionMessage, encryptedMessage: {data, nonce, isText, isCompressed}, versionEncryptedMessage, versionPublicKeyAnnouncement, recipientPublicKey, versionMetisAccountInfo, messageIsText, message}, senderRS, subtype, amountNQT, sender, recipientRS, recipient, ecBlockHeight, deadline, transaction, timestamp, height}[], requestProcessingTime}>}
      */
-    getUnconfirmedTransactionsByTag(address, tag, firstIndex = null, lastIndex = null) {
+
+    /**
+     *
+     * @param address
+     * @param tag
+     * @param firstIndex
+     * @param lastIndex
+     * @return {Promise<{senderPublicKey, signature, feeNQT, type, fullHash, version, phased, ecBlockId, signatureHash, attachment: {versionMessage, encryptedMessage: {data, nonce, isText, isCompressed}, versionEncryptedMessage, versionPublicKeyAnnouncement, recipientPublicKey, versionMetisAccountInfo, messageIsText, message}, senderRS, subtype, amountNQT, sender, recipientRS, recipient, ecBlockHeight, deadline, transaction, timestamp, height}[]|*[]>}
+     */
+    async getUnconfirmedTransactionsByTag(address, tag, firstIndex = null, lastIndex = null) {
         logger.verbose(`#### getUnconfirmedTransactionsByTag(address=${address}, tag=${tag}, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
@@ -292,26 +318,63 @@ class JupiterTransactionsService {
         if(firstIndex && !lastIndex){
             lastIndex = firstIndex+10;
         }
-        return this.jupiterAPIService.getUnconfirmedBlockChainTransactions(
-            address,
-            tag,
-            true,
-            1,
-            true,
-            firstIndex,
-            lastIndex
-        )
-            .then( response => {
-                if(!response.hasOwnProperty('data')){ return []}
-                if(!response.data.hasOwnProperty('unconfirmedTransactions')){ return []}
-                if(!Array.isArray(response.data.unconfirmedTransactions)){return []}
-                const transactions = response.data.unconfirmedTransactions;
-                return transactions.filter(transaction => {
-                    return transaction.hasOwnProperty('attachment') &&
-                        transaction.attachment.hasOwnProperty('message') &&
-                        transaction.attachment.message.includes(tag)
-                });
+        try {
+            const response = await this.jupiterAPIService.getUnconfirmedBlockChainTransactions(
+                address,
+                tag,
+                true,
+                1,
+                true,
+                firstIndex,
+                lastIndex
+            )
+
+            if (!response.hasOwnProperty('data')) {
+                throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Missing "data"');
+            }
+            if (!response.data.hasOwnProperty('unconfirmedTransactions')) {
+                console.log(response.data);
+                throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Missing "data.unconfirmedTransactions"');
+            }
+            if (!Array.isArray(response.data.unconfirmedTransactions)) {
+                console.log(response.data.unconfirmedTransactions);
+                throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Not Array "data.unconfirmedTransactions"');
+            }
+            const transactions = response.data.unconfirmedTransactions;
+
+            transactions.forEach(t => {
+                if(!(t.hasOwnProperty('attachment') && t.attachment.hasOwnProperty('message'))){
+                    console.log(`\n`);
+                    logger.warn('???????????????????????????????????????????????');
+                    logger.warn(`?? UNCONFIRMED.`)
+                    logger.warn(`?? Tags arent working! this transaction doesnt belong, Json not well formed`);
+                    logger.warn(`?? tag= ${tag}`);
+                    logger.warn('???????????????????????????????????????????????\n');
+                    console.log(t);
+                } else if(!t.attachment.message.includes(tag)){
+                    logger.warn('???????????????????????????????????????????????');
+                    logger.warn(`?? UNCONFIRMED.`)
+                    logger.warn(`?? Tags arent working! this transaction doesnt belong. Tag is missing`);
+                    logger.warn(`?? tag= ${tag}`);
+                    logger.warn('???????????????????????????????????????????????\n');
+                    console.log(t);
+                }
             })
+
+            return transactions.filter(transaction => {
+                return transaction.hasOwnProperty('attachment') &&
+                    transaction.attachment.hasOwnProperty('message') &&
+                    transaction.attachment.message.includes(tag)
+            });
+
+        }catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** getUnconfirmedTransactionsByTag().catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
     }
 
     /**
@@ -384,6 +447,33 @@ class JupiterTransactionsService {
             }
             return valid.isValid;
         })
+
+        filteredTransactions.forEach(t => {
+            if(!(t.hasOwnProperty('attachment') && t.attachment.hasOwnProperty('message'))){
+                console.log(`\n`);
+                logger.warn('???????????????????????????????????????????????');
+                logger.warn(`?? CONFIRMED TRANS.`)
+                logger.warn(`?? Tags arent working! this transaction doesnt belong, Json not well formed`);
+                logger.warn(`?? tag= ${tag}`);
+                logger.warn('???????????????????????????????????????????????\n');
+                console.log(t);
+            } else if(!t.attachment.message.includes(tag)){
+                logger.warn('???????????????????????????????????????????????');
+                logger.warn(`?? CONFIRMED TRANS.`)
+                logger.warn(`?? Tags arent working! this transaction doesnt belong. Tag is missing`);
+                logger.warn(`?? tag= ${tag}`);
+                logger.warn('???????????????????????????????????????????????\n');
+                console.log(t);
+            }
+        })
+
+        return transactions.filter(transaction => {
+            return transaction.hasOwnProperty('attachment') &&
+                transaction.attachment.hasOwnProperty('message') &&
+                transaction.attachment.message.includes(tag)
+        });
+
+
 
         return filteredTransactions;
     }

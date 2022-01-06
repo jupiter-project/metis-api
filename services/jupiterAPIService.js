@@ -96,10 +96,9 @@ class JupiterAPIService {
             }
             if (response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription') && response.data.errorDescription) {
                 logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`);
-                logger.error(`errorDescription= ${response.data.errorDescription}`)
-                logger.error(`errorCode= ${response.data.errorCode}`)
-                // logger.sensitive(`url= ${url}`)
-                // logger.sensitive(`request data= ${JSON.stringify(data)}`)
+                logger.error(`errorDescription= ${response.data.errorDescription}`);
+                logger.error(`errorCode= ${response.data.errorCode}`);
+                logger.sensitive(`params= ${JSON.stringify(params)}`);
                 throw new JupiterApiError(response.data.errorDescription, StatusCode.ServerErrorInternal)
             }
             return response;
@@ -109,7 +108,7 @@ class JupiterAPIService {
             logger.error(`****************************************************************`);
             logger.error(`rtype= ${rtype}`);
             logger.error(`url= ${url}`);
-            logger.error(`params= ${params}`);
+            logger.error(`params= ${JSON.stringify(params)}`);
             if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
@@ -312,7 +311,7 @@ class JupiterAPIService {
      *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
      *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
      */
-    getBlockChainTransactions(
+    async getBlockChainTransactions(
         address,
         message = null ,
         withMessage = false,
@@ -321,10 +320,10 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         const requestType = JupiterAPIService.RequestType.GetBlockchainTransactions;
-        return this._getConfirmedOrUnconfirmedBlockChainTransactions(
+        const transactionsResponse = await this._getConfirmedOrUnconfirmedBlockChainTransactions(
             requestType,
             address,
             message ,
@@ -334,6 +333,8 @@ class JupiterAPIService {
             firstIndex,
             lastIndex
         )
+        // logger.debug(`total found: ${transactionsResponse.data.transactions.length}`)
+        return transactionsResponse;
     }
 
 
@@ -388,12 +389,12 @@ class JupiterAPIService {
      * @param {number|null} [firstIndex=null]
      * @param {number|null} [lastIndex=null]
      * @returns {Promise<{
-     *          unconfirmedTransactions: [
-     *              {senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
-     *                  versionMessage,encryptedMessage: {data,nonce,isText,isCompressed},
-     *                  versionEncryptedMessage,versionPublicKeyAnnouncement,recipientPublicKey,versionMetisAccountInfo,messageIsText,message},
-     *               senderRS,subtype,amountNQT,sender,recipientRS,recipient,ecBlockHeight,deadline,transaction,timestamp,height}],
-     *           requestProcessingTime }
+     *          data: {unconfirmedTransactions: [
+     *                  {senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
+     *                      versionMessage,encryptedMessage: {data,nonce,isText,isCompressed},
+     *                      versionEncryptedMessage,versionPublicKeyAnnouncement,recipientPublicKey,versionMetisAccountInfo,messageIsText,message},
+     *                   senderRS,subtype,amountNQT,sender,recipientRS,recipient,ecBlockHeight,deadline,transaction,timestamp,height}],
+     *           requestProcessingTime }}
      *           >}
      */
     async getUnconfirmedBlockChainTransactions(
@@ -405,8 +406,14 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, witMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
-        return this._getConfirmedOrUnconfirmedBlockChainTransactions(
+        logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`);
+        logger.verbose(`address= ${address}`);
+        logger.verbose(`message= ${message}`);
+        logger.verbose(`withMessage= ${withMessage}`);
+        logger.verbose(`type= ${type}`);
+        logger.verbose(`firstIndex= ${firstIndex}`);
+        const transactionsResponse = await this._getConfirmedOrUnconfirmedBlockChainTransactions(
             JupiterAPIService.RequestType.GetUnconfirmedTransactions,
             address,
             message,
@@ -416,6 +423,8 @@ class JupiterAPIService {
             firstIndex,
             lastIndex
         )
+        // logger.debug(`unconfirmed transactions found: ${transactionsResponse.unconfirmedTransactions}`);
+        return transactionsResponse;
     }
 
     /**
@@ -431,10 +440,18 @@ class JupiterAPIService {
      * @param {boolean} [includeExpiredPrunable=true]
      * @param {number|null} [firstIndex=null]
      * @param {number|null} [lastIndex=null]
-     * @returns {Promise<{ data: {requestProcessingTime,
-     *                     transactions: [{signature, transactionIndex,type,phased,ecBlockId,signatureHash,
-     *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
-     *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
+     * @returns {Promise<{
+     *      data: {requestProcessingTime,
+*                  transactions: [{signature, transactionIndex,type,phased,ecBlockId,signatureHash,
+*                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
+*                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]} |
+     *     { data: { unconfirmedTransactions: [
+     *              {senderPublicKey,signature,feeNQT,type,fullHash,version,phased,ecBlockId,signatureHash, attachment: {
+     *                  versionMessage,encryptedMessage: {data,nonce,isText,isCompressed},
+     *                  versionEncryptedMessage,versionPublicKeyAnnouncement,recipientPublicKey,versionMetisAccountInfo,messageIsText,message},
+     *               senderRS,subtype,amountNQT,sender,recipientRS,recipient,ecBlockHeight,deadline,transaction,timestamp,height}],
+     *           requestProcessingTime }, requestProcessingTime}
+     *                                   }>}
      */
     async _getConfirmedOrUnconfirmedBlockChainTransactions(
         requestType,
@@ -446,27 +463,50 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType =${requestType}, address= ${address}, message= ${message}, witMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.sensitive(`#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType, address, message, withMessage, type, includeExpiredPrunable, firstIndex, lastIndex)`);
         if(!(requestType === JupiterAPIService.RequestType.GetBlockchainTransactions || requestType === JupiterAPIService.RequestType.GetUnconfirmedTransactions)){
             throw new Error(`requestType is invalid: ${requestType}`)
         }
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
-        let params = {
-            requestType: requestType,
-            account: address,
-            type,
-            withMessage,
-            includeExpiredPrunable
-        };
-
-        if(withMessage && message){
-            params = {...params, message}
+        logger.verbose(`requestType = ${requestType}`);
+        logger.verbose(`address = ${address}`);
+        logger.verbose(`message = ${message}`);
+        logger.verbose(`withMessage = ${withMessage}`);
+        logger.verbose(`type = ${type}`);
+        logger.verbose(`firstIndex = ${firstIndex}`);
+        logger.verbose(`lastIndex = ${lastIndex}`);
+        logger.verbose(`includeExpiredPrunable = ${includeExpiredPrunable}`);
+        try {
+            let params = {
+                requestType: requestType,
+                account: address,
+                type,
+                withMessage,
+                includeExpiredPrunable
+            };
+            if (withMessage && message) params = {...params, message}
+            if (!isNaN(firstIndex) && firstIndex >= 0) params.firstIndex = firstIndex
+            if (!isNaN(lastIndex) && lastIndex >= 0) params.lastIndex = lastIndex
+            const response = await this.get(params);
+            console.log(`\n`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            if (requestType === JupiterAPIService.RequestType.GetBlockchainTransactions) {
+                logger.verbose(`++ Total ${requestType}: ${response.data.transactions.length}`);
+            } else if (requestType === JupiterAPIService.RequestType.GetUnconfirmedTransactions) {
+                logger.verbose(`++ Total ${requestType}: ${response.data.unconfirmedTransactions.length}`);
+            }
+            logger.verbose(`++ Message: ${message}`);
+            logger.verbose(`++ Address: ${address}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
+            return response;
+        } catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** _getConfirmedOrUnconfirmedBlockChainTransactions().catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`);
+            throw error;
         }
-
-        if(!isNaN(firstIndex) && firstIndex >= 0){ params.firstIndex = firstIndex }
-        if(!isNaN(lastIndex) && lastIndex >= 0){ params.lastIndex = lastIndex }
-
-        return this.get(params);
     }
 
     /**
@@ -1057,9 +1097,9 @@ class JupiterAPIService {
      */
     setAlias(address,passphrase, alias) {
         logger.verbose(`#### setAlias(address,passphrase, alias)`);
-        if(!gu.isWellFormedJupiterAddress(address)){throw new MetisError(address)};
-        if(!gu.isWellFormedPassphrase(passphrase)){throw new MetisError(passphrase)};
-        if(!alias) {throw new MetisError('need an alias value')}
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        if(!gu.isWellFormedPassphrase(passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(`passphrase`)
+        if(!gu.isWellFormedJupiterAlias(alias)) throw new mError.MetisErrorBadJupiterAlias(alias);
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment);
         const newParams = {
             requestType: JupiterAPIService.RequestType.SetAlias,
@@ -1069,7 +1109,6 @@ class JupiterAPIService {
             feeNQT: fee,
             deadline: this.appProps.deadline
         }
-
         return this.post(newParams)
     }
 

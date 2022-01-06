@@ -230,29 +230,24 @@ class AccountRegistration {
      */
     async register3(newAccountProperties, newAccountAliasName) {
         logger.verbose('#### register3(newAccountProperties, newAccountAliasName))');
-        if(!(newAccountProperties instanceof GravityAccountProperties)){ throw new MetisError('newAccountProperties is invalid')}
-        if(!gu.isNonEmptyString(newAccountAliasName)){
-            throw new MetisError('Alias is empty');
-        }
+        if(!(newAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`newAccountProperties`)
+        if(!gu.isWellFormedJupiterAlias(newAccountAliasName)) throw new mError.MetisErrorBadJupiterAlias(newAccountAliasName);
         try {
             //First: Make sure the alias is available
             const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
-            if (!isAliasAvailable) {
-                throw new MetisError('alias is already in user')
-            }
+            if (!isAliasAvailable) throw new MetisError('alias is already in user')
             //Second: Provide Funds to the new user account
             const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountProperties);
-            const transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
-            await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
+            const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.data.transaction;
+            await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFundingTransactionId);
             //Third: Add the UserRecord transaction
-            await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
-            // const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
+            // await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
+            const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
+            await this.jupiterFundingService.waitForTransactionConfirmation(addUserRecordToUserAccountResponse.transaction);
             //Fourth: Set The Alias
-            this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
+            await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
             //Fifth: Create the binaryAccount
-            this.binaryAccountJob.create(newAccountProperties);
-
-
+            // this.binaryAccountJob.create(newAccountProperties);
             return;
         }catch(error){
             logger.error(`****************************************************************`);
