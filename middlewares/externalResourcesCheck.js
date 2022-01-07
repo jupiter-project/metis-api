@@ -9,8 +9,8 @@ const mError = require("../errors/metisError");
 module.exports.externalResourcesCheck =  async (req, res, next) => {
     logger.verbose(`#### externalResourcesCheck(req, res, next)`);
     try {
-        const jupiterState = await jupiterAPIService.getState();
-        logger.info(`++ Jupiter Time: ${jupiterState.data.time}`);
+        // const jupiterState = await jupiterAPIService.getState();
+        // logger.info(`++ Jupiter Time: ${jupiterState.data.time}`);
         return next();
     } catch(error){
         console.log('\n')

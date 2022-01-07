@@ -79,12 +79,12 @@ const metisRegistration = async (address, requestBody) => {
 
     const signUpUserInformation = getSignUpUserInformation(address, requestBody);
 
-    const registration = accountRegistration.register2(
-        signUpUserInformation.account,
-        signUpUserInformation.alias,
-        signUpUserInformation.passphrase,
-        signUpUserInformation.encryption_password
-    )
+    const userAccountProperties = await instantiateGravityAccountProperties(signUpUserInformation.passphrase, signUpUserInformation.encryption_password);
+
+    const registration = accountRegistration.register3(
+        userAccountProperties,
+        signUpUserInformation.alias
+    );
 
     // const registration = accountRegistration.register(
     //     signUpUserInformation.account,

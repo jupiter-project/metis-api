@@ -3,6 +3,7 @@ import PQueue from 'p-queue';
 import {storageService} from "../services/storageService";
 import {chanService} from "../../../services/chanService";
 import { Readable } from 'stream';
+import FormData from "form-data";
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
 const fs = require('fs');
@@ -119,11 +120,13 @@ module.exports = (app, jobs, websocket) => {
 
         const fileUploadData = new Map();
         const fileUuid = uuidv1();
-        fileUploadData.set('fileUuid', fileUuid)
-        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties)
+        fileUploadData.set('fileUuid', fileUuid);
+        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties);
         const filePath = path.join(os.tmpdir(), `jim-${fileUuid}`);
+        console.log('File path:', filePath);
         fileUploadData.set('filePath', filePath)
         const workQueue = new PQueue({ concurrency: 1 });
+
 
         const bb = busboy({
             headers: req.headers,
@@ -213,6 +216,13 @@ module.exports = (app, jobs, websocket) => {
                             console.log(`CHUNK got ${data.length} bytes`);
                         })
                         const fsStream = fs.createWriteStream(filePath);
+                        fsStream.on( 'error', error => {
+                            logger.error(`Error writing file ${error}`);
+                            return res.status(StatusCode.ServerErrorInternal).send({
+                                message: 'Internal server error',
+                                code: MetisErrorCode.MetisError
+                            });
+                        });
                         const m = meter();
                         file.pipe(m).pipe(fsStream).on('finish', () => {
                             fileUploadData.set('fileSize', m.bytes)

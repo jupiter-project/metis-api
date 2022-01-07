@@ -39,7 +39,7 @@ class UploadJob {
                 logger.info(`++ address: ${attachToAccountProperties.address}`)
                 logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
                 const binaryAccountProperties = await this.storageService.fetchBinaryAccountPropertiesOrNull(attachToAccountProperties);
-                if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound('userAccountProperties.address')
+                if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound('attachToAccountProperties.address')
                 logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
                 logger.info(`++ Binary Account Properties`);
                 logger.info(`++ address: ${binaryAccountProperties.address}`)
