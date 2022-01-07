@@ -2,6 +2,7 @@ import mError from "../../../errors/metisError";
 import PQueue from 'p-queue';
 import {storageService} from "../services/storageService";
 import {chanService} from "../../../services/chanService";
+import { Readable } from 'stream';
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
 const fs = require('fs');
@@ -32,11 +33,13 @@ module.exports = (app, jobs, websocket) => {
         if(!gu.isWellFormedUuid(fileUuid)) {
             const message = `fileUuid is invalid: ${fileUuid}`;
             const error = new mError.MetisErrorBadJupiterAddress(message);
+            console.log(error);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
         }
         if(!gu.isWellFormedJupiterAddress(channelAddress)) {
             const message = `channelAddress is invalid: ${channelAddress}`
             const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
+            console.log(error);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
         }
         const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
@@ -45,44 +48,12 @@ module.exports = (app, jobs, websocket) => {
             console.log(error);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({message: `User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`, code: error.code});
         }
-
-        // {
-        //    file: {
-        //     fileCat: fileCat,
-        //     fileUuid: fileUuid,
-        //     fileName: fileName,
-        //     mimeType: mimeType,
-        //     sizeInKb: size,
-        //     originalSenderAddress: originalSenderAddress,
-        //     url: `v1/jim/channels/JUP-123/files/${fileUuid}`,
-        //     buffer: 'here',
-        //     linkedFileRecords: [{
-        //         version: 1,
-        //         fileCat: fileCat,
-        //         fileUuid: fileUuid,
-        //         fileName: fileName,
-        //         mimeType: mimeType,
-        //         sizeInKb: size,
-        //         originalSenderAddress: originalSenderAddress,
-        //         url: `v1/jim/channels/JUP-123/files/${fileUuid}`,
-        //         status: 'active',
-        //     }]
-        // }
-        // })
-
         try {
-            const buffer = await storageService.fetchFile(channelAccountProperties, fileUuid);
-            // const bb = busboy({
-            //     headers: req.headers,
-            //     limits: {files: 1, fileSize: jimConfig.maxMbSize}
-            // });
-
-            // res.setHeader('Content-Type', mimetype);
-            res.setHeader('Content-Disposition', `inline; filename="test"`);
-            res.send(buffer);
-            // const readable = Readable.from(buffer);
-            // readable.pipe(res);
-
+            const fileInfo = await storageService.fetchFile(channelAccountProperties, fileUuid);
+            res.setHeader('Content-Type', `${fileInfo.mimeType}`);
+            res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`);
+            const readable = Readable.from(fileInfo.bufferData.toString());
+            readable.pipe(res);
         } catch(error){
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
@@ -94,15 +65,6 @@ module.exports = (app, jobs, websocket) => {
             }
             res.status(StatusCode.ServerErrorInternal).send({message: 'Server Error.', code: error.code});
         }
-        //
-        //
-        // res.setHeader('Content-Type', mimetype);
-        // res.setHeader('Content-Disposition', `inline; filename="${originalname}"`);
-        // const readable = Readable.from(buffer);
-        // readable.pipe(res);
-        //
-        // return res.status(StatusCode.SuccessOK).send(
-
     })
 
     app.get('/jim/v1/api/files'  , async (req, res,next) => {

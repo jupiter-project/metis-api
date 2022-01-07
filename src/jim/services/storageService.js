@@ -293,6 +293,12 @@ class StorageService {
     }
 
 
+    /**
+     *
+     * @param ownerAccountProperties
+     * @param fileUuid
+     * @return {Promise<{fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress, bufferData: Buffer}>}
+     */
     async fetchFile(ownerAccountProperties, fileUuid){
         logger.sensitive(`#### fetchFile()`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
@@ -305,52 +311,27 @@ class StorageService {
                 binaryAccountProperties,
                 fileRecordTag
             )
-
-            console.log(`\n\n`);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-            console.log(`${binaryAccountProperties.address}`);
-            console.log(`${binaryAccountProperties.passphrase}`);
-            console.log(`${binaryAccountProperties.password}`);
-            console.log(`${fileRecordTag}`);
-            console.log(fileRecordMessageContainers);
-            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-
             if (fileRecordMessageContainers.length === 0) {
                 throw new mError.MetisErrorNoBinaryFileFound(``, fileUuid);
             }
             // GET THE FIRST ONE.
             const fileRecordMessageContainer = fileRecordMessageContainers[0]
+            const fileRecord = fileRecordMessageContainer.message;
             const chunkTransactionIds = fileRecordMessageContainer.message.chunkTransactionIds;
             const chunkContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromMessageTransactionIds(chunkTransactionIds, binaryAccountProperties.passphrase)
-            // const chunkContainers = await this.jupiterTransactionsService.messageService.getReadableContainersFromMessageTransactionIdsAndDecrypt(chunkTransactionIds, binaryAccountProperties.passphrase, ownerAccountProperties.crypto)
             const file = chunkContainers.reduce((reduced, chunkContainer) => {
                 reduced += chunkContainer.message;
                 return reduced;
             }, '')
-
-            // console.log(`\n\n`);
-            // console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-            // console.log(`file:`);
-            // console.log(file);
-            // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-
-            const bufferData = zlib.inflateSync(Buffer.from(file, 'base64')).toString()
-            // const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
-            // var deflated = zlib.deflateSync(input).toString('base64');
-            // var inflated = zlib.inflateSync(Buffer.from(deflated, 'base64')).toString()
-
-
-            // console.log(bufferData);
-
-
-
-            return bufferData;
-
-            // Next: zlib.inflate base64  to bufferData
-            //Next: send bufferData
-
-            //outside of here we need to save to OS
-            //Next send the job.
+            const bufferData = zlib.inflateSync(Buffer.from(file, 'base64'))
+            return {
+                bufferData: bufferData,
+                mimeType: fileRecord.mimeType,
+                fileName: fileRecord.fileName,
+                fileCategory: fileRecord.fileCat,
+                originalSenderAddress: fileRecord.originalSenderAddress,
+                fileSizeInBytes: fileRecord.fileSizeInBytes
+            }
         }catch(error){
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
@@ -359,7 +340,6 @@ class StorageService {
             logger.error(`error= ${error}`)
             throw error;
         }
-
     }
 
 
@@ -405,8 +385,28 @@ class StorageService {
             if (binaryAccountProperties === null) {
                 throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
             }
+
+            console.log(`\n\n`);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+            console.log(`bufferData To Compress:`);
+            console.log(bufferData);
+            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
             // compress the binary data before to convert to base64
             const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
+            console.log(`\n\n`);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+            console.log(`Compressed bufferData:`);
+            console.log(encodedFileData);
+            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+
+
+
+
+            // const encodedFileData = zlib.deflateSync(bufferData).toString('base64');
+
+
+
+
             // var inflated = zlib.inflateSync(Buffer.from(deflated, 'base64')).toString()
 
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
@@ -417,6 +417,14 @@ class StorageService {
             const sendMessageResponsePromises = chunks.map(chunk => {
                 const encryptedChunk = ownerAccountProperties.crypto.encrypt(chunk)
                 logger.info(`sending chunk (${chunk.length})....`)
+
+                console.log(`\n\n`);
+                console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+                console.log(`CHUNK TO BLOCK:`);
+                console.log(chunk);
+                console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+
+
                 return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     ownerAccountProperties.passphrase,
                     binaryAccountProperties.address,
