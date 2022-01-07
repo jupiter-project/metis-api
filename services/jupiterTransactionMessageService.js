@@ -317,6 +317,14 @@ class JupiterTransactionMessageService {
         return Promise.all(promises)
     }
 
+    async getReadableMessageContainersFromMessageTransactionIds(messageTransactionIds, passphrase){
+        const promises = messageTransactionIds.map( transactionId => {
+            return this.getReadableMessageContainerFromMessageTransactionId(transactionId, passphrase);
+        } )
+        return Promise.all(promises)
+    }
+
+
     /**
      * Don't return rejections cause we are doing Promise.all()
      * @param messageTransactionId
