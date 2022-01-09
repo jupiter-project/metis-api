@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const {GravityCrypto} = require("../services/gravityCrypto");
+// const jwt = require('jsonwebtoken');
+// const {GravityCrypto} = require("../services/gravityCrypto");
 const {StatusCode} = require("../utils/statusCode");
-const {instantiateMinimumGravityAccountProperties, instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+// const {instantiateMinimumGravityAccountProperties, instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {jupiterAPIService} = require("../services/jupiterAPIService");
 const logger = require('../utils/logger')();
 const mError = require("../errors/metisError");
@@ -9,8 +9,8 @@ const mError = require("../errors/metisError");
 module.exports.externalResourcesCheck =  async (req, res, next) => {
     logger.verbose(`#### externalResourcesCheck(req, res, next)`);
     try {
-        // const jupiterState = await jupiterAPIService.getState();
-        // logger.info(`++ Jupiter Time: ${jupiterState.data.time}`);
+        const jupiterState = await jupiterAPIService.getState();
+        logger.info(`++ Jupiter Time: ${jupiterState.data.time}`);
         return next();
     } catch(error){
         console.log('\n')

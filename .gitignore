@@ -43,6 +43,7 @@
 
 # Ignore JIM tmp directory
 /tmp
+/file_cache
 
 /.scannerwork
 v1/api/

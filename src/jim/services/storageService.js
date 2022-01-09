@@ -2,10 +2,10 @@ import mError from "../../../errors/metisError";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
-// const Buffer = require('buffer').Buffer;
 const zlib = require('zlib');
-const uuidv1 = require('uuidv1')
 import {chanService} from "../../../services/chanService";
+import {fileCacheService} from "./fileCacheService";
+
 /**
  *
  */
@@ -24,7 +24,8 @@ class StorageService {
         jupiterAccountService,
         jimConfig,
         transactionUtils,
-        chanService
+        chanService,
+        fileCacheService
         ) {
         if(!(jupiterAPIService instanceof JupiterAPIService)){throw new Error('missing jupiterAPIService')}
         if(!(jupiterTransactionsService instanceof JupiterTransactionsService)){throw new Error('missing jupiterTransactionsService')}
@@ -37,6 +38,7 @@ class StorageService {
         this.jimConfig = jimConfig;
         this.transactionUtils = transactionUtils;
         this.chanService = chanService;
+        this.fileCacheService = fileCacheService;
     }
 
     /**
@@ -304,10 +306,52 @@ class StorageService {
      *
      * @param ownerAccountProperties
      * @param fileUuid
-     * @return {Promise<{fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress, bufferData: Buffer}>}
+     * @return {Promise<{bufferDataPath: string, fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress}>}
      */
-    async fetchFile(ownerAccountProperties, fileUuid){
-        logger.sensitive(`#### fetchFile()`);
+    async fetchFileInfo(ownerAccountProperties, fileUuid){
+        logger.sensitive(`#### fetchFile(ownerAccountProperties, fileUuid)`);
+        if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
+        if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
+        let bufferData = null;
+        let fileRecord = null;
+        try {
+            const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
+            if (binaryAccountProperties === null) {
+                throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
+            }
+            if(this.fileCacheService.cachedFileExists(fileUuid)){
+                const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid);
+                fileRecord = binaryAccountProperties.crypto.decryptAndParse(encryptedFileRecord);
+            } else {
+                const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChain(ownerAccountProperties,fileUuid);
+                bufferData = fetchFileFromBlockChainResponse.bufferData;
+                fileRecord = fetchFileFromBlockChainResponse.fileRecord;
+                const encryptedFileRecord = binaryAccountProperties.encryptJson(fileRecord);
+                this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
+                this.fileCacheService.sendFileRecordToCache(fileUuid,encryptedFileRecord);
+            }
+            const bufferDataPath = this.fileCacheService.generateBufferDataPath(fileUuid);
+            return {
+                bufferDataPath: bufferDataPath,
+                mimeType: fileRecord.mimeType,
+                fileName: fileRecord.fileName,
+                fileCategory: fileRecord.fileCat,
+                createdBy: fileRecord.createdBy,
+                sizeInBytes: fileRecord.sizeInBytes
+            }
+
+        } catch(error) {
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** fetchFile(ownerAccountProperties, fileUuid).catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
+    }
+
+    async fetchFileFromBlockChain(ownerAccountProperties, fileUuid){
+        logger.sensitive(`#### fetchFileFromBlockChain()`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
         try {
@@ -326,23 +370,22 @@ class StorageService {
             const fileRecord = fileRecordMessageContainer.message;
             const chunkTransactionIds = fileRecordMessageContainer.message.chunkTransactionIds;
             const chunkContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromMessageTransactionIds(chunkTransactionIds, binaryAccountProperties.passphrase)
-            const file = chunkContainers.reduce((reduced, chunkContainer) => {
+            if(chunkContainers.length === 0){
+                throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`, fileUuid);
+            }
+            const compressedFile = chunkContainers.reduce((reduced, chunkContainer) => {
                 reduced += chunkContainer.message;
                 return reduced;
             }, '')
-            const bufferData = zlib.inflateSync(Buffer.from(file, 'base64'))
+            const bufferData = zlib.inflateSync(Buffer.from(compressedFile, 'base64')); //@TODO compressing might be worthless since the files are encrypted. Usually encryted files cant be compressed much.
             return {
                 bufferData: bufferData,
-                mimeType: fileRecord.mimeType,
-                fileName: fileRecord.fileName,
-                fileCategory: fileRecord.fileCat,
-                originalSenderAddress: fileRecord.originalSenderAddress,
-                fileSizeInBytes: fileRecord.fileSizeInBytes
+                fileRecord: fileRecord
             }
         }catch(error){
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
-            logger.error(`* ** fetchFile(ownerAccountProperties, fileUuid).catch(error)`);
+            logger.error(`* ** fetchFileFromBlockChain(ownerAccountProperties, fileUuid).catch(error)`);
             logger.error(`************************* ERROR ***************************************\n`);
             logger.error(`error= ${error}`)
             throw error;
@@ -461,7 +504,15 @@ class StorageService {
                 originalSenderAddress,
                 linkedFileRecords
             )
+
+
             const encryptedFileRecord = binaryAccountProperties.crypto.encryptJson(fileRecord);
+
+            if(!this.fileCacheService.bufferDataExists(fileUuid)){
+                this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
+            }
+            this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);
+
             const sendMessageResponseBinaryFile = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 ownerAccountProperties.passphrase,
                 binaryAccountProperties.address,
@@ -578,5 +629,6 @@ module.exports.storageService = new StorageService(
     jupiterAccountService,
     jimConfig,
     transactionUtils,
-    chanService
+    chanService,
+    fileCacheService
 )
