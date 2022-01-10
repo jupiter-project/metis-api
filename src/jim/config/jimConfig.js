@@ -29,4 +29,5 @@ module.exports.jimConfig = {
     // minStorageBalance: process.env.MIN_STORAGE_BALANCE,
     // minAppBalance: process.env.MIN_APP_BALANCE,
     // algorithm: process.env.ENCRYPT_ALGORITHM,
+    fileCacheLocation: process.env.FILE_CACHE_LOCATION
 };

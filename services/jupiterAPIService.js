@@ -52,6 +52,12 @@ class JupiterAPIService {
         }
     }
 
+
+    get baseUrl(){
+         return  `${this.jupiterHost}/nxt`;
+    }
+
+
     /**
      *
      * @param {string} rtype
@@ -62,7 +68,8 @@ class JupiterAPIService {
      */
       _jupiterRequest(rtype, params, data = {}){
           // const url = this.jupiterUrl(params);
-        const url = `${this.jupiterHost}/nxt`;
+        const url = this.baseUrl;
+        // const url = `${this.jupiterHost}/nxt`;
         if(rtype===HttpMethod.POST){
               return axiosData({url:url, method: rtype, data:  queryString.stringify(data), params: params})
         }

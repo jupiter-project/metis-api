@@ -1,70 +1,60 @@
 import mError from "../../../errors/metisError";
-import PQueue from 'p-queue';
+// import PQueue from 'p-queue';
 import {storageService} from "../services/storageService";
+import {fileCacheService} from "../services/fileCacheService";
 import {chanService} from "../../../services/chanService";
-import { Readable } from 'stream';
-import FormData from "form-data";
+// import { Readable } from 'stream';
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
 const fs = require('fs');
-const os = require('os');
-const path = require('path');
+// const os = require('os');
+// const path = require('path');
 const {StatusCode} = require("../../../utils/statusCode");
 const {MetisErrorCode} = require("../../../utils/metisErrorCode");
 const {uploadJob} = require("../jobs/uploadJob");
 const {jimConfig} = require("../config/jimConfig");
 const logger = require('../../../utils/logger')(module);
-const uuidv1 = require('uuidv1');
+// const uuidv1 = require('uuidv1');
 const meter = require('stream-meter');
 const asyncHandler = require('express-async-handler');
 
 module.exports = (app, jobs, websocket) => {
-
-    // app.get('/v1/api/jupiter/alias/:aliasName', async (req, res) => {
-    //     const aliasCheckup = await gravity.getAlias(req.params.aliasName);
 
     app.get('/jim/v1/api/channels/:channelAddress/files/:fileUuid'  , async (req, res,next) => {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
         logger.info('== GET: /jim/v1/api/files/:fileUuid');
         logger.info(`======================================================================================\n\n\n`);
-
-        const userAccountProperties =  req.user.gravityAccountProperties;
-        const {fileUuid, channelAddress} = req.params;
-        if(!gu.isWellFormedUuid(fileUuid)) {
-            const message = `fileUuid is invalid: ${fileUuid}`;
-            const error = new mError.MetisErrorBadJupiterAddress(message);
-            console.log(error);
-            return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
-        }
-        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
-            const message = `channelAddress is invalid: ${channelAddress}`
-            const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
-            console.log(error);
-            return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
-        }
-        const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
-        if(channelAccountProperties === null) {
-            const error = new mError.MetisErrorNoChannelAccountFound(`User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`)
-            console.log(error);
-            return res.status(StatusCode.ClientErrorNotAcceptable).send({message: `User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`, code: error.code});
-        }
-        try {
-            const fileInfo = await storageService.fetchFile(channelAccountProperties, fileUuid);
+        try{
+            const userAccountProperties =  req.user.gravityAccountProperties;
+            const {fileUuid, channelAddress} = req.params;
+            if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`);
+            if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(``, channelAddress);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
+            if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(``, userAccountProperties.address, channelAddress);
+            const fileInfo = await storageService.fetchFileInfo(channelAccountProperties, fileUuid);
             res.setHeader('Content-Type', `${fileInfo.mimeType}`);
             res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`);
-            const readable = Readable.from(fileInfo.bufferData.toString());
-            readable.pipe(res);
+            res.sendFile(fileInfo.bufferDataPath);
         } catch(error){
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
             logger.error(`* ** /jim/v1/api/channels/:channelAddress/files/:fileUuid.catch(error)`);
             logger.error(`************************* ERROR ***************************************\n`);
             console.log(error);
+            if(error instanceof mError.MetisErrorBadUuid) {
+                return res.status(StatusCode.ClientErrorNotAcceptable).send({message: error.message, code: error.code});
+            }
+            if(error instanceof mError.MetisErrorBadJupiterAddress) {
+                return res.status(StatusCode.ClientErrorNotAcceptable).send({message: error.message, code: error.code});
+            }
+            if( error instanceof mError.MetisErrorNoChannelAccountFound) {
+                return res.status(StatusCode.ClientErrorNotAcceptable).send({message: error.message, code: error.code});
+            }
             if(error instanceof mError.MetisErrorNoBinaryFileFound){
                 return res.status(StatusCode.ClientErrorNotFound).send({message: 'File Not Found', code: error.code, fileUuid: error.fileUuid});
             }
-            res.status(StatusCode.ServerErrorInternal).send({message: 'Server Error.', code: error.code});
+            return res.status(StatusCode.ServerErrorInternal).send({message: 'Server Error.', code: error.code});
         }
     })
 
@@ -119,15 +109,11 @@ module.exports = (app, jobs, websocket) => {
         logger.info(`======================================================================================\n\n\n`);
 
         const fileUploadData = new Map();
-        const fileUuid = uuidv1();
+        const fileUuid = fileCacheService.generateUuid();
+        const filePath = fileCacheService.generateBufferDataPath(fileUuid);
         fileUploadData.set('fileUuid', fileUuid);
-        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties);
-        const filePath = path.join(os.tmpdir(), `jim-${fileUuid}`);
-        console.log('File path:', filePath);
         fileUploadData.set('filePath', filePath)
-        const workQueue = new PQueue({ concurrency: 1 });
-
-
+        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties);
         const bb = busboy({
             headers: req.headers,
             limits: {files: 1, fileSize: jimConfig.maxMbSize}
@@ -136,26 +122,14 @@ module.exports = (app, jobs, websocket) => {
         const abort = () => {
             logger.sensitive(`#### abort()`);
             req.unpipe(bb);
-            workQueue.pause();
+            // workQueue.pause();
             if (!req.aborted) {
                 res.set("Connection", "close");
                 res.sendStatus(StatusCode.ClientErrorPayloadTooLarge);
             }
         }
 
-        const abortOnError = async (fn) => {
-            logger.sensitive(`#### abortOnError()`);
-            workQueue.add( async () => {
-                try {
-                    await fn();
-                } catch (e) {
-                    abort();
-                }
-            });
-        }
-
         try{
-
             bb.on('limit', (data)=> {
                 logger.verbose(`---- bb.on(limit)`);
                 console.log(data);
@@ -188,7 +162,7 @@ module.exports = (app, jobs, websocket) => {
                         code: MetisErrorCode.MetisError
                     });
                 }
-                abortOnError( ()=> {
+                try {
                     if(formDataKey === 'file') {
                         logger.verbose(`---- bb.on(file)`);
                         if (!gu.isNonEmptyString(info.filename)) {
@@ -229,7 +203,14 @@ module.exports = (app, jobs, websocket) => {
                         })
                         // fsStream.on('close', async ()=>{})
                     }
-                })
+                } catch (error){
+                    console.log('\n')
+                    logger.error(`************************* ERROR ***************************************`);
+                    logger.error(`* ** bb.on(file).catch(error)`);
+                    logger.error(`************************* ERROR ***************************************\n`);
+                    logger.error(`error= ${error}`)
+                    abort();
+                }
             })
             bb.on('close', async () => {
                 logger.verbose(`---- bb.on(close)`);
@@ -243,9 +224,8 @@ module.exports = (app, jobs, websocket) => {
                     }
                     // res.status(StatusCode.ClientErrorBadRequest).send({message:`file is too large. Limit is ${jimConfig.maxMbSize} MB` })
 
-
                     //@TODO not needed. confirm before removing.
-                    if (!gu.isWellFormedJupiterAddress(fileUploadData.get('attachToJupiterAddress'))) {
+                    if (!fileUploadData.get('attachToJupiterAddress')) {
                         throw new mError.MetisError(`attachToJupiterAddress is invalid: ${fileUploadData.get('attachToJupiterAddress')}`)
                     }
                     if (fileUploadData.get('fileName') === undefined) {
@@ -256,10 +236,10 @@ module.exports = (app, jobs, websocket) => {
                         throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.get('fileEncoding')}`)
                         // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileEncoding is invalid: ${fileUploadData.get('fileEncoding')}`})
                     }
+
                     const uploadJobResponse = await uploadJob.create(
                         fileUploadData.get('userAccountProperties'),
                         fileUploadData.get('attachToJupiterAddress'),
-                        fileUploadData.get('filePath'),
                         fileUploadData.get('fileName'),
                         fileUploadData.get('fileEncoding'),
                         fileUploadData.get('fileMimeType'),
@@ -276,6 +256,7 @@ module.exports = (app, jobs, websocket) => {
                         fileUuid: fileUuid,
                         fileUrl: `/v1/api/files/${fileUuid}`
                     })
+                    return next();
                 } catch(error) {
                     logger.error(`****************************************************************`);
                     logger.error(`** /jim/v1/api/file bb.on(Close)`);

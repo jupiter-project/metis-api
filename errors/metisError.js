@@ -124,15 +124,15 @@ class MetisErrorNoBinaryAccountFound extends MetisError {
 }
 
 class MetisErrorNoChannelAccountFound extends MetisError {
-    constructor(message = '') {
-        super(`No channel account found: ` + message)
+    constructor(message = '', memberAddress = '', channelAddress = '' ) {
+        super(`No channel account found. ` + message + ` - User ${memberAddress} doesnt have ${channelAddress} channel account`)
         this.name = "MetisErrorNoChannelAccountFound"
         this.code = MetisErrorCode.MetisErrorNoChannelAccountFound;
+        this.memberAddress = memberAddress;
+        this.channelAddress = channelAddress;
         Object.setPrototypeOf(this, MetisErrorNoChannelAccountFound.prototype); //fixes a problem with instanceof
     }
 }
-
-
 
 class MetisErrorBadGravityAccountProperties extends MetisError {
     constructor(message = '') {
@@ -144,9 +144,10 @@ class MetisErrorBadGravityAccountProperties extends MetisError {
 }
 
 class MetisErrorBadJupiterAddress extends MetisError {
-    constructor(message = '') {
-        super(`Jupiter Address is invalid -- ` + message)
-        this.name = "MetisErrorBadJupiterAddress"
+    constructor(message = '', badAddress = '') {
+        super(`Jupiter Address is invalid. ` + message + ` - bad address: ${badAddress}`)
+        this.badAddress = badAddress;
+        this.name = "MetisErrorBadJupiterAddress";
         this.code = MetisErrorCode.MetisErrorNoBinaryAccountFound;
         Object.setPrototypeOf(this, MetisErrorBadJupiterAddress.prototype); //fixes a problem with instanceof
     }
