@@ -2,16 +2,9 @@ import mError from "../../../errors/metisError";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const uuidv1 = require('uuidv1')
-// const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
-// const Buffer = require('buffer').Buffer;
-// const zlib = require('zlib');
-// const uuidv1 = require('uuidv1')
-// import {chanService} from "../../../services/chanService";
 import {jimConfig} from "../config/jimConfig";
 import path from "path";
-import os from "os";
 const fs = require('fs');
-// import * as fs from "fs";
 
 const CacheWindowInDays = 30;
 /**
@@ -43,20 +36,19 @@ class FileCacheService {
         return fs.existsSync(bufferDataPath) && fs.existsSync(fileRecordPath);
     }
 
-    fileDetails(uuid){
-        return {
-            filePath:'',
-            uuid: '',
-            sizeInBytes: '',
-            dateCreated: '',
-        }
-    }
+    // fileDetails(uuid){
+    //     return {
+    //         filePath:'',
+    //         uuid: '',
+    //         sizeInBytes: '',
+    //         dateCreated: '',
+    //     }
+    // }
 
     cacheDetails(){
         return {
             numberOfFiles: '',
             totalCacheSize: '',
-            listOfFileUuids: [1,2,3]
         }
     }
 
@@ -76,7 +68,6 @@ class FileCacheService {
     generateBufferDataPath(fileUuid){
         // Check doesnt exist;
         const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.data`);
-        // const filePath = path.join(this.fileCacheLocation, `jim-${fileUuid}.data`);
         return filePath;
     }
 
@@ -88,18 +79,9 @@ class FileCacheService {
     generateFileRecordPath(fileUuid){
         // Check doesnt exist;
         const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.efr`);
-        // const filePath = path.join(this.fileCacheLocation, `jim-${fileUuid}.efr`);
         return filePath;
     }
 
-    generateFileInfoJson(){
-
-    }
-
-
-    // sendFileToCache(fileUuid, encryptedFileRecord, bufferData){
-    //
-    // }
 
     /**
      *
@@ -107,6 +89,7 @@ class FileCacheService {
      * @param encryptedFileRecord
      */
     sendFileRecordToCache(fileUuid, encryptedFileRecord){
+        //check if exists.
         const fileRecordPath = this.generateFileRecordPath(fileUuid);
         fs.writeFileSync(fileRecordPath, encryptedFileRecord);
     }
@@ -121,13 +104,13 @@ class FileCacheService {
         fs.writeFileSync(bufferDataPath, bufferData);
     }
 
-
     deleteFile(fileUuid){
+
     }
 
-    getBufferData(fileUuid){
-        return 123;
-    }
+    // getBufferData(fileUuid){
+    //     return 123;
+    // }
 
     // getBufferDataPath(fileUuid){
     //     const bufferDataPath = this.generateBufferDataPath(fileUuid);
