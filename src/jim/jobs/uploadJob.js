@@ -58,10 +58,7 @@ class UploadJob {
                             attachToAccountProperties,
                             userAccountProperties.address
                         )
-
-                        const results = {
-
-                        }
+                        const results = {}
                         return done(null, sendFileToBlockChainResponse);
                     } catch (error) {
                         logger.error(`****************************************************************`);
