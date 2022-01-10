@@ -66,6 +66,8 @@ class FileCacheService {
      * @return {string}
      */
     generateBufferDataPath(fileUuid){
+        console.log('fileCacheLocation', this.fileCacheLocation);
+        console.log('fileUuid', fileUuid);
         // Check doesnt exist;
         const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.data`);
         return filePath;

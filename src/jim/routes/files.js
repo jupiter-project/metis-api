@@ -119,6 +119,7 @@ module.exports = (app, jobs, websocket) => {
         const fileUploadData = {};
         const fileUuid = fileCacheService.generateUuid();
         const bufferDataFilePath = fileCacheService.generateBufferDataPath(fileUuid);
+        const userAccountProperties = req.user.gravityAccountProperties;
         fileUploadData.fileUuid = fileUuid;
         fileUploadData.filePath = bufferDataFilePath;
         fileUploadData.userAccountProperties = req.user.gravityAccountProperties;
@@ -261,8 +262,8 @@ module.exports = (app, jobs, websocket) => {
                                 createdAt: job.created_at,
                                 url: `/v1/api/job/status?jobId=${job.id}`,
                             },
-                            // fileUuid: fileUuid,
-                            // fileUrl: `/v1/api/files/${fileUuid}`
+                            fileUuid: fileUuid,
+                            fileUrl: `/v1/api/files/${fileUuid}`
                         })
                         next();
                     })
@@ -272,7 +273,7 @@ module.exports = (app, jobs, websocket) => {
                         // console.log(result);
                         const payload = {
                             jobId: job.id,
-                            senderAddress: fileUploadData.gravityAccountProperties.address,
+                            senderAddress: userAccountProperties.address,
                             url: result.fileRecord.url,
                             fileName: result.fileRecord.fileName,
                             mimeType: result.fileRecord.mimeType,
@@ -295,14 +296,14 @@ module.exports = (app, jobs, websocket) => {
                             logger.error(`---- job.on(failed) NOT ENOUGH FUNDS`);
                             logger.error(`upload-${job.created_at}`);
                             payload = {
-                                senderAddress: fileUploadData.userAccountProperties.address,
+                                senderAddress: userAccountProperties.address,
                                 jobId: job.id,
                                 errorMessage: 'Not enough funds',
                                 errorCode: MetisErrorCode.MetisErrorNotEnoughFunds
                             }
                         } else {
                             payload = {
-                                senderAddress: fileUploadData.userAccountProperties.address,
+                                senderAddress: userAccountProperties.address,
                                 jobId: job.id,
                                 errorMessage: errorMessage,
                                 errorCode: MetisErrorCode.MetisError
