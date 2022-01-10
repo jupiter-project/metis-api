@@ -177,7 +177,7 @@ module.exports = (app, passport, jobs, websocket) => {
     /**
      * Get a channel's messages
      */
-    app.get('/v1/api/data/messages', async (req, res) => {
+    app.get('/v1/api/channels/:channelAddress/messages', async (req, res) => {
         console.log('');
         logger.info('======================================================================================');
         logger.info('== Get a channel\'s messages');
@@ -241,7 +241,7 @@ module.exports = (app, passport, jobs, websocket) => {
     /**
      * Send a message
      */
-    app.post('/v1/api/data/messages', async (req, res) => {
+    app.post('/v1/api/channels/:channelAddress/messages', async (req, res) => {
         console.log('');
         logger.info('======================================================================================');
         logger.info('== Send a message');
@@ -255,10 +255,10 @@ module.exports = (app, passport, jobs, websocket) => {
             replyMessage,
             replyRecipientAlias,
             replyRecipientAddress,
-            attachmentUrl,
+            attachmentObj,
             version,
             mentions = [],
-            type = 'message'
+            messageType = 'message'
         } = req.body;
 
         if (!message || !address) {
@@ -271,11 +271,11 @@ module.exports = (app, passport, jobs, websocket) => {
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
                 message,
-                type,
+                messageType,
                 replyMessage,
                 replyRecipientAlias,
                 replyRecipientAddress,
-                attachmentUrl,
+                attachmentObj,
                 version,
             );
 
@@ -295,11 +295,11 @@ module.exports = (app, passport, jobs, websocket) => {
                 memberAccountProperties,
                 channelAccountProperties,
                 message,
-                type,
+                messageType,
                 replyMessage,
                 replyRecipientAlias,
                 replyRecipientAddress,
-                attachmentUrl,
+                attachmentObj,
                 version
                 )
             // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);

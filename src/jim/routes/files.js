@@ -34,19 +34,19 @@ module.exports = (app, jobs, websocket) => {
         if(!gu.isWellFormedUuid(fileUuid)) {
             const message = `fileUuid is invalid: ${fileUuid}`;
             const error = new mError.MetisErrorBadJupiterAddress(message);
-            console.log(error);
+            console.log('Error validating fileUuid', error);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
         }
         if(!gu.isWellFormedJupiterAddress(channelAddress)) {
             const message = `channelAddress is invalid: ${channelAddress}`
             const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
-            console.log(error);
+            console.log('Error validating jupiter address', error);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({message: message, code: error.code});
         }
         const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
         if(channelAccountProperties === null) {
             const error = new mError.MetisErrorNoChannelAccountFound(`User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`)
-            console.log(error);
+            console.log('Error validating channelAccountProperties', error);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({message: `User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`, code: error.code});
         }
         try {
@@ -256,6 +256,7 @@ module.exports = (app, jobs, websocket) => {
                         throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.get('fileEncoding')}`)
                         // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileEncoding is invalid: ${fileUploadData.get('fileEncoding')}`})
                     }
+                    const attachToJupiterAddress =  fileUploadData.get('attachToJupiterAddress');
                     const uploadJobResponse = await uploadJob.create(
                         fileUploadData.get('userAccountProperties'),
                         fileUploadData.get('attachToJupiterAddress'),
@@ -266,16 +267,17 @@ module.exports = (app, jobs, websocket) => {
                         fileUploadData.get('fileUuid')
                     );
                     const job = uploadJobResponse.job;
-                    websocket.of('/upload').to(`upload-${job.created_at}`).emit('uploadCreated', job.id);
-                    res.status(StatusCode.SuccessAccepted).send({
+                    const uploadFileResponse = {
                         job: {
                             id: job.id,
                             createdAt: job.created_at,
                             url: `/v1/api/job/status?jobId=${job.id}`,
                         },
                         fileUuid: fileUuid,
-                        fileUrl: `/v1/api/files/${fileUuid}`
-                    })
+                        fileUrl: `/jim/v1/api/channels/${attachToJupiterAddress}/files/${fileUuid}`
+                    };
+                    websocket.of('/upload').to(`upload-${attachToJupiterAddress}`).emit('uploadCreated', uploadFileResponse);
+                    res.status(StatusCode.SuccessAccepted).send(uploadFileResponse);
                 } catch(error) {
                     logger.error(`****************************************************************`);
                     logger.error(`** /jim/v1/api/file bb.on(Close)`);
@@ -295,7 +297,7 @@ module.exports = (app, jobs, websocket) => {
                 logger.error(`** job.catch(error)`);
                 logger.error(`****************************************************************`);
                 logger.error(`${error}`);
-                websocket.of('/upload').to(`upload-${error.job.created_at}`).emit('uploadFailed', error.job.created_at);
+                websocket.of('/upload').to(`upload-${error.job.created_at}`).emit('uploadFailed', error);
                 return res.status(StatusCode.ServerErrorInternal).send({
                     message: 'Internal Error',
                     jobId: error.job.id,
