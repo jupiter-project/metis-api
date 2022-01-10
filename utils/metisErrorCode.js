@@ -29,4 +29,5 @@ module.exports.MetisErrorCode = {
     MetisErrorBadUuid: 16021,
     MetisErrorNoBinaryFileFound: 16022,
     MetisErrorBadJupiterAlias: 16023,
+    MetisErrorNotEnoughFunds: 16024,
 }
