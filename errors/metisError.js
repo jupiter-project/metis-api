@@ -236,6 +236,17 @@ class MetisErrorBadJupiterAlias extends MetisError {
     }
 }
 
+class MetisErrorNotEnoughFunds extends MetisError {
+    constructor(message = '', currentBalance = '', fundsToSend = '') {
+        super(`Not enough funds: current balance: ${currentBalance}, funds to send: ${fundsToSend}`);
+        this.name = "MetisErrorNotEnoughFunds"
+        this.currentBalance = currentBalance;
+        this.fundsToSend = fundsToSend;
+        this.code = MetisErrorCode.MetisErrorNotEnoughFunds;
+        Object.setPrototypeOf(this, MetisErrorNotEnoughFunds.prototype); //fixes a problem with instanceof
+    }
+}
+
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -260,3 +271,4 @@ module.exports.MetisErrorJupiterNoResponse = MetisErrorJupiterNoResponse;
 module.exports.MetisErrorBadUuid = MetisErrorBadUuid;
 module.exports.MetisErrorNoBinaryFileFound = MetisErrorNoBinaryFileFound;
 module.exports.MetisErrorBadJupiterAlias = MetisErrorBadJupiterAlias;
+module.exports.MetisErrorNotEnoughFunds = MetisErrorNotEnoughFunds;
