@@ -3,20 +3,26 @@ import mError from "../../../errors/metisError";
 import {storageService} from "../services/storageService";
 import {fileCacheService} from "../services/fileCacheService";
 import {chanService} from "../../../services/chanService";
-// import { Readable } from 'stream';
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
 const fs = require('fs');
-// const os = require('os');
-// const path = require('path');
 const {StatusCode} = require("../../../utils/statusCode");
 const {MetisErrorCode} = require("../../../utils/metisErrorCode");
 const {uploadJob} = require("../jobs/uploadJob");
 const {jimConfig} = require("../config/jimConfig");
 const logger = require('../../../utils/logger')(module);
-// const uuidv1 = require('uuidv1');
 const meter = require('stream-meter');
-const asyncHandler = require('express-async-handler');
+// const asyncHandler = require('express-async-handler');
+
+
+function abort(request, busboy){
+    logger.sensitive(`#### abort()`);
+    request.unpipe(busboy);
+    if (!request.aborted) {
+        request.set("Connection", "close");
+        request.sendStatus(StatusCode.ClientErrorPayloadTooLarge);
+    }
+}
 
 module.exports = (app, jobs, websocket) => {
 
@@ -58,7 +64,7 @@ module.exports = (app, jobs, websocket) => {
         }
     })
 
-    app.get('/jim/v1/api/files'  , async (req, res,next) => {
+    app.get('/jim/v1/api/files', async (req, res,next) => {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
         logger.info('== GET: /jim/v1/api/files');
@@ -102,32 +108,22 @@ module.exports = (app, jobs, websocket) => {
 
     })
 
-    app.post('/jim/v1/api/files'  , asyncHandler(async (req, res,next) => {
+    app.post('/jim/v1/api/files', async (req, res,next) => {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
         logger.info('== POST: /jim/v1/api/files');
         logger.info(`======================================================================================\n\n\n`);
 
-        const fileUploadData = new Map();
+        const fileUploadData = {};
         const fileUuid = fileCacheService.generateUuid();
         const filePath = fileCacheService.generateBufferDataPath(fileUuid);
-        fileUploadData.set('fileUuid', fileUuid);
-        fileUploadData.set('filePath', filePath)
-        fileUploadData.set('userAccountProperties', req.user.gravityAccountProperties);
+        fileUploadData.fileUuid = fileUuid;
+        fileUploadData.filePath = filePath;
+        fileUploadData.userAccountProperties = req.user.gravityAccountProperties;
         const bb = busboy({
             headers: req.headers,
             limits: {files: 1, fileSize: jimConfig.maxMbSize}
         });
-
-        const abort = () => {
-            logger.sensitive(`#### abort()`);
-            req.unpipe(bb);
-            // workQueue.pause();
-            if (!req.aborted) {
-                res.set("Connection", "close");
-                res.sendStatus(StatusCode.ClientErrorPayloadTooLarge);
-            }
-        }
 
         try{
             bb.on('limit', (data)=> {
@@ -139,7 +135,6 @@ module.exports = (app, jobs, websocket) => {
                 });
                 //     req.file.size <= ApiConfig.maxMbSize * 1024 * 1024,
             })
-
             bb.on('field', (fieldName, value)=>{
                 logger.verbose(`---- bb.on(field)`);
                 if(fieldName === 'attachToJupiterAddress'){
@@ -149,11 +144,11 @@ module.exports = (app, jobs, websocket) => {
                             code: MetisErrorCode.MetisError
                         });
                     }
-                    fileUploadData.set('attachToJupiterAddress', value);
+                    fileUploadData.attachToJupiterAddress = value;
+                    // fileUploadData.set('attachToJupiterAddress', value);
                 }
                 logger.debug('DONE--on.field()')
             })
-
             bb.on('file', (formDataKey,file,info) => {
                 logger.sensitive(`---- bb.on(file)`);
                 if(formDataKey !== 'file') {
@@ -183,9 +178,9 @@ module.exports = (app, jobs, websocket) => {
                                 code: MetisErrorCode.MetisError
                             });
                         }
-                        fileUploadData.set('fileName', info.filename);
-                        fileUploadData.set('fileEncoding', info.encoding);
-                        fileUploadData.set('fileMimeType', info.mimeType);
+                        fileUploadData.fileName = info.filename;
+                        fileUploadData.fileEncoding = info.encoding;
+                        fileUploadData.fileMimeType = info.mimeType;
                         file.on('data', async (data) => {
                             console.log(`CHUNK got ${data.length} bytes`);
                         })
@@ -197,11 +192,10 @@ module.exports = (app, jobs, websocket) => {
                                 code: MetisErrorCode.MetisError
                             });
                         });
-                        const m = meter();
-                        file.pipe(m).pipe(fsStream).on('finish', () => {
-                            fileUploadData.set('fileSize', m.bytes)
+                        const _meter = meter();
+                        file.pipe(_meter).pipe(fsStream).on('finish', () => {
+                            fileUploadData.fileSize = _meter.bytes;
                         })
-                        // fsStream.on('close', async ()=>{})
                     }
                 } catch (error){
                     console.log('\n')
@@ -209,13 +203,13 @@ module.exports = (app, jobs, websocket) => {
                     logger.error(`* ** bb.on(file).catch(error)`);
                     logger.error(`************************* ERROR ***************************************\n`);
                     logger.error(`error= ${error}`)
-                    abort();
+                    return abort(req,bb);
                 }
             })
             bb.on('close', async () => {
                 logger.verbose(`---- bb.on(close)`);
                 try {
-                    const fileSizeInBytes = fileUploadData.get('fileSize');
+                    const fileSizeInBytes = fileUploadData.fileSize;
                     const fileSizeInKiloBytes = fileSizeInBytes / 1000;
                     const fileSizeInMegaBytes = fileSizeInKiloBytes / 1000;
                     if (fileSizeInBytes > jimConfig.maxMbSize) {
@@ -225,38 +219,77 @@ module.exports = (app, jobs, websocket) => {
                     // res.status(StatusCode.ClientErrorBadRequest).send({message:`file is too large. Limit is ${jimConfig.maxMbSize} MB` })
 
                     //@TODO not needed. confirm before removing.
-                    if (!fileUploadData.get('attachToJupiterAddress')) {
-                        throw new mError.MetisError(`attachToJupiterAddress is invalid: ${fileUploadData.get('attachToJupiterAddress')}`)
+                    if (!fileUploadData.attachToJupiterAddress) {
+                        throw new mError.MetisError(`attachToJupiterAddress is invalid: ${fileUploadData.attachToJupiterAddress}`)
                     }
-                    if (fileUploadData.get('fileName') === undefined) {
-                        throw new mError.MetisError(`fileName is invalid: ${fileUploadData.get('fileName')}`)
-                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileName is invalid: ${fileUploadData.get('fileName')}`})
+                    if (fileUploadData.fileName === undefined) {
+                        throw new mError.MetisError(`fileName is invalid: ${fileUploadData.fileName}`)
+                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileName is invalid: ${fileUploadData.fileName}`})
                     }
-                    if (fileUploadData.get('fileEncoding') === undefined) {
-                        throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.get('fileEncoding')}`)
-                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileEncoding is invalid: ${fileUploadData.get('fileEncoding')}`})
+                    if (fileUploadData.fileEncoding === undefined) {
+                        throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.fileEncoding}`)
+                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileEncoding is invalid: ${fileUploadData.fileEncoding}`})
                     }
 
-                    const uploadJobResponse = await uploadJob.create(
-                        fileUploadData.get('userAccountProperties'),
-                        fileUploadData.get('attachToJupiterAddress'),
-                        fileUploadData.get('fileName'),
-                        fileUploadData.get('fileEncoding'),
-                        fileUploadData.get('fileMimeType'),
-                        fileUploadData.get('fileUuid')
+                    const job = await uploadJob.create(
+                        fileUploadData.userAccountProperties,
+                        fileUploadData.attachToJupiterAddress,
+                        fileUploadData.fileName,
+                        fileUploadData.fileEncoding,
+                        fileUploadData.fileMimeType,
+                        fileUploadData.fileUuid
                     );
-                    const job = uploadJobResponse.job;
-                    websocket.of('/upload').to(`upload-${job.created_at}`).emit('uploadCreated', job.id);
-                    res.status(StatusCode.SuccessAccepted).send({
-                        job: {
-                            id: job.id,
-                            createdAt: job.created_at,
-                            url: `/v1/api/job/status?jobId=${job.id}`,
-                        },
-                        fileUuid: fileUuid,
-                        fileUrl: `/v1/api/files/${fileUuid}`
+
+
+                    job.save( error => {
+                        logger.verbose(`---- JobQueue: job.save(error)`);
+                        if(error){
+                            logger.error(`${error}`);
+                            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
+                            res.status(StatusCode.ServerErrorInternal).send({message:'Not able to upload the image', code: MetisErrorCode.MetisErrorSaveJobQueue} )
+                        }
+                        logger.verbose(`job.id= ${job.id}`);
+                        res.status(StatusCode.SuccessAccepted).send({
+                            job: {
+                                id: job.id,
+                                createdAt: job.created_at,
+                                url: `/v1/api/job/status?jobId=${job.id}`,
+                            },
+                            // fileUuid: fileUuid,
+                            // fileUrl: `/v1/api/files/${fileUuid}`
+                        })
+                        next();
                     })
-                    return next();
+
+
+                    job.on('complete', (result)=>{
+                        logger.verbose(`---- jon.on('complete)`);
+                        console.log(`\n`);
+                        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+                        console.log(`SEND COMPLET WEBSOCLET:`);
+                        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+                        console.log(result);
+                        // websocket.of('/upload').to(`upload-${jobJon.created_at}`).emit('uploadCreated', jobJon.id);
+                    })
+
+                    job.on('failed attempt', (errorMessage, doneAttempts)=>{
+                        console.log(`\n\n`);
+                        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+                        console.log(`FAILED ATTEMPT:`);
+                        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+                    })
+
+                    job.on('failed', (errorMessage)=>{
+                        logger.verbose(`---- jon.on(FAILED)`);
+                        console.log(errorMessage);
+                        if(errorMessage.includes('Not enough funds')){
+                            logger.error(`---- job.on(failed) NOT ENOUGH FUNDS`);
+                            logger.error(`upload-${job.created_at}`);
+                            websocket.of('/upload').to(`upload-${job.created_at}`).emit('uploadFailed: Not Enough Funds', job.created_at);
+                            return;
+                        }
+                        websocket.of('/upload').to(`upload-${job.created_at}`).emit(`uploadFailed: ${errorMessage}`, job.created_at);
+                    })
                 } catch(error) {
                     logger.error(`****************************************************************`);
                     logger.error(`** /jim/v1/api/file bb.on(Close)`);
@@ -264,10 +297,16 @@ module.exports = (app, jobs, websocket) => {
                     logger.error(`error= ${error}`)
                     res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
                 }
-            })
-            req.on("aborted", abort);
-            bb.on("error", abort);
 
+
+                    console.log(`\n`);
+                    console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+                    console.log(`HERE!!!!:`);
+                    console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+
+            })
+            req.on("aborted", ()=> abort(req,bb));
+            bb.on("error", ()=> abort(req,bb));
             req.pipe(bb);
             return;
         } catch(error) {
@@ -284,11 +323,15 @@ module.exports = (app, jobs, websocket) => {
                 });
             }
             console.log(error);
+            console.log(`\n`);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+            console.log(`NEES TO SEND SOCKET ON ERROR:`);
+            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
             // websocket.of('/upload').to(`upload-${error.job.created_at}`).emit('uploadFailed', error.job.created_at);
             return res.status(StatusCode.ServerErrorInternal).send({
                 message: 'Internal Error',
                 code: MetisErrorCode.MetisError
             });
         }
-    }))
+    })
 };

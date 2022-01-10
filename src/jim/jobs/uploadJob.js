@@ -50,7 +50,7 @@ class UploadJob {
                 logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
                 fs.readFile(fileBufferDataPath, async (error, bufferData) => {
                     try {
-                        await this.storageService.sendFileToBlockchain(
+                        const sendFileToBlockChainResponse = await  this.storageService.sendFileToBlockchain(
                             fileName,
                             fileMimeType,
                             fileUuid,
@@ -58,13 +58,16 @@ class UploadJob {
                             attachToAccountProperties,
                             userAccountProperties.address
                         )
-                        console.log('done');
-                        return done(null, 'done')
+
+                        const results = {
+
+                        }
+                        return done(null, sendFileToBlockChainResponse);
                     } catch (error) {
                         logger.error(`****************************************************************`);
-                        logger.error(`** initialize.jobQueue.readFile.callback.catch(error)`);
+                        logger.error(`** JOB initialize.fs.readFile.callback.sendFileToBloclChain.catch(error)`);
                         logger.error(`****************************************************************`);
-                        logger.error(`error= ${error}`)
+                        console.log(error);
                         return done(error);
                     }
                 });
@@ -104,6 +107,7 @@ class UploadJob {
      * @return {Promise<unknown>}
      */
     create(userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid){
+        logger.sensitive(`#### (userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid`);
 
         if(!(userAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties('userAccountProperties')
         if(!gu.isWellFormedJupiterAddress(attachToJupiterAddress)) throw new mError.MetisErrorBadJupiterAddress(`attachToJupiterAddress`)
@@ -112,20 +116,25 @@ class UploadJob {
         if(!gu.isNonEmptyString(fileMimeType)) throw new mError.MetisError(`fileMimeType is empty`)
         if(!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`fileUuid is empty`)
 
-        return new Promise((resolve, reject) => {
-            const job = this.jobQueue.create(this.jobName, {userAccountProperties,attachToJupiterAddress, fileName, fileEncoding, fileMimeType, fileUuid})
-                .priority('high')
-                .removeOnComplete(false)
-                .save(error => {
-                    logger.verbose(`---- JobQueue: ${this.jobName}.save()`);
-                    if (error) {
-                        reject(new mError.MetisErrorSaveJobQueue(job));
-                    }
-                    logger.debug(`job.id= ${job.id}`);
-                    logger.debug(`job.created_at= ${job.created_at}`);
-                    resolve({job})
-                });
-        })
+        const job = this.jobQueue.create(this.jobName, {userAccountProperties,attachToJupiterAddress, fileName, fileEncoding, fileMimeType, fileUuid})
+            .priority('high')
+            .removeOnComplete(false)
+            .save(error => {
+                logger.verbose(`---- JOB.SAVE: ${this.jobName}.save()`);
+                if (error) {
+                    console.log('\n')
+                    logger.error(`************************* ERROR ***************************************`);
+                    logger.error(`* ** JOB.SAVE: ${this.jobName}.save().catch(error)`);
+                    logger.error(`There is a problem saving to redis`);
+                    logger.error(`************************* ERROR ***************************************\n`);
+                    logger.error(`error= ${error}`)
+                    throw new mError.MetisErrorSaveJobQueue(error.message, job);
+                }
+                logger.debug(`job.id= ${job.id}`);
+                logger.debug(`job.created_at= ${job.created_at}`);
+                return job;
+            });
+        return job;
     }
 }
 

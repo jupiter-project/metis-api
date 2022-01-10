@@ -435,46 +435,15 @@ class StorageService {
             if (binaryAccountProperties === null) {
                 throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
             }
-
-            console.log(`\n\n`);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-            console.log(`bufferData To Compress:`);
-            console.log(bufferData);
-            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
             // compress the binary data before to convert to base64
             const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
-            console.log(`\n\n`);
-            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-            console.log(`Compressed bufferData:`);
-            console.log(encodedFileData);
-            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-
-
-
-
-            // const encodedFileData = zlib.deflateSync(bufferData).toString('base64');
-
-
-
-
-            // var inflated = zlib.inflateSync(Buffer.from(deflated, 'base64')).toString()
-
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
             logger.sensitive(`chunks.length=${JSON.stringify(chunks.length)}`);
             // const fee = this.jupiterFundingService.getTotalDataFee(chunks);
             //Send Each Chunk as a transaction.
-
             const sendMessageResponsePromises = chunks.map(chunk => {
                 const encryptedChunk = ownerAccountProperties.crypto.encrypt(chunk)
                 logger.info(`sending chunk (${chunk.length})....`)
-
-                console.log(`\n\n`);
-                console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-                console.log(`CHUNK TO BLOCK:`);
-                console.log(chunk);
-                console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
-
-
                 return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     ownerAccountProperties.passphrase,
                     binaryAccountProperties.address,
@@ -521,6 +490,10 @@ class StorageService {
                 FeeManager.feeTypes.metisMessage,
                 binaryAccountProperties.publicKey
             )
+
+            return {
+                fileRecord: fileRecord,
+            }
         } catch(error) {
             logger.error(`****************************************************************`);
             logger.error(`** sendFileToBlockchain.catch(error)`);
