@@ -279,7 +279,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 version,
             );
 
-            if (type === 'invitation') {
+            if (messageType === 'invitation') {
                 websocket.of('/chat').to(address).emit('newMemberChannel');
             }
 
@@ -301,7 +301,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 replyRecipientAddress,
                 attachmentObj,
                 version
-                )
+                );
             // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
             await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);

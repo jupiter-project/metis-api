@@ -263,7 +263,7 @@ module.exports = (app, jobs, websocket) => {
                                 url: `/v1/api/job/status?jobId=${job.id}`,
                             },
                             fileUuid: fileUuid,
-                            fileUrl: `/v1/api/files/${fileUuid}`
+                            fileUrl: `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
                         })
                         next();
                     })
@@ -274,9 +274,10 @@ module.exports = (app, jobs, websocket) => {
                         const payload = {
                             jobId: job.id,
                             senderAddress: userAccountProperties.address,
-                            url: result.fileRecord.url,
+                            url: `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`,
                             fileName: result.fileRecord.fileName,
                             mimeType: result.fileRecord.mimeType,
+                            size: fileUploadData.fileSize
                         }
                         websocket.of(WEBSOCKET_NAMESPACE).to(`upload-${fileUploadData.attachToJupiterAddress}`).emit('uploadCreated', payload);
                     })
