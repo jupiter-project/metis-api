@@ -151,6 +151,9 @@ module.exports = (app, jobs, websocket) => {
                     fileUploadData.attachToJupiterAddress = value;
                     fileUploadData.websocketRoom =  `upload-${fileUploadData.attachToJupiterAddress}`
                 }
+                if (fieldName === 'originalFileType'){
+                    fileUploadData.originalFileType = value;
+                }
                 logger.debug('DONE--on.field()')
             })
             bb.on('file', (formDataKey,file,info) => {
@@ -277,7 +280,8 @@ module.exports = (app, jobs, websocket) => {
                             url: `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`,
                             fileName: result.fileRecord.fileName,
                             mimeType: result.fileRecord.mimeType,
-                            size: fileUploadData.fileSize
+                            size: fileUploadData.fileSize,
+                            originalFileType: fileUploadData.originalFileType
                         }
                         websocket.of(WEBSOCKET_NAMESPACE).to(`upload-${fileUploadData.attachToJupiterAddress}`).emit('uploadCreated', payload);
                     })
