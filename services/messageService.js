@@ -12,7 +12,7 @@ const {StatusCode} = require("../utils/statusCode");
 const generateNewMessageRecordJson = (
     senderAccountProperties,
     message,
-    type = 'message',
+    messageType = 'message',
     replyMessage = null,
     replyRecipientAlias = null,
     replyRecipientAddress = null,
@@ -24,6 +24,7 @@ const generateNewMessageRecordJson = (
 
     const createdDate = Date.now();
     return {
+        messageType, // message, message-file, file, invitation, removed
         recordType: 'messageRecord',
         status: 'active',
         senderAlias: senderAccountProperties.getCurrentAliasNameOrNull(),
@@ -32,7 +33,6 @@ const generateNewMessageRecordJson = (
         replyMessage,
         replyRecipientAlias,
         replyRecipientAddress,
-        type, // message, invitation, attachment, removed
         attachmentObj,
         createdAt: createdDate,
         updatedAt: createdDate,

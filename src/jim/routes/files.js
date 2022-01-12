@@ -151,6 +151,9 @@ module.exports = (app, jobs, websocket) => {
                     fileUploadData.attachToJupiterAddress = value;
                     fileUploadData.websocketRoom =  `upload-${fileUploadData.attachToJupiterAddress}`
                 }
+                if (fieldName === 'originalFileType'){
+                    fileUploadData.originalFileType = value;
+                }
                 logger.debug('DONE--on.field()')
             })
             bb.on('file', (formDataKey,file,info) => {
@@ -263,7 +266,7 @@ module.exports = (app, jobs, websocket) => {
                                 url: `/v1/api/job/status?jobId=${job.id}`,
                             },
                             fileUuid: fileUuid,
-                            fileUrl: `/v1/api/files/${fileUuid}`
+                            fileUrl: `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
                         })
                         next();
                     })
@@ -274,9 +277,11 @@ module.exports = (app, jobs, websocket) => {
                         const payload = {
                             jobId: job.id,
                             senderAddress: userAccountProperties.address,
-                            url: result.fileRecord.url,
+                            url: `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`,
                             fileName: result.fileRecord.fileName,
                             mimeType: result.fileRecord.mimeType,
+                            size: fileUploadData.fileSize,
+                            originalFileType: fileUploadData.originalFileType
                         }
                         websocket.of(WEBSOCKET_NAMESPACE).to(`upload-${fileUploadData.attachToJupiterAddress}`).emit('uploadCreated', payload);
                     })
@@ -329,7 +334,7 @@ module.exports = (app, jobs, websocket) => {
                 logger.error(`** job.catch(error)`);
                 logger.error(`****************************************************************`);
                 logger.error(`${error}`);
-                websocket.of('/upload').to(`upload-${error.job.created_at}`).emit('uploadFailed', error.job.created_at);
+                websocket.of('/upload').to(`upload-${error.job.created_at}`).emit('uploadFailed', error);
                 return res.status(StatusCode.ServerErrorInternal).send({
                     message: 'Internal Error',
                     jobId: error.job.id,
