@@ -197,10 +197,14 @@ io.of('/chat').on('connection', socketService.connection);
 // sign up socket
 io.of('/sign-up').on('connection', socketService.signUpConnection);
 
-// channel creation
+// channel socket
 io.of('/channels').on('connection', socketService.channelCreationConnection);
 
+// invitation socket
 io.of('/invite').on('connection', socketService.channelCreationConnection);
+
+// upload socket
+io.of('/upload').on('connection', socketService.channelCreationConnection);
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
