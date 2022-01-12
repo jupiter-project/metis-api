@@ -1,8 +1,9 @@
 import {MetisError, MetisErrorSaveJobQueue} from "../../../errors/metisError";
 // import {metisJobQueue} from "../../../server";
 import {storageService} from "../services/storageService";
-import {GravityAccountProperties} from "../../../gravity/GravityAccountProperties";
 import {jobQueue} from "../../../config/configJobQueue";
+const {GravityAccountProperties} = require("../../../gravity/GravityAccountProperties");
+// import {GravityAccountProperties} from "../../../gravity/GravityAccountProperties";
 const logger = require('../../../utils/logger')(module);
 const WORKERS = 100;
 

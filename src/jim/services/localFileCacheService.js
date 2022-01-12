@@ -13,6 +13,8 @@ const CacheWindowInDays = 30;
 class LocalFileCacheService {
 
     constructor( fileCacheLocation, cacheWindowInDays) {
+        if(!fileCacheLocation) throw new mError.MetisError(`fileCacheLocation is invalid: ${fileCacheLocation}`)
+        if(!cacheWindowInDays) throw new mError.MetisError(`cacheWindowInDays is invalid: ${cacheWindowInDays}`)
         this.cacheWindowInDays = cacheWindowInDays;
         this.fileCacheLocation = fileCacheLocation;
     }
@@ -66,7 +68,8 @@ class LocalFileCacheService {
      * @return {string}
      */
     generateBufferDataPath(fileUuid){
-        // Check doesnt exist;
+        if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`${fileUuid}`);
+
         const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.data`);
         return filePath;
     }
@@ -89,7 +92,9 @@ class LocalFileCacheService {
      * @param encryptedFileRecord
      */
     sendFileRecordToCache(fileUuid, encryptedFileRecord){
-        //check if exists.
+        logger.sensitive(`#### sendFileRecordToCache(fileUuid, encryptedFileRecord)`);
+        if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid=${fileUuid}`);
+        if(!encryptedFileRecord) throw new mError.MetisError(`encryptedFileRecord is empty!`);
         const fileRecordPath = this.generateFileRecordPath(fileUuid);
         fs.writeFileSync(fileRecordPath, encryptedFileRecord);
     }
@@ -100,7 +105,16 @@ class LocalFileCacheService {
      * @param bufferData
      */
     sendBufferDataToCache(fileUuid, bufferData){
-        const bufferDataPath = this.generateFileRecordPath(fileUuid);
+        logger.sensitive(`#### sendBufferDataToCache(fileUuid, bufferData)`);
+        if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid=${fileUuid}`);
+        if(!bufferData) throw new mError.MetisError(`bufferData is empty!`);
+        const bufferDataPath = this.generateBufferDataPath(fileUuid);
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`bufferDataPath:`);
+        console.log(bufferDataPath);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+
         fs.writeFileSync(bufferDataPath, bufferData);
     }
 
@@ -128,7 +142,8 @@ class LocalFileCacheService {
 
 }
 
+if(jimConfig.fileCache.strategy !== 'local') throw new mError.MetisError(`fileCache Strategy not implemented yet: ${jimConfig.fileCache.strategy}`)
 module.exports.localFileCacheService = new LocalFileCacheService(
-    jimConfig.fileCacheLocation,
+    jimConfig.fileCache.location,
     CacheWindowInDays
 )
