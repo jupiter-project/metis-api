@@ -23,7 +23,7 @@ class UploadJob {
     }
 
     initialize(){
-        logger.sensitive(`#### initialize()`);
+        logger.verbose(`#### initialize()`);
         this.jobQueue.process(this.jobName, WORKERS, async (job,done) => {
             logger.info(`##### initialize().jobQueue.process(jobName=${this.jobName}, WORKERS, callBack(job,done)`);
             try {
@@ -104,7 +104,7 @@ class UploadJob {
      * @return {Promise<unknown>}
      */
     create(userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid){
-        logger.sensitive(`#### (userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid`);
+        logger.verbose(`#### (userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid`);
 
         if(!(userAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties('userAccountProperties')
         if(!gu.isWellFormedJupiterAddress(attachToJupiterAddress)) throw new mError.MetisErrorBadJupiterAddress(`attachToJupiterAddress`)

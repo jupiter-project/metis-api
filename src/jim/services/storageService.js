@@ -52,7 +52,7 @@ class StorageService {
      * @return {Promise<GravityAccountProperties>}
      */
     async createBinaryAccount(ownerAccountProperties){
-        logger.sensitive(`#### createBinaryAccount(ownerAccountProperties)`);
+        logger.verbose(`#### createBinaryAccount(ownerAccountProperties)`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error('ownerAccountProperties is invalid')}
         try {
             //First: Make sure the owner account is not already associated with a binary account.
@@ -109,7 +109,7 @@ class StorageService {
      * @return {Promise<*>}
      */
     async provideInitialFunding(funderAccountProperties, recipientProperties){
-        logger.sensitive(`#### provideInitialFunding(funderAccountProperties, recipientProperties`);
+        logger.verbose(`#### provideInitialFunding(funderAccountProperties, recipientProperties`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new MetisError('recipientProperties is invalid')}
         if(!(funderAccountProperties instanceof GravityAccountProperties)){throw new MetisError('funderAccountProperties is invalid')}
         const minimumBalanceAmount = this.jimConfig.binaryAccountMinimumBalance;
@@ -133,7 +133,7 @@ class StorageService {
      * @return {Promise<null|*>}
      */
     async fetchBinaryRecordAssociatedToAccountOrNull(gravityAccountProperties){
-        logger.sensitive(`#### fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties)`);
+        logger.verbose(`#### fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties)`);
         if(!(gravityAccountProperties instanceof GravityAccountProperties)){throw new Error(`userAccountProperties is invalid`)}
         try{
             const tag = transactionTags.jimServerTags.binaryAccountRecord;
@@ -171,7 +171,7 @@ class StorageService {
      * @return {Promise<GravityAccountProperties>}
      */
     async fetchBinaryAccountPropertiesOrNull(ownerAccountProperties){
-        logger.sensitive(`#### fetchBinaryAccountPropertiesOrNull(ownerAccountProperties)`);
+        logger.verbose(`#### fetchBinaryAccountPropertiesOrNull(ownerAccountProperties)`);
         const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
         if(binaryRecord === null){
             return null;
@@ -187,7 +187,7 @@ class StorageService {
      * @return {Promise<boolean>}
      */
     async binaryAccountExists(ownerAccountProperties){
-        logger.sensitive(`#### binaryAccountExists()`);
+        logger.verbose(`#### binaryAccountExists()`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error(`ownerAccountProperties is invalid`)}
         const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
 
@@ -288,7 +288,7 @@ class StorageService {
      * @return {Promise<[{filename: string, fileOwnerAddress, href: string, uuid: string}]>}
      */
     async fetchFilesList(ownerAccountProperties){
-        logger.sensitive(`#### fetchFilesList(ownerAccountProperties,fileOwnerAddress)`);
+        logger.verbose(`#### fetchFilesList(ownerAccountProperties,fileOwnerAddress)`);
         const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
         if (binaryAccountProperties === null) {
             throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
@@ -309,7 +309,7 @@ class StorageService {
      * @return {Promise<{bufferDataPath: string, fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress}>}
      */
     async fetchFileInfo(ownerAccountProperties, fileUuid){
-        logger.sensitive(`#### fetchFile(ownerAccountProperties, fileUuid)`);
+        logger.verbose(`#### fetchFile(ownerAccountProperties, fileUuid)`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
         let bufferData = null;
@@ -364,7 +364,7 @@ class StorageService {
     }
 
     async fetchFileFromBlockChain(ownerAccountProperties, fileUuid){
-        logger.sensitive(`#### fetchFileFromBlockChain()`);
+        logger.verbose(`#### fetchFileFromBlockChain()`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
         try {
@@ -540,7 +540,7 @@ class StorageService {
         createdByAddress,
         linkedFileRecords
     ){
-        logger.sensitive(`#### generateFileRecordJson()`);
+        logger.verbose(`#### generateFileRecordJson()`);
         if(!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`empty fileUuid`)
         if(!gu.isNonEmptyString(fileName)) throw new mError.MetisError(`empty fileName`)
         if(!gu.isNonEmptyString(mimeType)) throw new mError.MetisError(`empty mimeType`)
@@ -572,7 +572,7 @@ class StorageService {
      * @return {Promise<{accountId: string, password, address: string, recordType: string, transactionIdOfPreviousVersion: string, passphrase: string, publicKey: string, version: number, status: string}>}
      */
      generateBinaryAccountRecordJson(binaryAccountProperties, transactionIdOfPreviousVersion = null) {
-        logger.sensitive(`#### generateBinaryRecordJson()`);
+        logger.verbose(`#### generateBinaryRecordJson()`);
         if (!( transactionIdOfPreviousVersion===null || gu.isWellFormedJupiterTransactionId(transactionIdOfPreviousVersion))) {
             throw new Error('invalid transactionIdOfPreviousVersion')
         }

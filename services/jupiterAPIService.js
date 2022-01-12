@@ -327,7 +327,7 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### getBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.verbose(`#### getBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         const requestType = JupiterAPIService.RequestType.GetBlockchainTransactions;
         const transactionsResponse = await this._getConfirmedOrUnconfirmedBlockChainTransactions(
@@ -413,7 +413,7 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.verbose(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`);
         logger.verbose(`address= ${address}`);
         logger.verbose(`message= ${message}`);
@@ -470,7 +470,7 @@ class JupiterAPIService {
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.sensitive(`#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType, address, message, withMessage, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.verbose(`#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType, address, message, withMessage, type, includeExpiredPrunable, firstIndex, lastIndex)`);
         if(!(requestType === JupiterAPIService.RequestType.GetBlockchainTransactions || requestType === JupiterAPIService.RequestType.GetUnconfirmedTransactions)){
             throw new Error(`requestType is invalid: ${requestType}`)
         }
@@ -1120,7 +1120,7 @@ class JupiterAPIService {
     }
 
     getState(){
-        logger.sensitive(`#### getState()`);
+        logger.verbose(`#### getState()`);
         const params = {requestType: JupiterAPIService.RequestType.GetState}
         return this.get(params);
     }

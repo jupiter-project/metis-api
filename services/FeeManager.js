@@ -175,7 +175,7 @@ class FeeManager {
      * @returns {number}
      */
     getFee(feeType) {
-        logger.sensitive(`#### getFee(feeType= ${feeType})`);
+        logger.verbose(`#### getFee(feeType= ${feeType})`);
         const fees = this.fees.filter(fee => {
             return feeType === fee.feeType
         })

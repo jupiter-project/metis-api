@@ -110,7 +110,7 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
 // };
 
 const sendMessagePushNotifications = async (memberAccountProperties, channelAccountProperties, mentions) => {
-    logger.sensitive(`#### sendMessagePushNotification()`);
+    logger.verbose(`#### sendMessagePushNotification()`);
     if(!(memberAccountProperties instanceof GravityAccountProperties)){throw new Error('Invalid memberAccountProperties')}
     if(!(channelAccountProperties instanceof GravityAccountProperties)){throw new Error('Invalid channelAccountProperties')}
     const senderAlias = memberAccountProperties.getCurrentAliasNameOrNull();

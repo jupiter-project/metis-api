@@ -41,7 +41,7 @@ module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password
  * @return {Promise<GravityAccountProperties>}
  */
 module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
-    logger.sensitive(`#### instantiateGravityAccountProperties(passphrase, password)`);
+    logger.verbose(`#### instantiateGravityAccountProperties(passphrase, password)`);
     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
     if(!gu.isNonEmptyString(password)){throw new Error('password is invalid')}
     return jupiterAccountService.fetchAccountInfo(passphrase)

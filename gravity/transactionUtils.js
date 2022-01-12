@@ -191,13 +191,13 @@ class TransactionUtils {
      * @returns {boolean}
      */
     isValidBaseTransactionResponse(responseTransaction) {
-        logger.sensitive(`#### isValidBaseTransactionResponse(responseTransaction)`);
+        logger.verbose(`#### isValidBaseTransactionResponse(responseTransaction)`);
         if(!responseTransaction){
             logger.warn('transaction is empty')
             return false
         }
         try {
-            logger.sensitive(`#### isValidResponseTransaction(responseTransaction)`);
+            logger.verbose(`#### isValidResponseTransaction(responseTransaction)`);
             if(!responseTransaction.transactionJSON){
                 logger.warn('transactionJSON doesnt exist')
                 return false
@@ -235,7 +235,7 @@ class TransactionUtils {
      * @returns {*|((storeNames: (string | Iterable<string>), mode?: IDBTransactionMode) => IDBTransaction)|((callback: (transaction: SQLTransactionSync) => void) => void)|((storeNames: (string | string[]), mode?: IDBTransactionMode) => IDBTransaction)|IDBTransaction|((callback: (transaction: SQLTransaction) => void, errorCallback?: (error: SQLError) => void, successCallback?: () => void) => void)}
      */
     extractTransactionId(transaction){
-        logger.sensitive(`#### extractTransactionId(transaction)`);
+        logger.verbose(`#### extractTransactionId(transaction)`);
         if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')}
         // const validatorResult = validator.validateBaseTransaction(transaction);
         // if(!validatorResult.isValid){
@@ -253,7 +253,7 @@ class TransactionUtils {
      * @return {*|(function((string|Iterable<string>), IDBTransactionMode=): IDBTransaction)|(function(function(SQLTransactionSync): void): void)|(function((string|string[]), IDBTransactionMode=): IDBTransaction)|IDBTransaction|(function(function(SQLTransaction): void, function(SQLError): void=, function(): void=): void)}
      */
     extractTransactionIdFromTransactionResponse(transactionResponse){
-        logger.sensitive(`#### extractTransactionIdFromTransactionResponse(transactionResponse)`);
+        logger.verbose(`#### extractTransactionIdFromTransactionResponse(transactionResponse)`);
         if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
         // if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
         if(!transactionResponse.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
@@ -261,7 +261,7 @@ class TransactionUtils {
     }
 
     extractTransactionIdsFromTransactionResponses(transactionResponses){
-        logger.sensitive(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
+        logger.verbose(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
         if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
         return transactionResponses.map(transactionResponse => {
             return this.extractTransactionIdFromTransactionResponse(transactionResponse)
@@ -294,7 +294,7 @@ class TransactionUtils {
      * @return {*[]|*}
      */
     filterTransactionsByTransactionIds(transactions, blackList = [], whiteList = []){
-        logger.sensitive(`#### filterTransactionsByTransactionIds(transactions, blackList , whiteLis)`);
+        logger.verbose(`#### filterTransactionsByTransactionIds(transactions, blackList , whiteLis)`);
         if(!this.areValidTransactions(transactions)) throw new mError.MetisError(`transactions are invalid`);
         if(!(Array.isArray(blackList) )) throw new mError.MetisError(`blacklist is not an array`)
         if(!(Array.isArray(whiteList) )) throw new mError.MetisError(`whiteList is not an array`)

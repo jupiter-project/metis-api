@@ -26,14 +26,14 @@ class S3FileCacheService {
      * @return {boolean}
      */
     bufferDataExists(fileUuid){
-        logger.sensitive(`#### bufferDataExists()`);
+        logger.verbose(`#### bufferDataExists()`);
         //make sure both file and record exist
         const bufferDataPath = this.generateBufferDataPath(fileUuid);
         return fs.existsSync(bufferDataPath);
     }
 
     cachedFileExists(fileUuid){
-        logger.sensitive(`#### cachedFileExists()`);
+        logger.verbose(`#### cachedFileExists()`);
         const bufferDataPath = this.generateBufferDataPath(fileUuid);
         const fileRecordPath = this.generateFileRecordPath(fileUuid);
         return fs.existsSync(bufferDataPath) && fs.existsSync(fileRecordPath);

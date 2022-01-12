@@ -60,7 +60,7 @@ class Validator {
      * @return {{isValid: boolean, message: (*|string)}}
      */
     validate(validator, data){
-        // logger.sensitive(`#### validate(schema,data)`);
+        // logger.verbose(`#### validate(schema,data)`);
         const valid = validator(data);
         const message = validator.errors ? `There are ${validator.errors.length} errors.` : '';
         return {

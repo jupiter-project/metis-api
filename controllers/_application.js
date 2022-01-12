@@ -228,7 +228,7 @@ module.exports = (app, passport, jobs, websocket) => {
     }
 
     passport.authenticate('gravity-login', (error, user, message) => {
-      logger.sensitive(`#### /v1/api/appLogin > passport.authenticate('gravity-login', CALLBACK(*)`);
+      logger.verbose(`#### /v1/api/appLogin > passport.authenticate('gravity-login', CALLBACK(*)`);
       if (error) {
         if(error instanceof mError.MetisErrorFailedUserAuthentication){
           return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Not able to authenticate.', code: error.code});

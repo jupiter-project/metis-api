@@ -238,7 +238,7 @@ class JupiterTransactionsService {
      *           >}
      */
     async fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null, orderBy = 'desc'){
-        logger.sensitive(`#### fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
+        logger.verbose(`#### fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
@@ -406,7 +406,7 @@ class JupiterTransactionsService {
      * @return {Promise<{signature, transactionIndex, type, phased, ecBlockId, signatureHash, attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData, versionEncryptedMessage}, senderRS, subtype, amountNQT, recipientRS, block, blockTimestamp, deadline, timestamp, height, senderPublicKey, feeNQT, confirmations, fullHash, version, sender, recipient, ecBlockHeight, transaction}[]|*[]>}
      */
     async fetchConfirmedBlockChainTransactionsByTag(address, tag, firstIndex= null, lastIndex= null) {
-        logger.sensitive(`#### fetchConfirmedBlockChainTransactionsByTag(address=${address}, tag=${tag}, firstIndex, lastIndex)`);
+        logger.verbose(`#### fetchConfirmedBlockChainTransactionsByTag(address=${address}, tag=${tag}, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         if(!tag){throw new Error('tag is empty')}
         if(firstIndex && !Number.isInteger(firstIndex)){throw new Error(`firstIndex needs to be an int or null`) }
