@@ -3,7 +3,6 @@
 if(!process.env.FILE_CACHE_STRATEGY) throw new Error(`Environment Variable missing: FILE_CACHE_STRATEGY `)
 const fileCacheStrategy = process.env.FILE_CACHE_STRATEGY;
 if(!(fileCacheStrategy === 'local' || fileCacheStrategy === 's3'))  throw new Error(`Environment Variable is invalid: FILE_CACHE_STRATEGY= ${fileCacheStrategy}`)
-
 let fileCacheConfig = {
     strategy: process.env.FILE_CACHE_STRATEGY
 }
@@ -22,6 +21,10 @@ if(fileCacheStrategy === 'local'){
         secret: process.env.FILE_CACHE_SECRET,
     }}
 }
+if(!process.env.JIMSRV_MAX_FILE_SIZE_MB) throw new Error(`Environment Variable missing: JIMSRV_MAX_FILE_SIZE_MB `)
+const maxFileSize = process.env.JIMSRV_MAX_FILE_SIZE_MB;
+if(!process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE) throw new Error(`Environment Variable missing: JIMSRV_BINARY_ACCOUNT_MIN_BALANCE `)
+const binaryAccountMinBalance = process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE;
 
 module.exports.jimConfig = {
     imageResize: {
@@ -31,7 +34,7 @@ module.exports.jimConfig = {
             fit: 'cover',
         },
     },
-    maxMbSize: process.env.JIMSRV_MAX_FILE_SIZE_MB,
-    binaryAccountMinimumBalance: process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE,
+    maxMbSize: maxFileSize,
+    binaryAccountMinimumBalance: binaryAccountMinBalance,
     fileCache: fileCacheConfig
 };
