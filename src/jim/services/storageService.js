@@ -4,7 +4,7 @@ const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
 const zlib = require('zlib');
 import {chanService} from "../../../services/chanService";
-import {fileCacheService} from "./fileCacheService";
+import {localFileCacheService} from "./localFileCacheService";
 
 /**
  *
@@ -603,5 +603,5 @@ module.exports.storageService = new StorageService(
     jimConfig,
     transactionUtils,
     chanService,
-    fileCacheService
+    localFileCacheService
 )

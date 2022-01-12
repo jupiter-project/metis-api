@@ -1,7 +1,7 @@
 import mError from "../../../errors/metisError";
 // import PQueue from 'p-queue';
 import {storageService} from "../services/storageService";
-import {fileCacheService} from "../services/fileCacheService";
+import {localFileCacheService} from "../services/localFileCacheService";
 import {chanService} from "../../../services/chanService";
 const gu = require('../../../utils/gravityUtils');
 const busboy = require('busboy');
@@ -117,8 +117,8 @@ module.exports = (app, jobs, websocket) => {
         const WEBSOCKET_NAMESPACE = '/upload';
 
         const fileUploadData = {};
-        const fileUuid = fileCacheService.generateUuid();
-        const bufferDataFilePath = fileCacheService.generateBufferDataPath(fileUuid);
+        const fileUuid = localFileCacheService.generateUuid();
+        const bufferDataFilePath = localFileCacheService.generateBufferDataPath(fileUuid);
         const userAccountProperties = req.user.gravityAccountProperties;
         fileUploadData.fileUuid = fileUuid;
         fileUploadData.filePath = bufferDataFilePath;
