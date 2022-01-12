@@ -1,7 +1,7 @@
 
 import mError from "../../../errors/metisError";
 import {storageService} from "../services/storageService";
-import {fileCacheService} from "../services/fileCacheService";
+import {localFileCacheService} from "../services/localFileCacheService";
 import {GravityAccountProperties} from "../../../gravity/gravityAccountProperties";
 import {jobQueue} from "../../../config/configJobQueue";
 import {chanService} from "../../../services/chanService";
@@ -34,7 +34,7 @@ class UploadJob {
                 if(!fileEncoding) throw new mError.MetisError('fileEncoding is invalid');
                 if(!fileMimeType) throw new mError.MetisError('fileMimeType is invalid');
                 if(!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError(`The file is not found`);
-                const fileBufferDataPath = fileCacheService.generateBufferDataPath(fileUuid);
+                const fileBufferDataPath = localFileCacheService.generateBufferDataPath(fileUuid);
                 const userAccountProperties = await GravityAccountProperties.Clone(_userAccountProperties);
                 const attachToAccountProperties = await this.channelService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,attachToJupiterAddress);
                 if(attachToAccountProperties === null) throw new  mError.MetisError(`No channel address found`)
@@ -137,6 +137,6 @@ class UploadJob {
 
 module.exports = {
     UploadJob: UploadJob,
-    uploadJob: new UploadJob(jobQueue, chanService, storageService, fileCacheService)
+    uploadJob: new UploadJob(jobQueue, chanService, storageService, localFileCacheService)
 };
 

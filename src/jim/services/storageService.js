@@ -4,7 +4,7 @@ const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
 const zlib = require('zlib');
 import {chanService} from "../../../services/chanService";
-import {fileCacheService} from "./fileCacheService";
+import {localFileCacheService} from "./localFileCacheService";
 
 /**
  *
@@ -16,6 +16,10 @@ class StorageService {
      * @param jupiterTransactionsService
      * @param jupiterFundingService
      * @param jupiterAccountService
+     * @param jimConfig
+     * @param transactionUtils
+     * @param chanService
+     * @param fileCacheService
      */
     constructor(
         jupiterAPIService,
@@ -75,7 +79,7 @@ class StorageService {
             logger.sensitive(`++ password: ${newBinaryAccountProperties.password}`);
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
             // Third: Provide initial funding.
-            logger.info(`¡ Third: Provide initial funding`);;
+            logger.info(`¡ Third: Provide initial funding`);
             const provideInitialFundingResponse = await this.provideInitialFunding(ownerAccountProperties,newBinaryAccountProperties);
             const transactionIdForFunding = provideInitialFundingResponse.data.transaction;
             await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForFunding);
@@ -186,10 +190,8 @@ class StorageService {
         logger.sensitive(`#### binaryAccountExists()`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error(`ownerAccountProperties is invalid`)}
         const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
-        if(binaryRecord === null){
-            return false;
-        }
-        return true;
+
+        return binaryRecord !== null;
     }
 
     /**
@@ -277,15 +279,13 @@ class StorageService {
             binaryAccountProperties
         )
 
-        const channelFilesList = messageContainers.map(containers => containers.message);
-
-        return channelFilesList;
+        return messageContainers.map(containers => containers.message);
     }
 
     /**
      *
-     * @param {GravityAccountProperties} ownerAccountProperties
-     * @return {Promise<[{fileUuid: string}]>}
+     * @param ownerAccountProperties
+     * @return {Promise<[{filename: string, fileOwnerAddress, href: string, uuid: string}]>}
      */
     async fetchFilesList(ownerAccountProperties){
         logger.sensitive(`#### fetchFilesList(ownerAccountProperties,fileOwnerAddress)`);
@@ -320,17 +320,30 @@ class StorageService {
                 throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
             }
             if(this.fileCacheService.cachedFileExists(fileUuid)){
+                // GETTING FILE FROM CACHE
+                console.log(`\n`);
+                logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+                logger.info(` GETTING FILE FROM CACHE`);
+                logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
                 const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid);
                 fileRecord = binaryAccountProperties.crypto.decryptAndParse(encryptedFileRecord);
             } else {
+                // GETTING FILE FROM BLOCKCHAIN
+                console.log(`\n`);
+                logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+                logger.info(` GETTING FILE FROM BLOCKCHAIN`);
+                logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
                 const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChain(ownerAccountProperties,fileUuid);
                 bufferData = fetchFileFromBlockChainResponse.bufferData;
                 fileRecord = fetchFileFromBlockChainResponse.fileRecord;
-                const encryptedFileRecord = binaryAccountProperties.encryptJson(fileRecord);
+                const encryptedFileRecord = binaryAccountProperties.crypto.encryptJson(fileRecord);
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
                 this.fileCacheService.sendFileRecordToCache(fileUuid,encryptedFileRecord);
             }
+
+            if(!this.fileCacheService.bufferDataExists(fileUuid))throw new mError.MetisError(`Buffer Data does not exist!`)
             const bufferDataPath = this.fileCacheService.generateBufferDataPath(fileUuid);
+
             return {
                 bufferDataPath: bufferDataPath,
                 mimeType: fileRecord.mimeType,
@@ -392,16 +405,18 @@ class StorageService {
         }
     }
 
-
     /**
-     * Push a file into the Jupiter blockchain
-     * The file is splitted into chunks of CHUNK_SIZE_PATTERN
-     * and pushed by the binary client
-     *
+     Push a file into the Jupiter blockchain
+     The file is splitted into chunks of CHUNK_SIZE_PATTERN
+     and pushed by the binary client
+
      * @param fileName
+     * @param mimeType
+     * @param fileUuid
      * @param bufferData
-     * @param ownerAccountProperties - this is usually the channel Account
-     * @return {Promise<{[p: number]: boolean, fileName, fileSize: number, id: *, txns: *}>}
+     * @param ownerAccountProperties
+     * @param originalSenderAddress
+     * @return {Promise<{fileRecord: {fileName, fileCat, recordType: string, chunkTransactionIds, mimeType, sizeInKb, originalSenderAddress, linkedFileRecord, version: number, fileUuid, url: string, status: string}}>}
      */
     async sendFileToBlockchain(
         fileName,
@@ -442,7 +457,7 @@ class StorageService {
             // const fee = this.jupiterFundingService.getTotalDataFee(chunks);
             //Send Each Chunk as a transaction.
             const sendMessageResponsePromises = chunks.map(chunk => {
-                const encryptedChunk = ownerAccountProperties.crypto.encrypt(chunk)
+                // const encryptedChunk = ownerAccountProperties.crypto.encrypt(chunk)  ## chunks will not be encrypted. Not necessary for e2e
                 logger.info(`sending chunk (${chunk.length})....`)
                 return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     ownerAccountProperties.passphrase,
@@ -603,5 +618,5 @@ module.exports.storageService = new StorageService(
     jimConfig,
     transactionUtils,
     chanService,
-    fileCacheService
+    localFileCacheService
 )
