@@ -28,7 +28,7 @@ const incrementBadgeCountersForNotifications = async (notificationsCollection) =
  * @return {*}
  */
 const extractPNAccountsFromCollection = (notificationsCollection) => {
-  logger.sensitive(`#### extractPNAccountsFromCollection = (notificationsCollection)`);
+  logger.verbose(`#### extractPNAccountsFromCollection = (notificationsCollection)`);
   if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
   if(notificationsCollection.length === 0 ){return []}
 
@@ -83,7 +83,7 @@ module.exports = {
    * @param channelName
    */
   // getPNTokenAndSendInviteNotification: async (senderAlias, userAddress, channelName) => {
-  //   logger.sensitive(`#### getPNTokenAndSendInviteNotification: (senderAlias=${senderAlias}, userAddress=${userAddress}, channelName=${channelName})`);
+  //   logger.verbose(`#### getPNTokenAndSendInviteNotification: (senderAlias=${senderAlias}, userAddress=${userAddress}, channelName=${channelName})`);
   //   if(!gu.isWellFormedJupiterAddress(userAddress)){throw new BadJupiterAddressError(userAddress)};
   //   if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
   //   if(!channelName){throw new Error(`channelName is empty`)};
@@ -117,7 +117,7 @@ module.exports = {
    * @param metadata
    */
   getPNTokensAndSendPushNotification: async (recipientAddresses, mutedChannelAddressesToExclude, message, title, metadata) => {
-    logger.sensitive(`#### getPNTokensAndSendPushNotification: (recipientAddressArray=${recipientAddresses}, mutedChannelsToExclude=${mutedChannelAddressesToExclude})`);
+    logger.verbose(`#### getPNTokensAndSendPushNotification: (recipientAddressArray=${recipientAddresses}, mutedChannelsToExclude=${mutedChannelAddressesToExclude})`);
     // if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
      if(!Array.isArray(mutedChannelAddressesToExclude)){throw new Error(`mutedChannelsToExclude is not an Array`)}
     mutedChannelAddressesToExclude.forEach(mutedChannelAddress => {

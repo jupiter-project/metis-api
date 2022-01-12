@@ -147,7 +147,7 @@ const isWellFormedE2EPublicKey = function(e2ePublicKey){
  * @returns {boolean}
  */
 const isWellFormedPublicKey = function(publicKey) {
-    logger.sensitive(`#### isWellFormedPublicKey(publicKey= ${publicKey})`);
+    logger.verbose(`#### isWellFormedPublicKey(publicKey= ${publicKey})`);
     if(!publicKey){
         // logger.warn('publicKey is empty');
         return false;
@@ -173,7 +173,7 @@ const isWellFormedPublicKey = function(publicKey) {
  * @returns {boolean}
  */
 const isWellFormedAccountId = function(accountId) {
-    logger.sensitive(`#### isWellFormedAccountId(accountId= ${accountId})`);
+    logger.verbose(`#### isWellFormedAccountId(accountId= ${accountId})`);
     if(!accountId){
         logger.warn('accountId is empty');
         return false;

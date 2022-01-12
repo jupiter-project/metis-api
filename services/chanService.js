@@ -704,7 +704,7 @@ class ChanService {
      * @return {Promise<{createdAt: number, channelRecord: Promise<{address: string, recordType: string, publicKey: string, version: number, accountId: string, createdAt: number, password, sender, createdBy, channelName, passphrase: string, status: string, updatedAt: number}>, createdBy: string, recordType: string, inviteeAddress, inviterAddress: string, inviteePublicKey, version: number, status: string, updatedAt: number}>}
      */
     async generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties) {
-        logger.sensitive(`#### generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties)`);
+        logger.verbose(`#### generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties)`);
         if(!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`channelAccountProperties`)
         if(!(inviterAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`inviterAccountProperties`)
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
@@ -749,7 +749,7 @@ class ChanService {
      * @return {Promise<{address: string, recordType: string, publicKey: string, version: number, accountId: string, createdAt: number, password, sender, createdBy, channelName, passphrase: string, status: string, updatedAt: number}>}
      */
     async generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress) {
-        logger.sensitive(`#### generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress)`);
+        logger.verbose(`#### generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress)`);
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
         if(!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.MetisErrorBadJupiterAddress(`createdByAddress: ${createdByAddress}`)
         // if (!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.BadJupiterAddressError(createdByAddress)
@@ -806,7 +806,7 @@ class ChanService {
      * @return {Promise<boolean>}
      */
     async channelHasMemberInfo(channelAccountProperties, memberAddress) {
-        logger.sensitive(`#### channelHasMemberInfo(channelAccountProperties, memberAddress=${memberAddress})`);
+        logger.verbose(`#### channelHasMemberInfo(channelAccountProperties, memberAddress=${memberAddress})`);
         const listTag = channelConfig.channelMemberList;
         const recordTag = `${channelConfig.channelMember}.${memberAddress}`;
         return this.accountHasReferenceAccountInfo(channelAccountProperties, memberAddress, listTag, recordTag)
@@ -1088,7 +1088,7 @@ class ChanService {
      * @param {GravityAccountProperties} channelAccountProperties
      */
     addE2EPublicKeyToChannel(userE2EPublicKey, userAddress, channelAccountProperties) {
-        logger.sensitive(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
+        logger.verbose(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
         return this.jupiterAccountService.addE2EPublicKeyToJupiterAccount(userE2EPublicKey,channelAccountProperties,userAddress,'ChannelAccount');
         // try {
         //

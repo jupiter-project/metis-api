@@ -770,7 +770,7 @@ class TableService {
      * @return {*[]|*}
      */
     extractLatestTableNamesFromMessages(messages){
-        logger.sensitive(`#### extractLatestTableNamesFromMessages(messages): messages.length= ${messages.length})`);
+        logger.verbose(`#### extractLatestTableNamesFromMessages(messages): messages.length= ${messages.length})`);
         if(messages.length === 0 ) {
             logger.warn(`empty messages. returning []`);
             return []

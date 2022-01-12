@@ -15,7 +15,7 @@ const accountPropertyFee = feeManagerSingleton.getFee(FeeManager.feeTypes.accoun
 const logger = require('../utils/logger')(module);
 
 const getSignInToken = (dataLogin) => {
-    logger.sensitive(`#### getSignInToken(dataLogin)`);
+    logger.verbose(`#### getSignInToken(dataLogin)`);
   return axios.post(`${process.env.JIM_SERVER}/api/v1/signin`, dataLogin)
       .then((response) => {
         if (!(response && response.data && response.data.token)){
@@ -261,7 +261,7 @@ module.exports = {
         });
   },
   jimSignin: (req, res) =>{
-      logger.sensitive(`#### jimSignIn(req,res)`);
+      logger.verbose(`#### jimSignIn(req,res)`);
       const { address, password, passphrase } = req.user;
       const dataLogin = { account: address, passphrase, password };
       getSignInToken(dataLogin)

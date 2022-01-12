@@ -16,7 +16,7 @@ const meter = require('stream-meter');
 
 
 function abort(request, busboy){
-    logger.sensitive(`#### abort()`);
+    logger.verbose(`#### abort()`);
     request.unpipe(busboy);
     if (!request.aborted) {
         request.set("Connection", "close");

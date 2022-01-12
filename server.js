@@ -122,7 +122,7 @@ app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
 
 app.use((req, res, next) => {
-  logger.sensitive(`#### middleware...`);
+  logger.verbose(`#### middleware...`);
   if (req.url !== '/favicon.ico') {
     return next();
   }

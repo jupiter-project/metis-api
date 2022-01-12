@@ -360,7 +360,7 @@ class JupiterAccountService {
      * @param {string} tag
      */
     // async getPublicKeyTransactionsList(gravityAccountProperties, tag) {
-    //     logger.sensitive(`#### getPublicKeyTransactionsList(gravityAccountProperties, tag)`);
+    //     logger.verbose(`#### getPublicKeyTransactionsList(gravityAccountProperties, tag)`);
     //     if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`)
     //     if(!tag) throw new mError.MetisError(`tag is invalid`)
     //     try {
@@ -400,7 +400,7 @@ class JupiterAccountService {
     //  * @param {GravityAccountProperties} channelAccountProperties
     //  */
     // async addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties) {
-    //     logger.sensitive(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
+    //     logger.verbose(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
     //     try {
     //         if(channelAccountProperties.isMinimumProperties){
     //             await refreshGravityAccountProperties(channelAccountProperties);
@@ -466,7 +466,7 @@ class JupiterAccountService {
      * @return {Promise<void>}
      */
     async addE2EPublicKeyToJupiterAccount(e2ePublicKey, gravityAccountProperties, userAddress = null , accountType = 'UserAccount') {
-        logger.sensitive(`#### addE2EPublicKeyToJupiterAccount(publicKey, gravityAccountProperties, accountType)`);
+        logger.verbose(`#### addE2EPublicKeyToJupiterAccount(publicKey, gravityAccountProperties, accountType)`);
         if(!gu.isWellFormedE2EPublicKey(e2ePublicKey)) throw new mError.MetisErrorBadJupiterPublicKey(`publicKey: ${e2ePublicKey}`);
         if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`);
         if(!(accountType === 'UserAccount' || accountType === 'ChannelAccount')) throw new mError.MetisError(`invalid accountType: ${accountType}`)
@@ -844,7 +844,7 @@ class JupiterAccountService {
      * @returns {Promise<{aliasURI, aliasName, accountRS, alias, account, timestamp}[] | *[]>}
      */
     getAliasesOrEmptyArray(address){
-        logger.sensitive(`##### getAliasesOrEmptyArray(address= ${address})`);
+        logger.verbose(`##### getAliasesOrEmptyArray(address= ${address})`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         // if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}

@@ -140,7 +140,7 @@ class JupiterFundingService {
      * @returns {Promise<unknown>}
      */
      async transfer(senderProperties, recipientProperties, transferAmount, fee ) {
-         logger.sensitive(`#### transfer(senderProperties, recipientProperties, transferAmount=${transferAmount}, fee=${fee} )`);
+         logger.verbose(`#### transfer(senderProperties, recipientProperties, transferAmount=${transferAmount}, fee=${fee} )`);
         if (!transferAmount) {throw new Error('transfer amount missing')}
         if(isNaN(fee)){
             throw new MetisError(`fee is not a number`)

@@ -125,7 +125,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<[{message: {}, transactionId: string}]>}
      */
     readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase) {
-        logger.sensitive(`#### readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase)`);
+        logger.verbose(`#### readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(messageTransactionIds, crypto, passphrase)`);
         if(!gu.isWellFormedPassphrase(passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(``);
         if(!(crypto instanceof GravityCrypto)) throw new mError.MetisError(`crypto is invalid`);
         if(!Array.isArray(messageTransactionIds)) throw new mError.MetisError(`messageTransactionIds is not array`);
@@ -333,7 +333,7 @@ class JupiterTransactionMessageService {
      * @returns {Promise<{message: *, transactionId: *}>}
      */
     async getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase) {
-        // logger.sensitive(`#### getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)`);
+        // logger.verbose(`#### getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase)`);
         if(!gu.isWellFormedJupiterTransactionId(messageTransactionId)){throw new Error('messageTransactionId is invalid')}
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is invalid')}
         if(!(crypto instanceof GravityCrypto)){throw new Error('crypto is invalid')}
