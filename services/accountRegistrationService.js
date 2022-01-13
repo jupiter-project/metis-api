@@ -97,45 +97,45 @@ class AccountRegistration {
      * @param newAccountPassword
      * @return {Promise<void>}
      */
-    async register2(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword) {
-        logger.verbose('###########################################');
-        logger.verbose('## register2(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword)');
-        logger.verbose('###########################################');
-        try {
-            const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
-            if (!isAliasAvailable) {
-                throw new Error('alias is already in user')
-            }
-
-            const metisAppStatement = await this.jupiterAccountService.fetchAccountStatement(
-                this.applicationAccountProperties.passphrase,
-                this.applicationAccountProperties.password,
-                'metis-account',
-                'app'
-            );
-
-            const newUserAccountProperties = await instantiateGravityAccountProperties(newAccountPassphrase, newAccountPassword);
-            const newUserAccountData = await this.jupiterAccountService.fetchAccountData(newUserAccountProperties)
-            if (gu.isNonEmptyArray(newUserAccountData.allRecords) && this.isAccountRegisteredWithApp(newAccountAddress, metisAppStatement.allRecords)) {
-                throw new Error('Account is already registered');
-            }
-
-            //@TODO does a  UserRecord exist Already?????  (ie new login method)
-
-            const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newUserAccountProperties);
-            const transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
-            await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
-            const attachMissingDefaultTablesResponse = await this.attachMissingDefaultTables(newUserAccountData.attachedTables, newUserAccountProperties);
-            const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newUserAccountProperties);
-            const allTransactionIds = [...attachMissingDefaultTablesResponse.transactions,{name: 'user-record', id: addUserRecordToUserAccountResponse.transaction}]
-            await this.jupiterFundingService.waitForAllTransactionConfirmations(allTransactionIds);
-            await this.jupApi.setAlias(newAccountAddress, newAccountPassphrase, newAccountAliasName);
-            console.log('DONE.');
-        }catch(error){
-            console.log(error);
-            throw error;
-        }
-    }
+    // async register2(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword) {
+    //     logger.verbose('###########################################');
+    //     logger.verbose('## register2(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword)');
+    //     logger.verbose('###########################################');
+    //     try {
+    //         const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
+    //         if (!isAliasAvailable) {
+    //             throw new Error('alias is already in user')
+    //         }
+    //
+    //         const metisAppStatement = await this.jupiterAccountService.fetchAccountStatement(
+    //             this.applicationAccountProperties.passphrase,
+    //             this.applicationAccountProperties.password,
+    //             'metis-account',
+    //             'app'
+    //         );
+    //
+    //         const newUserAccountProperties = await instantiateGravityAccountProperties(newAccountPassphrase, newAccountPassword);
+    //         const newUserAccountData = await this.jupiterAccountService.fetchAccountData(newUserAccountProperties)
+    //         if (gu.isNonEmptyArray(newUserAccountData.allRecords) && this.isAccountRegisteredWithApp(newAccountAddress, metisAppStatement.allRecords)) {
+    //             throw new Error('Account is already registered');
+    //         }
+    //
+    //         //@TODO does a  UserRecord exist Already?????  (ie new login method)
+    //
+    //         const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newUserAccountProperties);
+    //         const transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
+    //         await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
+    //         const attachMissingDefaultTablesResponse = await this.attachMissingDefaultTables(newUserAccountData.attachedTables, newUserAccountProperties);
+    //         const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newUserAccountProperties);
+    //         const allTransactionIds = [...attachMissingDefaultTablesResponse.transactions,{name: 'user-record', id: addUserRecordToUserAccountResponse.transaction}]
+    //         await this.jupiterFundingService.waitForAllTransactionConfirmations(allTransactionIds);
+    //         await this.jupApi.setAlias(newAccountAddress, newAccountPassphrase, newAccountAliasName);
+    //         console.log('DONE.');
+    //     }catch(error){
+    //         console.log(error);
+    //         throw error;
+    //     }
+    // }
 
     /**
      *
@@ -145,58 +145,58 @@ class AccountRegistration {
      * @param newAccountPassword
      * @return {Promise<void>}
      */
-    async register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword) {
-        logger.verbose('###########################################');
-        logger.verbose('## register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword)');
-        logger.verbose('###########################################');
-        try {
-            const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
-            if (!isAliasAvailable) {
-                throw new Error('alias is already in user')
-            }
-            const metisAppStatement = await this.jupiterAccountService.fetchAccountStatement(
-                this.applicationAccountProperties.passphrase,
-                this.applicationAccountProperties.password,
-                'metis-account',
-                'app'
-            );
-            const usersTableStatement = metisAppStatement.attachedTables.find(table => table.statementId === 'table-users');
-            if (!usersTableStatement) {
-                throw new Error('There is no application users table');
-            }
-            const newUserAccountProperties = await instantiateGravityAccountProperties(newAccountPassphrase, newAccountPassword);
-            const newUserAccountData = await this.jupiterAccountService.fetchAccountData(newUserAccountProperties)
-            if (gu.isNonEmptyArray(newUserAccountData.allRecords) && this.isAccountRegisteredWithApp(newAccountAddress, metisAppStatement.allRecords)) {
-                throw new Error('Account is already registered');
-            }
-            const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newUserAccountProperties);
-            const transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
-            await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
-            const attachMissingDefaultTablesResponse = await this.attachMissingDefaultTables(newUserAccountData.attachedTables, newUserAccountProperties);
-            await this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions);
-            const setAliasResponse = await this.jupApi.setAlias(newAccountAddress,newAccountPassphrase, newAccountAliasName);
-            const aliasObject = {
-                "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
-                "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
-                "accountRS": setAliasResponse.data.transactionJSON.senderRS,
-            }
-            newUserAccountProperties.addAlias(aliasObject);
-            await this.jupiterAccountService.addRecordToMetisUsersTable(newUserAccountProperties, usersTableStatement.properties);
-            const fundedAccountStatement = await this.jupiterAccountService.fetchAccountStatement(
-                newAccountPassphrase,
-                newAccountPassword,
-                'new-user-account',
-                'user'
-            );
-            fundedAccountStatement.properties.addAlias(aliasObject);
-            const metisAppRegistrationData = this.printRegistrationData(fundedAccountStatement)
-            logger.sensitive(metisAppRegistrationData);
-            console.log('DONE.');
-        }catch(error){
-            console.log(error);
-            throw error;
-        }
-  }
+  //   async register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword) {
+  //       logger.verbose('###########################################');
+  //       logger.verbose('## register(newAccountAddress, newAccountAliasName, newAccountPassphrase, newAccountPassword)');
+  //       logger.verbose('###########################################');
+  //       try {
+  //           const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
+  //           if (!isAliasAvailable) {
+  //               throw new Error('alias is already in user')
+  //           }
+  //           const metisAppStatement = await this.jupiterAccountService.fetchAccountStatement(
+  //               this.applicationAccountProperties.passphrase,
+  //               this.applicationAccountProperties.password,
+  //               'metis-account',
+  //               'app'
+  //           );
+  //           const usersTableStatement = metisAppStatement.attachedTables.find(table => table.statementId === 'table-users');
+  //           if (!usersTableStatement) {
+  //               throw new Error('There is no application users table');
+  //           }
+  //           const newUserAccountProperties = await instantiateGravityAccountProperties(newAccountPassphrase, newAccountPassword);
+  //           const newUserAccountData = await this.jupiterAccountService.fetchAccountData(newUserAccountProperties)
+  //           if (gu.isNonEmptyArray(newUserAccountData.allRecords) && this.isAccountRegisteredWithApp(newAccountAddress, metisAppStatement.allRecords)) {
+  //               throw new Error('Account is already registered');
+  //           }
+  //           const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newUserAccountProperties);
+  //           const transactionIdForUserFunding = provideInitialStandardUserFundsResponse.data.transaction;
+  //           await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFunding);
+  //           const attachMissingDefaultTablesResponse = await this.attachMissingDefaultTables(newUserAccountData.attachedTables, newUserAccountProperties);
+  //           await this.jupiterFundingService.waitForAllTransactionConfirmations(attachMissingDefaultTablesResponse.transactions);
+  //           const setAliasResponse = await this.jupApi.setAlias(newAccountAddress,newAccountPassphrase, newAccountAliasName);
+  //           const aliasObject = {
+  //               "aliasURI": setAliasResponse.data.transactionJSON.attachment.uri,
+  //               "aliasName": setAliasResponse.data.transactionJSON.attachment.alias,
+  //               "accountRS": setAliasResponse.data.transactionJSON.senderRS,
+  //           }
+  //           newUserAccountProperties.addAlias(aliasObject);
+  //           await this.jupiterAccountService.addRecordToMetisUsersTable(newUserAccountProperties, usersTableStatement.properties);
+  //           const fundedAccountStatement = await this.jupiterAccountService.fetchAccountStatement(
+  //               newAccountPassphrase,
+  //               newAccountPassword,
+  //               'new-user-account',
+  //               'user'
+  //           );
+  //           fundedAccountStatement.properties.addAlias(aliasObject);
+  //           const metisAppRegistrationData = this.printRegistrationData(fundedAccountStatement)
+  //           logger.sensitive(metisAppRegistrationData);
+  //           console.log('DONE.');
+  //       }catch(error){
+  //           console.log(error);
+  //           throw error;
+  //       }
+  // }
 
 
     /**
@@ -233,20 +233,40 @@ class AccountRegistration {
         if(!(newAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`newAccountProperties`)
         if(!gu.isWellFormedJupiterAlias(newAccountAliasName)) throw new mError.MetisErrorBadJupiterAlias(newAccountAliasName);
         try {
-            //First: Make sure the alias is available
+            // First: Make sure the alias is available
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` First: Make sure the alias is available`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const isAliasAvailable = await this.jupiterAccountService.isAliasAvailable(newAccountAliasName);
             if (!isAliasAvailable) throw new MetisError('alias is already in user')
-            //Second: Provide Funds to the new user account
+            // Second: Provide Funds to the new user account
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` Second: Provide Funds to the new user account`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountProperties);
             const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.data.transaction;
             await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFundingTransactionId);
-            //Third: Add the UserRecord transaction
+            // Third: Add the UserRecord transaction
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` Third: Add the UserRecord transaction`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             // await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
             const addUserRecordToUserAccountResponse =  await this.jupiterAccountService.addUserRecordToUserAccount(newAccountProperties);
             await this.jupiterFundingService.waitForTransactionConfirmation(addUserRecordToUserAccountResponse.transaction);
-            //Fourth: Set The Alias
+            // Fourth: Set The Alias
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` Fourth: Set The Alias`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
-            //Fifth: Create the binaryAccount
+            // Fifth: Create the binaryAccount
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` Fifth: Create the binaryAccount`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             // this.binaryAccountJob.create(newAccountProperties);
             return;
         }catch(error){

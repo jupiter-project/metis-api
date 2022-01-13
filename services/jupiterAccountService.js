@@ -54,40 +54,40 @@ class JupiterAccountService {
      * @param metisUsersTableProperties
      * @return {Promise<{data: *, transactionsReport: [{name: string, id: *}]}>}
      */
-    addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties) {
-        logger.verbose('###########################################################################');
-        logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
-        logger.verbose('##');
-        if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('accountProperties is not valid')}
-        if(!(metisUsersTableProperties instanceof GravityAccountProperties)){throw new Error('metisUsersTableProperties is not valid')}
-        logger.verbose(`  accountProperties.address= ${accountProperties.address}`);
-        logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`);
-
-        return this.generateId(accountProperties, metisUsersTableProperties)
-            .then(async (transactionId) => {
-                logger.verbose('---------------------------------------------------------------------------------');
-                logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
-                logger.verbose('--');
-                const tag = `${userConfig.metisUserRecord}.${accountProperties.address}`;
-                const userRecord = accountProperties.generateUserRecord(transactionId);
-                const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
-
-                return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
-                    metisUsersTableProperties.passphrase,
-                    accountProperties.address,
-                    encryptedUserRecord,
-                    tag,
-                    FeeManager.feeTypes.account_record,
-                    accountProperties.publicKey
-                )
-                    .then(response => {
-                        return {
-                            data: response,
-                            transactionsReport: [{name: 'users-table-record', id: response.transaction}]
-                        }
-                    })
-            });
-    }
+    // addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties) {
+    //     logger.verbose('###########################################################################');
+    //     logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
+    //     logger.verbose('##');
+    //     if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('accountProperties is not valid')}
+    //     if(!(metisUsersTableProperties instanceof GravityAccountProperties)){throw new Error('metisUsersTableProperties is not valid')}
+    //     logger.verbose(`  accountProperties.address= ${accountProperties.address}`);
+    //     logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`);
+    //
+    //     return this.generateId(accountProperties, metisUsersTableProperties)
+    //         .then(async (transactionId) => {
+    //             logger.verbose('---------------------------------------------------------------------------------');
+    //             logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
+    //             logger.verbose('--');
+    //             const tag = `${userConfig.metisUserRecord}.${accountProperties.address}`;
+    //             const userRecord = accountProperties.generateUserRecord(transactionId);
+    //             const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
+    //
+    //             return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+    //                 metisUsersTableProperties.passphrase,
+    //                 accountProperties.address,
+    //                 encryptedUserRecord,
+    //                 tag,
+    //                 FeeManager.feeTypes.account_record,
+    //                 accountProperties.publicKey
+    //             )
+    //                 .then(response => {
+    //                     return {
+    //                         data: response,
+    //                         transactionsReport: [{name: 'users-table-record', id: response.transaction}]
+    //                     }
+    //                 })
+    //         });
+    // }
 
     /**
      *

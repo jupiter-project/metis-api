@@ -7,6 +7,7 @@ WORKDIR /apps/metis
 COPY package*.json ./
 RUN npm install
 COPY . .
+RUN mkdir -p /apps/metis/file_cache
 RUN npm run build
 # remove development dependencies
 # RUN npm prune --production
