@@ -1,10 +1,19 @@
 import mError from "../../../errors/metisError";
+import {chanService} from "../../../services/chanService";
+import {localFileCacheService} from "./localFileCacheService";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
 const zlib = require('zlib');
-import {chanService} from "../../../services/chanService";
-import {localFileCacheService} from "./localFileCacheService";
+const {jupiterAPIService, JupiterAPIService} = require("../../../services/jupiterAPIService");
+const {jupiterFundingService, JupiterFundingService} = require("../../../services/jupiterFundingService");
+const {jupiterAccountService, JupiterAccountService} = require("../../../services/jupiterAccountService");
+const {transactionTags} = require("../config/transactionTags");
+const {FeeManager, feeManagerSingleton} = require("../../../services/FeeManager");
+const {jupiterTransactionsService, JupiterTransactionsService} = require("../../../services/jupiterTransactionsService");
+const {MetisError} = require("../../../errors/metisError");
+const {jimConfig} = require("../config/jimConfig");
+const {transactionUtils} = require("../../../gravity/transactionUtils");
 
 /**
  *
@@ -51,54 +60,54 @@ class StorageService {
      * @param {GravityAccountProperties} ownerAccountProperties
      * @return {Promise<GravityAccountProperties>}
      */
-    async createBinaryAccount(ownerAccountProperties){
-        logger.verbose(`#### createBinaryAccount(ownerAccountProperties)`);
-        if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error('ownerAccountProperties is invalid')}
-        try {
-            //First: Make sure the owner account is not already associated with a binary account.
-            logger.info(`¡ First: Make sure the owner account is not already associated with a binary account.`);
-            // const binaryAccountExistsPromise = this.binaryAccountExists(ownerAccountProperties);
-            const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
-            if (binaryAccountProperties) {
-                logger.warn('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-                logger.warn(`++ this account already has an associated binary account`);
-                logger.warn('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-                throw new mError.MetisErrorBinaryAccountExistsError();
-            }
-            // Second: Generate a new Jupiter account
-            logger.info(`¡ Second: Generate a new Jupiter account`);
-            const newPassphrase = gu.generatePassphrase();
-            const newPassword = gu.generateRandomPassword();
-            const newBinaryAccountProperties = await instantiateGravityAccountProperties(newPassphrase, newPassword);
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            logger.info(`++ NEW BINARY ACCOUNT`);
-            logger.info(`++ Belongs to: ${ownerAccountProperties.address}`);
-            logger.info(`++ address: ${newBinaryAccountProperties.address}`);
-            logger.info(`++ publicKey: ${newBinaryAccountProperties.publicKey}`);
-            logger.sensitive(`++ passphrase: ${newBinaryAccountProperties.passphrase}`);
-            logger.sensitive(`++ password: ${newBinaryAccountProperties.password}`);
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            // Third: Provide initial funding.
-            logger.info(`¡ Third: Provide initial funding`);
-            const provideInitialFundingResponse = await this.provideInitialFunding(ownerAccountProperties,newBinaryAccountProperties);
-            const transactionIdForFunding = provideInitialFundingResponse.data.transaction;
-            await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForFunding);
-            //Fourth: Associate the new jupiter account with the owner account.
-            logger.info(`¡ Fourth: Associate the new jupiter account with the owner account.`);
-            const addBinaryRecordToAccountIfDoesntExistResponse = await this.addBinaryRecordToAccount(ownerAccountProperties, newBinaryAccountProperties)
-            const binaryRecordTransactionId = this.transactionUtils.extractTransactionIdFromTransactionResponse(addBinaryRecordToAccountIfDoesntExistResponse);
-            await this.jupiterFundingService.waitForTransactionConfirmation(binaryRecordTransactionId);
-
-
-            return newBinaryAccountProperties;
-        } catch(error){
-            logger.error(`****************************************************************`);
-            logger.error(`** createBinaryAccount(ownerAccountProperties).catch(error)`);
-            logger.error(`****************************************************************`);
-            logger.error(`error= ${error}`)
-            throw error;
-        }
-    }
+    // async createBinaryAccount(ownerAccountProperties){
+    //     logger.verbose(`#### createBinaryAccount(ownerAccountProperties)`);
+    //     if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error('ownerAccountProperties is invalid')}
+    //     try {
+    //         //First: Make sure the owner account is not already associated with a binary account.
+    //         logger.info(`¡ First: Make sure the owner account is not already associated with a binary account.`);
+    //         // const binaryAccountExistsPromise = this.binaryAccountExists(ownerAccountProperties);
+    //         const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
+    //         if (binaryAccountProperties) {
+    //             logger.warn('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //             logger.warn(`++ this account already has an associated binary account`);
+    //             logger.warn('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //             throw new mError.MetisErrorBinaryAccountExistsError();
+    //         }
+    //         // Second: Generate a new Jupiter account
+    //         logger.info(`¡ Second: Generate a new Jupiter account`);
+    //         const newPassphrase = gu.generatePassphrase();
+    //         const newPassword = gu.generateRandomPassword();
+    //         const newBinaryAccountProperties = await instantiateGravityAccountProperties(newPassphrase, newPassword);
+    //         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //         logger.info(`++ NEW BINARY ACCOUNT`);
+    //         logger.info(`++ Belongs to: ${ownerAccountProperties.address}`);
+    //         logger.info(`++ address: ${newBinaryAccountProperties.address}`);
+    //         logger.info(`++ publicKey: ${newBinaryAccountProperties.publicKey}`);
+    //         logger.sensitive(`++ passphrase: ${newBinaryAccountProperties.passphrase}`);
+    //         logger.sensitive(`++ password: ${newBinaryAccountProperties.password}`);
+    //         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //         // Third: Provide initial funding.
+    //         logger.info(`¡ Third: Provide initial funding`);
+    //         const provideInitialFundingResponse = await this.provideInitialFunding(ownerAccountProperties,newBinaryAccountProperties);
+    //         const transactionIdForFunding = provideInitialFundingResponse.data.transaction;
+    //         await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForFunding);
+    //         //Fourth: Associate the new jupiter account with the owner account.
+    //         logger.info(`¡ Fourth: Associate the new jupiter account with the owner account.`);
+    //         const addBinaryRecordToAccountIfDoesntExistResponse = await this.addBinaryRecordToAccount(ownerAccountProperties, newBinaryAccountProperties)
+    //         const binaryRecordTransactionId = this.transactionUtils.extractTransactionIdFromTransactionResponse(addBinaryRecordToAccountIfDoesntExistResponse);
+    //         await this.jupiterFundingService.waitForTransactionConfirmation(binaryRecordTransactionId);
+    //
+    //
+    //         return newBinaryAccountProperties;
+    //     } catch(error){
+    //         logger.error(`****************************************************************`);
+    //         logger.error(`** createBinaryAccount(ownerAccountProperties).catch(error)`);
+    //         logger.error(`****************************************************************`);
+    //         logger.error(`error= ${error}`)
+    //         throw error;
+    //     }
+    // }
 
 
     /**
@@ -108,22 +117,22 @@ class StorageService {
      * @param recipientProperties
      * @return {Promise<*>}
      */
-    async provideInitialFunding(funderAccountProperties, recipientProperties){
-        logger.verbose(`#### provideInitialFunding(funderAccountProperties, recipientProperties`);
-        if(!(recipientProperties instanceof GravityAccountProperties)){throw new MetisError('recipientProperties is invalid')}
-        if(!(funderAccountProperties instanceof GravityAccountProperties)){throw new MetisError('funderAccountProperties is invalid')}
-        const minimumBalanceAmount = this.jimConfig.binaryAccountMinimumBalance;
-        logger.debug(`minimumBalanceAmount= ${minimumBalanceAmount}`)
-        let transferAmount = 0;
-        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-        const currentRecipientBalance = await this.jupiterFundingService.getBalance(recipientProperties.address);
-        logger.debug(`currentRecipientBalance= ${currentRecipientBalance}`)
-        if(currentRecipientBalance < minimumBalanceAmount){
-            transferAmount = minimumBalanceAmount - currentRecipientBalance;
-        }
-        logger.debug(`transferAmount= ${transferAmount}`)
-        return this.jupiterFundingService.transfer(funderAccountProperties, recipientProperties, transferAmount, fee);
-    }
+    // async provideInitialFunding(funderAccountProperties, recipientProperties){
+    //     logger.verbose(`#### provideInitialFunding(funderAccountProperties, recipientProperties`);
+    //     if(!(recipientProperties instanceof GravityAccountProperties)){throw new MetisError('recipientProperties is invalid')}
+    //     if(!(funderAccountProperties instanceof GravityAccountProperties)){throw new MetisError('funderAccountProperties is invalid')}
+    //     const minimumBalanceAmount = this.jimConfig.binaryAccountMinimumBalance;
+    //     logger.debug(`minimumBalanceAmount= ${minimumBalanceAmount}`)
+    //     let transferAmount = 0;
+    //     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+    //     const currentRecipientBalance = await this.jupiterFundingService.getBalance(recipientProperties.address);
+    //     logger.debug(`currentRecipientBalance= ${currentRecipientBalance}`)
+    //     if(currentRecipientBalance < minimumBalanceAmount){
+    //         transferAmount = minimumBalanceAmount - currentRecipientBalance;
+    //     }
+    //     logger.debug(`transferAmount= ${transferAmount}`)
+    //     return this.jupiterFundingService.transfer(funderAccountProperties, recipientProperties, transferAmount, fee);
+    // }
 
 
 
@@ -132,53 +141,52 @@ class StorageService {
      * @param gravityAccountProperties
      * @return {Promise<null|*>}
      */
-    async fetchBinaryRecordAssociatedToAccountOrNull(gravityAccountProperties){
-        logger.verbose(`#### fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties)`);
-        if(!(gravityAccountProperties instanceof GravityAccountProperties)){throw new Error(`userAccountProperties is invalid`)}
-        try{
-            const tag = transactionTags.jimServerTags.binaryAccountRecord;
-            const binaryRecordContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
-                gravityAccountProperties,
-                tag,
-                true,
-                null,
-                null,
-                tns => tns.senderRS === gravityAccountProperties.address
-
-            );
-            if(binaryRecordContainers.length > 1){
-                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-                logger.info(`++ There are more than 1 binaryRecords: ${binaryRecordContainers.length}`);
-                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            }
-            const firstBinaryAccountContainer = gu.arrayShiftOrNull(binaryRecordContainers);
-            if(!firstBinaryAccountContainer) {
-                logger.debug(`Null binary found: ${gravityAccountProperties.address}`);
-                return null
-            }
-
-            return firstBinaryAccountContainer.message;
-        } catch (error){
-            logger.error(`Error-> [fetchBinaryRecordAssociatedToAccountOrNull]: ${gravityAccountProperties.address}`);
-            console.log(error);
-            throw error;
-        }
-    }
+    // async fetchBinaryRecordAssociatedToAccountOrNull(gravityAccountProperties){
+    //     logger.verbose(`#### fetchBinaryRecordAssociatedToUserAccountPropertiesOrNull(userAccountProperties)`);
+    //     if(!(gravityAccountProperties instanceof GravityAccountProperties)){throw new Error(`userAccountProperties is invalid`)}
+    //     try{
+    //         const tag = transactionTags.jimServerTags.binaryAccountRecord;
+    //         const binaryRecordContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
+    //             gravityAccountProperties,
+    //             tag,
+    //             true,
+    //             null,
+    //             null,
+    //             tns => tns.senderRS === gravityAccountProperties.address
+    //
+    //         );
+    //         if(binaryRecordContainers.length > 1){
+    //             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //             logger.info(`++ There are more than 1 binaryRecords: ${binaryRecordContainers.length}`);
+    //             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //         }
+    //         const firstBinaryAccountContainer = gu.arrayShiftOrNull(binaryRecordContainers);
+    //         if(!firstBinaryAccountContainer) {
+    //             logger.debug(`Null binary found: ${gravityAccountProperties.address}`);
+    //             return null
+    //         }
+    //
+    //         return firstBinaryAccountContainer.message;
+    //     } catch (error){
+    //         logger.error(`Error-> [fetchBinaryRecordAssociatedToAccountOrNull]: ${gravityAccountProperties.address}`);
+    //         console.log(error);
+    //         throw error;
+    //     }
+    // }
 
     /**
      *
      * @param ownerAccountProperties
      * @return {Promise<GravityAccountProperties>}
      */
-    async fetchBinaryAccountPropertiesOrNull(ownerAccountProperties){
-        logger.verbose(`#### fetchBinaryAccountPropertiesOrNull(ownerAccountProperties)`);
-        const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
-        if(binaryRecord === null){
-            return null;
-        }
-
-        return instantiateGravityAccountProperties(binaryRecord.passphrase, binaryRecord.password);
-    }
+    // async fetchBinaryAccountPropertiesOrNull(ownerAccountProperties){
+    //     logger.verbose(`#### fetchBinaryAccountPropertiesOrNull(ownerAccountProperties)`);
+    //     const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
+    //     if(binaryRecord === null){
+    //         return null;
+    //     }
+    //     return instantiateGravityAccountProperties(binaryRecord.passphrase, binaryRecord.password);
+    // }
 
 
     /**
@@ -186,13 +194,13 @@ class StorageService {
      * @param ownerAccountProperties
      * @return {Promise<boolean>}
      */
-    async binaryAccountExists(ownerAccountProperties){
-        logger.verbose(`#### binaryAccountExists()`);
-        if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error(`ownerAccountProperties is invalid`)}
-        const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
-
-        return binaryRecord !== null;
-    }
+    // async binaryAccountExists(ownerAccountProperties){
+    //     logger.verbose(`#### binaryAccountExists()`);
+    //     if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error(`ownerAccountProperties is invalid`)}
+    //     const binaryRecord = await this.fetchBinaryRecordAssociatedToAccountOrNull(ownerAccountProperties);
+    //
+    //     return binaryRecord !== null;
+    // }
 
     /**
      *
@@ -200,66 +208,65 @@ class StorageService {
      * @param {GravityAccountProperties} binaryAccountProperties
      * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
-    async addBinaryRecordToAccount(ownerAccountProperties, binaryAccountProperties) {
-        console.log(`\n\n\n`);
-        logger.info('======================================================================================');
-        logger.info('==  addBinaryRecordToAccountIfDoesntExist(ownerAccountProperties, binaryAccountProperties)');
-        logger.info(`======================================================================================\n\n\n`);
-        if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error('invalid ownerAccountProperties')}
-        if(!(binaryAccountProperties instanceof GravityAccountProperties)){throw new Error('invalid binaryAccountProperties')}
-        try {
-            const binaryAccountExists = await this.binaryAccountExists(ownerAccountProperties);
-            if (binaryAccountExists) {
-                throw new Error('binary account already exists!');
-            }
-            const binaryRecordPayload = this.generateBinaryAccountRecordJson(binaryAccountProperties);
-            console.log(`\n`);
-            logger.sensitive('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            logger.sensitive(`++ binaryRecordPayload: ${JSON.stringify(binaryRecordPayload)}`);
-            logger.sensitive('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
-            const encryptedChannelRecordPayload = ownerAccountProperties.crypto.encryptJson(binaryRecordPayload);
-            const feeType = FeeManager.feeTypes.metisMessage;
-            const recordTag = `${transactionTags.jimServerTags.binaryAccountRecord}.${binaryAccountProperties.address}`;
-            return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
-                ownerAccountProperties.passphrase,
-                ownerAccountProperties.address,
-                encryptedChannelRecordPayload,
-                recordTag,
-                feeType,
-                ownerAccountProperties.publicKey
-            )
-        } catch(error) {
-            logger.error(`****************************************************************`);
-            logger.error(`** addBinaryRecordToAccountIfDoesntExist(ownerAccountProperties, binaryAccountProperties).catch(error)`);
-            logger.error(`****************************************************************`);
-            logger.error(`error= ${error}`)
-            throw error;
-        }
-    }
+    // async addBinaryRecordToAccount(ownerAccountProperties, binaryAccountProperties) {
+    //     console.log(`\n\n\n`);
+    //     logger.info('======================================================================================');
+    //     logger.info('==  addBinaryRecordToAccountIfDoesntExist(ownerAccountProperties, binaryAccountProperties)');
+    //     logger.info(`======================================================================================\n\n\n`);
+    //     if(!(ownerAccountProperties instanceof GravityAccountProperties)){throw new Error('invalid ownerAccountProperties')}
+    //     if(!(binaryAccountProperties instanceof GravityAccountProperties)){throw new Error('invalid binaryAccountProperties')}
+    //     try {
+    //         const binaryAccountExists = await this.binaryAccountExists(ownerAccountProperties);
+    //         if (binaryAccountExists) {
+    //             throw new Error('binary account already exists!');
+    //         }
+    //         const binaryRecordPayload = this.generateBinaryAccountRecordJson(binaryAccountProperties);
+    //         console.log(`\n`);
+    //         logger.sensitive('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+    //         logger.sensitive(`++ binaryRecordPayload: ${JSON.stringify(binaryRecordPayload)}`);
+    //         logger.sensitive('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
+    //         const encryptedChannelRecordPayload = ownerAccountProperties.crypto.encryptJson(binaryRecordPayload);
+    //         const feeType = FeeManager.feeTypes.metisMessage;
+    //         const recordTag = `${transactionTags.jimServerTags.binaryAccountRecord}.${binaryAccountProperties.address}`;
+    //         return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+    //             ownerAccountProperties.passphrase,
+    //             ownerAccountProperties.address,
+    //             encryptedChannelRecordPayload,
+    //             recordTag,
+    //             feeType,
+    //             ownerAccountProperties.publicKey
+    //         )
+    //     } catch(error) {
+    //         logger.error(`****************************************************************`);
+    //         logger.error(`** addBinaryRecordToAccountIfDoesntExist(ownerAccountProperties, binaryAccountProperties).catch(error)`);
+    //         logger.error(`****************************************************************`);
+    //         logger.error(`error= ${error}`)
+    //         throw error;
+    //     }
+    // }
 
     /**
      *
-     * @param userAccountProperties
+     * @param memberAccountProperties
      * @param channelAddress
      * @return {Promise<*[]>}
      */
-    async fetchChannelFilesList(userAccountProperties, channelAddress){
-        logger.debug(`#### fetchChannelFilesList(userAccountProperties, channelAddress)`);
+    async fetchChannelFilesList(memberAccountProperties, channelAddress){
+        logger.debug(`#### fetchChannelFilesList(memberAccountProperties, channelAddress)`);
         logger.info(`- Getting ready to get the files for ${channelAddress}`);
-        const channelAccountProperties = await this.chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
-        if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`User ${userAccountProperties.address} doesnt have ${channelAddress} channel account`)
+        const channelAccountProperties = await this.chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties,channelAddress);
+        if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`User ${memberAccountProperties.address} doesnt have ${channelAddress} channel account`)
         logger.info(`- Confirmed user has permission to access this channel`);
-        const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(channelAccountProperties);
-        if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
+        // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(channelAccountProperties);
+        // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
         if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
         const blackListTag =  `${transactionTags.jimServerTags.binaryFileBlackList}`;
-        const blackList = await this.jupiterTransactionsService.fetchLatestReferenceList(binaryAccountProperties,blackListTag);
+        const blackList = await this.jupiterTransactionsService.fetchLatestReferenceList(channelAccountProperties,blackListTag);
         const fileTag = `${transactionTags.jimServerTags.binaryFileRecord}`;
         const allFileRecordTransactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
-            binaryAccountProperties.address,
+            channelAccountProperties.address,
             fileTag
         )
-
         logger.info(`- Queried binary account for files. Found a total of ${allFileRecordTransactions.length}`);
         if(allFileRecordTransactions.length === 0){
             return []
@@ -272,13 +279,11 @@ class StorageService {
         if(filteredFileRecordTransactions.length === 0){
             return []
         }
-
         // @info The message was mEncrypted using the owner(ie channel) password.
         const messageContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromTransactions(
             filteredFileRecordTransactions,
-            binaryAccountProperties
+            channelAccountProperties
         )
-
         return messageContainers.map(containers => containers.message);
     }
 
@@ -289,10 +294,10 @@ class StorageService {
      */
     async fetchFilesList(ownerAccountProperties){
         logger.verbose(`#### fetchFilesList(ownerAccountProperties,fileOwnerAddress)`);
-        const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
-        if (binaryAccountProperties === null) {
-            throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
-        }
+        // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
+        // if (binaryAccountProperties === null) {
+        //     throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
+        // }
         return [{
             uuid: '123',
             filename: '',
@@ -304,7 +309,7 @@ class StorageService {
 
     /**
      *
-     * @param ownerAccountProperties
+     * @param ownerAccountProperties - The account that the file was sent to.
      * @param fileUuid
      * @return {Promise<{bufferDataPath: string, fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress}>}
      */
@@ -315,10 +320,10 @@ class StorageService {
         let bufferData = null;
         let fileRecord = null;
         try {
-            const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
-            if (binaryAccountProperties === null) {
-                throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
-            }
+            // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
+            // if (binaryAccountProperties === null) {
+            //     throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
+            // }
             if(this.fileCacheService.cachedFileExists(fileUuid)){
                 // GETTING FILE FROM CACHE
                 console.log(`\n`);
@@ -326,7 +331,7 @@ class StorageService {
                 logger.info(` GETTING FILE FROM CACHE`);
                 logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
                 const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid);
-                fileRecord = binaryAccountProperties.crypto.decryptAndParse(encryptedFileRecord);
+                fileRecord = ownerAccountProperties.crypto.decryptAndParse(encryptedFileRecord);
             } else {
                 // GETTING FILE FROM BLOCKCHAIN
                 console.log(`\n`);
@@ -336,14 +341,12 @@ class StorageService {
                 const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChain(ownerAccountProperties,fileUuid);
                 bufferData = fetchFileFromBlockChainResponse.bufferData;
                 fileRecord = fetchFileFromBlockChainResponse.fileRecord;
-                const encryptedFileRecord = binaryAccountProperties.crypto.encryptJson(fileRecord);
+                const encryptedFileRecord = ownerAccountProperties.crypto.encryptJson(fileRecord);
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
                 this.fileCacheService.sendFileRecordToCache(fileUuid,encryptedFileRecord);
             }
-
-            if(!this.fileCacheService.bufferDataExists(fileUuid))throw new mError.MetisError(`Buffer Data does not exist!`)
+            if(!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError(`Buffer Data does not exist!`);
             const bufferDataPath = this.fileCacheService.generateBufferDataPath(fileUuid);
-
             return {
                 bufferDataPath: bufferDataPath,
                 mimeType: fileRecord.mimeType,
@@ -363,26 +366,41 @@ class StorageService {
         }
     }
 
+    /**
+     *
+     * @param ownerAccountProperties  - this is the account that the file was sent to.
+     * @param fileUuid
+     * @return {Promise<{fileRecord: *, bufferData: Buffer}>}
+     */
     async fetchFileFromBlockChain(ownerAccountProperties, fileUuid){
         logger.verbose(`#### fetchFileFromBlockChain()`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
         try {
-            const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
-            if(!(binaryAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`binaryAccountProperties`);
+            // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
+            // if(!(binaryAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`binaryAccountProperties`);
             const fileRecordTag = `${transactionTags.jimServerTags.binaryFileRecord}.${fileUuid}`;
             const fileRecordMessageContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
-                binaryAccountProperties,
+                ownerAccountProperties,
                 fileRecordTag
             )
             if (fileRecordMessageContainers.length === 0) {
                 throw new mError.MetisErrorNoBinaryFileFound(``, fileUuid);
             }
-            // GET THE FIRST ONE.
+            // GET THE LATEST FILE RECORD TRANSACTION FOR THIS UUID
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` GET THE LATEST FILE RECORD TRANSACTION FOR THIS UUID`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const fileRecordMessageContainer = fileRecordMessageContainers[0]
             const fileRecord = fileRecordMessageContainer.message;
             const chunkTransactionIds = fileRecordMessageContainer.message.chunkTransactionIds;
-            const chunkContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromMessageTransactionIds(chunkTransactionIds, binaryAccountProperties.passphrase)
+            // GET ALL THE CHUNKS
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` GET ALL THE CHUNKS`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
+            const chunkContainers = await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromMessageTransactionIds(chunkTransactionIds, ownerAccountProperties.passphrase)
             if(chunkContainers.length === 0){
                 throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`, fileUuid);
             }
@@ -423,8 +441,8 @@ class StorageService {
         mimeType,
         fileUuid,
         bufferData,
-        ownerAccountProperties,
-        originalSenderAddress = null,
+        fromAccountProperties,
+        toAccountProperties,
     ) {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
@@ -434,11 +452,9 @@ class StorageService {
         if(!gu.isNonEmptyString(mimeType)) throw new mError.MetisError(`mimeType`)
         if(!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`fileUuid`)
         if(!bufferData) throw new mError.MetisError(`bufferData is invalid`)
-        if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`)
+        if(!(fromAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`fromAccountProperties`)
+        if(!(toAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`toAccountProperties`)
         try {
-            if (originalSenderAddress === null) {
-                originalSenderAddress = ownerAccountProperties.address;
-            }
             const CHUNK_SIZE_PATTERN = /.{1,40000}/g;
             const fileSizeInBytes = bufferData.length;
             const fileSizeInKiloBytes = fileSizeInBytes / 1000;
@@ -446,10 +462,10 @@ class StorageService {
             if (fileSizeInMegaBytes > jimConfig.maxMbSize) {
                 throw new Error(`File size too large ( ${fileSizeInMegaBytes} MBytes) limit is: ${jimConfig.maxMbSize} MBytes`)
             }
-            const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
-            if (binaryAccountProperties === null) {
-                throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
-            }
+            // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
+            // if (binaryAccountProperties === null) {
+            //     throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
+            // }
             // compress the binary data before to convert to base64
             const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
@@ -460,12 +476,12 @@ class StorageService {
                 // const encryptedChunk = ownerAccountProperties.crypto.encrypt(chunk)  ## chunks will not be encrypted. Not necessary for e2e
                 logger.info(`sending chunk (${chunk.length})....`)
                 return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
-                    ownerAccountProperties.passphrase,
-                    binaryAccountProperties.address,
+                    fromAccountProperties.passphrase,
+                    toAccountProperties.address,
                     chunk,
                     `${transactionTags.jimServerTags.binaryFileChunk}.${fileUuid}`,
                     FeeManager.feeTypes.metisMessage,
-                    binaryAccountProperties.publicKey
+                    toAccountProperties.publicKey
                 )
             })
             const sendMessageResponses = await Promise.all(sendMessageResponsePromises);
@@ -485,30 +501,24 @@ class StorageService {
                 mimeType,
                 fileSizeInBytes,
                 allChunkTransactionIds,
-                originalSenderAddress,
+                fromAccountProperties.address,
                 linkedFileRecords
             )
-
-
-            const encryptedFileRecord = binaryAccountProperties.crypto.encryptJson(fileRecord);
-
+            const encryptedFileRecord = toAccountProperties.crypto.encryptJson(fileRecord);
             if(!this.fileCacheService.bufferDataExists(fileUuid)){
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
             }
             this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);
-
-            const sendMessageResponseBinaryFile = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
-                ownerAccountProperties.passphrase,
-                binaryAccountProperties.address,
+            const sendMessageResponseFileRecord = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+                toAccountProperties.passphrase,
+                toAccountProperties.address,
                 encryptedFileRecord,
                 `${transactionTags.jimServerTags.binaryFileRecord}.${fileUuid}`,
                 FeeManager.feeTypes.metisMessage,
-                binaryAccountProperties.publicKey
+                toAccountProperties.publicKey
             )
 
-            return {
-                fileRecord: fileRecord,
-            }
+            return {fileRecord: fileRecord}
         } catch(error) {
             logger.error(`****************************************************************`);
             logger.error(`** sendFileToBlockchain.catch(error)`);
@@ -571,43 +581,31 @@ class StorageService {
      * @param {string|null} [transactionIdOfPreviousVersion=null]
      * @return {Promise<{accountId: string, password, address: string, recordType: string, transactionIdOfPreviousVersion: string, passphrase: string, publicKey: string, version: number, status: string}>}
      */
-     generateBinaryAccountRecordJson(binaryAccountProperties, transactionIdOfPreviousVersion = null) {
-        logger.verbose(`#### generateBinaryRecordJson()`);
-        if (!( transactionIdOfPreviousVersion===null || gu.isWellFormedJupiterTransactionId(transactionIdOfPreviousVersion))) {
-            throw new Error('invalid transactionIdOfPreviousVersion')
-        }
-        if (!(binaryAccountProperties instanceof GravityAccountProperties)) {
-            throw new Error('binaryAccountProperties is invalid')
-        }
-        // if (binaryAccountProperties.isMinimumProperties) {
-        //     await refreshGravityAccountProperties(binaryAccountProperties);
-        // }
-        const _transactionIdOfPreviousVersion = (transactionIdOfPreviousVersion===null)?'':transactionIdOfPreviousVersion;
-        return {
-            recordType: 'binaryRecord',
-            address: binaryAccountProperties.address,
-            passphrase: binaryAccountProperties.passphrase,
-            password: binaryAccountProperties.password,
-            publicKey: binaryAccountProperties.publicKey,
-            accountId: binaryAccountProperties.accountId,
-            status: 'active',
-            transactionIdOfPreviousVersion: _transactionIdOfPreviousVersion,
-            version: 1
-        }
-    }
+    //  generateBinaryAccountRecordJson(binaryAccountProperties, transactionIdOfPreviousVersion = null) {
+    //     logger.verbose(`#### generateBinaryRecordJson()`);
+    //     if (!( transactionIdOfPreviousVersion===null || gu.isWellFormedJupiterTransactionId(transactionIdOfPreviousVersion))) {
+    //         throw new Error('invalid transactionIdOfPreviousVersion')
+    //     }
+    //     if (!(binaryAccountProperties instanceof GravityAccountProperties)) {
+    //         throw new Error('binaryAccountProperties is invalid')
+    //     }
+    //     // if (binaryAccountProperties.isMinimumProperties) {
+    //     //     await refreshGravityAccountProperties(binaryAccountProperties);
+    //     // }
+    //     const _transactionIdOfPreviousVersion = (transactionIdOfPreviousVersion===null)?'':transactionIdOfPreviousVersion;
+    //     return {
+    //         recordType: 'binaryRecord',
+    //         address: binaryAccountProperties.address,
+    //         passphrase: binaryAccountProperties.passphrase,
+    //         password: binaryAccountProperties.password,
+    //         publicKey: binaryAccountProperties.publicKey,
+    //         accountId: binaryAccountProperties.accountId,
+    //         status: 'active',
+    //         transactionIdOfPreviousVersion: _transactionIdOfPreviousVersion,
+    //         version: 1
+    //     }
+    // }
 }
-
-const {jupiterAPIService, JupiterAPIService} = require("../../../services/jupiterAPIService");
-const {jupiterFundingService, JupiterFundingService} = require("../../../services/jupiterFundingService");
-const {jupiterAccountService, JupiterAccountService} = require("../../../services/jupiterAccountService");
-const {transactionTags} = require("../config/transactionTags");
-const {refreshGravityAccountProperties, instantiateGravityAccountProperties} = require("../../../gravity/instantiateGravityAccountProperties");
-const {MetisErrorBinaryAccountExistsError} = require("../../../errors/metisError");
-const {FeeManager, feeManagerSingleton} = require("../../../services/FeeManager");
-const {jupiterTransactionsService, JupiterTransactionsService} = require("../../../services/jupiterTransactionsService");
-const {MetisError} = require("../../../errors/metisError");
-const {jimConfig} = require("../config/jimConfig");
-const {transactionUtils} = require("../../../gravity/transactionUtils");
 
 module.exports.StorageService = StorageService;
 module.exports.storageService = new StorageService(

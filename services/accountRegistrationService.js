@@ -25,10 +25,9 @@ class AccountRegistration {
     jupiterFundingService,
     jupiterAccountService,
     tableService,
-    gravity,
-    binaryAccountJob
+    gravity
     ) {
-      if(!(binaryAccountJob instanceof BinaryAccountJob)){throw new Error('binaryAccountJob is invalid')}
+      // if(!(binaryAccountJob instanceof BinaryAccountJob)){throw new Error('binaryAccountJob is invalid')}
       if(!applicationGravityAccountProperties){throw new Error('missing applicationGravityAccountProperties')}
       if(!jupApi){throw new Error('missing jupiterAPIService')}
       if(!jupiterTransactionsService){throw new Error('missing jupiterTransactionsService')}
@@ -43,7 +42,7 @@ class AccountRegistration {
       this.jupiterAccountService = jupiterAccountService;
       this.tableService = tableService;
       this.gravity = gravity;
-      this.binaryAccountJob = binaryAccountJob;
+      // this.binaryAccountJob = binaryAccountJob;
   }
 
     /**
@@ -259,14 +258,14 @@ class AccountRegistration {
             // Fourth: Set The Alias
             console.log(`\n`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
-            logger.info(` Fourth: Set The Alias`);
+            logger.info(` NEXT: Set The Alias`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
             // Fifth: Create the binaryAccount
-            console.log(`\n`);
-            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
-            logger.info(` Fifth: Create the binaryAccount`);
-            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
+            // console.log(`\n`);
+            // logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            // logger.info(` Fifth: Create the binaryAccount`);
+            // logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             // this.binaryAccountJob.create(newAccountProperties);
             return;
         }catch(error){
@@ -482,7 +481,7 @@ const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
 const mError = require("../errors/metisError");
-const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");
+// const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");
 
 module.exports.AccountRegistration = AccountRegistration;
 module.exports.accountRegistration = new AccountRegistration(
@@ -492,6 +491,5 @@ module.exports.accountRegistration = new AccountRegistration(
     jupiterFundingService,
     jupiterAccountService,
     tableService,
-    gravity,
-    binaryAccountJob
+    gravity
 )

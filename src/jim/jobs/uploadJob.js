@@ -5,7 +5,6 @@ import {localFileCacheService} from "../services/localFileCacheService";
 import {GravityAccountProperties} from "../../../gravity/gravityAccountProperties";
 import {jobQueue} from "../../../config/configJobQueue";
 import {chanService} from "../../../services/chanService";
-
 const gu = require('../../../utils/gravityUtils');
 const fs = require('fs');
 const logger = require('../../../utils/logger')(module);
@@ -13,7 +12,15 @@ const WORKERS = 100;
 
 class UploadJob {
 
+    /**
+     *
+     * @param jobQueue
+     * @param channelService
+     * @param storageService
+     * @param fileCacheService
+     */
     constructor(jobQueue,channelService, storageService, fileCacheService) {
+        logger.verbose(`#### constructor(jobQueue,channelService, storageService, fileCacheService)`);
         this.jobName = 'JimJobUpload'
         this.jobQueue = jobQueue;
         this.channelService = channelService;
@@ -22,6 +29,9 @@ class UploadJob {
         this.initialize();
     }
 
+    /**
+     *
+     */
     initialize(){
         logger.verbose(`#### initialize()`);
         this.jobQueue.process(this.jobName, WORKERS, async (job,done) => {
@@ -37,17 +47,17 @@ class UploadJob {
                 const fileBufferDataPath = localFileCacheService.generateBufferDataPath(fileUuid);
                 const userAccountProperties = await GravityAccountProperties.Clone(_userAccountProperties);
                 const attachToAccountProperties = await this.channelService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,attachToJupiterAddress);
-                if(attachToAccountProperties === null) throw new  mError.MetisError(`No channel address found`)
+                if (attachToAccountProperties === null) throw new  mError.MetisError(`No channel address found`)
                 logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
                 logger.info(`++ Channel Properties`);
                 logger.info(`++ address: ${attachToAccountProperties.address}`)
                 logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-                const binaryAccountProperties = await this.storageService.fetchBinaryAccountPropertiesOrNull(attachToAccountProperties);
-                if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound('attachToAccountProperties.address')
-                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-                logger.info(`++ Binary Account Properties`);
-                logger.info(`++ address: ${binaryAccountProperties.address}`)
-                logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                // const binaryAccountProperties = await this.storageService.fetchBinaryAccountPropertiesOrNull(attachToAccountProperties);
+                // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound('attachToAccountProperties.address')
+                // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                // logger.info(`++ Binary Account Properties`);
+                // logger.info(`++ address: ${binaryAccountProperties.address}`)
+                // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
                 fs.readFile(fileBufferDataPath, async (error, bufferData) => {
                     try {
                         const sendFileToBlockChainResponse = await  this.storageService.sendFileToBlockchain(
@@ -55,10 +65,9 @@ class UploadJob {
                             fileMimeType,
                             fileUuid,
                             bufferData,
-                            attachToAccountProperties,
-                            userAccountProperties.address
+                            userAccountProperties,
+                            attachToAccountProperties
                         )
-                        const results = {}
                         return done(null, sendFileToBlockChainResponse);
                     } catch (error) {
                         logger.error(`****************************************************************`);
