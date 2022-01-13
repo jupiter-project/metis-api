@@ -24,7 +24,7 @@ if(fileCacheStrategy === 'local'){
 if(!process.env.JIMSRV_MAX_FILE_SIZE_MB) throw new Error(`Environment Variable missing: JIMSRV_MAX_FILE_SIZE_MB `)
 const maxFileSize = process.env.JIMSRV_MAX_FILE_SIZE_MB;
 if(!process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE) throw new Error(`Environment Variable missing: JIMSRV_BINARY_ACCOUNT_MIN_BALANCE `)
-const binaryAccountMinBalance = process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE;
+// const binaryAccountMinBalance = process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE;
 
 module.exports.jimConfig = {
     imageResize: {
@@ -35,6 +35,6 @@ module.exports.jimConfig = {
         },
     },
     maxMbSize: maxFileSize,
-    binaryAccountMinimumBalance: binaryAccountMinBalance,
+    // binaryAccountMinimumBalance: binaryAccountMinBalance,
     fileCache: fileCacheConfig
 };

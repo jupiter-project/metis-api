@@ -115,7 +115,6 @@ module.exports = (app, jobs, websocket) => {
         logger.info(`======================================================================================\n\n\n`);
 
         const WEBSOCKET_NAMESPACE = '/upload';
-
         const fileUploadData = {};
         const fileUuid = localFileCacheService.generateUuid();
         const bufferDataFilePath = localFileCacheService.generateBufferDataPath(fileUuid);
@@ -123,12 +122,10 @@ module.exports = (app, jobs, websocket) => {
         fileUploadData.fileUuid = fileUuid;
         fileUploadData.filePath = bufferDataFilePath;
         fileUploadData.userAccountProperties = req.user.gravityAccountProperties;
-
         const bb = busboy({
             headers: req.headers,
             limits: {files: 1, fileSize: jimConfig.maxMbSize}
         });
-
         try{
             bb.on('limit', (data)=> {
                 logger.verbose(`---- bb.on(limit)`);
@@ -221,23 +218,17 @@ module.exports = (app, jobs, websocket) => {
                     const fileSizeInMegaBytes = fileSizeInKiloBytes / 1000;
                     if (fileSizeInBytes > jimConfig.maxMbSize) {
                         throw new mError.MetisError(`file is too large. Limit is ${jimConfig.maxMbSize} MB`)
-                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `file is too large. Limit is ${jimConfig.maxMbSize} MB`})
                     }
-                    // res.status(StatusCode.ClientErrorBadRequest).send({message:`file is too large. Limit is ${jimConfig.maxMbSize} MB` })
-
                     //@TODO not needed. confirm before removing.
                     if (!fileUploadData.attachToJupiterAddress) {
                         throw new mError.MetisError(`attachToJupiterAddress is invalid: ${fileUploadData.attachToJupiterAddress}`)
                     }
                     if (fileUploadData.fileName === undefined) {
                         throw new mError.MetisError(`fileName is invalid: ${fileUploadData.fileName}`)
-                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileName is invalid: ${fileUploadData.fileName}`})
                     }
                     if (fileUploadData.fileEncoding === undefined) {
                         throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.fileEncoding}`)
-                        // res.status(StatusCode.ClientErrorBadRequest).send({message: `fileEncoding is invalid: ${fileUploadData.fileEncoding}`})
                     }
-
                     const job = await uploadJob.create(
                         fileUploadData.userAccountProperties,
                         fileUploadData.attachToJupiterAddress,
@@ -246,16 +237,10 @@ module.exports = (app, jobs, websocket) => {
                         fileUploadData.fileMimeType,
                         fileUploadData.fileUuid
                     );
-
-                    // saved on REDIS
                     job.save( error => {
                         logger.verbose(`---- JobQueue: job.save(error)`);
                         if(error){
                             logger.error(`${error}`);
-                            // const payload = {
-                            //     jobId: job.id,
-                            //     errorMessage: error
-                            // }
                             return res.status(StatusCode.ServerErrorInternal).send({message:'Not able to upload the image', code: MetisErrorCode.MetisErrorSaveJobQueue} )
                         }
                         logger.verbose(`job.id= ${job.id}`);

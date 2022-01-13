@@ -257,7 +257,7 @@ const {chanService} = require("./services/chanService");
 // const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
 const {StatusCode} = require("./utils/statusCode");
 const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
-const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
+// const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
 // const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
 
 // const { jobScheduleService } = require('./services/jobScheduleService');
@@ -335,7 +335,7 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
     const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
     const newChannelAccountProperties = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
-    binaryAccountJob.create(newChannelAccountProperties);
+    // binaryAccountJob.create(newChannelAccountProperties);
 
     // const memberProperties = await instantiateGravityAccountProperties(
     //     memberAccountProperties.passphrase,
@@ -343,6 +343,7 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
 
     // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
     // const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
+
 
 
     return done(null, {

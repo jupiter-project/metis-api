@@ -615,7 +615,6 @@ class ChanService {
             const fundingResponse = await jupiterFundingService.provideInitialChannelAccountFunds(channelAccountProperties);
             const transactionWaitResponse = await jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction);  //need to wait for confirmation in order for account to send transactions.
             const processNewMemberResponse = await this.processNewMember(firstMemberProperties, channelAccountProperties, 'creator');
-
             return channelAccountProperties;
         } catch (error){
             logger.error(`**** createNewChannelAndAddFirstMember(channelName, firstMemberProperties).catch(error)`);
