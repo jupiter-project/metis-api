@@ -7,10 +7,13 @@ import {StatusCode} from "../utils/statusCode";
 // import {chanService} from "../services/chanService";
 // import {axiosDefault} from "../config/axiosConf";
 import {MetisErrorCode} from "../utils/metisErrorCode";
+import {metisConf} from "../config/metisConf";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 const mError = require("../errors/metisError");
 const gu = require("../utils/gravityUtils");
+
+const jupiterServer = metisConf.appJupiterServerUrl;
 
 module.exports = (app, passport, jobs, websocket) => {
   // const connection = process.env.SOCKET_SERVER;
@@ -27,29 +30,24 @@ module.exports = (app, passport, jobs, websocket) => {
     logger.info('==');
     logger.info('======================================================================================');
     console.log('');
-
-    const os = require('os');
-    const hostname = os.hostname();
-    const jupiInfoUrl = `${process.env.JUPITERSERVER}/nxt?=%2Fnxt&requestType=getBlockchainStatus`;
-    axios.get(jupiInfoUrl)
-      .then((response) => {
-
+    jupiterAPIService.getBlockchainStatus()
+      .then( response => {
         const version = [
           { name: 'Metis App Version', version: '1.1.2' },
           { name: 'Metis Server Version', version: process.env.VERSION },
           { name: 'Jupiter Network', version: response.data.isTestnet ? 'testnet' : 'prod' },
           { name: 'Jupiter Version', version: response.data.version },
         ];
-
-        console.log(version);
+        console.log(`\n`);
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        logger.info(`++ version`);
+        logger.info(`++ ${JSON.stringify(version)}`);
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
         res.send(version);
       })
       .catch((error) => {
         logger.error(`${error}`);
-        res.send({
-          success: false,
-          message: 'There was an error getting jupiter version',
-        });
+        res.send({message: 'There was an error getting jupiter version', code: error.code});
       });
   });
 

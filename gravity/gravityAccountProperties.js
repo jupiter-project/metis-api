@@ -6,6 +6,7 @@ const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 const {JupiterAccountProperties} = require("./jupiterAccountProperties");
 const {metisApplicationAccountProperties, ApplicationAccountProperties} = require("./applicationAccountProperties");
 const mError = require("../errors/metisError");
+const {metisConf} = require("../config/metisConf");
 // const {instantiateGravityAccountProperties} = require("./instantiateGravityAccountProperties");
 
 /**
@@ -209,7 +210,6 @@ class GravityAccountProperties extends JupiterAccountProperties {
         logger.sensitive(`userRecord=${JSON.stringify(userRecord)}`);
 
         return userRecord;
-
     }
 
 }
@@ -217,15 +217,15 @@ class GravityAccountProperties extends JupiterAccountProperties {
 module.exports.GravityAccountProperties = GravityAccountProperties;
 
 module.exports.metisGravityAccountProperties = new GravityAccountProperties(
-    process.env.APP_ACCOUNT_ADDRESS,
-    process.env.APP_ACCOUNT_ID,
-    process.env.APP_PUBLIC_KEY,
-    process.env.APP_ACCOUNT,
-    process.env.APP_ACCOUNT_HASH,
-    process.env.ENCRYPT_PASSWORD,
-    process.env.ENCRYPT_ALGORITHM,
-    process.env.APP_EMAIL,
-    process.env.APP_NAME,
+    metisConf.appAddress,
+    metisConf.appAccountId,
+    metisConf.appPublicKey,
+    metisConf.appPassphrase,
+    metisConf.appPasswordHash,
+    metisConf.appPassword,
+    metisConf.appPasswordAlgorithm,
+    metisConf.appEmail,
+    metisConf.appName,
     '', // lastname
      metisApplicationAccountProperties
 );

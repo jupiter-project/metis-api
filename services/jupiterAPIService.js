@@ -49,6 +49,7 @@ class JupiterAPIService {
             GetAlias: 'getAlias',
             GetAccountPublicKey: 'getAccountPublicKey',
             GetState: 'getState',
+            GetBlockchainStatus: 'getBlockchainStatus',
         }
     }
 
@@ -1024,6 +1025,20 @@ class JupiterAPIService {
             if( error.message === 'API Response Error: Unknown alias'){
                 throw new UnknownAliasError('Alias is not found');
             }
+            throw error;
+        })
+    }
+
+    /**
+     *
+     * @return {Promise<*>}
+     */
+    async getBlockchainStatus() {
+        logger.verbose(`#### getBlockchainStatus()`);
+        const params = {
+            requestType: JupiterAPIService.RequestType.GetBlockchainStatus
+        }
+        return this.get(params).catch( error => {
             throw error;
         })
     }
