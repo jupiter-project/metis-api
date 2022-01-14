@@ -377,6 +377,8 @@ server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
 
 
+// JUPITER
+require('./src/jupiter/app')(app,jobQueue,io);
 // NEW METIS SERVER CODE
 require('./src/metis/app')(app,jobQueue,io);
 // JIM SERVER

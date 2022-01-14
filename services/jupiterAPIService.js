@@ -1033,7 +1033,7 @@ class JupiterAPIService {
      *
      * @return {Promise<*>}
      */
-    async getBlockchainStatus() {
+    getBlockchainStatus() {
         logger.verbose(`#### getBlockchainStatus()`);
         const params = {
             requestType: JupiterAPIService.RequestType.GetBlockchainStatus

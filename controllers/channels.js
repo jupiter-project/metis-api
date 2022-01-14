@@ -12,7 +12,8 @@ import {jupiterAPIService} from "../services/jupiterAPIService";
 
 
 import {generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord} from "../services/messageService";
-const mError = require("../errors/metisError");
+// const {mError} = require("../errors/metisError");
+import mError from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
 import {MetisErrorCode} from "../utils/metisErrorCode";
@@ -185,14 +186,17 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('======================================================================================\n');
         const { user } = req;
         // pageNumber starts at Page 0;
-        const { channelAddress, pageNumber: _pageNumber, pageSize: _pageSize } = req.query
+        const { pageNumber: _pageNumber, pageSize: _pageSize } = req.query
+        const {channelAddress} = req.params;
 
-        if (!channelAddress) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'channelAddress is required'});
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
+            const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message, code: error.code});
         }
-        if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
-        }
+
+        // if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+        //     return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
+        // }
 
         if(isNaN(_pageNumber)){
             return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
@@ -251,7 +255,6 @@ module.exports = (app, passport, jobs, websocket) => {
         const {user} = req;
         const {
             message,
-            address,
             replyMessage,
             replyRecipientAlias,
             replyRecipientAddress,
@@ -260,13 +263,17 @@ module.exports = (app, passport, jobs, websocket) => {
             mentions = [],
             messageType = 'message'
         } = req.body;
-
-        if (!message || !address) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message and address'});
+        const {channelAddress} = req.params;
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`address:`);
+        console.log(channelAddress);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
+        if (!message) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
         }
-
         const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-
         try {
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
@@ -280,11 +287,11 @@ module.exports = (app, passport, jobs, websocket) => {
             );
 
             if (messageType === 'invitation') {
-                websocket.of('/chat').to(address).emit('newMemberChannel');
+                websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
             }
 
-            websocket.of('/chat').to(address).emit('createMessage', { message: messageRecord });
-            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, address);
+            websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord });
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
             if(!channelAccountProperties){
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
             }
@@ -323,8 +330,10 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== GET: /v1/api/channel/invites');
         logger.info('======================================================================================');
         console.log('');
-
         try {
+            if(!req.hasOwnProperty('user')) throw new mError.MetisError(`req.user is not defined`);
+            if(!gu.isWellFormedPassphrase(req.user.passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(`req.user.passphrase`);
+            if(!gu.isStrongPassword(req.user.password)) throw new mError.MetisErrorWeakPassword(`req.user.password`)
             const memberAccountProperties = await instantiateGravityAccountProperties(
                 req.user.passphrase,
                 req.user.password

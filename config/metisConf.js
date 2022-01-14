@@ -14,6 +14,9 @@ if(!gu.isWellFormedPublicKey(process.env.APP_PUBLIC_KEY)) throw new Error('Envir
 if(!process.env.APP_ACCOUNT_ID) throw new Error('Environment Variable missing: APP_ACCOUNT_ID');
 if(!process.env.JUPITERSERVER) throw new Error('Environment Variable missing: JUPITERSERVER');
 if(!process.env.APP_EMAIL) throw new Error('Environment Variable missing: APP_EMAIL');
+if(!process.env.JWT_TOKEN_EXPIRATION) throw new Error('Environment Variable missing: JWT_TOKEN_EXPIRATION');
+if(!process.env.JWT_PRIVATE_KEY_BASE64) throw new Error('Environment Variable missing: JWT_PRIVATE_KEY_BASE64');
+
 module.exports.metisConf = {
     appName: process.env.APPNAME,
     appVersion: process.env.VERSION,
@@ -26,6 +29,10 @@ module.exports.metisConf = {
     appAccountId: process.env.APP_ACCOUNT_ID,
     appJupiterServerUrl: process.env.JUPITERSERVER,
     appEmail: process.env.APP_EMAIL,
+    jwt: {
+        privateKeyBase64: process.env.JWT_PRIVATE_KEY_BASE64,
+        expiresIn: process.env.JWT_TOKEN_EXPIRATION
+    }
 }
 
 
