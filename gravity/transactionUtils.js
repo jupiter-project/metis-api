@@ -292,13 +292,29 @@ class TransactionUtils {
         })
     }
 
-    extractTransactionNoncesFromTransactionResponses(transactionResponses){
+
+    extractTransactionInfoFromTransactionResponses(transactionResponses, info = []){
         logger.verbose(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
         if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
         return transactionResponses.map(transactionResponse => {
-            return this.extractTransactionNonceFromTransactionResponse(transactionResponse);
+            const tInfo = {};
+            if(info.includes('transactionId')){
+                tInfo.transactionId = this.extractTransactionIdFromTransactionResponse(transactionResponse);
+            }
+            if(info.includes('nonce')){
+                tInfo.nonce = this.extractTransactionNonceFromTransactionResponse(transactionResponse);
+            }
+            return info;
         })
     }
+
+    // extractTransactionNoncesFromTransactionResponses(transactionResponses){
+    //     logger.verbose(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
+    //     if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
+    //     return transactionResponses.map(transactionResponse => {
+    //         return this.extractTransactionNonceFromTransactionResponse(transactionResponse);
+    //     })
+    // }
 
     /**
      *

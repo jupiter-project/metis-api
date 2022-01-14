@@ -172,10 +172,11 @@ class MetisErrorBadJupiterPassphrase extends MetisError {
 }
 
 class MetisErrorBadUuid extends MetisError {
-    constructor(message = '') {
-        super(`UUIDV1 is invalid: ` + message)
+    constructor(message = '', uuid = '') {
+        super(`UUIDV1 is invalid: ${message} ${uuid}`);
         this.name = "MetisErrorBadUuid"
         this.code = MetisErrorCode.MetisErrorBadUuid;
+        this.uuid = uuid;
         Object.setPrototypeOf(this, MetisErrorBadUuid.prototype); //fixes a problem with instanceof
     }
 }
