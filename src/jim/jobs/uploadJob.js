@@ -5,10 +5,111 @@ import {localFileCacheService} from "../services/localFileCacheService";
 import {GravityAccountProperties} from "../../../gravity/gravityAccountProperties";
 import {jobQueue} from "../../../config/configJobQueue";
 import {chanService} from "../../../services/chanService";
+import {FeeManager, feeManagerSingleton} from "../../../services/FeeManager";
+import {jupiterAPIService} from "../../../services/jupiterAPIService";
+import {userConfig} from "../../../config/constants";
+import {GravityCrypto} from "../../../services/gravityCrypto";
+
 const gu = require('../../../utils/gravityUtils');
 const fs = require('fs');
 const logger = require('../../../utils/logger')(module);
 const WORKERS = 100;
+
+class UploadProfileJob {
+    constructor(jobQueue, storageService, fileCacheService) {
+        this.jobName = 'JimJobUpload'
+        this.jobQueue = jobQueue;
+        this.storageService = storageService;
+        this.fileCacheService = fileCacheService;
+        this.initializeUserData();
+    }
+
+    initializeUserData(){
+        this.jobQueue.process(this.jobName, WORKERS, async (job,done) => {
+            try {
+                const {userAccountProperties, fileName, fileMimeType, fileUuid, fileCat} = job.data;
+
+                console.log('[initializeUserData]: userAccountProperties', userAccountProperties);
+
+                const fileBufferDataPath = localFileCacheService.generateBufferDataPath(fileUuid);
+                const userProperties = await GravityAccountProperties.Clone(userAccountProperties);
+                if (!localFileCacheService.bufferDataExists(fileUuid)){
+                    throw new mError.MetisError('Something went wrong');
+                }
+
+
+                fs.readFile(fileBufferDataPath, async (error, bufferData) => {
+                    try {
+
+                        const sendFileToBlockChainResponse = await this.storageService.sendFileToBlockchain(
+                            fileName,
+                            fileMimeType,
+                            fileUuid,
+                            bufferData,
+                            userProperties,
+                            userProperties,
+                            fileCat  //'public-profile'
+                        );
+
+                        return done(null, sendFileToBlockChainResponse);
+                    } catch (error) {
+                        logger.error(`****************************************************************`);
+                        logger.error(`** [initializeUserData]: JOB initialize.fs.readFile.callback.sendFileToBloclChain.catch(error)`);
+                        logger.error(`****************************************************************`);
+                        console.log(error);
+                        return done(error);
+                    }
+                });
+            } catch (error) {
+                logger.error(`****************************************************************`);
+                logger.error(`** [initializeUserData]: metisJobQueue.process(JimJobCreateBinaryAccount).catch(error)`);
+                logger.error(`****************************************************************`);
+                console.log(error);
+                return done(error);
+            }
+        });
+    }
+
+    /**
+     *
+     * @param userAccountProperties
+     * @param attachToJupiterAddress
+     * @param fileName
+     * @param fileEncoding
+     * @param fileMimeType
+     * @param fileUuid
+     * @return {Promise<unknown>}
+     */
+    createP(userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid){
+        logger.verbose(`#### (, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid`);
+
+        if(!gu.isWellFormedJupiterAddress(attachToJupiterAddress)) throw new mError.MetisErrorBadJupiterAddress(`attachToJupiterAddress`)
+        if(!gu.isNonEmptyString(fileName)) throw new mError.MetisError(`fileName is empty`)
+        if(!gu.isNonEmptyString(fileEncoding)) throw new mError.MetisError(`fileEncoding is empty`)
+        if(!gu.isNonEmptyString(fileMimeType)) throw new mError.MetisError(`fileMimeType is empty`)
+        if(!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`fileUuid is empty`)
+
+        const job = this.jobQueue.create(this.jobName, {userAccountProperties, attachToJupiterAddress, fileName, fileEncoding, fileMimeType, fileUuid})
+            .priority('high')
+            .removeOnComplete(false)
+            .save(error => {
+                logger.verbose(`---- JOB.SAVE: ${this.jobName}.save()`);
+                if (error) {
+                    console.log('\n')
+                    logger.error(`************************* ERROR ***************************************`);
+                    logger.error(`* ** JOB.SAVE: ${this.jobName}.save().catch(error)`);
+                    logger.error(`There is a problem saving to redis`);
+                    logger.error(`************************* ERROR ***************************************\n`);
+                    logger.error(`error= ${error}`)
+                    throw new mError.MetisErrorSaveJobQueue(error.message, job);
+                }
+                logger.debug(`job.id= ${job.id}`);
+                logger.debug(`job.created_at= ${job.created_at}`);
+                return job;
+            });
+        return job;
+    }
+}
 
 class UploadJob {
 
@@ -26,13 +127,13 @@ class UploadJob {
         this.channelService = channelService;
         this.storageService = storageService;
         this.fileCacheService = fileCacheService;
-        this.initialize();
+        // this.initialize();
     }
 
     /**
      *
      */
-    initialize(){
+    initialize2(){
         logger.verbose(`#### initialize()`);
         this.jobQueue.process(this.jobName, WORKERS, async (job,done) => {
             logger.info(`##### initialize().jobQueue.process(jobName=${this.jobName}, WORKERS, callBack(job,done)`);
@@ -71,7 +172,7 @@ class UploadJob {
                         return done(null, sendFileToBlockChainResponse);
                     } catch (error) {
                         logger.error(`****************************************************************`);
-                        logger.error(`** JOB initialize.fs.readFile.callback.sendFileToBloclChain.catch(error)`);
+                        logger.error(`** [initialize]: JOB initialize.fs.readFile.callback.sendFileToBloclChain.catch(error)`);
                         logger.error(`****************************************************************`);
                         console.log(error);
                         return done(error);
@@ -94,7 +195,7 @@ class UploadJob {
 
             } catch(error) {
                 logger.error(`****************************************************************`);
-                logger.error(`** metisJobQueue.process(JimJobCreateBinaryAccount).catch(error)`);
+                logger.error(`** [initialize]: metisJobQueue.process(JimJobCreateBinaryAccount).catch(error)`);
                 logger.error(`****************************************************************`);
                 console.log(error);
                 return done(error);
@@ -112,7 +213,7 @@ class UploadJob {
      * @param fileUuid
      * @return {Promise<unknown>}
      */
-    create(userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid){
+    create2(userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid){
         logger.verbose(`#### (userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid`);
 
         if(!(userAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties('userAccountProperties')
@@ -146,6 +247,7 @@ class UploadJob {
 
 module.exports = {
     UploadJob: UploadJob,
-    uploadJob: new UploadJob(jobQueue, chanService, storageService, localFileCacheService)
+    uploadJob: new UploadJob(jobQueue, chanService, storageService, localFileCacheService),
+    UploadProfileJob: new UploadProfileJob(jobQueue, storageService, localFileCacheService),
 };
 

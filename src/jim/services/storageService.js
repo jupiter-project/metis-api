@@ -1,6 +1,7 @@
 import mError from "../../../errors/metisError";
 import {chanService} from "../../../services/chanService";
 import {localFileCacheService} from "./localFileCacheService";
+import {GravityCrypto} from "../../../services/gravityCrypto";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
@@ -14,6 +15,12 @@ const {jupiterTransactionsService, JupiterTransactionsService} = require("../../
 const {MetisError} = require("../../../errors/metisError");
 const {jimConfig} = require("../config/jimConfig");
 const {transactionUtils} = require("../../../gravity/transactionUtils");
+
+const FileCategory = {
+    PublicProfile: 'public-profile',
+    Raw: 'raw',
+    Thumbnail: 'thumbnail'
+};
 
 /**
  *
@@ -432,8 +439,9 @@ class StorageService {
      * @param mimeType
      * @param fileUuid
      * @param bufferData
-     * @param ownerAccountProperties
-     * @param originalSenderAddress
+     * @param fromAccountProperties
+     * @param toAccountProperties
+     * @param {FileCategory} fileCat
      * @return {Promise<{fileRecord: {fileName, fileCat, recordType: string, chunkTransactionIds, mimeType, sizeInKb, originalSenderAddress, linkedFileRecord, version: number, fileUuid, url: string, status: string}}>}
      */
     async sendFileToBlockchain(
@@ -443,6 +451,7 @@ class StorageService {
         bufferData,
         fromAccountProperties,
         toAccountProperties,
+        fileCat = FileCategory.Raw
     ) {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
@@ -492,32 +501,54 @@ class StorageService {
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
             logger.info(`++ allChunkTransactionIds: ${JSON.stringify(allChunkTransactionIds)}`);
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
-            const fileCat = 'raw';
-            const linkedFileRecords = null
+            const linkedFileRecords = null;
+            let allChunkTransactionsData = allChunkTransactionIds;
+            if (fileCat === FileCategory.PublicProfile){
+
+                const allChunkTransactionNonces = this.transactionUtils.extractTransactionNoncesFromTransactionResponses(sendMessageResponses);
+                allChunkTransactionsData = allChunkTransactionNonces.reduce(async(reducer, nonce) => {
+                    const sharedKey = await this.jupiterTransactionsService.getSharedKey(nonce, toAccountProperties.passphrase);
+                    reducer.push({ transactionId, sharedKey });
+                    return reducer;
+                }, []);
+            }
+
+
             const fileRecord = this.generateFileRecordJson(
                 fileUuid,
                 fileCat,
                 fileName,
                 mimeType,
                 fileSizeInBytes,
-                allChunkTransactionIds,
+                allChunkTransactionsData,
                 fromAccountProperties.address,
                 linkedFileRecords
-            )
-            const encryptedFileRecord = toAccountProperties.crypto.encryptJson(fileRecord);
+            );
+
+
+            const _fileRecord = fileCat === FileCategory.PublicProfile ? JSON.stringify(fileRecord) : toAccountProperties.crypto.encryptJson(fileRecord);
             if(!this.fileCacheService.bufferDataExists(fileUuid)){
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
             }
-            this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);
+
             const sendMessageResponseFileRecord = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 toAccountProperties.passphrase,
                 toAccountProperties.address,
-                encryptedFileRecord,
+                _fileRecord,
                 `${transactionTags.jimServerTags.binaryFileRecord}.${fileUuid}`,
                 FeeManager.feeTypes.metisMessage,
                 toAccountProperties.publicKey
-            )
+            );
 
+            let encryptedFileRecord = toAccountProperties.crypto.encryptJson(fileRecord);
+            if (fileCat === FileCategory.PublicProfile){
+                const sharedKey = await this.jupiterTransactionsService.getSharedKey(sendMessageResponseFileRecord.transaction, toAccountProperties.passphrase);
+                const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, sharedKey);
+                encryptedFileRecord = crypto.encryptJson(_fileRecord);
+            }
+
+
+            this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);
             return {fileRecord: fileRecord}
         } catch(error) {
             logger.error(`****************************************************************`);

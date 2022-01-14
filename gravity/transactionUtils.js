@@ -249,6 +249,17 @@ class TransactionUtils {
 
     /**
      *
+     * @param transaction
+     * @returns {*|((storeNames: (string | Iterable<string>), mode?: IDBTransactionMode) => IDBTransaction)|((callback: (transaction: SQLTransactionSync) => void) => void)|((storeNames: (string | string[]), mode?: IDBTransactionMode) => IDBTransaction)|IDBTransaction|((callback: (transaction: SQLTransaction) => void, errorCallback?: (error: SQLError) => void, successCallback?: () => void) => void)}
+     */
+    extractTransactionNonce(transaction){
+        logger.verbose(`#### extractTransactionId(transaction)`);
+        if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')}
+        return transaction.nonce;
+    }
+
+    /**
+     *
      * @param transactionResponse
      * @return {*|(function((string|Iterable<string>), IDBTransactionMode=): IDBTransaction)|(function(function(SQLTransactionSync): void): void)|(function((string|string[]), IDBTransactionMode=): IDBTransaction)|IDBTransaction|(function(function(SQLTransaction): void, function(SQLError): void=, function(): void=): void)}
      */
@@ -260,11 +271,32 @@ class TransactionUtils {
         return this.extractTransactionId(transactionResponse.transactionJSON)
     }
 
+    /**
+     *
+     * @param transactionResponse
+     * @return {*|(function((string|Iterable<string>), IDBTransactionMode=): IDBTransaction)|(function(function(SQLTransactionSync): void): void)|(function((string|string[]), IDBTransactionMode=): IDBTransaction)|IDBTransaction|(function(function(SQLTransaction): void, function(SQLError): void=, function(): void=): void)}
+     */
+    extractTransactionNonceFromTransactionResponse(transactionResponse){
+        logger.verbose(`#### extractTransactionIdFromTransactionResponse(transactionResponse)`);
+        if(!transactionResponse){throw new Error(`transactionResponse is empty`)}
+        // if(!transactionResponse.hasOwnProperty('data')){throw new Error(`transactionResponse is invalid. no data property`)}
+        if(!transactionResponse.hasOwnProperty('transactionJSON')){throw new Error(`transactionResponse is invalid. no data.transactionJSON`)}
+        return this.extractTransactionNonce(transactionResponse.transactionJSON)
+    }
+
     extractTransactionIdsFromTransactionResponses(transactionResponses){
         logger.verbose(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
         if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
         return transactionResponses.map(transactionResponse => {
             return this.extractTransactionIdFromTransactionResponse(transactionResponse)
+        })
+    }
+
+    extractTransactionNoncesFromTransactionResponses(transactionResponses){
+        logger.verbose(`#### extractTransactionIdsFromTransactionResponses(transactionResponses)`);
+        if(!Array.isArray(transactionResponses)) throw new mError.MetisError(`transactionResponses needs to be an array`);
+        return transactionResponses.map(transactionResponse => {
+            return this.extractTransactionNonceFromTransactionResponse(transactionResponse);
         })
     }
 

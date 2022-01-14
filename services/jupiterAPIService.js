@@ -1140,6 +1140,18 @@ class JupiterAPIService {
         return this.get(params);
     }
 
+    /**
+     *
+     * @param {string} address
+     * @param {string} passphrase
+     * @param {string} nonce
+     * @returns {Promise<*>}
+     */
+    getSharedKey(address, passphrase, nonce){
+        const params = {requestType: 'getSharedKey', account: address, secretPhrase: passphrase, nonce}
+        return this.get(params);
+    }
+
 }
 
 module.exports = {

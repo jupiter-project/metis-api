@@ -1,18 +1,13 @@
 const gu = require('../utils/gravityUtils');
 const _ = require("lodash");
-// const {GravityCrypto} = require("./gravityCrypto");
 const logger = require('../utils/logger')(module);
 const {jupiterAPIService, JupiterAPIService} = require("./jupiterAPIService");
-// const {FeeManager} = require("../services/FeeManager");
 const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
-const {add, first} = require("lodash");
 const {MetisError} = require("../errors/metisError");
-// const {FeeManager} = require("./FeeManager");
 const mError = require("../errors/metisError");
 const {validator} = require("./validator");
-const {axiosDefault} = require("../config/axiosConf");
 
 class JupiterTransactionsService {
 
@@ -604,6 +599,17 @@ class JupiterTransactionsService {
             logger.error(`error= ${error}`)
             throw error;
         }
+    }
+
+
+    /**
+     *
+     * @param {string} address
+     * @param {string} passphrase
+     * @param {string} nonce
+     */
+    async getSharedKey(address, passphrase, nonce){
+        const response = await this.jupiterAPIService.getSharedKey(address, passphrase, nonce);
     }
 
 }
