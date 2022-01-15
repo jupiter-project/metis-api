@@ -7,7 +7,12 @@ const gu = require('../../../utils/gravityUtils');
 const bcrypt = require("bcrypt-nodejs");
 const mError = require("../../../errors/metisError");
 
+
+
 module.exports = (app, jobs, websocket) => {
+
+    let counter = 0
+
     /**
      * V2/SIGNUP
      */
@@ -64,6 +69,12 @@ module.exports = (app, jobs, websocket) => {
                 })
             });
 
+
+
+
+
+
+
         /**
          *
          */
@@ -74,11 +85,14 @@ module.exports = (app, jobs, websocket) => {
             const endTime = Date.now();
             const processingTime = `${moment.duration(endTime - startTime).minutes()}:${moment.duration(endTime - startTime).seconds()}`
 
+            counter = counter +1;
+
             console.log('');
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
             logger.info(`++ SIGNUP COMPLETE. Sending Websocket Event`);
             logger.info(`++ Processing TIME`);
             logger.info(`++ ${processingTime}`);
+            logger.info(`++ ${counter}`);
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n');
             const room = `sign-up-${job.created_at}`;
             logger.debug(`room= ${room}`);

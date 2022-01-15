@@ -2,7 +2,7 @@ const logger = require('./utils/logger')(module);
 require('babel-register')({
   presets: ['react'],
 });
-
+// const logger = require('./utils/logger')(module);
 const mError = require('./errors/metisError');
 const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
 const gu = require('./utils/gravityUtils');
@@ -366,7 +366,7 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
 }); */
 
 
-mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
+mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions, (err, resp) => {
   if (err) {
     throw err;
   }
@@ -413,6 +413,6 @@ server.listen(port, () => {
   logger.info(`Jupiter Node running on ${process.env.JUPITERSERVER}`);
 });
 
-// kue.app.listen(4001, () => {
-//   logger.info('Job queue server running on port 4001');
+// kue.app.listen(4000, () => {
+//   logger.info('Job queue server running on port 4000');
 // });
