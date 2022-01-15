@@ -248,6 +248,16 @@ class MetisErrorNotEnoughFunds extends MetisError {
     }
 }
 
+class MetisErrorBadEnvironmentVariable extends MetisError {
+    constructor(message = '', variableName = '') {
+        super(`Problem with environment variable ${variableName}, ${message}`);
+        this.name = "MetisErrorBadEnvironmentVariable"
+        this.variableName = variableName;
+        this.code = MetisErrorCode.MetisErrorBadEnvironmentVariable;
+        Object.setPrototypeOf(this, MetisErrorBadEnvironmentVariable.prototype); //fixes a problem with instanceof
+    }
+}
+
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -273,3 +283,4 @@ module.exports.MetisErrorBadUuid = MetisErrorBadUuid;
 module.exports.MetisErrorNoBinaryFileFound = MetisErrorNoBinaryFileFound;
 module.exports.MetisErrorBadJupiterAlias = MetisErrorBadJupiterAlias;
 module.exports.MetisErrorNotEnoughFunds = MetisErrorNotEnoughFunds;
+module.exports.MetisErrorBadEnvironmentVariable = MetisErrorBadEnvironmentVariable;

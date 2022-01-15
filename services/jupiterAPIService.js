@@ -93,6 +93,14 @@ class JupiterAPIService {
     async jupiterRequest(rtype, params, data = {}) {
         // const url = this.jupiterUrl(params);
         const url = `${this.jupiterHost}/nxt`;
+
+
+        console.log(`\n`);
+        console.log(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+        console.log(` rtype: ${rtype}`);
+        console.log(params);
+
+
         try {
             const response = await this._jupiterRequest(rtype, params, data);
             if (response.error) {
@@ -117,6 +125,7 @@ class JupiterAPIService {
             logger.error(`rtype= ${rtype}`);
             logger.error(`url= ${url}`);
             logger.error(`params= ${JSON.stringify(params)}`);
+            console.log(error);
             if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
