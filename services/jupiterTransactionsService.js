@@ -8,6 +8,7 @@ const {GravityAccountProperties} = require("../gravity/gravityAccountProperties"
 const {MetisError} = require("../errors/metisError");
 const mError = require("../errors/metisError");
 const {validator} = require("./validator");
+const {GravityCrypto} = require("./gravityCrypto");
 
 class JupiterTransactionsService {
 
@@ -127,6 +128,33 @@ class JupiterTransactionsService {
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
 
         return this.messageService.getReadableMessageContainersFromTransactions(filteredTransactions, gravityAccountProperties, isMetisEncrypted);
+    }
+
+    /**
+     *
+     * @param transactionId
+     * @param sharedKey
+     * @param isEncrypted
+     * @returns {Object}
+     */
+    async getReadableMessageContainersBySharedKey(transactionId, sharedKey, isEncrypted = false){
+        console.log(`\n`)
+        logger.verbose(`########################################################################`);
+        logger.verbose(`## getReadableTaggedMessageContainersBySharedKey( transactionId,sharedKey)`);
+        logger.verbose(`########################################################################\n`);
+        if(!gu.isNonEmptyString(transactionId)){throw new MetisError('transactionId is invalid')}
+        if(!gu.isNonEmptyString(sharedKey)){throw new MetisError('sharedKey is invalid')}
+        logger.verbose(`transactionId= ${transactionId}`);
+        logger.verbose(`sharedKey= ${sharedKey}`);
+
+        const transaction = await this.jupiterAPIService.getReadableMessageBySharedKey(transactionId, sharedKey);
+
+        if (!isEncrypted){
+            return gu.jsonParseOrPassThrough(transaction.decryptedMessage);
+        }
+
+        const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, sharedKey);
+        return crypto.decryptAndParseOrNull(transaction.decryptedMessage);
     }
 
 
@@ -609,7 +637,13 @@ class JupiterTransactionsService {
      * @param {string} nonce
      */
     async getSharedKey(address, passphrase, nonce){
-        const response = await this.jupiterAPIService.getSharedKey(address, passphrase, nonce);
+        try{
+            const response = await this.jupiterAPIService.getSharedKey(address, passphrase, nonce);
+            return response.data.sharedKey;
+        } catch (error){
+            logger.error('********* Error getting shared key **************')
+         throw error;
+        }
     }
 
 }

@@ -255,7 +255,7 @@ class TransactionUtils {
     extractTransactionNonce(transaction){
         logger.verbose(`#### extractTransactionId(transaction)`);
         if(!this.isValidBaseTransaction(transaction)){throw new Error('transaction is not valid')}
-        return transaction.nonce;
+        return transaction.attachment.encryptedMessage.nonce;
     }
 
     /**
@@ -304,7 +304,7 @@ class TransactionUtils {
             if(info.includes('nonce')){
                 tInfo.nonce = this.extractTransactionNonceFromTransactionResponse(transactionResponse);
             }
-            return info;
+            return tInfo;
         })
     }
 

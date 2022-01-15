@@ -436,6 +436,22 @@ class JupiterAPIService {
     }
 
     /**
+     *
+     * @param {string} transactionId
+     * @param {string} sharedKey
+     * @returns {Promise<{encryptedMessageIsPrunable,messageIsPrunable,decryptedMessage,requestProcessingTime,message}>}
+     */
+    getReadableMessageBySharedKey(transactionId, sharedKey){
+        logger.sensitive(`#### getReadableMessageBySharedKey(transactionId= ${transactionId}, sharedKey= ${sharedKey})`);
+
+        if(!gu.isNonEmptyString(transactionId)) throw new mError.MetisError('transactionId is missing');
+        if(!gu.isNonEmptyString(sharedKey)) throw new mError.MetisError('sharedKey is missing');
+
+        return this.get( {requestType: JupiterAPIService.RequestType.ReadMessage, transaction: transactionId, sharedKey: sharedKey})
+            .then(response => response.data)
+    }
+
+    /**
      * All parameters: account,timestamp,type, subtype, firstIndex, lastIndex, numberOfConfirmations, withMessage,
      * phasedOnly, nonPhasedOnly, includeExpiredPrunable, includePhasingResult, executedOnly, message, requireBlock,
      * requireLastBlock
