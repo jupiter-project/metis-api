@@ -93,6 +93,14 @@ class JupiterAPIService {
     async jupiterRequest(rtype, params, data = {}) {
         // const url = this.jupiterUrl(params);
         const url = `${this.jupiterHost}/nxt`;
+
+
+        console.log(`\n`);
+        console.log(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+        console.log(` rtype: ${rtype}`);
+        console.log(params);
+
+
         try {
             const response = await this._jupiterRequest(rtype, params, data);
             if (response.error) {
@@ -117,6 +125,7 @@ class JupiterAPIService {
             logger.error(`rtype= ${rtype}`);
             logger.error(`url= ${url}`);
             logger.error(`params= ${JSON.stringify(params)}`);
+            console.log(error);
             if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
@@ -433,6 +442,22 @@ class JupiterAPIService {
         )
         // logger.debug(`unconfirmed transactions found: ${transactionsResponse.unconfirmedTransactions}`);
         return transactionsResponse;
+    }
+
+    /**
+     *
+     * @param {string} transactionId
+     * @param {string} sharedKey
+     * @returns {Promise<{encryptedMessageIsPrunable,messageIsPrunable,decryptedMessage,requestProcessingTime,message}>}
+     */
+    getReadableMessageBySharedKey(transactionId, sharedKey){
+        logger.sensitive(`#### getReadableMessageBySharedKey(transactionId= ${transactionId}, sharedKey= ${sharedKey})`);
+
+        if(!gu.isNonEmptyString(transactionId)) throw new mError.MetisError('transactionId is missing');
+        if(!gu.isNonEmptyString(sharedKey)) throw new mError.MetisError('sharedKey is missing');
+
+        return this.get( {requestType: JupiterAPIService.RequestType.ReadMessage, transaction: transactionId, sharedKey: sharedKey})
+            .then(response => response.data)
     }
 
     /**
@@ -1137,6 +1162,18 @@ class JupiterAPIService {
     getState(){
         logger.verbose(`#### getState()`);
         const params = {requestType: JupiterAPIService.RequestType.GetState}
+        return this.get(params);
+    }
+
+    /**
+     *
+     * @param {string} address
+     * @param {string} passphrase
+     * @param {string} nonce
+     * @returns {Promise<*>}
+     */
+    getSharedKey(address, passphrase, nonce){
+        const params = {requestType: 'getSharedKey', account: address, secretPhrase: passphrase, nonce}
         return this.get(params);
     }
 

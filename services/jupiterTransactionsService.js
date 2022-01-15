@@ -1,18 +1,14 @@
 const gu = require('../utils/gravityUtils');
 const _ = require("lodash");
-// const {GravityCrypto} = require("./gravityCrypto");
 const logger = require('../utils/logger')(module);
 const {jupiterAPIService, JupiterAPIService} = require("./jupiterAPIService");
-// const {FeeManager} = require("../services/FeeManager");
 const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
-const {add, first} = require("lodash");
 const {MetisError} = require("../errors/metisError");
-// const {FeeManager} = require("./FeeManager");
 const mError = require("../errors/metisError");
 const {validator} = require("./validator");
-const {axiosDefault} = require("../config/axiosConf");
+const {GravityCrypto} = require("./gravityCrypto");
 
 class JupiterTransactionsService {
 
@@ -132,6 +128,33 @@ class JupiterTransactionsService {
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
 
         return this.messageService.getReadableMessageContainersFromTransactions(filteredTransactions, gravityAccountProperties, isMetisEncrypted);
+    }
+
+    /**
+     *
+     * @param transactionId
+     * @param sharedKey
+     * @param isEncrypted
+     * @returns {Object}
+     */
+    async getReadableMessageContainersBySharedKey(transactionId, sharedKey, isEncrypted = false){
+        console.log(`\n`)
+        logger.verbose(`########################################################################`);
+        logger.verbose(`## getReadableTaggedMessageContainersBySharedKey( transactionId,sharedKey)`);
+        logger.verbose(`########################################################################\n`);
+        if(!gu.isNonEmptyString(transactionId)){throw new MetisError('transactionId is invalid')}
+        if(!gu.isNonEmptyString(sharedKey)){throw new MetisError('sharedKey is invalid')}
+        logger.verbose(`transactionId= ${transactionId}`);
+        logger.verbose(`sharedKey= ${sharedKey}`);
+
+        const transaction = await this.jupiterAPIService.getReadableMessageBySharedKey(transactionId, sharedKey);
+
+        if (!isEncrypted){
+            return gu.jsonParseOrPassThrough(transaction.decryptedMessage);
+        }
+
+        const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, sharedKey);
+        return crypto.decryptAndParseOrNull(transaction.decryptedMessage);
     }
 
 
@@ -603,6 +626,23 @@ class JupiterTransactionsService {
             logger.error(`************************* ERROR ***************************************\n`);
             logger.error(`error= ${error}`)
             throw error;
+        }
+    }
+
+
+    /**
+     *
+     * @param {string} address
+     * @param {string} passphrase
+     * @param {string} nonce
+     */
+    async getSharedKey(address, passphrase, nonce){
+        try{
+            const response = await this.jupiterAPIService.getSharedKey(address, passphrase, nonce);
+            return response.data.sharedKey;
+        } catch (error){
+            logger.error('********* Error getting shared key **************')
+         throw error;
         }
     }
 

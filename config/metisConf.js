@@ -1,16 +1,16 @@
-const gu = require("../utils/gravityUtils");
+// const gu = require("../utils/gravityUtils");
 if(!process.env.APPNAME) throw new Error('Environment Variable missing: APPNAME');
 if(!process.env.VERSION) throw new Error('Environment Variable missing: VERSION');
 if(!process.env.APP_ACCOUNT) throw new Error('Environment Variable missing: APP_ACCOUNT');
-if(!gu.isWellFormedPassphrase(process.env.APP_ACCOUNT)) throw new Error('Environment Variable APP_ACCOUNT is not well formed');
+// if(!gu.isWellFormedPassphrase(process.env.APP_ACCOUNT)) throw new Error('Environment Variable APP_ACCOUNT is not well formed');
 if(!process.env.ENCRYPT_PASSWORD) throw new Error('Environment Variable missing: ENCRYPT_PASSWORD');
-if(!gu.isStrongPassword(process.env.ENCRYPT_PASSWORD)) throw new Error('Environment Var  ENCRYPT_PASSWORD is not strong');
+// if(!gu.isStrongPassword(process.env.ENCRYPT_PASSWORD)) throw new Error('Environment Var  ENCRYPT_PASSWORD is not strong');
 if(!process.env.ENCRYPT_ALGORITHM) throw new Error('Environment Variable missing: ENCRYPT_ALGORITHM');
 if(!process.env.APP_ACCOUNT_HASH) throw new Error('Environment Variable missing: APP_ACCOUNT_HASH');
 if(!process.env.APP_ACCOUNT_ADDRESS) throw new Error('Environment Variable missing: APP_ACCOUNT_ADDRESS');
-if(!gu.isWellFormedJupiterAddress(process.env.APP_ACCOUNT_ADDRESS)) throw new Error('Environment Variable APP_ACCOUNT_ADDRESS is not well formed');
+// if(!gu.isWellFormedJupiterAddress(process.env.APP_ACCOUNT_ADDRESS)) throw new Error('Environment Variable APP_ACCOUNT_ADDRESS is not well formed');
 if(!process.env.APP_PUBLIC_KEY) throw new Error('Environment Variable missing: APP_PUBLIC_KEY');
-if(!gu.isWellFormedPublicKey(process.env.APP_PUBLIC_KEY)) throw new Error('Environment Variable APP_PUBLIC_KEY is not well formed');
+// if(!gu.isWellFormedPublicKey(process.env.APP_PUBLIC_KEY)) throw new Error('Environment Variable APP_PUBLIC_KEY is not well formed');
 if(!process.env.APP_ACCOUNT_ID) throw new Error('Environment Variable missing: APP_ACCOUNT_ID');
 if(!process.env.JUPITERSERVER) throw new Error('Environment Variable missing: JUPITERSERVER');
 if(!process.env.APP_EMAIL) throw new Error('Environment Variable missing: APP_EMAIL');
@@ -34,6 +34,3 @@ module.exports.metisConf = {
         expiresIn: process.env.JWT_TOKEN_EXPIRATION
     }
 }
-
-
-
