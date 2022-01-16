@@ -970,7 +970,7 @@ class ChanService {
             transactionsReport.push({name: 'channel-member-list', id: transactionIdForTheLatestTransactionsList});
             // THIRD: Add the public keys to the channel
             memberPublicKeys.map(async (memberKey) => {
-                await this.addE2EPublicKeyToChannel(memberKey, memberProperties.address, channelProperties);
+                await this.addE2EPublicKeyToChannel(memberKey, memberProperties.address, channelProperties, memberProperties.getCurrentAliasNameOrNull());
             });
 
             return {transactionsReport:transactionsReport}
@@ -1028,7 +1028,7 @@ class ChanService {
             const memberChannels = await this.getMemberChannels(memberProperties);
             memberChannels.map(async ({passphrase, password}) => {
                 const properties = await instantiateGravityAccountProperties(passphrase, password);
-                await this.addE2EPublicKeyToChannel(e2ePublicKey, memberProperties.address, properties);
+                await this.addE2EPublicKeyToChannel(e2ePublicKey, memberProperties.address, properties, memberProperties.getCurrentAliasNameOrNull());
             });
 
         } catch (error) {
@@ -1050,14 +1050,7 @@ class ChanService {
         logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
         const listTag = channelConfig.channelMemberPublicKeyList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
-            .then( messageContainers  => {
-                // console.log(`\n\n\n`);
-                // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-                // console.log('messageContainers');
-                // console.log(messageContainers);
-                // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
-                return messageContainers.map(messageContainer => messageContainer.message);
-            })
+            .then( messageContainers  => messageContainers.map(messageContainer => messageContainer.message))
     }
 
     /**
@@ -1085,10 +1078,11 @@ class ChanService {
      * @param {string} userE2EPublicKey
      * @param {string} userAddress
      * @param {GravityAccountProperties} channelAccountProperties
+     * @param userAlias
      */
-    addE2EPublicKeyToChannel(userE2EPublicKey, userAddress, channelAccountProperties) {
+    addE2EPublicKeyToChannel(userE2EPublicKey, userAddress, channelAccountProperties, userAlias) {
         logger.verbose(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
-        return this.jupiterAccountService.addE2EPublicKeyToJupiterAccount(userE2EPublicKey,channelAccountProperties,userAddress,'ChannelAccount');
+        return this.jupiterAccountService.addE2EPublicKeyToJupiterAccount(userE2EPublicKey,channelAccountProperties,userAddress, userAlias, 'ChannelAccount');
         // try {
         //
         //     //------------------------------
