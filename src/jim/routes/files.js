@@ -37,6 +37,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
 
     const fileCategoryTypes = {
         publicProfile: 'public-profile',
+        channelProfile: 'channel-profile',
         raw: 'raw',
         thumbnail: 'thumbnail'
     }
@@ -150,8 +151,8 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 const WEBSOCKET_ROOM = (fileCategory === fileCategoryTypes.publicProfile) ?
                     `upload-${userAccountProperties.address}` :
                     `upload-${fileUploadData.attachToJupiterAddress}`
-                const fileUrl = (fileCategory === fileCategoryTypes.publicProfile) ?
-                    `/jim/v1/api/users/${userAccountProperties.address}/files/${fileUuid}` :
+                const fileUrl = (fileCategory === fileCategoryTypes.publicProfile || fileCategory === fileCategoryTypes.channelProfile) ?
+                    `/jim/v1/api/users/${fileUploadData.attachToJupiterAddress}/files/public-profile` :
                     `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
 
                 if (fileSizeInBytes > jimConfig.maxMbSize) {
@@ -163,9 +164,10 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 if (fileUploadData.fileEncoding === undefined) {
                     throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.fileEncoding}`)
                 }
-                const params = (fileCategory === fileCategoryTypes.publicProfile)?
-                    {}:
-                    {attachToJupiterAddress:fileUploadData.attachToJupiterAddress }
+                const params = (fileCategory === fileCategoryTypes.publicProfile)
+                    ? {}
+                    : {attachToJupiterAddress:fileUploadData.attachToJupiterAddress };
+
                 const job = await uploadJob.create(
                     fileUploadData.userAccountProperties,
                     fileUploadData.fileName,
@@ -174,10 +176,8 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                     fileUploadData.fileUuid,
                     fileCategory,
                     params
-                );
-                // const fileUrl = ( fileCategory === fileCategoryTypes.publicProfile)?
-                //     `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`:
-                //     `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`;
+                )
+
                 job.save( error => {
                     logger.verbose(`---- JobQueue: job.save(error)`);
                     if(error){
@@ -198,6 +198,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 })
                 job.on('complete', (result)=>{
                     logger.verbose(`---- jon.on('complete)`);
+                    console.log(fileUploadData.attachToJupiterAddress);
                     const payload = {
                         jobId: job.id,
                         senderAddress: userAccountProperties.address,
@@ -278,7 +279,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
 
 module.exports = (app, jobs, websocket) => {
 
-    app.get('/jim/v1/api/users/:userAddress/files/public-profile/info', async (req, res) => {
+    app.get('/jim/v1/api/users/:userAddress/files/public-profile', async (req, res) => {
         console.log(`\n\n\n`);
         logger.info('======================================================================================');
         logger.info('== GET: /jim/v1/profile/:userAddress');
@@ -286,15 +287,20 @@ module.exports = (app, jobs, websocket) => {
 
         try {
             const {userAddress} = req.params;
-            const userAccountProperties =  req.user.gravityAccountProperties;
+            if(!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(``, userAddress);
+
             const [messageContainers] = await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAddress, transactionTags.jimServerTags.binaryFilePublicProfileSharedKey);
+            console.log('messageContainers--------', messageContainers);
+
+            if(!messageContainers){
+                return res.status(StatusCode.ClientErrorNotFound).send({message: 'No image found'});
+            }
             const [fileUuid, transactionId, sharedKey] = messageContainers.attachment.message.split('.').slice(-3);
 
             const fileInfo = await storageService.fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid);
             res.setHeader('Content-Type', `${fileInfo.mimeType}`);
             res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`);
             res.sendFile(fileInfo.bufferDataPath);
-            // res.status(StatusCode.SuccessOK).send(messageContainers || null);
         } catch (error){
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);

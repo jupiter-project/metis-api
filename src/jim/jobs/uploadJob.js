@@ -116,6 +116,7 @@ const WORKERS = 100;
 
 const FILE_CATEGORY_TYPES = {
     PUBLIC_PROFILE: 'public-profile',
+    CHANNEL_PROFILE: 'channel-profile',
     RAW: 'raw',
     THUMBNAIL: 'thumbnail'
 }
@@ -204,7 +205,7 @@ class UploadJob {
 
     /**
      *
-     * @param userAccountProperties
+     * @param ownerAccountProperties
      * @param fileName
      * @param fileEncoding
      * @param fileMimeType
@@ -213,9 +214,9 @@ class UploadJob {
      * @param params
      * @return {*|void|Promise<any>}
      */
-    create(userAccountProperties,fileName,fileEncoding,fileMimeType, fileUuid, fileCategory, params={}){
+    create(ownerAccountProperties, fileName, fileEncoding, fileMimeType, fileUuid, fileCategory, params={}){
         logger.verbose(`#### (userAccountProperties, attachToJupiterAddress, fileName,fileEncoding,fileMimeType, fileUuid`);
-        if(!(userAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties('userAccountProperties')
+        if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties('userAccountProperties')
         if(!gu.isNonEmptyString(fileName)) throw new mError.MetisError(`fileName is empty`)
         if(!gu.isNonEmptyString(fileEncoding)) throw new mError.MetisError(`fileEncoding is empty`)
         if(!gu.isNonEmptyString(fileMimeType)) throw new mError.MetisError(`fileMimeType is empty`)
@@ -226,7 +227,7 @@ class UploadJob {
             if(!gu.isWellFormedJupiterAddress(params.attachToJupiterAddress)) throw new mError.MetisErrorBadJupiterAddress(`attachToJupiterAddress`)
         }
 
-        const jobData = {userAccountProperties,fileName, fileEncoding, fileMimeType, fileUuid, fileCategory, ...params};
+        const jobData = {userAccountProperties: ownerAccountProperties,fileName, fileEncoding, fileMimeType, fileUuid, fileCategory, ...params};
         const job = this.jobQueue.create(this.jobName, jobData)
             .priority('high')
             .removeOnComplete(false)

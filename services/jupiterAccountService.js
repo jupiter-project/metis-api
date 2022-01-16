@@ -462,10 +462,11 @@ class JupiterAccountService {
      * @param e2ePublicKey
      * @param gravityAccountProperties
      * @param userAddress
+     * @param userAlias
      * @param accountType
      * @return {Promise<void>}
      */
-    async addE2EPublicKeyToJupiterAccount(e2ePublicKey, gravityAccountProperties, userAddress = null , accountType = 'UserAccount') {
+    async addE2EPublicKeyToJupiterAccount(e2ePublicKey, gravityAccountProperties, userAddress = null , userAlias = '', accountType = 'UserAccount') {
         logger.verbose(`#### addE2EPublicKeyToJupiterAccount(publicKey, gravityAccountProperties, accountType)`);
         if(!gu.isWellFormedE2EPublicKey(e2ePublicKey)) throw new mError.MetisErrorBadJupiterPublicKey(`publicKey: ${e2ePublicKey}`);
         if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`);
@@ -492,6 +493,7 @@ class JupiterAccountService {
                 payload = {
                     recordType: 'e2eChannelMemberPublicKeyRecord',
                     memberAccountAddress: userAddress,
+                    memberAccountAlias: userAlias,
                     e2ePublicKey: e2ePublicKey,
                     createdAt: Date.now(),
                     version: 1,

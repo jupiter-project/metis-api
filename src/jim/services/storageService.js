@@ -18,6 +18,7 @@ const {transactionUtils} = require("../../../gravity/transactionUtils");
 
 const FileCategory = {
     PublicProfile: 'public-profile',
+    ChannelProfile: 'channel-profile',
     Raw: 'raw',
     Thumbnail: 'thumbnail'
 };
@@ -476,7 +477,7 @@ class StorageService {
         } catch(error) {
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
-            logger.error(`* ** fetchFile(ownerAccountProperties, fileUuid).catch(error)`);
+            logger.error(`* ** fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid).catch(error)`);
             logger.error(`************************* ERROR ***************************************\n`);
             logger.error(`error= ${error}`)
             throw error;
@@ -502,25 +503,18 @@ class StorageService {
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
             logger.info(` GET ALL THE CHUNKS`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
-            const readableMessageContainer$ = chunkTransactionIds.map(chunkTransactionId => {
-                console.log('chunkTransactionId ---->', chunkTransactionId);
-                    return jupiterTransactionsService.getReadableMessageContainersBySharedKey(chunkTransactionId.transactionId, chunkTransactionId.sharedKey)
-                }
+            const readableMessageContainer$ = chunkTransactionIds.map(chunkTransactionId =>
+                jupiterTransactionsService.getReadableMessageContainersBySharedKey(chunkTransactionId.transactionId, chunkTransactionId.sharedKey)
             );
             const chunkContainers = await Promise.all(readableMessageContainer$);
-            if(chunkContainers.length < 1){
-                throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`);
-            }
+            if(chunkContainers.length < 1) throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`);
             const compressedFile = chunkContainers.reduce((reduced, chunkContainer) => {
                 reduced += chunkContainer
                 return reduced;
             }, '');
 
             const bufferData = zlib.inflateSync(Buffer.from(compressedFile, 'base64')); //@TODO compressing might be worthless since the files are encrypted. Usually encryted files cant be compressed much.
-            return {
-                bufferData: bufferData,
-                fileRecord: fileRecord
-            }
+            return { bufferData, fileRecord };
         }catch(error){
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
@@ -594,7 +588,7 @@ class StorageService {
             logger.sensitive(`sendMessageResponses.length=${JSON.stringify(sendMessageResponses.length)}`);
             const linkedFileRecords = null;
             let allChunkTransactionsData = null;
-            if (fileCat === FileCategory.PublicProfile){
+            if (fileCat === FileCategory.PublicProfile || fileCat === FileCategory.ChannelProfile){
                 const allChunkTransactionsInfo = this.transactionUtils.extractTransactionInfoFromTransactionResponses(sendMessageResponses,['transactionId','nonce']);
                 allChunkTransactionsData = await allChunkTransactionsInfo.reduce(async (reduced, tInfo) => {
                     const sharedKey = await this.jupiterTransactionsService.getSharedKey(toAccountProperties.address , toAccountProperties.passphrase, tInfo.nonce);
@@ -631,7 +625,7 @@ class StorageService {
                 fileUrl,
             );
 
-            const _fileRecord = (fileCat === FileCategory.PublicProfile) ?
+            const _fileRecord = (fileCat === FileCategory.PublicProfile || fileCat === FileCategory.ChannelProfile) ?
                 JSON.stringify(fileRecord):
                 toAccountProperties.crypto.encryptJson(fileRecord)
             if(!this.fileCacheService.bufferDataExists(fileUuid)){
@@ -650,7 +644,7 @@ class StorageService {
             const nonce = xInfo.nonce;
             const xSharedKey = await this.jupiterTransactionsService.getSharedKey(toAccountProperties.address , toAccountProperties.passphrase, nonce);
 
-            if(fileCat === FileCategory.PublicProfile){
+            if(fileCat === FileCategory.PublicProfile || fileCat === FileCategory.ChannelProfile){
                 const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, xSharedKey);
                 const encryptedFileRecord = crypto.encryptJson(fileRecord);
                 this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);

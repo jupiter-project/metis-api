@@ -561,9 +561,7 @@ class JupiterTransactionsService {
                     gravityAccountProperties.passphrase)
                 );
             })
-            const allMessageContainers = await Promise.all(messages);
-
-            return allMessageContainers;
+            return await Promise.all(messages);
         } catch(error) {
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);
