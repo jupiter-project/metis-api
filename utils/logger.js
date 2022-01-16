@@ -5,16 +5,42 @@ const winston = require('winston');
 const path = require('path');
 require('winston-mongodb');
 const {loggerConf} = require("../config/loggerConf");
+const {metisConf} = require("../config/metisConf");
+const {mongoConf} = require("../config/mongoConf");
+const {appConf} = require("../config/appConf");
 
 
+/**
+ *
+ * @param level
+ * @return {*}
+ */
+const levelFilter = (level) => {
+    return winston.format((info, opts) => {
+        if (info.level != level) { return false; }
+        return info;
+    })();
+}
+
+
+/**
+ *
+ * @return {string}
+ */
 const tsFormat = () =>{
   let today = new Date()
   return today.toISOString().split('T')[0]
 };
 
-const initializeConsoleTransport = (callingModule) =>{
+/**
+ *
+ * @param callingModule
+ * @param level
+ * @return {Console}
+ */
+const initializeConsoleTransport = (callingModule, level = 'sensitive') =>{
     return new winston.transports.Console({
-        level:'sensitive',
+        level:level,
         colorize: true,
         timestamp: tsFormat,
         format: winston.format.combine(
@@ -28,15 +54,16 @@ const initializeConsoleTransport = (callingModule) =>{
     })
 }
 
+/**
+ *
+ * @param callingModule
+ * @return {null|*}
+ */
 const initializeSlackTransport = (callingModule)=>{
-    const slackHookUrl = process.env.SLACK_HOOK;
-    if(!slackHookUrl) return null;
-    const debugLevel = process.env.SLACK_DEBUG_LEVEL;
-    if(!debugLevel) return null;
-    // console.log(slackHookUrl)
+    if(!loggerConf.hasSlackTransport) return null;
     return new SlackHook({
-        level: debugLevel,
-        webhookUrl: slackHookUrl,
+        level: loggerConf.slackTransportLevel,
+        webhookUrl: loggerConf.slackHook,
         formatter: info => {
             return {
                 text: 'this is a test',
@@ -45,7 +72,7 @@ const initializeSlackTransport = (callingModule)=>{
                         type: "section",
                         text: {
                             type: 'mrkdwn',
-                            text: `*METIS API NOTICE*\n ${info.message} \n server: ${process.env.APPNAME}`
+                            text: `*METIS API NOTICE*\n ${info.message} \n server: ${metisConf.appName}`
                         }
                     }
                 ]
@@ -59,175 +86,210 @@ const initializeSlackTransport = (callingModule)=>{
  *
  * @return {null|Stream}
  */
-const getS3StreamTransport = () => {
-    const s3Conf = loggerConf.s3Stream;
-    const bucket = loggerConf.s3Stream.bucket;
-    if(s3Conf.option !== 1) return null;
-    const s3Stream = new S3StreamLogger({
-        bucket,
-      config: {
-        endpoint: s3Conf.endpoint,
-      },
-      access_key_id: s3Conf.key,
-      secret_access_key: s3Conf.secrect,
-      tags: {
-        type: 'errorLogs',
-        project: 'Metis',
-      },
-      rotate_every: s3Conf.rotateEvery,
-      max_file_size: s3Conf.maxFileSize,
-      upload_every: s3Conf.uploadEvery,
-    });
-    // AWS transport files
-    return new winston.transports.Stream({stream: s3Stream});
+// const initializeS3StreamTransport = () => {
+//
+//     console.log(`\n`);
+//     console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+//     console.log(`loggerConf:`);
+//     console.log(loggerConf);
+//     console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+//
+//
+//     if(!loggerConf.hasS3Option) return null;
+//     // const s3Conf = loggerConf.s3Stream;
+//     // const bucket = loggerConf.s3Stream.bucket;
+//     if(s3Conf.option !== 1) return null;
+//     const s3Stream = new S3StreamLogger({
+//         loggerConf.s3Stream.bucket,
+//       config: {
+//         endpoint: loggerConf.s3Stream.endpoint,
+//       },
+//       access_key_id: loggerConf.s3Stream.key,
+//       secret_access_key: loggerConf.s3Stream.secrect,
+//       tags: {
+//         type: 'errorLogs',
+//         project: 'Metis',
+//       },
+//       rotate_every: loggerConf.s3Stream.rotateEvery,
+//       max_file_size: loggerConf.s3Stream.maxFileSize,
+//       upload_every: loggerConf.s3Stream.uploadEvery,
+//     });
+//     return new winston.transports.Stream({stream: s3Stream});
+// };
+
+/**
+ *
+ * @return {null|winston.transports.MongoDB}
+ */
+const initializeMongoDBTransport = () => {
+  if (!mongoConf.dbUri) return null;
+        return new winston.transports.MongoDB({
+          level: 'error',
+          db: mongoConf.dbUri,
+          options: {
+            useUnifiedTopology: true,
+          },
+          collection: 'metis-logs',
+          format: winston.format.combine(winston.format.timestamp(), winston.format.json()),}
+    );
 };
 
-const getMongoDBTransport = () => {
-  if (process.env.URL_DB) {
-    return new winston.transports.MongoDB({
-      level: 'error',
-      db: process.env.URL_DB,
-      options: {
-        useUnifiedTopology: true,
-      },
-      collection: 'metis-logs',
-      format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-    });
-  }
-  return null;
-};
 
+// new winston.transports.File({
+//     filename: 'metis-api.log',
+//     level: localFileDebugLevel
+// })
+
+const initializeFileTransport = (callingModule, filName, level = 'sensitive', justTheLevel = false) =>{
+    const formats = [];
+    const format1 = winston.format.printf(({ level, message, label, timestamp }) => {
+        const callingModuleName = `${getLabel(callingModule)}`
+        return `[${level}][${label}][${timestamp}]${callingModuleName}|${message}`;
+    })
+    formats.push(format1)
+    if(justTheLevel){
+        formats.push(levelFilter(level))
+    }
+    return new winston.transports.File({
+        filename: filName,
+        level:level,
+        colorize: true,
+        timestamp: tsFormat,
+        format: winston.format.combine(...formats),
+    })
+}
+
+/**
+ *
+ * @param callingModule
+ * @return {string}
+ */
 const getLabel = (callingModule) => {
     if(!callingModule) return '';
   const parts = callingModule.filename.split(path.sep);
   return path.join(parts[parts.length - 2], parts.pop());
 };
 
-
-const generatePadding = (numberOfSpaces) => {
-  if (numberOfSpaces>0){
-    return Array(numberOfSpaces).join(' ');
-  }
-  return '';
-}
-
-const customLevels = {
-  levels: {
-      blast: 1,
-      info: 2,
-      warn: 3,
-      error: 4,
-      debug: 5,
-      verbose: 6,
-      sensitive: 7,
-      insane: 8
-  },
-  colors: {
-      blast: 'red',
-      error: 'red',
-      warn: 'yellow',
-      info: 'white',
-      verbose: 'green',
-      debug: 'blue',
-      sensitive: 'blue',
-      insane: 'yellow'
-  }
-};
+// const customLevels = {
+//   levels: {
+//       blast: 1,
+//       info: 2,
+//       warn: 3,
+//       error: 4,
+//       debug: 5,
+//       verbose: 6,
+//       sensitive: 7,
+//       insane: 8
+//   },
+//   color: {
+//       blast: 'red',
+//       error: 'red',
+//       warn: 'yellow',
+//       info: 'white',
+//       verbose: 'green',
+//       debug: 'blue',
+//       sensitive: 'blue',
+//       insane: 'yellow'
+//   }
+// };
 
 
-const mongoDbTransport = getMongoDBTransport();
-const s3Transport = getS3StreamTransport();
-const transportList = [];
-if (s3Transport) transportList.push(s3Transport)
-if (mongoDbTransport && process.env.NODE_ENV === 'production') transportList.push(mongoDbTransport)
+// const mongoDbTransport = initializeMongoDBTransport();
+// const s3Transport = initializeS3StreamTransport();
+// const transportList = [];
+// if (s3Transport) transportList.push(s3Transport)
+// if (mongoDbTransport && process.env.NODE_ENV === 'production') transportList.push(mongoDbTransport)
 
-if (process.env.LOCAL_DEBUG_LEVEL) {
-  const localFileDebugLevel = process.env.LOCAL_DEBUG_LEVEL;
-  transportList.push(
-      new winston.transports.File({
-        filename: 'metis-api.log',
-        level: localFileDebugLevel
-      })
-  )
-}
-if (process.env.LOCAL_DEBUG_LEVEL) {
-  const consoleDebugLevel = process.env.LOCAL_DEBUG_LEVEL;
-  transportList.push(
-      new winston.transports.Console({
-        level: consoleDebugLevel
-      })
-  )
-} else {
-  transportList.push(
-      new winston.transports.Console({
-        level: 'debug',
-        timestamp: tsFormat
-      })
-  )
-}
+// if (process.env.LOCAL_DEBUG_LEVEL) {
+//   const localFileDebugLevel = process.env.LOCAL_DEBUG_LEVEL;
+//   transportList.push(
+//       new winston.transports.File({
+//         filename: 'metis-api.log',
+//         level: localFileDebugLevel
+//       })
+//   )
+// }
+// if (process.env.LOCAL_DEBUG_LEVEL) {
+//   const consoleDebugLevel = process.env.LOCAL_DEBUG_LEVEL;
+//   transportList.push(
+//       new winston.transports.Console({
+//         level: consoleDebugLevel
+//       })
+//   )
+// } else {
+//   transportList.push(
+//       new winston.transports.Console({
+//         level: 'debug',
+//         timestamp: tsFormat
+//       })
+//   )
+// }
 
 const localDevLogger = (callingModule) => {
-  const transports = [];
-  transports.push(initializeConsoleTransport(callingModule));
-  const slackTransport = initializeSlackTransport(callingModule);
-  if(slackTransport){
-      transports.push(slackTransport)
-  }
+    const transports = [];
+  // const errorFileTransport =  initializeFileTransport(callingModule, 'metis.log','error', true);
+    transports.push(initializeFileTransport(callingModule, 'metis.log','sensitive', false));
+    transports.push(initializeFileTransport(callingModule, 'metis.errors','error', true));
+    transports.push(initializeConsoleTransport(callingModule, 'sensitive'));
+    transports.push(initializeSlackTransport(callingModule))
   return winston.createLogger({
-    levels: customLevels.levels,
+    levels: loggerConf.levels.ids,
     transports: transports,
   });
 }
 
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
 const productionLogger = (callingModule) => {
-  const PADDING_DEFAULT = 48;
-  return winston.createLogger({
-    levels: customLevels.levels,
-    format: winston.format.combine(
-        winston.format.splat(),
-        winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
-        winston.format.label({label:'*'}),
-        winston.format.align(),
-        winston.format.simple(),
-        winston.format.printf(({ level, message, label, timestamp }) => {
-          const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
-          const spacing = (pre.length > PADDING_DEFAULT)? 0 : PADDING_DEFAULT - pre.length
-          const padding = generatePadding(spacing);
-          const output = `${pre}${padding}${message}`
-          return output
-        }),
+    const transports = [];
+    return winston.createLogger({
+        levels: loggerConf.levels.ids,
+        format: winston.format.combine(
+            winston.format.splat(),
+            winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
+            winston.format.label({label:'*'}),
+            winston.format.align(),
+            winston.format.simple(),
+            winston.format.printf(({ level, message, label, timestamp }) => {
+              const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
+              const output = `${pre}${message}`
+              return output
+            }),
     ),
-    transports: transportList,
+    transports: transports,
   });
 }
 
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
 const stagingLogger = (callingModule) => {
-  const PADDING_DEFAULT = 48;
-  return winston.createLogger({
-    levels: customLevels.levels,
-    format: winston.format.combine(
-        winston.format.splat(),
-        winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
-        winston.format.label({label:'*'}),
-        winston.format.align(),
-        winston.format.simple(),
-        winston.format.printf(({ level, message, label, timestamp }) => {
-
-          const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
-          const spacing = (pre.length > PADDING_DEFAULT)? 0 : PADDING_DEFAULT - pre.length
-          const padding = generatePadding(spacing);
-          const output = `${pre}${padding}${message}`
-
-          return output
-        }),
-    ),
-    transports: transportList,
-  });
+    const transports = [];
+    return winston.createLogger({
+        levels: loggerConf.levels.ids,
+        format: winston.format.combine(
+            winston.format.splat(),
+            winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
+            winston.format.label({label:'*'}),
+            winston.format.align(),
+            winston.format.simple(),
+            winston.format.printf(({ level, message, label, timestamp }) => {
+              const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
+              const output = `${pre}${message}`
+              return output
+            }),
+        ),
+        transports: transports,
+    });
 }
-
 
 module.exports = function (callingModule) {
-  if(process.env.NODE_ENV === 'development') return localDevLogger(callingModule)
-  if( process.env.NODE_ENV === 'staging' ) return stagingLogger(callingModule)
+  if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.development) return localDevLogger(callingModule)
+  if( appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.staging ) return stagingLogger(callingModule)
   return productionLogger(callingModule);
 };

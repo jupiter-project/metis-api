@@ -30,4 +30,5 @@ module.exports.MetisErrorCode = {
     MetisErrorNoBinaryFileFound: 16022,
     MetisErrorBadJupiterAlias: 16023,
     MetisErrorNotEnoughFunds: 16024,
+    MetisErrorBadEnvironmentVariable: 16025,
 }
