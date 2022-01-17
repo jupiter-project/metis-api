@@ -29,8 +29,8 @@
 .idea
 
 # Ignore Log Files
-./metis-api.log
-./metis.errors
+/metis-api.log
+/metis.errors
 /logs/log-api.log
 *.log
 
