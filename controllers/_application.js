@@ -12,116 +12,57 @@ const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
 const mError = require("../errors/metisError");
 const gu = require("../utils/gravityUtils");
-
 const jupiterServer = metisConf.appJupiterServerUrl;
 
 module.exports = (app, passport, jobs, websocket) => {
   // const connection = process.env.SOCKET_SERVER;
-  app.get('/test', (req, res) => {
-    res.send({ success: true });
-  });
-
-  app.get('/v1/api/version', (req, res) => {
-    console.log('');
-    logger.info('======================================================================================');
-    logger.info('==');
-    logger.info('== Get Version');
-    logger.info('== GET: /v1/api/version');
-    logger.info('==');
-    logger.info('======================================================================================');
-    console.log('');
-    jupiterAPIService.getBlockchainStatus()
-      .then( response => {
-        const version = [
-          { name: 'Metis App Version', version: '1.1.2' },
-          { name: 'Metis Server Version', version: process.env.VERSION },
-          { name: 'Jupiter Network', version: response.data.isTestnet ? 'testnet' : 'prod' },
-          { name: 'Jupiter Version', version: response.data.version },
-        ];
-        console.log(`\n`);
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-        logger.info(`++ version`);
-        logger.info(`++ ${JSON.stringify(version)}`);
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
-        res.send(version);
-      })
-      .catch((error) => {
-        logger.error(`${error}`);
-        res.send({message: 'There was an error getting jupiter version', code: error.code});
-      });
-  });
-
-    // ===========================================================
-  // This constains the aliases from an account
-  // ===========================================================
-  // Loads aliases
-  app.get('/v1/api/aliases', async (req, res) => {
-    console.log('');
-    logger.info('======================================================================================');
-    logger.info('==');
-    logger.info('== Loads Aliases');
-    logger.info('== GET: /v1/api/aliases ');
-    logger.info('==');
-    logger.info('======================================================================================');
-    console.log('');
-
-    const {account} = req.query
-    jupiterAPIService.getAliases(account)
-        .then(aliasesResponse => {
-          res.send(aliasesResponse.data);
-        })
-        .catch((error) => {
-          logger.error(`${error}`);
-          res.status(500).send({
-            message: 'There was an error getting aliases from jupiter',
-          });
-        });
-  });
-
+  // app.get('/test', (req, res) => {
+  //   res.send({ success: true });
+  // });
 
   // =======================================================
   // LOGOUT
   // =======================================================
-  app.get('/logout', (req, res) => {
-    req.logout();
-    req.session.destroy();
-    // console.log(req.session);
-    res.send('logged out');
-    // res.redirect('/');
-  });
+  // app.get('/logout', (req, res) => {
+  //   req.logout();
+  //   req.session.destroy();
+  //   // console.log(req.session);
+  //   res.send('logged out');
+  //   // res.redirect('/');
+  // });
 
 
   // ===============================================================================
   // JUPITER CALLS
   // ===============================================================================
 
-  app.post('/v1/api/get-jupiter-account', (req, res) => {
-    console.log('');
-    logger.info('======================================================================================');
-    logger.info('==');
-    logger.info('== Get Jupiter Account');
-    logger.info('== POST');
-    logger.info('==');
-    logger.info('======================================================================================');
-    console.log('');
-
-    axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
-      .then((response) => {
-        const { accountRS, publicKey } = response.data;
-        res.send({
-          success: true,
-          account: accountRS,
-          public_key: publicKey,
-        });
-      })
-      .catch((error) => {
-        logger.error(`${error}`);
-        res.send({
-          success: false,
-          message: 'There was an error in verifying the passphrase with the Blockchain',
-        });
-      });
-  });
+  // app.post('/v1/api/get-jupiter-account', (req, res) => {
+  //   console.log('');
+  //   logger.info('======================================================================================');
+  //   logger.info('==');
+  //   logger.info('== Get Jupiter Account');
+  //   logger.info('== POST');
+  //   logger.info('==');
+  //   logger.info('======================================================================================');
+  //   console.log('');
+  //
+  //   axios.get(`${gravity.jupiter_data.server}/nxt?requestType=getAccountId&secretPhrase=${req.body.jup_passphrase}`)
+  //     .then((response) => {
+  //       const { accountRS, publicKey } = response.data;
+  //       res.send({
+  //         success: true,
+  //         account: accountRS,
+  //         public_key: publicKey,
+  //       });
+  //     })
+  //     .catch((error) => {
+  //       logger.error(`${error}`);
+  //       res.send({
+  //         success: false,
+  //         message: 'There was an error in verifying the passphrase with the Blockchain',
+  //       });
+  //     });
+  // });
 
   // ===============================================================================
   // NEW ACCOUNT GENERATION
@@ -177,93 +118,94 @@ module.exports = (app, passport, jobs, websocket) => {
     })
 
 
-  /**
-   * SIGNUP V1
-   */
-  app.post('/v1/api/signup', (req, res, next) => {
-    console.log(`\n\n`);
-    logger.info('======================================================================================');
-    logger.info('== SignUp');
-    logger.info('== POST: /v1/api/signup ');
-    logger.info(`======================================================================================\n\n`);
-    passport.authenticate('gravity-signup', (error, jobId, _) => {
-      if (error) {
-        console.log(error);
-        return res.status(StatusCode.ServerErrorInternal).send({ jobId: jobId });
-      }
-      return res.status(StatusCode.SuccessOK).send({
-        job: {
-          id: jobId,
-          href: `/v1/api/job/status?jobId=${jobId}`,
-        }
-      });
-    })(req, res, next);
-  });
+  // /**
+  //  * SIGNUP V1
+  //  */
+  // app.post('/v1/api/signup', (req, res, next) => {
+  //   console.log(`\n\n`);
+  //   logger.info('======================================================================================');
+  //   logger.info('== SignUp');
+  //   logger.info('== POST: /v1/api/signup ');
+  //   logger.info(`======================================================================================\n\n`);
+  //   passport.authenticate('gravity-signup', (error, jobId, _) => {
+  //     if (error) {
+  //       console.log(error);
+  //       return res.status(StatusCode.ServerErrorInternal).send({ jobId: jobId });
+  //     }
+  //     return res.status(StatusCode.SuccessOK).send({
+  //       job: {
+  //         id: jobId,
+  //         href: `/v1/api/job/status?jobId=${jobId}`,
+  //       }
+  //     });
+  //   })(req, res, next);
+  // });
 
 
 
-  /**
-   *  Login
-   */
-  app.post('/v1/api/appLogin', (req, res, next) => {
-    logger.info(`\n\n`)
-    logger.info(`======================================================================================`);
-    logger.info('== Login');
-    logger.info('== POST: /v1/api/appLogin');
-    logger.info(`======================================================================================/n/n`);
-    logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
+  // /**
+  //  *  Login
+  //  */
+  // app.post('/v1/api/appLogin', (req, res, next) => {
+  //   logger.info(`\n\n`)
+  //   logger.info(`======================================================================================`);
+  //   logger.info('== Login');
+  //   logger.info('== POST: /v1/api/appLogin');
+  //   logger.info(`======================================================================================/n/n`);
+  //   logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
+  //
+  //   const {account,encryptionPassword, jupkey} = req.body;
+  //
+  //   if(!gu.isWellFormedPassphrase(jupkey)) {
+  //     return res.status(StatusCode.ClientErrorBadRequest).send({message: 'account is missing', code: MetisErrorCode.MetisError});
+  //   }
+  //   if(!gu.isWellFormedJupiterAddress(account)) {
+  //     return res.status(StatusCode.ClientErrorBadRequest).send({message: 'jupkey is missing', code: MetisErrorCode.MetisError});
+  //   }
+  //   if(!encryptionPassword) {
+  //     return res.status(StatusCode.ClientErrorBadRequest).send({message: 'encryptionPassword is missing', code: MetisErrorCode.MetisError});
+  //   }
+  //
+  //   passport.authenticate('gravity-login', (error, user, message) => {
+  //     logger.verbose(`#### /v1/api/appLogin > passport.authenticate('gravity-login', CALLBACK(*)`);
+  //     if (error) {
+  //       if(error instanceof mError.MetisErrorFailedUserAuthentication){
+  //         return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Not able to authenticate.', code: error.code});
+  //       }
+  //       console.log('\n')
+  //       logger.error(`************************* ERROR ***************************************`);
+  //       logger.error(`* ** /v1/api/appLogin > passport.authenticate() catch(error)`);
+  //       logger.error(`************************* ERROR ***************************************\n`);
+  //       console.log(error)
+  //       return res.status(StatusCode.ServerErrorInternal).json({message: error.message, code: error.code})
+  //     }
+  //
+  //     if (!user) {
+  //       const errorMessage = 'There was an error in verifying the passphrase with the Blockchain..';
+  //       logger.error(errorMessage);
+  //       return res.status(StatusCode.ClientErrorUnauthorized).json({message: errorMessage});
+  //     }
+  //
+  //     const userInfo = {
+  //       accessKey: user.accessKey,
+  //       encryptionKey: user.encryptionKey,
+  //       account: user.account,
+  //       publicKey: user.publicKey,
+  //       profilePictureURL: user.profilePictureURL,
+  //       userData: user.userData
+  //     }
+  //     const token = jwt.sign(userInfo, process.env.SESSION_SECRET, {expiresIn: process.env.JWT_TOKEN_EXPIRATION});
+  //
+  //     const userContainer = {
+  //       profilePictureURL: user.profilePictureURL,
+  //       alias: user.userData.alias,
+  //       account: user.userData.account,
+  //     };
+  //
+  //     res.status(200).send({ user: userContainer, token });
+  //   })(req, res, next);
+  // });
 
-    const {account,encryptionPassword, jupkey} = req.body;
-
-    if(!gu.isWellFormedPassphrase(jupkey)) {
-      return res.status(StatusCode.ClientErrorBadRequest).send({message: 'account is missing', code: MetisErrorCode.MetisError});
-    }
-    if(!gu.isWellFormedJupiterAddress(account)) {
-      return res.status(StatusCode.ClientErrorBadRequest).send({message: 'jupkey is missing', code: MetisErrorCode.MetisError});
-    }
-    if(!encryptionPassword) {
-      return res.status(StatusCode.ClientErrorBadRequest).send({message: 'encryptionPassword is missing', code: MetisErrorCode.MetisError});
-    }
-
-    passport.authenticate('gravity-login', (error, user, message) => {
-      logger.verbose(`#### /v1/api/appLogin > passport.authenticate('gravity-login', CALLBACK(*)`);
-      if (error) {
-        if(error instanceof mError.MetisErrorFailedUserAuthentication){
-          return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Not able to authenticate.', code: error.code});
-        }
-        console.log('\n')
-        logger.error(`************************* ERROR ***************************************`);
-        logger.error(`* ** /v1/api/appLogin > passport.authenticate() catch(error)`);
-        logger.error(`************************* ERROR ***************************************\n`);
-        console.log(error)
-        return res.status(StatusCode.ServerErrorInternal).json({message: error.message, code: error.code})
-      }
-
-      if (!user) {
-        const errorMessage = 'There was an error in verifying the passphrase with the Blockchain..';
-        logger.error(errorMessage);
-        return res.status(StatusCode.ClientErrorUnauthorized).json({message: errorMessage});
-      }
-
-      const userInfo = {
-        accessKey: user.accessKey,
-        encryptionKey: user.encryptionKey,
-        account: user.account,
-        publicKey: user.publicKey,
-        profilePictureURL: user.profilePictureURL,
-        userData: user.userData
-      }
-      const token = jwt.sign(userInfo, process.env.SESSION_SECRET, {expiresIn: process.env.JWT_TOKEN_EXPIRATION});
-
-      const userContainer = {
-        profilePictureURL: user.profilePictureURL,
-        alias: user.userData.alias,
-        account: user.userData.account,
-      };
-
-      res.status(200).send({ user: userContainer, token });
-    })(req, res, next);
-  });
 
   // ===============================================================================
   // GET PASSPHRASE

@@ -7,6 +7,8 @@ const logger = require('../utils/logger')();
 const mError = require("../errors/metisError");
 
 module.exports.externalResourcesCheck =  async (req, res, next) => {
+    // @TODO enable once we get a jupiter.isAlive()
+    return next();
     logger.verbose(`#### externalResourcesCheck(req, res, next)`);
     try {
         const jupiterState = await jupiterAPIService.getState();

@@ -116,63 +116,63 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
   (request, account, accounthash, done) => {
     process.nextTick(() => {
 
-        const encryptedRequestBody = gravity.encrypt( JSON.stringify(request.body));
-
-        const jobData = {
-            account,
-            data:  encryptedRequestBody
-        }
-
-        const job = jobsQueue.create('user-registration', jobData)
-            .priority('high')
-            .removeOnComplete(false)
-            .save( error =>{
-                logger.verbose(`---- JobQueue: user-registration.save()`);
-                if(error){
-                    logger.error(`There is a problem saving to redis`);
-                    logger.error(`${error}`);
-                    websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
-                    throw new Error('user-registration');
-                }
-                logger.verbose(`job.id= ${job.id}`);
-                websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
-                return done(null, job.id);
-            });
-        job.on('complete', function(result){
-            logger.verbose(`---- passport.job.on(complete(signUpSuccessful))`)
-            logger.verbose(`account= ${account}`)
-            logger.sensitive('Job completed with data ', result);
-            const endTime = Date.now();
-            const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            logger.info(`++ SIGNUP`);
-            logger.info(`++ Processing TIME`);
-            logger.info(`++ ${processingTime}`);
-            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-            const room = `sign-up-${account}`;
-            websocket.in(room).allSockets().then((result) => {
-                logger.info(`The number of users connected is: ${result.size}`);
-            });
-            websocket.of('/sign-up').to(room).emit('signUpSuccessful', account);
-        });
-        job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.error(`***********************************************************************************`);
-            logger.error(`** passport.job.on(failed_attempt())`);
-            logger.error(`** `);
-            logger.error(`account= ${account}`)
-            logger.error(`errorMessage= ${errorMessage}`);
-            logger.error(`doneAttempts= ${doneAttempts}`);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',{message: `${errorMessage}`});
-        });
-
-        job.on('failed', function(errorMessage){
-            logger.error(`***********************************************************************************`);
-            logger.error(`** passport.job.on(failed())`);
-            logger.error(`** `);
-            logger.error(`account= ${account}`)
-            logger.error(`errorMessage= ${errorMessage}`);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', {message: `${errorMessage}`});
-        });
+        // const encryptedRequestBody = gravity.encrypt( JSON.stringify(request.body));
+        //
+        // const jobData = {
+        //     account,
+        //     data:  encryptedRequestBody
+        // }
+        //
+        // const job = jobsQueue.create('user-registration', jobData)
+        //     .priority('high')
+        //     .removeOnComplete(false)
+        //     .save( error =>{
+        //         logger.verbose(`---- JobQueue: user-registration.save()`);
+        //         if(error){
+        //             logger.error(`There is a problem saving to redis`);
+        //             logger.error(`${error}`);
+        //             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
+        //             throw new Error('user-registration');
+        //         }
+        //         logger.verbose(`job.id= ${job.id}`);
+        //         websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
+        //         return done(null, job.id);
+        //     });
+        // job.on('complete', function(result){
+        //     logger.verbose(`---- passport.job.on(complete(signUpSuccessful))`)
+        //     logger.verbose(`account= ${account}`)
+        //     logger.sensitive('Job completed with data ', result);
+        //     const endTime = Date.now();
+        //     const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
+        //     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        //     logger.info(`++ SIGNUP`);
+        //     logger.info(`++ Processing TIME`);
+        //     logger.info(`++ ${processingTime}`);
+        //     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        //     const room = `sign-up-${account}`;
+        //     websocket.in(room).allSockets().then((result) => {
+        //         logger.info(`The number of users connected is: ${result.size}`);
+        //     });
+        //     websocket.of('/sign-up').to(room).emit('signUpSuccessful', account);
+        // });
+        // job.on('failed attempt', function(errorMessage, doneAttempts){
+        //     logger.error(`***********************************************************************************`);
+        //     logger.error(`** passport.job.on(failed_attempt())`);
+        //     logger.error(`** `);
+        //     logger.error(`account= ${account}`)
+        //     logger.error(`errorMessage= ${errorMessage}`);
+        //     logger.error(`doneAttempts= ${doneAttempts}`);
+        //     websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',{message: `${errorMessage}`});
+        // });
+        //
+        // job.on('failed', function(errorMessage){
+        //     logger.error(`***********************************************************************************`);
+        //     logger.error(`** passport.job.on(failed())`);
+        //     logger.error(`** `);
+        //     logger.error(`account= ${account}`)
+        //     logger.error(`errorMessage= ${errorMessage}`);
+        //     websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', {message: `${errorMessage}`});
+        // });
     });
   }));
 };
@@ -192,50 +192,50 @@ const metisLogin = (passport) => {
     passReqToCallback: 'true',
   },
   async (req, account, accounthash, done) => {
-  /**
-   * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
-   * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
-   * to provide their new password.  The current problem is that current when going through the signup process
-   * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
-   * account. This was we can register their current jup account with metis.
-   */
-    logger.verbose('#### metisLogin(passport)');
-      const {
-          jupkey,
-          public_key,
-          jup_account_id,
-          encryptionPassword,
-      } = req.body;
-      let user;
-      let valid = true;
-
-      try {
-          const userAccountProperties = await jupiterAccountService.getMemberAccountPropertiesFromPersistedUserRecordOrNull(jupkey, encryptionPassword);
-          if(userAccountProperties === null){
-              return done(new mError.MetisErrorFailedUserAuthentication());
-          }
-          const userInfo = {
-              accessKey: gravity.encrypt(jupkey),
-              encryptionKey: gravity.encrypt(encryptionPassword),
-              account: gravity.encrypt(account),
-              publicKey: public_key,
-              profilePictureURL: '',
-              userData: {
-                  alias: userAccountProperties.getCurrentAliasNameOrNull(),
-                  account: userAccountProperties.address
-              },
-          };
-
-          return done(null, userInfo, 'Authentication validated!');
-
-      } catch(error){
-          console.log('\n')
-          logger.error(`************************* ERROR ***************************************`);
-          logger.error(`* ** metisLogin.catch(error)`);
-          logger.error(`************************* ERROR ***************************************\n`);
-          logger.error(`error= ${error}`)
-          return done(error);
-      }
+  // /**
+  //  * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
+  //  * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
+  //  * to provide their new password.  The current problem is that current when going through the signup process
+  //  * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
+  //  * account. This was we can register their current jup account with metis.
+  //  */
+  //   logger.verbose('#### metisLogin(passport)');
+  //     const {
+  //         jupkey,
+  //         public_key,
+  //         jup_account_id,
+  //         encryptionPassword,
+  //     } = req.body;
+  //     let user;
+  //     let valid = true;
+  //
+  //     try {
+  //         const userAccountProperties = await jupiterAccountService.getMemberAccountPropertiesFromPersistedUserRecordOrNull(jupkey, encryptionPassword);
+  //         if(userAccountProperties === null){
+  //             return done(new mError.MetisErrorFailedUserAuthentication());
+  //         }
+  //         const userInfo = {
+  //             accessKey: gravity.encrypt(jupkey),
+  //             encryptionKey: gravity.encrypt(encryptionPassword),
+  //             account: gravity.encrypt(account),
+  //             publicKey: public_key,
+  //             profilePictureURL: '',
+  //             userData: {
+  //                 alias: userAccountProperties.getCurrentAliasNameOrNull(),
+  //                 account: userAccountProperties.address
+  //             },
+  //         };
+  //
+  //         return done(null, userInfo, 'Authentication validated!');
+  //
+  //     } catch(error){
+  //         console.log('\n')
+  //         logger.error(`************************* ERROR ***************************************`);
+  //         logger.error(`* ** metisLogin.catch(error)`);
+  //         logger.error(`************************* ERROR ***************************************\n`);
+  //         logger.error(`error= ${error}`)
+  //         return done(error);
+  //     }
 
     // // 2. Past this means its an older Account....
     // const accountStatement = await jupiterAccountService.fetchAccountStatement(

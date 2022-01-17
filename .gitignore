@@ -29,10 +29,12 @@
 .idea
 
 # Ignore Log Files
-./metis-api.log
-
+/metis-api.log
+/metis.errors
 /logs/log-api.log
 *.log
+
+#
 /data
 
 # Ignore Mongo Data
