@@ -7,6 +7,7 @@ const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const bcrypt = require("bcrypt-nodejs");
 const mError = require("../../../errors/metisError");
+let counter = 1;
 
 const createJob = (jobs,newAccountProperties,newAccountAlias,res,websocket, subscriberId, next = ()=>{}) => {
     const startTime = Date.now();
@@ -55,13 +56,15 @@ const createJob = (jobs,newAccountProperties,newAccountAlias,res,websocket, subs
         const newAccountProperties = jobData.newAccountProperties;
         const endTime = Date.now();
         const processingTime = `${moment.duration(endTime - startTime).minutes()}:${moment.duration(endTime - startTime).seconds()}`
-
         console.log('');
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`++ SIGNUP COMPLETE. Sending Websocket Event`);
         logger.info(`++ Processing TIME`);
         logger.info(`++ ${processingTime}`);
+        logger.info(`++ Counter:`);
+        logger.info(`++ ${counter})`);
         logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n');
+        counter = counter + 1;
 
         // websocket.in(room).allSockets().then((result) => {
         //     logger.info(`The number of users connected is: ${result.size}`);

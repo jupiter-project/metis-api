@@ -328,32 +328,20 @@ jobQueue.process('user-registration', WORKERS, (job,done) => {
 jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
   logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
   try {
-    const {channelName, memberAccountProperties} = job.data;
-    if (!gu.isNonEmptyString(channelName)) {
-      throw new Error('channelName is EMPTY.')
-    }
+    const {channelAccountProperties, memberAccountProperties} = job.data;
     //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
     const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
-    const newChannelAccountProperties = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
-    // binaryAccountJob.create(newChannelAccountProperties);
-
-    // const memberProperties = await instantiateGravityAccountProperties(
-    //     memberAccountProperties.passphrase,
-    //     memberAccountProperties.password);
-
+    const channelProperties = await GravityAccountProperties.Clone(channelAccountProperties);
+    channelProperties.channelName = channelAccountProperties.channelName;
+    await chanService.fundNewChannelAndAddFirstMember(channelProperties, memberProperties);
     // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
-    // const createNewChannelResults = await chanService.createNewChannelAndAddFirstMember(channelName, memberProperties);
-
-
-
-    return done(null, {
-      channelName: channelName,
-      channelAccountProperties: newChannelAccountProperties
-    });
+    // const createNewChannelResults = await chanService.fundNewChannelAndAddFirstMember(channelName, memberProperties);
+    return done(null, {channelAccountProperties: channelProperties});
   } catch (error){
     logger.error(`**** jobs.process(channel-creation-confirmation).catch(error)`);
-    logger.error(`error= ${error}`)
-    return done(error)
+    logger.error(`${error}`);
+    console.log(error);
+    return done(error);
   }
 
 })

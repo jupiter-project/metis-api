@@ -30,8 +30,17 @@ const tokenVerify = (req, res, next) => {
     '/api-docs',
     '/jim/v1/api/ping',
   ];
-  const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
-  if (routeDoesntNeedAuthentication.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token')) {
+
+  // app.get('/v1/api/accounts/:accountAddress/aliases', async (req, res) => {
+  const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter(route => req.url.toLowerCase().startsWith(route.toLowerCase()));
+  const regex = /^\/v1\/api\/accounts\/.+\/aliases$/
+  // const str = 'hello world!';
+  // const result = /^\/v1\/api\/accounts\/.+\/aliases/.test(str);
+  if(regex.test(req.url.toLowerCase()) && req.method === 'GET') {
+    logger.info(`No Auth needed for getting aliases`);
+    return next();
+  }
+  if (routeDoesntNeedAuthentication.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token') ) {
     logger.debug(`No Authentication Needed.`);
     return next();
   }

@@ -598,24 +598,21 @@ class ChanService {
     /**
      * Get a new JupAccount, Fund a new Channel, send Channel_Record transaction, Add member pubKeys to channel account.
      *
-     * @param {string} channelName
+     * @param {GravityAccountProperties} channelAccountProperties
      * @param {GravityAccountProperties} firstMemberProperties
-     * @returns {GravityAccountProperties}
+     * @returns {void}
      */
-    async createNewChannelAndAddFirstMember(channelName, firstMemberProperties){
-        logger.verbose(`#### createNewChannelAndAddFirstMember(channelName: ${channelName},firstMemberProperties)`);
-        if(!(firstMemberProperties instanceof GravityAccountProperties)){throw new BadGravityAccountPropertiesError(`firstMemeberProperties`)}
-        if(!gu.isWellFormedPublicKey(firstMemberProperties.publicKey)) throw new mError.MetisErrorBadJupiterPublicKey(`firstMemberProperties.publicKey`)
-        if(!gu.isNonEmptyString(channelName)){ throw new Error('channelName is empty');}
-        const channelPassphrase = gu.generatePassphrase();
-        const channelPassword = gu.generateRandomPassword();
-        const channelAccountProperties = await instantiateGravityAccountProperties(channelPassphrase, channelPassword);
-        channelAccountProperties.channelName = channelName;
+    async fundNewChannelAndAddFirstMember(channelAccountProperties, firstMemberProperties){
+        logger.verbose(`#### createNewChannelAndAddFirstMember(channelAccountProperties,firstMemberProperties)`);
+        if(!(firstMemberProperties instanceof GravityAccountProperties)) throw new mError.BadGravityAccountPropertiesError(`firstMemberProperties`);
+        if(!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.BadGravityAccountPropertiesError(`channelAccountProperties`);
+        if(!gu.isWellFormedPublicKey(firstMemberProperties.publicKey)) throw new mError.MetisErrorBadJupiterPublicKey(`firstMemberProperties.publicKey`);
+        if(!gu.isNonEmptyString(channelAccountProperties.channelName)) throw new mError.MetisError('channelAccountProperties.channelName is empty');
         try {
             const fundingResponse = await jupiterFundingService.provideInitialChannelAccountFunds(channelAccountProperties);
             const transactionWaitResponse = await jupiterFundingService.waitForTransactionConfirmation(fundingResponse.data.transaction);  //need to wait for confirmation in order for account to send transactions.
             const processNewMemberResponse = await this.processNewMember(firstMemberProperties, channelAccountProperties, 'creator');
-            return channelAccountProperties;
+            return;
         } catch (error){
             logger.error(`**** createNewChannelAndAddFirstMember(channelName, firstMemberProperties).catch(error)`);
             logger.error(`channelName= ${channelName}`)

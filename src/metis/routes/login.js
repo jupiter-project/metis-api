@@ -11,6 +11,7 @@ import {GravityCrypto} from "../../../services/gravityCrypto";
 import {metisConf} from "../../../config/metisConf";
 const {StatusCode} = require("../../../utils/statusCode");
 const logger = require('../../../utils/logger')(module);
+let testCounter = 1;
 
 module.exports = (app, jobs, websocket) => {
 
@@ -70,6 +71,12 @@ module.exports = (app, jobs, websocket) => {
                 data: metisEncryptedJwtContent
             }
             const token = jwt.sign(jwtPayload, privateKeyBuffer, {expiresIn: metisConf.jwt.expiresIn});
+            console.log(`\n`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.info(`++ SUCCESSFUL LOGIN`);
+            logger.info(`++ ${testCounter}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
+            testCounter = testCounter + 1;
             return res.status(StatusCode.SuccessOK).send({
                 message: 'Access Granted',
                 address: userAccountProperties.address,
