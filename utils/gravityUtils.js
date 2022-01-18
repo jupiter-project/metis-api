@@ -17,7 +17,11 @@ const generateHash = function (value) {
     return bcrypt.hashSync(value, bcrypt.genSaltSync(8), null);
 }
 
-
+/**
+ *
+ * @param stringToParse
+ * @return {*}
+ */
 const jsonParseOrPassThrough = function (stringToParse)
 {
     let json = null;
@@ -26,18 +30,26 @@ const jsonParseOrPassThrough = function (stringToParse)
     } catch(error) {
         return stringToParse
     }
-
     return json;
 };
 
 
-
+/**
+ *
+ * @param value
+ * @return {boolean}
+ */
 const isNonEmptyString = function(value) {
     if(!isString(value)){return false}
     if (value === "") {return false}
     return true;
 }
 
+/**
+ *
+ * @param value
+ * @return {boolean}
+ */
 const isString = function(value){
     if((typeof value === 'string')){return true}
     return false;
@@ -71,6 +83,11 @@ const isNonEmptyArray = function(array)
     return false
 }
 
+/**
+ *
+ * @param array
+ * @return {null|*}
+ */
 const arrayShiftOrNull = function(array){
     if (!Array.isArray(array)) {
         return null;
@@ -101,7 +118,7 @@ const isWellFormedJupiterAddress = function(address){
  */
 const isWellFormedJupiterAlias = function(alias){
     if(!isNonEmptyString(alias)){return false};
-    // must contain only digits and latin letters)
+    // must contain only digits and latin letters
     const re = /^([a-zA-Z]|[0-9])*$/;
     if(re.test(alias)) return true;
     return false;
@@ -204,7 +221,11 @@ const isWellFormedJupiterAccountData = function(jupiterAccountData) {
     return true;
 }
 
-
+/**
+ *
+ * @param uuid
+ * @return {boolean}
+ */
 const isWellFormedUuid = function(uuid){
     if(!uuid){
         return false
@@ -243,7 +264,12 @@ const isNumberGreaterThanZero = function(number) {
     return false
 }
 
-
+/**
+ *
+ * @param key
+ * @param json
+ * @return {boolean}
+ */
 const jsonPropertyIsNonEmptyArray = function (key, json) {
     try {
         if (json[key] === undefined
@@ -270,18 +296,31 @@ const generatePassphrase = function() {
     return wordsString.trim();
 }
 
+/**
+ *
+ * @param size
+ * @return {string}
+ */
 const generateRandomBytes = function(size= 16){
     const buf = Buffer.alloc(size);
     return randomFillSync(buf).toString('hex');
 }
 
-
+/**
+ *
+ * @return {string}
+ */
 const generateRandomPassword = function () {
     return Math.random()// Generate random number, eg: 0.123456
         .toString(36) // Convert  to base-36 : "0.4fzyo82mvyr"
         .substr(2, 8)
 }
 
+/**
+ *
+ * @param text
+ * @return {*}
+ */
 const generateChecksum = (text) => {
     if(typeof text !== 'string'){
         throw new Error('text must be string');
@@ -306,6 +345,11 @@ const jsonParseOrNull = function (stringToParse) {
     return json;
 };
 
+/**
+ *
+ * @param nqt
+ * @return {*}
+ */
 const formatNqt = function(nqt){
     const formatter = Intl.NumberFormat(
         'de-DE',
@@ -318,6 +362,11 @@ const formatNqt = function(nqt){
     return formatter.format(nqt);
 }
 
+/**
+ *
+ * @param jup
+ * @return {*}
+ */
 const formatJup = function(jup){
     const formatter = Intl.NumberFormat(
         'de-DE',
@@ -330,6 +379,11 @@ const formatJup = function(jup){
     return formatter.format(jup);
 }
 
+/**
+ *
+ * @param usd
+ * @return {*}
+ */
 const formatUsd = function(usd){
     const formatter = Intl.NumberFormat(
         'en-US',
@@ -342,16 +396,34 @@ const formatUsd = function(usd){
     return formatter.format(usd);
 }
 
+/**
+ *
+ * @param nqt
+ * @param decimalPlaces
+ * @return {*}
+ */
 const convertNqtToJup = function(nqt, decimalPlaces){
     const bigNqt = new Decimal(nqt);
     const bigJup = bigNqt.div(Decimal.pow(10,decimalPlaces))
     return bigJup.toFixed();
 }
 
+/**
+ *
+ * @param jup
+ * @param decimalPlaces
+ * @return {number}
+ */
 const convertJupToNqt = function(jup, decimalPlaces){
     return jup * Math.pow(10, decimalPlaces);
 }
 
+/**
+ *
+ * @param nqt
+ * @param decimalPlaces
+ * @return {Promise<*>}
+ */
 const convertNqtToUsd = async function(nqt, decimalPlaces){
     const jup = convertNqtToJup(nqt, decimalPlaces);
     const oneJupToUsd = await getCurrentJupiterValueOrNull();
@@ -392,7 +464,10 @@ const filterPromisesByRemovingEmptyResults = function(promises){
         })
 }
 
-
+/**
+ *
+ * @return {Promise<null|number>}
+ */
 const getCurrentJupiterValueOrNull = async function (){
     const url = 'https://api.coingecko.com/api/v3/simple/price?ids=jupiter&vs_currencies=usd'
     const response = await axios({url: url, method: 'GET'})

@@ -79,7 +79,6 @@ const initializeSlackTransport = (callingModule)=>{
             }
         }
     })
-
 }
 
 /**
@@ -169,61 +168,6 @@ const getLabel = (callingModule) => {
   const parts = callingModule.filename.split(path.sep);
   return path.join(parts[parts.length - 2], parts.pop());
 };
-
-// const customLevels = {
-//   levels: {
-//       blast: 1,
-//       info: 2,
-//       warn: 3,
-//       error: 4,
-//       debug: 5,
-//       verbose: 6,
-//       sensitive: 7,
-//       insane: 8
-//   },
-//   color: {
-//       blast: 'red',
-//       error: 'red',
-//       warn: 'yellow',
-//       info: 'white',
-//       verbose: 'green',
-//       debug: 'blue',
-//       sensitive: 'blue',
-//       insane: 'yellow'
-//   }
-// };
-
-
-// const mongoDbTransport = initializeMongoDBTransport();
-// const s3Transport = initializeS3StreamTransport();
-// const transportList = [];
-// if (s3Transport) transportList.push(s3Transport)
-// if (mongoDbTransport && process.env.NODE_ENV === 'production') transportList.push(mongoDbTransport)
-
-// if (process.env.LOCAL_DEBUG_LEVEL) {
-//   const localFileDebugLevel = process.env.LOCAL_DEBUG_LEVEL;
-//   transportList.push(
-//       new winston.transports.File({
-//         filename: 'metis-api.log',
-//         level: localFileDebugLevel
-//       })
-//   )
-// }
-// if (process.env.LOCAL_DEBUG_LEVEL) {
-//   const consoleDebugLevel = process.env.LOCAL_DEBUG_LEVEL;
-//   transportList.push(
-//       new winston.transports.Console({
-//         level: consoleDebugLevel
-//       })
-//   )
-// } else {
-//   transportList.push(
-//       new winston.transports.Console({
-//         level: 'debug',
-//         timestamp: tsFormat
-//       })
-//   )
-// }
 
 const localDevLogger = (callingModule) => {
     const transports = [];
