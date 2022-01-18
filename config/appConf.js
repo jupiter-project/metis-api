@@ -9,7 +9,8 @@ if(!process.env.APP_PORT) throw new mError.MetisErrorBadEnvironmentVariable('','
 conf.nodeEnvironmentOptions = {
     development: 'development',
     staging: 'staging',
-    production: 'production'
+    production: 'production',
+    qa: 'qa',
 }
 // conf.nodeOptions = process.env.NODE_OPTIONS;
 // conf.nodeRunScript = process.env.NODE_RUN_SCRIPT;
