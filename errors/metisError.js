@@ -229,7 +229,7 @@ class MetisErrorNoBinaryFileFound extends MetisError {
 
 class MetisErrorBadJupiterAlias extends MetisError {
     constructor(message = '', alias = '') {
-        super(`Alias is invalid: ${alias}`)
+        super(`Alias is invalid: ${alias}  Must contain only digits and latin letters`)
         this.name = "MetisErrorBadJupiterAlias"
         this.alias = alias;
         this.code = MetisErrorCode.MetisErrorBadJupiterAlias;

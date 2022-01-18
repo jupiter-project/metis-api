@@ -34,8 +34,6 @@ const tokenVerify = (req, res, next) => {
   // app.get('/v1/api/accounts/:accountAddress/aliases', async (req, res) => {
   const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter(route => req.url.toLowerCase().startsWith(route.toLowerCase()));
   const regex = /^\/v1\/api\/accounts\/.+\/aliases$/
-  // const str = 'hello world!';
-  // const result = /^\/v1\/api\/accounts\/.+\/aliases/.test(str);
   if(regex.test(req.url.toLowerCase()) && req.method === 'GET') {
     logger.info(`No Auth needed for getting aliases`);
     return next();
@@ -50,7 +48,6 @@ const tokenVerify = (req, res, next) => {
   const _token = (token.startsWith('Bearer')) ? token.substring(7) : token
   const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64;
   const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64');
-
   try {
     jwt.verify(_token, privateKeyBuffer, async (error, decodedToken) => {
       logger.debug('tokenVerify().verify(updatedToken, session, CALLBACK(err, decodedUser))');
@@ -70,6 +67,8 @@ const tokenVerify = (req, res, next) => {
             jwtContent.passphrase,
             jwtContent.password
         )
+
+        //@TODO remove the following...
         req.user.address = req.user.gravityAccountProperties.address;
         req.user.publicKey = req.user.gravityAccountProperties.publicKey;
         req.user.passphrase = req.user.gravityAccountProperties.passphrase;
