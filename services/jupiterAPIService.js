@@ -975,7 +975,6 @@ class JupiterAPIService {
         logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
         if (!gu.isNumberGreaterThanZero(amountNqt)) {throw new Error('amount is invalid')}
         if(!(fromAccountProperties instanceof GravityAccountProperties)){throw new Error('fromAccountProperties is not valid')}
-        if(!(toAccountProperties instanceof GravityAccountProperties)){throw new Error('toAccountProperties is not valid')}
 
         const amountJup = gu.convertNqtToJup(amountNqt, this.appProps.moneyDecimals)
         const feeJup = gu.convertNqtToJup(feeNqt, this.appProps.moneyDecimals)

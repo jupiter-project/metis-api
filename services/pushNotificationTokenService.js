@@ -67,7 +67,7 @@ module.exports = {
         })
   },
   editMutedChannels: (req, res) => {
-    const { userData: { account: userAddress } } = req.user;
+    const { userData: { address: userAddress } } = req.user;
     const { channelAddress, isMuted } = req.body;
 
     if (!channelAddress) {
@@ -89,7 +89,7 @@ module.exports = {
       });
   },
   findMutedChannels: (req, res) => {
-    const { userData: { account: userAddress } } = req.user;
+    const { address: userAddress } = req.user;
 
     if (!userAddress){
       return res.status(400).json({ message: 'Alias is required.' });

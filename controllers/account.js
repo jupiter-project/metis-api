@@ -6,6 +6,7 @@ import {JupiterAPIService} from "../services/jupiterAPIService";
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 
 const logger = require('../utils/logger')(module);
 
@@ -25,7 +26,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
     const { user } = req;
 
-    if(!user.userData.account){
+    if(!user.address){
       return res.status(400).send({message: 'User account not provided'});
     }
 
@@ -43,7 +44,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
         DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
     );
     const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-    jupiterAPIService.getBalance(user.userData.account)
+    jupiterAPIService.getBalance(user.address)
         .then(response => {
           if (response && response.data.unconfirmedBalanceNQT){
             return res.status(200).send({ balance: (response.data.unconfirmedBalanceNQT/100000000) });
@@ -68,7 +69,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
 
     const { user } = req;
 
-    if(!user.userData.account){
+    if(!user.address){
       return res.status(400).send({message: 'User account not provided'});
     }
 
@@ -87,7 +88,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
     const params = {
       requestType: 'getBlockchainTransactions',
-      account: user.userData.account,
+      account: user.address,
       type: 0, // TODO FIGURE OUT WHY TYPE IS STRING
       subtype: 0,
       firstIndex: 0,
@@ -118,6 +119,7 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     console.log('');
 
     const { user } = req;
+    console.log('USER data ---->', user);
     let { recipient, amount } = req.body;
 
     if (!recipient.toLowerCase().includes('jup-')) {
@@ -138,8 +140,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     );
     const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const userAccount = JSON.parse(gravity.decrypt(user.accountData));
-    const fromJupAccount = { address: user.userData.account, passphrase: userAccount.passphrase };
+    // const fromJupAccount = { address: user.address, passphrase: user.passphrase };
+    const fromJupAccount = await instantiateGravityAccountProperties(user.passphrase, user.password);
     const toJupiterAccount = { address: recipient };
 
     //TODO make the "transferMoney" function static in order to avoid generating all unnecessary properties

@@ -40,6 +40,7 @@ const tokenVerify = (req, res, next) => {
   }
   if (routeDoesntNeedAuthentication.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token') ) {
     logger.debug(`No Authentication Needed.`);
+    logger.info('Testing URL = ' + req.url);
     return next();
   }
   if (!token) {

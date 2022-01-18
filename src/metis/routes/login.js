@@ -77,12 +77,15 @@ module.exports = (app, jobs, websocket) => {
             logger.info(`++ ${testCounter}`);
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
             testCounter = testCounter + 1;
-            return res.status(StatusCode.SuccessOK).send({
-                message: 'Access Granted',
+            const user = {
                 address: userAccountProperties.address,
                 alias: userAccountProperties.getCurrentAliasNameOrNull(),
-                profileUrl: 'http://bla.bla',
-                token: token
+                profileUrl: 'http://bla.bla', //TODO get the profile url
+            };
+            return res.status(StatusCode.SuccessOK).send({
+                user,
+                token,
+                message: 'Access Granted'
             });
         } catch (error) {
             console.log('\n')

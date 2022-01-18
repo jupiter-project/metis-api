@@ -1,18 +1,9 @@
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
 import { gravity } from '../config/gravity';
 import {jupiterAPIService} from "../services/jupiterAPIService";
 import {JupiterApiError, MetisError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
-// import {chanService} from "../services/chanService";
-// import {axiosDefault} from "../config/axiosConf";
-import {MetisErrorCode} from "../utils/metisErrorCode";
-import {metisConf} from "../config/metisConf";
 const logger = require('../utils/logger')(module);
 const bcrypt = require("bcrypt-nodejs");
-const mError = require("../errors/metisError");
-const gu = require("../utils/gravityUtils");
-const jupiterServer = metisConf.appJupiterServerUrl;
 
 module.exports = (app, passport, jobs, websocket) => {
   // const connection = process.env.SOCKET_SERVER;
