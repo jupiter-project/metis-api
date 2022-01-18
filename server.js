@@ -1,4 +1,13 @@
+const logger = require('./utils/logger')(module);
+require('babel-register')({
+  presets: ['react'],
+});
+// const logger = require('./utils/logger')(module);
+const mError = require('./errors/metisError');
+const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
+const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
+const {externalResourcesCheck} = require('./middlewares/externalResourcesCheck');
 const firebaseAdmin = require("firebase-admin");
 // Firebase Service initializer
 const firebaseServiceAccount = {
@@ -18,16 +27,18 @@ module.exports.firebaseAdmin =  firebaseAdmin.initializeApp({
    credential: firebaseAdmin.credential.cert(firebaseServiceAccount)
 });
 const url = require('url');
-const kue = require('kue');
+// const kue = require('kue');
 const fs = require('fs');
+const cors = require('cors');
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').load();
 }
 
-require('babel-register')({
-  presets: ['react'],
-});
+
+// index.js
+const path = require('path');
+global.appRoot = path.resolve(__dirname);
 
 const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
@@ -39,15 +50,20 @@ const port = process.env.PORT || 4000;
 const pingTimeout = 9000000;
 const pingInterval = 30000;
 
-// Loads job queue modules and variables
-//@TODO redis needs a password!!!!
-const jobs = kue.createQueue({
-  redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || '6379',
-    auth: process.env.REDIS_PASSWORD || undefined,
-  },
-});
+
+const {jobQueue, kue} = require('./config/configJobQueue');
+
+// // Loads job queue modules and variables
+// //@TODO redis needs a password!!!!
+// const jobs = kue.createQueue({
+//   redis: {
+//     host: process.env.REDIS_HOST || 'localhost',
+//     port: process.env.REDIS_PORT || '6379',
+//     auth: process.env.REDIS_PASSWORD || undefined,
+//   },
+// });
+
+// module.exports.metisJobQueue = jobs;
 
 // Loads Body parser
 const bodyParser = require('body-parser');
@@ -62,10 +78,10 @@ const ReactDOMServer = require('react-dom/server');
 // Loads passport for authentication
 const passport = require('passport');
 
-const flash = require('connect-flash');
+// const flash = require('connect-flash');
 
 // Request logger
-const morgan = require('morgan');
+// const morgan = require('morgan');
 
 const swaggerUi = require('swagger-ui-express');
 
@@ -79,11 +95,34 @@ const find = require('find');
 const mongoose = require('mongoose');
 const swaggerDocument = require('./swagger.json');
 
-app.use(morgan('dev')); // log every request to the console
+// https://medium.com/@SigniorGratiano/express-error-handling-674bfdd86139
+// app.all('*', (req,res,next) =>{
+//   next(new mError.MetisError(`TEST`))
+// })
+process.on('uncaughtException', error => {
+  console.log(`\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+  console.log(`Uncaught Exception!:`);
+  console.log(error);
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+})
+
+process.on('unhandledRejection', error => {
+  console.log(`\n\n`);
+  console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+  console.log(`unhandledRejection!:`);
+  console.log(error);
+  console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
+})
+
+
+app.use(cors());
+// app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
 
 app.use((req, res, next) => {
+  logger.verbose(`#### middleware...`);
   if (req.url !== '/favicon.ico') {
     return next();
   }
@@ -97,10 +136,12 @@ app.use((req, res, next) => {
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
+
+app.use(externalResourcesCheck);
 app.use(tokenVerify);
 
 // Sets public directory
-app.use(express.static(`${__dirname}/public`));
+// app.use(express.static(`${__dirname}/public`));
 
 // required for passport
 const sessionSecret = process.env.SESSION_SECRET !== undefined ? process.env.SESSION_SECRET : 'undefined';
@@ -128,8 +169,8 @@ app.use(session({
 }));
 
 app.use(passport.initialize());
-app.use(passport.session()); // persistent login sessions
-app.use(flash()); // use connect-flash for flash messages stored in session
+// app.use(passport.session()); // persistent login sessions
+// app.use(flash()); // use connect-flash for flash messages stored in session
 
 // If both cert and key files env vars exist use https,
 // otherwise use http
@@ -144,11 +185,26 @@ const socketOptions = {
   serveClient: true,
   pingTimeout, // pingTimeout value to consider the connection closed
   pingInterval, // how many ms before sending a new ping packet
+  cors: {
+    origin: "*",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE"
+  }
 };
 const io = socketIO(server, socketOptions);
-io.of('/chat').on('connection', socketService.connection.bind(this));
+// messages socket
+io.of('/chat').on('connection', socketService.connection);
 
-io.of('/sign-up').on('connection', socketService.signUpConnection.bind(this));
+// sign up socket
+io.of('/sign-up').on('connection', socketService.signUpConnection);
+
+// channel socket
+io.of('/channels').on('connection', socketService.channelCreationConnection);
+
+// invitation socket
+io.of('/invite').on('connection', socketService.channelCreationConnection);
+
+// upload socket
+io.of('/upload').on('connection', socketService.channelCreationConnection);
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
@@ -172,8 +228,6 @@ server.on('upgrade', (request, socket, head) => {
 // is not called everytime we make an api call to them
 require('./config/api.js')(app);
 
-const logger = require('./utils/logger')(module);
-
 const mongoDBOptions = { useNewUrlParser: true, useFindAndModify: false, useUnifiedTopology: true };
 
 const {
@@ -183,43 +237,52 @@ const {
 serializeUser(passport); //  pass passport for configuration
 deserializeUser(passport); //  pass passport for configuration
 
-metisSignup(passport,jobs,io); //  pass passport for configuration
+metisSignup(passport,jobQueue,io); //  pass passport for configuration
 metisLogin(passport); //  pass passport for configuration
 
 // Sets get routes. Files are converted to react elements
 find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
-  require(file)(app, passport, React, ReactDOMServer, jobs);
+  require(file)(app, passport, jobQueue, io);
 });
 
-// Route any invalid routes black to the root page
-app.get('/*', (req, res) => {
-  req.flash('errorMessage', 'Invalid route');
-  res.redirect('/');
-});
+
 
 // Gravity call to check app account properties
 const { gravity } = require('./config/gravity');
-const {AccountRegistration} = require("./services/accountRegistrationService");
+
+// const {AccountRegistration} = require("./services/accountRegistrationService");
 const { jobScheduleService } = require('./services/jobScheduleService');
+// const {jupiterFundingService} = require("./services/jupiterFundingService");
+const {chanService} = require("./services/chanService");
+// const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+const {StatusCode} = require("./utils/statusCode");
+const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
+// const {binaryAccountJob} = require("./src/jim/jobs/binaryAccountJob");
+// const {instantiateGravityAccountProperties} = require("./gravity/instantiateGravityAccountProperties");
+
+// const { jobScheduleService } = require('./services/jobScheduleService');
+// const {chanService} = require("./services/chanService");
+
 
 jobScheduleService.init(kue);
 
-gravity.getFundingMonitor()
-  .then(async (monitorResponse) => {
-    const { monitors } = monitorResponse;
-    if (monitors.length === 0) {
-      logger.info('Funding property not set for app. Setting it now...');
-      const fundingResponse = await gravity.setFundingProperty({
-        passphrase: process.env.APP_ACCOUNT,
-      });
 
-      logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
-    }
-  })
-    .catch( error => {
-      logger.error(`getFundingError: ${error}`)
-      throw error;
-    });
+// gravity.getFundingMonitor()
+//   .then(async (monitorResponse) => {
+//     const { monitors } = monitorResponse;
+//     if (monitors && monitors.length === 0) {
+//       logger.info('Funding property not set for app. Setting it now...');
+//       const fundingResponse = await gravity.setFundingProperty({
+//         passphrase: process.env.APP_ACCOUNT,
+//       });
+//
+//       logger.info(`Jupiter response: ${JSON.stringify(fundingResponse)}`);
+//     }
+//   })
+//     .catch( error => {
+//       logger.error(`getFundingError: ${error}`)
+//       throw error;
+//     });
 
 // Worker methods
 // const RegistrationWorker = require('./workers/registration.js');
@@ -237,38 +300,88 @@ gravity.getFundingMonitor()
 
 const WORKERS = 100;
 
-jobs.process('user-registration', WORKERS, (job,done) => {
-  logger.verbose(`###########################################`)
-  logger.verbose(`## JobQueue: user-registration`)
-  logger.verbose(`##`)
-  // logger.debug(job.data.data);
-  const decryptedData = gravity.decrypt(job.data.data)
-  const parsedData = JSON.parse(decryptedData);
+jobQueue.process('user-registration', WORKERS, (job,done) => {
+  logger.info('##### jobs.process(user-registration)');
+  try {
+    const decryptedData = gravity.decrypt(job.data.data)
+    const parsedData = JSON.parse(decryptedData);
 
+    metisRegistration(job.data.account, parsedData)
+        .then(() => done())
+        .catch(error => {
+          logger.error(`***********************************************************************************`);
+          logger.error(`** jobs.process('user-registration').metisRegistration().catch(error)`);
+          logger.error(`** `);
+          console.log(error);
 
-  metisRegistration(job.data.account, parsedData)
-      .then(() => {
-        return done();
-      })
-      .catch( error =>{
-        logger.error(`*********************`)
-        logger.error(`error=${error}`);
-        return done(error)
-      })
+          return done(error)
+        })
+  } catch (error) {
+    logger.error(`****************************************************************`);
+    logger.error(`** jobs.process(user-registration).catch(error)`);
+    logger.error(`** - error= ${error}`)
+
+    return done(error)
+  }
 })
+
+jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
+  logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
+  try {
+    const {channelAccountProperties, memberAccountProperties} = job.data;
+    //@TODO kue jobqueue doesnt respect class object! We need re-instantiate GravityAccountProperties
+    const memberProperties = await GravityAccountProperties.Clone(memberAccountProperties);
+    const channelProperties = await GravityAccountProperties.Clone(channelAccountProperties);
+    channelProperties.channelName = channelAccountProperties.channelName;
+    await chanService.fundNewChannelAndAddFirstMember(channelProperties, memberProperties);
+    // memberProperties.aliasList = memberAccountProperties.aliasList; //TODO remove this
+    // const createNewChannelResults = await chanService.fundNewChannelAndAddFirstMember(channelName, memberProperties);
+    return done(null, {channelAccountProperties: channelProperties});
+  } catch (error){
+    logger.error(`**** jobs.process(channel-creation-confirmation).catch(error)`);
+    logger.error(`${error}`);
+    console.log(error);
+    return done(error);
+  }
+
+})
+
+
+// require('./jobs/registrationJob');
 
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);
 }); */
 
-mongoose.connect(process.env.URL_DB, mongoDBOptions, (err, resp) => {
+
+mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions, (err, resp) => {
   if (err) {
     throw err;
   }
   logger.info('Mongo DB Online.');
 });
 
+server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
+
+
+// JUPITER
+require('./src/jupiter/app')(app,jobQueue,io);
+// NEW METIS SERVER CODE
+require('./src/metis/app')(app,jobQueue,io);
+// JIM SERVER
+require('./src/jim/app')(app,jobQueue,io);
+
+
+// Route any invalid routes black to the root page
+app.get('/*', (req, res) => {
+  logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+  logger.info(`++ INVALID ROUTE`);
+  logger.info(`++ ${JSON.stringify(req.url)}`);
+  logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+  res.status(StatusCode.ClientErrorBadRequest).send({message: `Invalid Route`, errorCode: '1101'});
+});
+
 server.listen(port, () => {
   logger.info(JSON.stringify(process.memoryUsage()));
   logger.info('');
@@ -290,6 +403,6 @@ server.listen(port, () => {
   logger.info(`Jupiter Node running on ${process.env.JUPITERSERVER}`);
 });
 
-kue.app.listen(4001, () => {
-  logger.info('Job queue server running on port 4001');
-});
+// kue.app.listen(4000, () => {
+//   logger.info('Job queue server running on port 4000');
+// });

@@ -1,299 +1,501 @@
 import _ from 'lodash';
-import mailer from 'nodemailer';
 import controller from '../config/controller';
 import {gravity} from '../config/gravity';
-import {messagesConfig} from '../config/constants';
-import Invite from '../models/invite';
-import Channel from '../models/channel';
-import Message from '../models/message';
-import metis from '../config/metis';
-
+import {jupiterAccountService} from "../services/jupiterAccountService";
+import {chanService} from "../services/chanService";
+import {
+    instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties,
+    refreshGravityAccountProperties
+} from "../gravity/instantiateGravityAccountProperties";
+import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
+import {jupiterAPIService} from "../services/jupiterAPIService";
+import {generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord} from "../services/messageService";
+// const {mError} = require("../errors/metisError");
+import mError from "../errors/metisError";
+import {StatusCode} from "../utils/statusCode";
+import {messagesConfig} from "../config/constants";
+import {MetisErrorCode} from "../utils/metisErrorCode";
+import {axiosDefault} from "../config/axiosConf";
+var moment = require('moment'); // require
+const gu = require('../utils/gravityUtils');
+const {v4: uuidv4} = require('uuid');
 const connection = process.env.SOCKET_SERVER;
-const device = require('express-device');
 const logger = require('../utils/logger')(module);
-const { hasJsonStructure } = require('../utils/utils');
-const { getPNTokensAndSendPushNotification, getPNTokenAndSendInviteNotification } = require('../services/messageService');
+const {getPNTokensAndSendPushNotification} = require('../services/PushNotificationMessageService');
 
-const decryptUserData = req => JSON.parse(gravity.decrypt(req.session.accessData));
+let newChannelCounter = 1;
+let newInvitationCounter = 1;
 
-module.exports = (app, passport, React, ReactDOMServer) => {
-  app.use(device.capture());
-  /**
-   * Render Channels page
-   */
-  app.get('/channels', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
+module.exports = (app, passport, jobs, websocket) => {
 
-    const PageFile = require('../views/channels.jsx');
+    /**
+     * Get List of Channels
+     */
+    app.get('/v1/api/channels', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Get member Channels');
+        logger.info('== GET: /v1/api/channels');
+        logger.sensitive(`== req.user.passphrase: ${req.user.passphrase}`);
+        logger.sensitive(`== req.user.password: ${req.user.password}`);
+        logger.info('======================================================================================');
+        console.log('');
 
-    const page = ReactDOMServer.renderToString(
-      React.createElement(PageFile, {
-        connection,
-        messages,
-        name: 'Metis - Chats',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-        validation: req.session.jup_key,
-        accessData: req.session.accessData,
-      }),
-    );
+        const memberAccountProperties = await instantiateGravityAccountProperties(
+            req.user.passphrase,
+            req.user.password
+        )
 
-    res.send(page);
-  });
+        const allMemberChannels = await chanService.getMemberChannels(memberAccountProperties);
 
-  app.post('/v1/api/reportUser', controller.isLoggedIn, (req, res) => {
-    const transporter = mailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: process.env.EMAIL,
-        clientId: process.env.CLIENT_ID,
-        clientSecret: process.env.CLIENT_SECRET,
-        refreshToken: process.env.REFRESH_TOKEN,
-      },
-    });
+        const listOfChannels = allMemberChannels.reduce((reduced, channelAccountProperties) => {
+            reduced.push({
+                channelAddress: channelAccountProperties.address,
+                channelPublicKey: channelAccountProperties.publicKey,
+                channelName: channelAccountProperties.channelName,
+                createdBy: channelAccountProperties.createdBy,
+                createdAt: channelAccountProperties.createdAt
+            });
+            return reduced;
+        }, [])
 
-    const data = req.body.data;
+        res.send(listOfChannels);
 
-    const body = `
-      User Report: <br />
-      The user <b>${data.reporter}</b> wants to report the following message: <br />
-      ${JSON.stringify(data.message)}
-      <br />
-      Description:
-      ${data.description}
-    `;
-    transporter.sendMail({
-      subject: `Report user: ${data.message.sender}`,
-      html: body,
-      to: 'info+report-a-user@sigwo.com',
-      from: process.env.EMAIL,
-    }, (err, data) => {
-      if (err != null) {
-        res.send({ success: true });
-        return;
-      }
+        console.log('');
+        logger.info('^======================================================================================^');
+        logger.info('^ Get member Channels');
+        logger.info('^ GET: /v1/api/channels');
+    })
 
-      res.send({ success: true, data });
-    });
-  });
-
-  /**
-   * Render invites page
-   */
-  app.get('/invites', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    const PageFile = require('../views/invites.jsx');
-
-    const page = ReactDOMServer.renderToString(
-      React.createElement(PageFile, {
-        connection,
-        messages,
-        name: 'Metis - Invites',
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-        validation: req.session.jup_key,
-        accessData: req.session.accessData,
-      }),
-    );
-
-    res.send(page);
-  });
-
-  /**
-   * Get a user's invites
-   */
-  app.get('/v1/api/channels/invites', async (req, res) => {
-    logger.info('/n/n/nChannel Invites/n/n');
-    logger.info(req.session);
-    const { accountData } = req.user;
-    const invite = new Invite();
-    const userData = JSON.parse(gravity.decrypt(accountData));
-    invite.user = userData;
-    let response;
-    try {
-      response = await invite.get('channelInvite');
-    } catch (e) {
-      logger.error(e);
-      response = e;
-    }
-    res.send(response);
-  });
-
-  /**
-   * Send an invite
-   */
-  app.post('/v1/api/channels/invite', async (req, res) => {
-    const { data } = req.body;
-    const { user } = req;
-
-    data.sender = user.userData.account;
-    const invite = new Invite(data);
-    invite.user = JSON.parse(gravity.decrypt(user.accountData));
-
-    try {
-      await invite.send();
-      const sender = user.userData.alias;
-      let recipient = _.get(data, 'recipient', '');
-      const channelName = _.get(data, 'channel.name', '');
+    /**
+     * Video Conference
+     */
+    app.post('/v1/api/channels/call', async (req, res) => {  //@TODO what is this used for?
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Video Conference');
+        logger.info('== POST: v1/api/channels/call');
+        logger.info('======================================================================================');
+        console.log('');
 
 
-      if (!recipient.toLowerCase().includes('jup-')) {
-        const aliasResponse = await gravity.getAlias(recipient);
-        recipient = aliasResponse.accountRS;
-      }
+        const {data} = req.body;
+        const {user} = req;
+        try {
+            const senderAlias = user.userData.alias;
+            let recipientAddress = _.get(data, 'recipient', '');
 
-      const message = `${sender} invited you to the channel: ${channelName}`;
-      const metadata = { isInvitation: 'true' };
-      getPNTokensAndSendPushNotification([recipient], sender, {}, message, 'Invitation', metadata);
-      res.send({success: true});
-    } catch (e) {
-      logger.error(e);
-      res.status(500).send(e);
-    }
-  });
+            if (!recipientAddress.toLowerCase().includes('jup-')) {
+                const aliasResponse = await gravity.getAlias(recipientAddress);
+                recipientAddress = aliasResponse.accountRS;
+            }
 
-  /**
-   * Accept channel invite
-   */
-  app.post('/v1/api/channels/import', async (req, res) => {
-    const { data } = req.body;
-    const { accountData } = req.user;
-    const channel = new Channel(data.channel_record);
-    channel.user = JSON.parse(gravity.decrypt(accountData));
-
-    let response;
-    try {
-      response = await channel.import(channel.user);
-    } catch (e) {
-      logger.error(e);
-      response = { error: true, fullError: e };
-    }
-
-    res.send(response);
-  });
-
-  /**
-   * Render a channel's conversations
-   */
-  app.get('/channels/:id', controller.isLoggedIn, (req, res) => {
-    const messages = req.session.flash;
-    req.session.flash = null;
-
-    const PageFile = require('../views/convos.jsx');
-
-    const page = ReactDOMServer.renderToString(
-      React.createElement(PageFile, {
-        connection,
-        messages,
-        name: `Metis - Convo#${req.params.id}`,
-        user: req.user,
-        dashboard: true,
-        public_key: req.session.public_key,
-        validation: req.session.jup_key,
-        accessData: req.session.accessData,
-        channelId: req.params.id,
-      }),
-    );
-
-    res.send(page);
-  });
-
-  /**
-   * Get a channel's messages
-   */
-  app.get('/v1/api/data/messages/:scope/:firstIndex', async (req, res) => {
-    let response;
-    const { user } = req;
-
-    const tableData = {
-      passphrase: req.headers.channelaccess,
-      account: req.headers.channeladdress,
-      password: req.headers.channelkey,
-    };
-
-    const channel = new Channel(tableData);
-    channel.user = user;
-    try {
-      const order = _.get(req, 'headers.order', 'desc');
-      const limit = _.get(req, 'headers.limit', 10);
-      const data = await channel.loadMessages(
-        req.params.scope,
-        req.params.firstIndex,
-        order,
-        limit,
-      );
-      response = data;
-    } catch (e) {
-      logger.error(e);
-      response = { success: false, fullError: e };
-    }
-
-    if (!response.success) {
-      return res.status(400).send(response);
-    }
-
-    return res.send(response);
-  });
-
-  /**
-   * Send a message
-   */
-  app.post('/v1/api/data/messages', async (req, res) => {
-
-    let response;
-
-      let { tableData, data } = req.body;
-      const { user } = req;
-      data = {
-        ...data,
-        name: user.userData.alias,
-        sender: user.userData.account,
-        senderAlias: user.userData.alias,
-      };
-
-      const message = new Message(data);
-      const { memberProfilePicture } = await metis.getMember({
-        channel: tableData.account,
-        account: tableData.publicKey,
-        password: tableData.password,
-      });
-
-      const mentions = _.get(req, 'body.mentions', []);
-      const channel = _.get(req, 'body.channel', []);
-      const channelName = _.get(tableData, 'name', 'a channel');
-      const userData = JSON.parse(gravity.decrypt(user.accountData));
-      try {
-        response = await message.sendRecord(userData, tableData);
-        let members = memberProfilePicture.map(member => member.accountRS);
-        if (Array.isArray(members) && members.length > 0) {
-          const senderAccount = user.userData.account;
-          const senderName = user.userData.alias;
-          members = members.filter(member => member !== senderAccount && !mentions.includes(member));
-
-          const pnBody = `${senderName} has sent a message on channel ${channelName}`;
-          const pnTitle = `${senderName} @ ${channelName}`;
-
-          const channelAccount = channel && channel.channel_record
-              ? channel.channel_record.account : null;
-
-          getPNTokensAndSendPushNotification(members, senderName, channel, pnBody, pnTitle, { channelAccount });
-
-          // Push notification for mentioned members
-          const pnmBody = `${senderName} was tagged on ${channelName}`;
-          const pnmTitle = `${senderName} has tagged @ ${channelName}`;
-          getPNTokensAndSendPushNotification(mentions, senderName, channel, pnmBody, pnmTitle, { channelAccount });
+            const message = `${senderAlias} is inviting you to a video call`;
+            const url = `metis/${uuidv4()}`;
+            const metadata = {isCall: 'true', url: url, recipient: recipientAddress, sender: senderAlias};
+            getPNTokensAndSendPushNotification([recipientAddress], senderAlias, {}, message, 'call', metadata);
+            res.send({success: true, url: url});
+        } catch (e) {
+            logger.error(e);
+            res.status(500).send(`${e}`);
         }
-        res.send(response);
-      } catch (e) {
-        logger.error('[/data/messages]', JSON.stringify(e));
-        res.status(500).send({ success: false, fullError: e });
-      }
+    });
 
-  });
+    /**
+     * Accept channel invite
+     */
+    app.post('/v1/api/channel/invite/accept', async (req, res) => {
+        console.log(`\n\n`)
+        logger.info('======================================================================================');
+        logger.info('== Accept Channel Invite');
+        logger.info('== v1/api/channel/invite/accept');
+        logger.info(`======================================================================================\n\n`);
+
+        const {channelAddress} = req.body
+
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
+        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+
+        // if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+        //     throw new BadJupiterAddressError(channelAddress)
+        // }
+
+        const memberAccountProperties = await instantiateGravityAccountProperties(
+            req.user.passphrase,
+            req.user.password
+        );
+
+        chanService.acceptInvitation(memberAccountProperties, channelAddress)
+            .then(() => {
+                websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
+                res.status(StatusCode.SuccessOK).send({message: 'Invite accepted'});
+            })
+            .catch(error => {
+                logger.error(`*********************************************`)
+                logger.error(`** channel/invite/accept ERROR`)
+                logger.error(`${error}`);
+                if (error.message === 'Invitation Not Found') {
+                    return res.status(404).send({message: error.message});
+                }
+                return res.status(StatusCode.ServerErrorInternal).send({message: error.message});
+            });
+
+    });
+
+    /**
+     * Render a channel's conversations
+     */
+    app.get('/channels/:id', controller.isLoggedIn, (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Render a channel conversations');
+        logger.info('== GET: channels/:id');
+        logger.info('======================================================================================');
+        console.log('');
+
+        const messages = req.session.flash;
+        req.session.flash = null;
+
+        const PageFile = require('../views/convos.jsx');
+
+        const page = ReactDOMServer.renderToString(
+            React.createElement(PageFile, {
+                connection,
+                messages,
+                name: `Metis - Convo#${req.params.id}`,
+                user: req.user,
+                dashboard: true,
+                public_key: req.session.public_key,
+                validation: req.session.jup_key,
+                accessData: req.session.accessData,
+                channelId: req.params.id,
+            }),
+        );
+
+        res.send(page);
+    });
+
+    /**
+     * Get a channel's messages
+     */
+    app.get('/v1/api/channels/:channelAddress/messages', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Get a channel\'s messages');
+        logger.info('== GET: /v1/api/data/messages/:firstIndex');
+        logger.info('======================================================================================\n');
+        const { user } = req;
+        // pageNumber starts at Page 0;
+        const { pageNumber: _pageNumber, pageSize: _pageSize } = req.query
+        const {channelAddress} = req.params;
+
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
+            const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message, code: error.code});
+        }
+
+        // if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+        //     return res.status(StatusCode.ClientErrorBadRequest).send({message: `bad channel address: ${channelAddress}`})
+        // }
+
+        if(isNaN(_pageNumber)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be an integer'});
+        }
+        if (isNaN(_pageSize)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize needs to be an integer'});
+        }
+        const pageNumber = parseInt(_pageNumber);
+        const pageSize = parseInt(_pageSize);
+
+        if(!(pageSize > 0 && pageSize < 1000)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageSize can only be between 1 and 1000'});
+        }
+        if(pageNumber < 0){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'pageNumber needs to be more than 0'});
+        }
+        try{
+            const firstIndex = pageNumber * pageSize
+            const lastIndex = firstIndex + (pageSize - 1);
+            const memberAccountProperties = instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
+            // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
+
+            if (!channelAccountProperties) {
+                return res.status(StatusCode.ServerErrorInternal).send({message: `channel is not available: ${channelAddress}`})
+            }
+
+            //@TODO this will be a big problem when channel has alot of messages!!!!!!!
+            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
+
+            // Sorting messages descending
+            messageTransactions.sort((a, b) =>
+                new Date(b.message.createdAt) - new Date(a.message.createdAt)
+            );
+
+            const paginatesMessages = messageTransactions.slice(firstIndex, lastIndex + 1);
+
+            res.send(paginatesMessages);
+        } catch (error) {
+            logger.error('Error getting messages:');
+            logger.error(`${error}`);
+            res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
+        }
+    });
+
+    /**
+     * Send a message
+     */
+    app.post('/v1/api/channels/:channelAddress/messages', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Send a message');
+        logger.info('== POST: /v1/api/data/messages');
+        logger.info('======================================================================================');
+
+        const {user} = req;
+        const {
+            message,
+            replyMessage,
+            replyRecipientAlias,
+            replyRecipientAddress,
+            attachmentObj,
+            version,
+            mentions = [],
+            messageType = 'message'
+        } = req.body;
+        const {channelAddress} = req.params;
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`address:`);
+        console.log(channelAddress);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
+        if (!message) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
+        }
+        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+        try {
+            const messageRecord = generateNewMessageRecordJson(
+                memberAccountProperties,
+                message,
+                messageType,
+                replyMessage,
+                replyRecipientAlias,
+                replyRecipientAddress,
+                attachmentObj,
+                version,
+            );
+
+            if (messageType === 'invitation') {
+                websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
+            }
+
+            websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord });
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
+            if(!channelAccountProperties){
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
+            }
+            // if(channelAccountProperties.isMinimumProperties){
+            //     await refreshGravityAccountProperties(channelAccountProperties)
+            // }
+            await createMessageRecord(
+                memberAccountProperties,
+                channelAccountProperties,
+                message,
+                messageType,
+                replyMessage,
+                replyRecipientAlias,
+                replyRecipientAddress,
+                attachmentObj,
+                version
+                );
+            // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+            // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+            await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
+            res.send({message: 'Message successfully sent'});
+        } catch (error) {
+            logger.error('Error sending metis message:')
+            logger.error(JSON.stringify(error));
+            return res.status(500).send({message: 'Error sending message'})
+        }
+    });
+
+    /**
+     * Get a user's invites
+     */
+    app.get('/v1/api/channel/invites', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Get user invites');
+        logger.info('== GET: /v1/api/channel/invites');
+        logger.info('======================================================================================');
+        console.log('');
+        try {
+            if(!req.hasOwnProperty('user')) throw new mError.MetisError(`req.user is not defined`);
+            if(!gu.isWellFormedPassphrase(req.user.passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(`req.user.passphrase`);
+            if(!gu.isStrongPassword(req.user.password)) throw new mError.MetisErrorWeakPassword(`req.user.password`)
+            const memberAccountProperties = await instantiateGravityAccountProperties(
+                req.user.passphrase,
+                req.user.password
+            )
+            await chanService.getChannelInvitationContainersSentToAccount(memberAccountProperties)
+                .then(channelInvitations => {
+                    const payload = channelInvitations.map(channelInvitationContainer => {
+
+                        return {
+                            invitationId: channelInvitationContainer.transactionId,
+                            channelName: channelInvitationContainer.message.channelRecord.channelName,
+                            channelAddress: channelInvitationContainer.message.channelRecord.address,
+                            inviterAddress: channelInvitationContainer.message.inviterAddress,
+                            invitationSentAt: channelInvitationContainer.message.createdAt
+                        }
+                    })
+                    res.send(payload);
+                })
+        } catch(error) {
+            console.log(error);
+            res.status(StatusCode.ServerErrorInternal).send({message: `Internal Error`, code: error.code});
+        }
+    });
+
+    /**
+     * Send an invite
+     */
+    app.post('/v1/api/channel/invite', async (req, res) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Send An Invite');
+        logger.info('== POST: api/channel/invite');
+        logger.info('======================================================================================');
+        console.log('');
+        const {channelAddress, inviteeAddressOrAlias} = req.body;
+        const {user} = req;
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: `channelAddress is invalid`, code: MetisErrorCode.MetisErrorBadJupiterAddress});
+        }
+        try {
+            const inviterAccountProperties = user.gravityAccountProperties;
+            const inviteeAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(inviteeAddressOrAlias);
+            const inviteeAddress = inviteeAccountInfo.address;
+            const inviteePublicKey = inviteeAccountInfo.publicKey;
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(inviterAccountProperties, channelAddress);
+            if(channelAccountProperties === null){
+                return res.status(StatusCode.ClientErrorUnauthorized).send({message: `Channel is not accessible`, code: MetisErrorCode.MetisError});
+            }
+            const newInvitation = await chanService.createInvitation(
+                channelAccountProperties,
+                inviterAccountProperties,
+                inviteeAddress,
+                inviteePublicKey
+            )
+            websocket.of('/invite').to(`${inviteeAddress}`).emit('newInvite');
+            const inviterAlias = inviterAccountProperties.getCurrentAliasNameOrNull();
+            const message = `${inviterAlias} invited you to join a channel`;
+            const metadata = {isInvitation: 'true'};
+            await getPNTokensAndSendPushNotification(
+                [inviteeAddress],
+                [],
+                message,
+                'Invitation',
+                metadata
+            );
+            console.log(`\n`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.info(`++ INVITATION SENT`);
+            logger.info(`++ ${newInvitationCounter}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n');
+            newInvitationCounter = newInvitationCounter + 1;
+            return res.status(StatusCode.SuccessOK).send(newInvitation);
+        } catch (error) {
+            logger.error(`${error}`);
+            console.log(error);
+            res.status(StatusCode.ServerErrorInternal).send({message: `Internal Error`, code: error.code});
+        }
+    });
+
+    /**
+     * Create a Channel, assigned to the current user
+     */
+    app.post('/v1/api/channel', async (req, res, next) => {
+        console.log(`\n\n\n`);
+        logger.info('======================================================================================');
+        logger.info('== Create a Channel, assigned to the current user');
+        logger.info('== app.post(\'/v1/api/channel\')(req,res,next)');
+        logger.info(`======================================================================================\n\n\n`);
+        const startTime = Date.now();
+        const {channelName} = req.body;
+        const memberAccountProperties = req.user.gravityAccountProperties;
+        // @TODO Check Funding First!
+        if(!gu.isNonEmptyString(channelName)){
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Need channelName in body'});
+        }
+        const channelPassphrase = gu.generatePassphrase();
+        const channelPassword = gu.generateRandomPassword();
+        const channelAccountProperties = await instantiateGravityAccountProperties(channelPassphrase, channelPassword);
+        channelAccountProperties.channelName = channelName;
+        const job = jobs.create('channel-creation-confirmation', {channelAccountProperties, memberAccountProperties})
+            .priority('high')
+            .removeOnComplete(false)
+            .save( error => {
+                logger.verbose(`---- JobQueue: channel-creation-confirmation.save(error)`);
+                logger.sensitive(`error= ${error}`);
+                if (error) {
+                    websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+                    throw new Error('channel-creation-confirmation');
+                }
+                logger.verbose(`job.id= ${job.id}`);
+                res.status(StatusCode.SuccessOK).send({
+                    channelAddress: channelAccountProperties.address,
+                    channelName: channelAccountProperties.channelName,
+                    channelPublicKey: channelAccountProperties.publicKey,
+                    channelAlias: channelAccountProperties.getCurrentAliasNameOrNull(),
+                    job: {
+                        id: job.id,
+                        createdAt: job.created_at,
+                        href: `/v1/api/job/status?jobId=${job.id}`,
+                    }
+                });
+                websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated', {jobId: job.id});
+            });
+        job.on('complete', function (result) {
+            logger.verbose(`---- JobQueue: channel-creation-confirmation.on(complete)`);
+            logger.sensitive(`result= ${JSON.stringify(result)}`);
+            const endTime = Date.now();
+            const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            logger.info('++ Create a Channel');
+            logger.info(`++ Processing TIME`);
+            logger.info(`++ ${processingTime}`);
+            logger.info(`++ Counter`);
+            logger.info(`++ ${newChannelCounter}`);
+            logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+            newChannelCounter = newChannelCounter + 1;
+            // const payload = {channelName: result.channelName, account: result.channelAccountProperties.address}
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelSuccessful', {
+                jobId: job.id,
+                channelName: result.channelAccountProperties.channelName,
+                channelAddress: result.channelAccountProperties.address
+            });
+        });
+        job.on('failed attempt', function (errorMessage, doneAttempts) {
+            logger.error(`****************************************************************`);
+            logger.error(`** JobQueue: channel-creation-confirmation.on(failed attempt))`);
+            logger.error(`****************************************************************`);
+            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
+            logger.error(`doneAttempts= ${JSON.stringify(doneAttempts)}`);
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+            console.log(errorMessage)
+            console.log(doneAttempts)
+        });
+
+        job.on('failed', function (errorMessage) {
+            logger.error(`****************************************************************`);
+            logger.error(`** JobQueue: channel-creation-confirmation.on(failed))`);
+            logger.error(`****************************************************************`);
+            logger.error(`error= ${error}`)
+            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
+            console.log(errorMessage)
+        });
+    })
 };

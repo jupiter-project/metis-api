@@ -1,25 +1,15 @@
-import events from 'events';
 import { gravity } from './gravity';
 import User from '../models/user';
-// import RegistrationWorker from '../workers/registration';
-// import { gravityCLIReporter } from '../gravity/gravityCLIReporter';
-const JupiterFSService = require('../services/JimService');
-import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterFundingService} from "../services/jupiterFundingService";
-import {JupiterAccountService} from "../services/jupiterAccountService";
-import {TableService} from "../services/tableService";
-import {JupiterTransactionsService} from "../services/jupiterTransactionsService";
-import {FundingNotConfirmedError} from "../errors/metisError";
-import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
-import {add} from "lodash";
-
-const { JupiterAPIService } = require('../services/jupiterAPIService');
-const { AccountRegistration } = require('../services/accountRegistrationService');
+import {accountRegistration} from "../services/accountRegistrationService";
+import {metisGravityAccountProperties} from "../gravity/gravityAccountProperties";
+import {jupiterAccountService} from "../services/jupiterAccountService";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+// import mError from "../../../errors/metisError";
+import mError from "../errors/metisError";
+const moment = require('moment'); // require
 const LocalStrategy = require('passport-local').Strategy;
 const logger = require('../utils/logger')(module);
-
+const gu = require('../utils/gravityUtils');
 // Used to serialize the user for the session
 const serializeUser = (passport) => {
   passport.serializeUser((accessData, done) => {
@@ -75,96 +65,49 @@ const getSignUpUserInformation = (account, requestBody) => ({
   jup_account_id: requestBody.jup_account_id,
 });
 
+
 /**
  *
+ * @param address
+ * @param requestBody
+ * @return {Promise<string>}
  */
-const metisRegistration = async (account, requestBody) => {
+const metisRegistration = async (address, requestBody) => {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## metisRegistration(address=${address}, requestBody)`);
+    logger.verbose(`## `);
 
-  logger.verbose('#####################################################################################');
-  logger.verbose(`## metisRegistration(account=${account})`);
-  logger.verbose('#####################################################################################');
+    const signUpUserInformation = getSignUpUserInformation(address, requestBody);
 
+    const userAccountProperties = await instantiateGravityAccountProperties(signUpUserInformation.passphrase, signUpUserInformation.encryption_password);
 
-  const applicationGravityAccountProperties = new GravityAccountProperties(
-    process.env.APP_ACCOUNT_ADDRESS,
-    process.env.APP_ACCOUNT_ID,
-    process.env.APP_PUBLIC_KEY,
-    process.env.APP_ACCOUNT,
-    '', // hash
-    process.env.ENCRYPT_PASSWORD,
-    process.env.ENCRYPT_ALGORITHM,
-    process.env.APP_EMAIL,
-    process.env.APP_NAME,
-    '', // lastname
-  );
-
-  const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding); //@TODO break this into user and table funding fee.
-  const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-  const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-  const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-  const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-  const DEADLINE = process.env.JUPITER_DEADLINE;
-
-  // logger.debug('MINIMUM_TABLE_BALANCE', MINIMUM_TABLE_BALANCE );
-  // logger.debug('MINIMUM_APP_BALANCE', MINIMUM_APP_BALANCE );
-
-
-  //@TODO ApplicationAccountProperties class is obsolete. We need to switch to FeeManger and FundingManger
-  const appAccountProperties = new ApplicationAccountProperties(
-    DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-  );
-
-  applicationGravityAccountProperties.addApplicationAccountProperties(appAccountProperties);
-
-  const signUpUserInformation = getSignUpUserInformation(account, requestBody);
-  // logger.sensitive(`signUpUserInformation = ${JSON.stringify(signUpUserInformation)}`);
-  //
-  // const newUserGravityAccountProperties = new GravityAccountProperties(
-  //   signUpUserInformation.account, // address
-  //   signUpUserInformation.jup_account_id, // account Id
-  //   signUpUserInformation.public_key, // public key
-  //   signUpUserInformation.passphrase, // passphrase
-  //   signUpUserInformation.hash, // password hash
-  //   signUpUserInformation.encryption_password, // password
-  //   process.env.ENCRYPT_ALGORITHM, // algorithm
-  //   signUpUserInformation.email, // email
-  //   signUpUserInformation.firstName, // firstname
-  //   signUpUserInformation.lastName, // lastname
-  // );
-
-  // logger.sensitive(`newUserGravityAccountProperties= ${JSON.stringify(newUserGravityAccountProperties)}`);
-  // const aliasInfo = {aliasName: signUpUserInformation.alias }
-  // newUserGravityAccountProperties.addAlias(aliasInfo);
-
-  const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-  const jupiterFundingService = new JupiterFundingService(jupiterAPIService, applicationGravityAccountProperties);
-  const jupiterTransactionsService = new JupiterTransactionsService(jupiterAPIService);
-  const tableService = new TableService(jupiterTransactionsService, jupiterAPIService);
-  const jupiterAccountService = new JupiterAccountService(jupiterAPIService, applicationGravityAccountProperties, tableService, jupiterTransactionsService);
-
-    const accountRegistration = new AccountRegistration(
-        applicationGravityAccountProperties,
-        jupiterAPIService,
-        jupiterFundingService,
-        jupiterAccountService,
-        tableService,
-        gravity,
-        JupiterFSService
+    const registration = accountRegistration.register3(
+        userAccountProperties,
+        signUpUserInformation.alias
     );
 
-    // async register(newAccount, newAccountAlias, userPassphrase) {
-    return accountRegistration.register(signUpUserInformation.account, signUpUserInformation.alias, signUpUserInformation.passphrase, signUpUserInformation.encryption_password )
+    // const registration = accountRegistration.register(
+    //     signUpUserInformation.account,
+    //     signUpUserInformation.alias,
+    //     signUpUserInformation.passphrase,
+    //     signUpUserInformation.encryption_password
+    // )
+
+    return registration;
 };
 
 /**
  * Signup to Metis
- * @param {*} passport
+ * @param passport
+ * @param jobsQueue
+ * @param websocket
  */
 const metisSignup = (passport, jobsQueue, websocket ) => {
-  logger.verbose('#####################################################################################');
-  logger.verbose('##  metisSignup(passport)');
-  logger.verbose('#####################################################################################');
+    logger.info('======================================================================================');
+    logger.info('== metisSignup(passport)');
+    logger.info(`======================================================================================`);
+    const startTime = Date.now();
+
   passport.use('gravity-signup', new LocalStrategy({
     usernameField: 'account',
     passwordField: 'accounthash',
@@ -173,57 +116,63 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
   (request, account, accounthash, done) => {
     process.nextTick(() => {
 
-        const encryptedRequestBody = gravity.encrypt( JSON.stringify(request.body));
-
-        const jobData = {
-            account,
-            data:  encryptedRequestBody
-        }
-
-        const job = jobsQueue.create('user-registration', jobData)
-            .priority('high')
-            .removeOnComplete(true)
-            .save( (err) =>{
-                if(err){
-                    logger.error(`there is a problem saving to redis`);
-                    logger.error(JSON.stringify(err));
-                    websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
-                }
-                logger.verbose(`jobQueue.save() id= ${job.id}`);
-                logger.verbose(`account= ${account}`);
-                setTimeout(()=>{
-                  websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
-                }, 1000);
-            });
-
-        logger.debug(`job id= ${job.id} for account=${account}`);
-
-        job.on('complete', function(result){
-            logger.verbose(`##########################`)
-            logger.verbose(`## job.on(complete)`)
-            logger.debug(`account=${account}`)
-            logger.debug('Job completed with data ', result);
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpSuccessful', account);
-        });
-
-        job.on('failed attempt', function(errorMessage, doneAttempts){
-            logger.debug('Job failed Attempt');
-            logger.debug(`account=${account}`)
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',account);
-        });
-
-        job.on('failed', function(errorMessage){
-            logger.error(`*********************`)
-            logger.error(`job.on(failed)`)
-            logger.debug(`account=${account}`)
-            websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', account);
-        });
-        // job.on('progress', function(progress, data){
-        //     logger.debug('^&^&')
-        //     logger.debug('\r  job #' + job.id + ' ' + progress + '% complete with data ', data );
+        // const encryptedRequestBody = gravity.encrypt( JSON.stringify(request.body));
+        //
+        // const jobData = {
+        //     account,
+        //     data:  encryptedRequestBody
+        // }
+        //
+        // const job = jobsQueue.create('user-registration', jobData)
+        //     .priority('high')
+        //     .removeOnComplete(false)
+        //     .save( error =>{
+        //         logger.verbose(`---- JobQueue: user-registration.save()`);
+        //         if(error){
+        //             logger.error(`There is a problem saving to redis`);
+        //             logger.error(`${error}`);
+        //             websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed',account);
+        //             throw new Error('user-registration');
+        //         }
+        //         logger.verbose(`job.id= ${job.id}`);
+        //         websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpJobCreated', job.id);
+        //         return done(null, job.id);
+        //     });
+        // job.on('complete', function(result){
+        //     logger.verbose(`---- passport.job.on(complete(signUpSuccessful))`)
+        //     logger.verbose(`account= ${account}`)
+        //     logger.sensitive('Job completed with data ', result);
+        //     const endTime = Date.now();
+        //     const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
+        //     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        //     logger.info(`++ SIGNUP`);
+        //     logger.info(`++ Processing TIME`);
+        //     logger.info(`++ ${processingTime}`);
+        //     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        //     const room = `sign-up-${account}`;
+        //     websocket.in(room).allSockets().then((result) => {
+        //         logger.info(`The number of users connected is: ${result.size}`);
+        //     });
+        //     websocket.of('/sign-up').to(room).emit('signUpSuccessful', account);
         // });
-
-        return done(null, null, job.id);
+        // job.on('failed attempt', function(errorMessage, doneAttempts){
+        //     logger.error(`***********************************************************************************`);
+        //     logger.error(`** passport.job.on(failed_attempt())`);
+        //     logger.error(`** `);
+        //     logger.error(`account= ${account}`)
+        //     logger.error(`errorMessage= ${errorMessage}`);
+        //     logger.error(`doneAttempts= ${doneAttempts}`);
+        //     websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailedAttempt',{message: `${errorMessage}`});
+        // });
+        //
+        // job.on('failed', function(errorMessage){
+        //     logger.error(`***********************************************************************************`);
+        //     logger.error(`** passport.job.on(failed())`);
+        //     logger.error(`** `);
+        //     logger.error(`account= ${account}`)
+        //     logger.error(`errorMessage= ${errorMessage}`);
+        //     websocket.of('/sign-up').to(`sign-up-${account}`).emit('signUpFailed', {message: `${errorMessage}`});
+        // });
     });
   }));
 };
@@ -233,171 +182,210 @@ const metisSignup = (passport, jobsQueue, websocket ) => {
  * @param passport
  */
 const metisLogin = (passport) => {
+    logger.info('======================================================================================');
+    logger.info('== metisLogin(passport)');
+    logger.info(`======================================================================================`);
+
   passport.use('gravity-login', new LocalStrategy({
-    usernameField: 'account',
-    passwordField: 'accounthash',
+    usernameField: 'account', //jupiter address
+    passwordField: 'accounthash', //?
     passReqToCallback: 'true',
   },
-  (req, account, accounthash, done) => {
-  /**
-   * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
-   * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
-   * to provide their new password.  The current problem is that current when going through the signup process
-   * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
-   * account. This was we can register their current jup account with metis.
-   */
-    logger.verbose('#####################################################################################');
-    logger.verbose('                                  metisLogin(passport)');
-    logger.verbose('#####################################################################################');
-    const {
-      jupkey,
-      public_key,
-      jup_account_id,
-      encryptionPassword,
-    } = req.body;
-    let user;
-    let valid = true;
+  async (req, account, accounthash, done) => {
+  // /**
+  //  * @TODO  If a non-metis jupiter account owner logs in. We should let this person log in. The only problem is how do we
+  //  * add the password? It seems there's need to be some sort of signup process to join metis. All we need is for the person
+  //  * to provide their new password.  The current problem is that current when going through the signup process
+  //  * we are creating a new jupiter account. This means we now need to ask during sign up if they arleady own a jupiter
+  //  * account. This was we can register their current jup account with metis.
+  //  */
+  //   logger.verbose('#### metisLogin(passport)');
+  //     const {
+  //         jupkey,
+  //         public_key,
+  //         jup_account_id,
+  //         encryptionPassword,
+  //     } = req.body;
+  //     let user;
+  //     let valid = true;
+  //
+  //     try {
+  //         const userAccountProperties = await jupiterAccountService.getMemberAccountPropertiesFromPersistedUserRecordOrNull(jupkey, encryptionPassword);
+  //         if(userAccountProperties === null){
+  //             return done(new mError.MetisErrorFailedUserAuthentication());
+  //         }
+  //         const userInfo = {
+  //             accessKey: gravity.encrypt(jupkey),
+  //             encryptionKey: gravity.encrypt(encryptionPassword),
+  //             account: gravity.encrypt(account),
+  //             publicKey: public_key,
+  //             profilePictureURL: '',
+  //             userData: {
+  //                 alias: userAccountProperties.getCurrentAliasNameOrNull(),
+  //                 account: userAccountProperties.address
+  //             },
+  //         };
+  //
+  //         return done(null, userInfo, 'Authentication validated!');
+  //
+  //     } catch(error){
+  //         console.log('\n')
+  //         logger.error(`************************* ERROR ***************************************`);
+  //         logger.error(`* ** metisLogin.catch(error)`);
+  //         logger.error(`************************* ERROR ***************************************\n`);
+  //         logger.error(`error= ${error}`)
+  //         return done(error);
+  //     }
+
+    // // 2. Past this means its an older Account....
+    // const accountStatement = await jupiterAccountService.fetchAccountStatement(
+    //     metisGravityAccountProperties.passphrase,
+    //     metisGravityAccountProperties.password,
+    //     'metis-account',
+    //     'app'
+    // );
+    //
+    // const usersTableStatement =  await accountStatement.attachedTables.find( table => table.statementId === 'table-users');
+    //
+    // if (!usersTableStatement) {
+    //   throw new Error('There is no application users table');
+    // }
+    //
+    // const containedDatabase = {
+    //   account,
+    //   accounthash,
+    //   encryptionPassword,
+    //   passphrase: jupkey,
+    //   publicKey: public_key,
+    //   accountId: jup_account_id,
+    //   originalTime: Date.now(),
+    // };
+    //
+    // logger.verbose('metisLogin().gravity.getUser(account, jupkey, containedDatabase)');
+    // gravity.getUser(account, jupkey, containedDatabase)
+    //   .then(async (response) => {
+    //     logger.debug('---------------------------------------------------------------------------------------');
+    //     logger.debug('-- getUser(account, jupkey, containedDatabase).then(response)');
+    //     logger.debug('--');
+    //     logger.sensitive(`response.userAccountTables=${JSON.stringify(response.userAccountTables)}`);
+    //     logger.sensitive(`response.userRecord= ${JSON.stringify(response.userRecord)}`);
+    //
+    //     if (!response.userRecord) {
+    //       const doneResponse = {
+    //         error: null,
+    //         user: false,
+    //         message: 'Account is not registered or has not been confirmed in the blockchain.',
+    //       };
+    //       return done(doneResponse.error, doneResponse.user, doneResponse.message);
+    //     }
+    //
+    //     const listOfAttachedTableNames = gravity.extractTableNamesFromTables(response.userAccountTables);
+    //     logger.debug(`listOfAttachedTableNames= ${JSON.stringify(listOfAttachedTableNames)}`);
+    //
+    //
+    //     const { userRecord } = response;
+    //     userRecord.public_key = public_key;
+    //     logger.sensitive(`userRecord=${JSON.stringify(userRecord)}`);
+    //
+    //
+    //     user = new User(userRecord);
+    //       if (user.record.id === undefined) {
+    //       valid = false;
+    //       const doneResponse = {
+    //         error: null,
+    //         user: false,
+    //         message: 'Account is not registered',
+    //       };
+    //       return done(doneResponse.error, doneResponse.user, doneResponse.message);
+    //     }
+    //
+    //
+    //     if (!user.validEncryptionPassword(containedDatabase.encryptionPassword)) {
+    //       valid = false;
+    //
+    //       const doneResponse = {
+    //         error: null,
+    //         user: false,
+    //         message: req.send({ error: true, message: 'Wrong encryption password' }),
+    //       };
+    //       return done(doneResponse.error, doneResponse.user, doneResponse.message);
+    //     }
+    //
+    //     if (!user.validPassword(containedDatabase.encryptionPassword)) {
+    //       valid = false;
+    //       const doneResponse = {
+    //         error: null,
+    //         user: false,
+    //         message: 'Wrong hashphrase',
+    //       };
+    //       return done(doneResponse.error, doneResponse.user, doneResponse.message);
+    //     }
+    //
+    //     if (valid) {
+    //       const propertyInfo = { recipient: user.record.account };
+    //
+    //       const hasFundingProperty = await gravity.hasFundingProperty(propertyInfo);
+    //
+    //       if (!hasFundingProperty) {
+    //         const fundingResponse = await gravity.setAcountProperty(propertyInfo);
+    //         logger.info(fundingResponse);
+    //       }
+    //     }
+    //
+    //
+    //     const userProperties = await gravity.getAccountProperties({ recipient: userRecord.account });
+    //     const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
+    //
+    //
+    //     const userInfo = {
+    //       userRecordFound: response.userRecordFound,
+    //       noUserTables: response.noUserTables,
+    //       userNeedsBackup: response.userNeedsBackup,
+    //       accessKey: gravity.encrypt(jupkey),
+    //       encryptionKey: gravity.encrypt(encryptionPassword),
+    //       account: gravity.encrypt(account),
+    //       database: response.userAccountTables,
+    //       accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
+    //       id: user.data.id,
+    //       publicKey: public_key,
+    //       profilePictureURL: profilePicture && profilePicture.value
+    //         ? profilePicture.value
+    //         : '',
+    //       userData: {
+    //         alias: userRecord.alias,
+    //         account: userRecord.account,
+    //       },
+    //     };
+    //     // logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
+    //     // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
+    //
+    //     const doneResponse = {
+    //       error: null,
+    //       user: userInfo,
+    //       message: 'Authentication validated!',
+    //     };
+    //
+    //     return done(doneResponse.error, doneResponse.user, doneResponse.message);
+    //   })
+    //   .catch( err => {
+    //       console.log('\n')
+    //       logger.error(`************************* ERROR ***************************************`);
+    //       logger.error(`* ** metisLogin().gravity.getUser().catch(error)`);
+    //       logger.error(`************************* ERROR ***************************************\n`);
+    //       logger.error(`error= ${err}`)
+    //       const error = new mError.MetisErrorFailedUserAuthentication(`${err}`);
+    //
+    //       return done(error,null)
+    //   });
 
 
-    const containedDatabase = {
-      account,
-      accounthash,
-      encryptionPassword,
-      passphrase: jupkey,
-      publicKey: public_key,
-      accountId: jup_account_id,
-      originalTime: Date.now(),
-    };
-
-
-    logger.debug('--------------------------------');
-    logger.sensitive(JSON.stringify(containedDatabase));
-
-    logger.verbose('getUser(account, jupkey, containedDatabase)');
-    gravity.getUser(account, jupkey, containedDatabase)
-      .then(async (response) => {
-        logger.debug('---------------------------------------------------------------------------------------');
-        logger.debug('-- getUser(account, jupkey, containedDatabase).then(response)');
-        logger.debug('---------------------------------------------------------------------------------------');
-        logger.sensitive(`response=${JSON.stringify(response)}`);
-        logger.sensitive(`response.userAccountTables=${JSON.stringify(response.userAccountTables)}`);
-        logger.sensitive(`response.userRecord= ${JSON.stringify(response.userRecord)}`);
-
-        if (!response.userRecord) {
-          const doneResponse = {
-            error: null,
-            user: false,
-            message: req.flash('loginMessage', 'Account is not registered or has not been confirmed in the blockchain.'),
-          };
-          return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-        const listOfAttachedTableNames = gravity.extractTableNamesFromTables(response.userAccountTables);
-        logger.debug(`listOfAttachedTableNames= ${JSON.stringify(listOfAttachedTableNames)}`);
-
-
-        const { userRecord } = response;
-        userRecord.public_key = public_key;
-
-        user = new User(userRecord);
-          if (user.record.id === undefined) {
-          valid = false;
-          const doneResponse = {
-            error: null,
-            user: false,
-            message: req.flash('loginMessage', 'Account is not registered'),
-          };
-          return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-
-        if (!user.validEncryptionPassword(containedDatabase.encryptionPassword)) {
-          valid = false;
-
-          const doneResponse = {
-            error: null,
-            user: false,
-            message: req.send({ error: true, message: 'Wrong encryption password' }),
-          };
-          return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-        if (!user.validPassword(accounthash)) {
-          valid = false;
-          const doneResponse = {
-            error: null,
-            user: false,
-            message: req.flash('loginMessage', 'Wrong hashphrase'),
-          };
-          return done(doneResponse.error, doneResponse.user, doneResponse.message);
-        }
-
-        if (valid) {
-          const propertyInfo = { recipient: user.record.account };
-
-          const hasFundingProperty = await gravity.hasFundingProperty(propertyInfo);
-
-          if (!hasFundingProperty) {
-            const fundingResponse = await gravity.setAcountProperty(propertyInfo);
-            logger.info(fundingResponse);
-          }
-        }
-
-
-        const userProperties = await gravity.getAccountProperties({ recipient: userRecord.account });
-        const profilePicture = userProperties.properties.find(property => property.property.includes('profile_picture'));
-
-
-        const userInfo = {
-          userRecordFound: response.userRecordFound,
-          noUserTables: response.noUserTables,
-          userNeedsBackup: response.userNeedsBackup,
-          accessKey: gravity.encrypt(jupkey),
-          encryptionKey: gravity.encrypt(encryptionPassword),
-          account: gravity.encrypt(account),
-          database: response.userAccountTables,
-          accountData: gravity.encrypt(JSON.stringify(containedDatabase)),
-          id: user.data.id,
-          publicKey: public_key,
-          profilePictureURL: profilePicture && profilePicture.value
-            ? profilePicture.value
-            : '',
-          userData: {
-            alias: userRecord.alias,
-            account: userRecord.account,
-          },
-        };
-        logger.sensitive(`The userInfo = ${JSON.stringify(user)}`);
-        // gravityCLIReporter.addItem('The user Info', JSON.stringify(user));
-
-
-        const doneResponse = {
-          error: null,
-          user: userInfo,
-          message: 'Authentication validated!',
-        };
-
-        return done(doneResponse.error, doneResponse.user, doneResponse.message);
-      })
-      .catch((err) => {
-        logger.error('-- getUser(account, jupkey, containedDatabase).error(err)');
-        logger.error('Unable to query your user list. Please make sure you have a users table in your database.');
-        logger.error(err);
-
-        const doneResponse = {
-          error: err,
-          user: false,
-          message: req.flash('loginMessage', 'Login Error'),
-        };
-        return done(doneResponse.error, doneResponse.user, doneResponse.message);
-      });
   }));
 };
 
 module.exports = {
-  serializeUser,
-  deserializeUser,
-  metisSignup,
-  metisLogin,
+    serializeUser,
+    deserializeUser,
+    metisSignup,
+    metisLogin,
     metisRegistration
 };

@@ -153,8 +153,6 @@ class User extends Model {
     return aliasCheckup;
   }
 
-
-
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
     const record = super.setRecord(this.data);
@@ -176,8 +174,22 @@ class User extends Model {
     return bcrypt.hashSync(accounthash, bcrypt.genSaltSync(8), null);
   }
 
-  validPassword(accounthash) {
-    return bcrypt.compareSync(accounthash, this.record.accounthash);
+  /**
+   *
+   * @param password
+   * @returns {*}
+   */
+  validPassword(password) {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## validPassword(password)`);
+    logger.verbose(`## `);
+    logger.sensitive(`password=${JSON.stringify(password)}`);
+    logger.sensitive(`record.accounthash=${JSON.stringify(this.record.accounthash)}`);
+
+    const isValid =  bcrypt.compareSync(password, this.record.accounthash);
+    logger.sensitive(`isValid=${JSON.stringify(isValid)}`);
+
+    return isValid;
   }
 
   validEncryptionPassword(encryptionPassword) {
@@ -293,7 +305,7 @@ class User extends Model {
             }
           })
           .catch((error) => {
-            logger.error(error);
+            logger.error(`${error}`);
             reject({ success: false, errors: error.response });
           });
       }

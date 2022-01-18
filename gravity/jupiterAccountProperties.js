@@ -1,5 +1,6 @@
 const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils');
+const mError = require("../errors/metisError");
 
 
 /**
@@ -9,8 +10,8 @@ class JupiterAccountProperties {
     /**
      *
      * @param {string} address - ex JUP-XXXXX
-     * @param {string} accountId - Jupiter Account ID.( Seems to be the same as pub key.)
-     * @param {string} publicKey - Jupiter  public key.
+     * @param {string|null} accountId - Jupiter Account ID.( Seems to be the same as pub key.)
+     * @param {string|null} publicKey - Jupiter  public key.
      * @param {string} passphrase - 12 words passphrase
      * @param {string} email
      * @param {string} firstName
@@ -28,20 +29,19 @@ class JupiterAccountProperties {
                 twofactorAuthenticationEnabled = false,
                 twofactorAuthenticationcompleted = false,
     ) {
-
+        if(!address){throw new Error('missing address')}
+        if(!passphrase){throw new Error('missing passphrase')}
         //d7eb6f6854193941a7d45738e763331c28bd947956d7fe96b6b5969dea9af967
-        if(!gu.isWellFormedPublicKey(publicKey)){
+        if(!(gu.isWellFormedPublicKey(publicKey) || publicKey === null  )){
             throw new Error('public key is not valid');
         }
-
-        if(!gu.isWellFormedJupiterAddress(address)){
-            throw new Error('address key is not valid');
-        }
-
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){
+        //     throw new BadJupiterAddressError(address);
+        // }
         if(!gu.isWellFormedPassphrase(passphrase)){
             throw new Error('passphrase key is not valid');
         }
-
         this.address = address;
         this.accountId = accountId;
         this.publicKey = publicKey;
@@ -75,10 +75,26 @@ class JupiterAccountProperties {
         this.aliasList.push(aliasInfo);
     }
 
+    /**
+     *
+     * @param aliases
+     */
+    addAliases(aliases){
+        aliases.forEach(alias => {
+            this.addAlias(alias)
+        })
+    }
 
     /**
      *
-     * @returns {null|*}
+     */
+    removeAllAliases(){
+        this.aliasList = [];
+    }
+
+    /**
+     *
+     * @returns {null|string}
      */
     getCurrentAliasNameOrNull(){
         if(this.aliasList.length > 0){
@@ -89,18 +105,26 @@ class JupiterAccountProperties {
     }
 
 
-    static createProperties(address = null, passphrase = null, publicKey = null, accountId = null){
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## createProperties(address=${address}, passphrase=${passphrase}, publicKey=${publicKey})`);
-        logger.verbose('#####################################################################################');
-
-        return new JupiterAccountProperties(
-            address,
-            accountId,
-            publicKey,
-            passphrase
-        )
-    }
+    /**
+     *
+     * @param address
+     * @param passphrase
+     * @param publicKey
+     * @param accountId
+     * @return {JupiterAccountProperties}
+     */
+    // static createProperties(address = null, passphrase = null, publicKey = null, accountId = null){
+    //     logger.verbose('#####################################################################################');
+    //     logger.verbose(`## createProperties(address=${address}, passphrase=${passphrase}, publicKey=${publicKey})`);
+    //     logger.verbose('#####################################################################################');
+    //
+    //     return new JupiterAccountProperties(
+    //         address,
+    //         accountId,
+    //         publicKey,
+    //         passphrase
+    //     )
+    // }
 
 }
 

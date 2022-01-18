@@ -2,7 +2,17 @@ import axios from 'axios';
 import events from 'events';
 import Model from './_model';
 import Methods from '../config/_methods';
-import { gravity } from '../config/gravity';
+import {gravity} from '../config/gravity';
+import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
+import JupiterFSService from "../services/JimService";
+import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
+import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {JupiterAPIService} from "../services/jupiterAPIService";
+import {GravityCrypto} from "../services/gravityCrypto";
+import {channelConfig} from "../config/constants";
+import {JupiterFundingService} from "../services/jupiterFundingService";
+import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+
 const logger = require('../utils/logger')(module);
 
 class Channel extends Model {
@@ -51,13 +61,24 @@ class Channel extends Model {
     // @TODO figure out how to get a single channel
     const { records } = await super.loadRecords(accessData);
     if (records && Array.isArray(records)) {
+      // console.log('Channel records ------>'. records);
       return records.find(record => record.channel_record.account === account);
     }
 
     throw new Error('Channel not found');
   }
 
+  /**
+   *
+   * @param accessLink
+   * @returns {Promise<unknown>}
+   */
   import(accessLink) {
+    logger.verbose('#####################################################################################');
+    logger.verbose(`## import(accessLink)`);
+    logger.verbose('##');
+    logger.sensitive(`accessLink=${JSON.stringify(accessLink)}`);
+
     const self = this;
     const eventEmitter = new events.EventEmitter();
     let recordTable;
@@ -74,16 +95,25 @@ class Channel extends Model {
             [`${self.model}_record`]: stringifiedRecord,
             date: Date.now(),
           };
-
+          logger.sensitive(`fullRecord=${JSON.stringify(fullRecord)}`);
           const encryptedRecord = gravity.encrypt(
             JSON.stringify(fullRecord),
             accessLink.encryptionPassword,
           );
-          const fee = 95000;
+          const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
           const callUrl = `${gravity.jupiter_data.server}/nxt?requestType=sendMessage&secretPhrase=${recordTable.passphrase}&recipient=${self.user.account}&messageToEncrypt=${encryptedRecord}&feeNQT=${fee}&deadline=${gravity.jupiter_data.deadline}&recipientPublicKey=${self.user.publicKey}&compressMessageToEncrypt=true`;
+
+          logger.sensitive(`channel invitation----`)
+          logger.sensitive(`url:`)
+          logger.sensitive(callUrl);
 
           axios.post(callUrl)
             .then((response) => {
+              logger.verbose(`-----------------------------------------------------------------`);
+              logger.verbose(`-- import().then`);
+              logger.verbose(`-- `);
+              logger.sensitive(`callUrl=${JSON.stringify(callUrl)}`);
+
               if (response.data.broadcasted && response.data.broadcasted === true) {
                 resolve({ success: true, message: 'Record created' });
               } else if (response.data.errorDescription != null) {
@@ -93,6 +123,10 @@ class Channel extends Model {
               }
             })
             .catch((error) => {
+              logger.verbose(`********************************************************************************`);
+              logger.verbose(`** import().catch(error)`);
+              logger.verbose(`** `);
+              logger.sensitive(`error=${JSON.stringify(error)}`);
               reject({ success: false, errors: error });
             });
         });
@@ -137,8 +171,6 @@ class Channel extends Model {
       query.noConfirmed = true;
     }
 
-
-    // console.log(query);
     const response = await gravity.getDataTransactions(query);
 
     if (!response.error) {
@@ -148,8 +180,20 @@ class Channel extends Model {
   }
 
 
-  async create() {
+  async create(accessLink) {
+      logger.verbose('#########################################################');
+      logger.verbose(`## Channel.create(accessLink:${!!accessLink})`);
+      logger.verbose('##');
+      logger.sensitive(`accessLink= ${JSON.stringify(accessLink)}`);
+
     if (!this.record.passphrase || this.record.password) {
+      // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+      // console.log('this.record.passphrase');
+      // console.log(this.record.passphrase);
+      // console.log('this.record.password');
+      // console.log(this.record.password);
+      // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
       this.record.passphrase = Methods.generate_passphrase();
       this.record.password = Methods.generate_keywords();
       this.data.passphrase = this.record.passphrase;
@@ -162,22 +206,19 @@ class Channel extends Model {
       this.data.account = response.address;
       this.data.publicKey = response.publicKey;
 
+      logger.sensitive(`creating a new Channel Account`);
+      logger.sensitive(`address: ${response.address}`);
+      logger.sensitive(`publicKey: ${response.publicKey}`);
+      logger.sensitive(`passphrase: ${this.record.passphrase}`);
+      logger.sensitive(`password: ${this.record.password}`);
       logger.sensitive(`response = ${JSON.stringify(response) }`);
     }
 
     logger.sensitive(`record = ${JSON.stringify(this.record)}`);
     logger.sensitive(`data = ${JSON.stringify(this.data)}`);
-    // logger.sensitive(`publicKey = ${JSON.stringify(response.publicKey)}`);
 
-
-    if (this.accessLink) {
-      return super.create(JSON.parse(gravity.decrypt(this.accessLink)));
-          // .then( channel  => {
-          //   gravity.attachTable('storage')
-          //       .then(
-          //           jimServer.sendFirstImage(fromAddress, password, passphrase, file='metisLogo' );
-          //       )
-          // }  )
+    if (accessLink) {
+      return super.create(accessLink);
     }
 
     return Promise.reject({ error: true, message: 'Missing user information' });

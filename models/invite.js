@@ -1,8 +1,13 @@
 import Model from './_model';
 import { gravity } from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import {jupiterApiService} from "../services/jupiterAPIService";
-import {applicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {jupiterAPIService} from "../services/jupiterAPIService";
+import {metisApplicationAccountProperties} from "../gravity/applicationAccountProperties";
+import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
+// import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
+// import {channelConfig} from "../config/constants";
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+const logger = require('../utils/logger')(module);
 
 class Invite extends Model {
   constructor(data = { id: null }) {
@@ -24,29 +29,52 @@ class Invite extends Model {
 
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
-    const record = super.setRecord(this.data);
-
-    return record;
+    return  super.setRecord(this.data);
   }
 
   loadRecords(accessData) {
     return super.loadRecords(accessData);
   }
 
+  /**
+   *
+   * @returns {Promise<[]>}
+   */
   async get() {
-    let response;
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## Invite.get()`);
+    logger.verbose(`## `);
 
-    try {
-      response = await gravity.getMessages(this.user.account, this.user.passphrase);
-    } catch (e) {
-      response = { error: true, fullError: e };
-    }
-
-    return response;
+    return instantiateGravityAccountProperties(this.user.passphrase, this.user.encryptionPassword)
+        .then(memberAccountProperties => {
+          //@TODO we need to use tags here!!
+          return jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(this.user.account)
+              .then(transactionList => {
+                return jupiterTransactionsService
+                    .getAllMessagesFromBlockChainAndIncludeTransactionInformation(
+                        memberAccountProperties,
+                        transactionList,
+                        this.user.encryptionPassword
+                    );
+              })
+              .then(messages => {
+                logger.sensitive(`Decrypted invites: ${JSON.stringify(messages)}`);
+                return messages.reduce((reduced, message) => {
+                  if (message.message.dataType === 'channelInvite'){
+                    reduced.push(message.message);
+                  }
+                  return reduced;
+                }, []);
+              });
+        })
   }
 
   //@TODO rename to sendInvitation
   async send() {
+    logger.verbose(`###################################################################################`);
+    logger.verbose(`## send()`);
+    logger.verbose(`## `);
+
     const messageData = this.record;
     messageData.dataType = 'channelInvite';
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.invitation_to_channel);
@@ -64,20 +92,20 @@ class Invite extends Model {
     }
 
 
-    return jupiterApiService.sendMetisMessageOrMessage(
+    return jupiterAPIService.sendMetisMessageOrMessage(
         'sendMetisMessage',
         recipient,
         null,
         this.user.passphrase,
         null,
         fee,
-        applicationAccountProperties.deadline,
+        metisApplicationAccountProperties.deadline,
         null,
         null,
         null,
         null,
         false,
-        JSON.stringify(messageData),
+        JSON.stringify(messageData), //not being encrypted?
         null,
         null,
         null,

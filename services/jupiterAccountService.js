@@ -1,358 +1,178 @@
-const {FeeManager, feeManagerSingleton} = require("./FeeManager");
-const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
-const {fundingManagerSingleton} = require("./fundingManager");
-const _ = require("lodash");
-const logger = require('../utils/logger')(module);
+import gu from '../utils/gravityUtils';
+import {channelConfig, userConfig} from '../config/constants';
+import {
+    instantiateGravityAccountProperties,
+    refreshGravityAccountProperties
+} from "../gravity/instantiateGravityAccountProperties";
+import {gravityService} from "./gravityService";
+import {transactionUtils} from "../gravity/transactionUtils";
+import {
+    BadGravityAccountPropertiesError,
+    BadJupiterAddressError,
+    MetisError, MetisErrorPublicKeyExists,
+    UnknownAliasError
+} from "../errors/metisError";
+import {axiosDefault} from "../config/axiosConf";
+const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 
+// metisGravityAccountProperties
+
+const mError = require(`../errors/metisError`);
+const {GravityAccountProperties, metisGravityAccountProperties, myTest} = require('../gravity/gravityAccountProperties');
+const {jupiterAPIService} = require('./jupiterAPIService');
+const {tableService} = require('./tableService');
+const {jupiterTransactionsService} = require('./jupiterTransactionsService');
+const logger = require('../utils/logger')(module);
+const bcrypt = require('bcrypt-nodejs');
 
 class JupiterAccountService {
+    constructor(jupiterAPIService, applicationProperties, tableService, jupiterTransactionsService, gravityService, transactionUtils) {
+        if (!jupiterAPIService) {
+            throw new Error('missing jupiterAPIService');
+        }
+        if (!applicationProperties) {
+            throw new Error('missing applicationProperties');
+        }
+        if (!tableService) {
+            throw new Error('missing tableService');
+        }
+        if (!jupiterTransactionsService) {
+            throw new Error('missing jupiterTransactionsService');
+        }
 
-    constructor(jupiterAPIService, applicationProperties, tableService, jupiterTransactionsService) {
         this.jupiterAPIService = jupiterAPIService;
         this.applicationProperties = applicationProperties;
         this.tableService = tableService;
         this.jupiterTransactionsService = jupiterTransactionsService;
+        this.gravityService = gravityService;
+        this.transactionUtils = transactionUtils;
     }
 
-
-    // async checkIfAccountIsRegistered(accountProperties){
-    //     return new Promise( (resolve, reject) => {
-    //         return resolve(false)
-    //     })
+    /**
+     *
+     * @param accountProperties
+     * @param metisUsersTableProperties
+     * @return {Promise<{data: *, transactionsReport: [{name: string, id: *}]}>}
+     */
+    // addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties) {
+    //     logger.verbose('###########################################################################');
+    //     logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
+    //     logger.verbose('##');
+    //     if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('accountProperties is not valid')}
+    //     if(!(metisUsersTableProperties instanceof GravityAccountProperties)){throw new Error('metisUsersTableProperties is not valid')}
+    //     logger.verbose(`  accountProperties.address= ${accountProperties.address}`);
+    //     logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`);
+    //
+    //     return this.generateId(accountProperties, metisUsersTableProperties)
+    //         .then(async (transactionId) => {
+    //             logger.verbose('---------------------------------------------------------------------------------');
+    //             logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
+    //             logger.verbose('--');
+    //             const tag = `${userConfig.metisUserRecord}.${accountProperties.address}`;
+    //             const userRecord = accountProperties.generateUserRecord(transactionId);
+    //             const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord);
+    //
+    //             return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+    //                 metisUsersTableProperties.passphrase,
+    //                 accountProperties.address,
+    //                 encryptedUserRecord,
+    //                 tag,
+    //                 FeeManager.feeTypes.account_record,
+    //                 accountProperties.publicKey
+    //             )
+    //                 .then(response => {
+    //                     return {
+    //                         data: response,
+    //                         transactionsReport: [{name: 'users-table-record', id: response.transaction}]
+    //                     }
+    //                 })
+    //         });
     // }
 
-
-
-
-    async addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties){
-        logger.verbose('###########################################################################');
-        logger.verbose('## addRecordToMetisUsersTable(accountProperties, metisUsersTableProperties)');
-        logger.verbose('##');
-        logger.verbose(`  accountProperties.address= ${accountProperties.address}`)
-        logger.verbose(`  metisUsersTableProperties.address= ${metisUsersTableProperties.address}`)
-        logger.verbose(`  metisUsersTableProperties.publicKey= ${metisUsersTableProperties.publicKey}`)
-
-        return new Promise((resolve, reject) => {
-            this.generateId(accountProperties, metisUsersTableProperties)
-                .then(transactionId =>{
-                    logger.verbose('---------------------------------------------------------------------------------');
-                    logger.verbose(`--- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId})`);
-                    logger.verbose('--');
-                    logger.debug(`transactionId= ${transactionId}`)
-                    const userRecord = accountProperties.generateUserRecord(transactionId);
-                    logger.debug(`userRecord.account=`)
-                    logger.debug(`metisUsersTableProperties.crypto = ${JSON.stringify(metisUsersTableProperties.crypto)}`);
-                    const encryptedUserRecord = metisUsersTableProperties.crypto.encryptJson(userRecord)
-                    logger.debug(`encryptedUserRecord= ${encryptedUserRecord}`)
-                    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
-                    const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
-                    this.jupiterAPIService.sendSimpleEncipheredMetisMessage(metisUsersTableProperties, accountProperties, encryptedUserRecord,fee, subtype)
-                        .then(response => {
-                            logger.verbose('---------------------------------------------------------------------------------');
-                            logger.verbose(`-- addRecordToMetisUsersTable()generateId().then(transactionId= ${transactionId}).sendSimpleEncipheredMetisMessage().then(response)`);
-                            logger.verbose('--');
-                            return resolve({data: response.data , transactionsReport: [{name: 'users-table-record', id: response.data.transaction}]});
-                        })
-                })
+    /**
+     *
+     * @param userAccountProperties
+     * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
+     */
+    async addUserRecordToUserAccount(userAccountProperties) {
+        const tag = `${userConfig.userRecord}.${userAccountProperties.address}`;
+        const createdDate = Date.now();
+        const userRecord = {
+            recordType: 'userRecord',
+            password: userAccountProperties.password,
+            email: userAccountProperties.email,
+            firstName: userAccountProperties.firstName,
+            lastName: userAccountProperties.lastName,
+            status: 'active',
+            createdAt: createdDate,
+            updatedAt: createdDate,
+            version: 1
+        };
+        const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
+        return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+            userAccountProperties.passphrase,
+            userAccountProperties.address,
+            encryptedUserRecord,
+            tag,
+            FeeManager.feeTypes.account_record,
+            userAccountProperties.publicKey
+        ).then(response => {
+            return response.transactionJSON;
         })
     }
 
-
     /**
-     * // callUrl = `${gravity.jupiter_data.server}/nxt?
-     // requestType=sendMessage
-     // &secretPhrase=${metisUsersTableProperties.passphrase}
-     // &recipient=${metisUsersTableProperties.address}
-     // &messageToEncrypt=${'Generating Id for record'}
-     // &feeNQT=${100}
-     // &deadline=${gravity.jupiter_data.deadline}
-     // &recipientPublicKey=${metisUsersTableProperties.publicKey}
-     // &compressMessageToEncrypt=true
-     // &encryptedMessageIsPrunable=true`;
+     *
      * @param accountProperties
      * @param metisUsersTableProperties
      * @returns {Promise<unknown>}
      */
     async generateId(accountProperties, metisUsersTableProperties) {
-        logger.verbose('###########################################');
-        logger.verbose('## generateId()');
-        logger.verbose('###########################################');
+        logger.verbose('### generateId()');
         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
 
-
-
         return new Promise((resolve, reject) => {
-            this.jupiterAPIService.sendSimpleNonEncipheredMetisMessage(
-                metisUsersTableProperties,
-                accountProperties,
-                'Generating Id for record',
-                fee,
-                subtype,
-                false
-                )
-                .then(response => {
+            this.jupiterAPIService
+                .sendSimpleNonEncipheredMetisMessage(metisUsersTableProperties, accountProperties, 'Generating Id for record', fee, subtype, false)
+                .then((response) => {
                     return resolve(response.data.transaction);
                 })
-                .catch( error => {
+                .catch((error) => {
                     return reject(error);
-                })
+                });
         });
     }
 
     /**
+     * @example {"unconfirmedBalanceNQT": "4999920","accountRS": "JUP-BSFE-VJKA-7HSM-DK2HZ","forgedBalanceNQT": "0",
+     * "balanceNQT": "4999920","publicKey": "8e545ea2919fb3ec68879ac3afed497ae4d28e8441002175a7595456a8a4a62c",
+     * "requestProcessingTime": 6372,"account": "13815937394035450284"}
      *
-     * @returns {JupiterAccountService}
+     * @param address
+     * @returns {Promise<{unconfirmedBalanceNQT,accountRS,forgedBalanceNQT,balanceNQT,publicKey, requestProcessingTime, account}>}
      */
-    // getUserAccountService(){
-    //     const userAccountService = this.getAccountService('user');
-    //     return userAccountService;
-    // }
+    async fetchAccountOrNull(address) {
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address`)
 
-    /**
-     *
-     * @param {string} name
-     * @returns {JupiterAccountService}
-     */
-    // getAccountService(name){
-    //     if(!this.accountServiceExists(name)){
-    //         throw new Error(`No Account Services exists with name: ${name}`);
-    //     }
-    //     const accountServices = this.accountServices.filter( accountService => accountService.name == name );
-    //     return accountServices[0];
-    // }
-
-    // fetchAccountTables(accountProperties){
-    //     return new Promise((resolve, reject) => {
-    //
-    //         this.retrieveUserAccountPayload()
-    //             .then((response) => {
-    //                 logger.verbose('getUserAccount().retrieveUserAccountPayload().then()');
-    //                 if (response.databaseFound && !response.userNeedsSave) {
-    //                     return resolve(response);
-    //                 } else if (response.userRecord) {
-    //                     const currentDatabase = this.tableBreakdown(response.tables);
-    //                     return resolve(response.tables);
-    //                 }
-    //                 // logger.debug(`response: ${JSON.stringify(response)}`);
-    //                 // logger.debug('retrieveUserFromApp().before()');
-    //                 this.retrieveAccountFromApp(
-    //                     userAccountService.gravityAccountProperties.address,
-    //                     userAccountService.gravityAccountProperties.passphrase
-    //                 )
-    //                     .then((res) => {
-    //                         logger.verbose('getAccount().retrieveApplicationAccountPayload().then().retrieveAccountFromApp.then()')
-    //                         res.noUserTables = response.noUserTables;
-    //                         res.databaseFound = response.databaseFound;
-    //                         res.database = response.database;
-    //                         res.userNeedsSave = response.userNeedsSave;
-    //                         res.tables = response.tables;
-    //                         logger.debug(res);
-    //                         return resolve(res);
-    //                     })
-    //                     .catch((error) => {
-    //                         const errorMessage = `getUserAccount().retrieveUserAccountPayload().then().retrieveAccountFromApp().catch() > Error: ${error}`;
-    //                         logger.error(errorMessage);
-    //                         return reject(error);
-    //                     });
-    //
-    //             })
-    //             .catch(error => {
-    //                 const errorMessage = `getAccount() error: ${error}`;
-    //                 logger.error(errorMessage);
-    //                 reject(error);
-    //             });
-    //     });
-    // }
-
-    /**
-     *
-     * @returns {Promise<{recordsFound,database,tables,user,databaseFound,userNeedsSave}>} - {recordsFound,database,tables,user,databaseFound,userNeedsSave}
-     */
-    // retrieveUserAccountPayload() {
-    //     logger.verbose('retrieveUserAccountPayload()');
-    //     const userAccountService = this.getUserAccountService();
-    //
-    //     return new Promise((resolve, reject) => {
-    //         this.getUserAccountData()
-    //             .then( userAccountData => { // { numberOfRecords,success,app: {tables,appData:{name,address,description}, address}, message, tables: {}, hasUserTable,userRecord }
-    //                 logger.verbose(`retrieveUserAccountPayload().getUserAccountData().then()`);
-    //                 logger.debug(JSON.stringify(userAccountData));
-    //                 let appTables = userAccountData.app.tables;
-    //                 let tables = userAccountData.tables;
-    //                 let userRecord = userAccountData.userRecord;
-    //                 if (!userAccountData.hasUserTable) {
-    //                     // {tableList, success, noUserTables, tables, userRecord}
-    //                     return resolve({
-    //                         tableList: tables,
-    //                         success: false,
-    //                         noUserTables: true,
-    //                         tables: appTables,
-    //                         userRecord: userRecord,
-    //                     });
-    //                 }
-    //
-    //                 let recordTable = this.gravityTablesService.extractUsersTableFromAppTables(appTables);
-    //                 logger.verbose(`TOTAL recordTable: ${recordTable.length}`);
-    //                 if (recordTable === null) {
-    //                     logger.debug(`No Record Table Found.`);
-    //                     return resolve(`No Record Table Found.`);
-    //                 }
-    //
-    //                 logger.debug(`recordTable: ${recordTable}`)
-    //                 this.jupiterApi.getBlockChainMessageTransactions(recordTable.address)
-    //                     .then((blockChainMessageTransactions) => {
-    //                         logger.verbose(`retrieveApplicationAccountPayload().getUserAccountData().getBlockChainMessageTransactions().then()`);
-    //                         const messageTransactions = userAccountService.transactions.filterMessageTransactionsByRecipientOrSender(blockChainMessageTransactions);
-    //                         const messageTransactionIds = userAccountService.transactions.extractTransactionIds(messageTransactions);
-    //                         logger.error(`this needs to get fixed!  ${recordTable}`);
-    //                         userAccountService.readMessagesFromMessageTransactionIdsAndDecrypt(messageTransactionIds, crypto, passphrase)
-    //                             .then(messages => {
-    //                                 logger.verbose(`getAppAccountData().then().getBlockChainMessageTransactions().then().readMessagesFromMessageTransactionIds().then()`);
-    //                                 logger.error(`Not sure which account to use for decruption+`);
-    //                                 const decryptedMessages = userAccountService.messages.decryptMessages(
-    //                                     messages,
-    //                                     this.appJupiterAccountService.crypto
-    //                                 );
-    //                                 return resolve({
-    //                                     recordsFound: 1,
-    //                                     database: appTables,
-    //                                     tables: undefined,
-    //                                     user: decryptedMessages[0].user_record,
-    //                                     databaseFound: true,
-    //                                     userNeedsSave: false,
-    //                                 });
-    //
-    //
-    //                                 //no user record found
-    //                                 // resolve({
-    //                                 //   userRecord,
-    //                                 //   tableList,
-    //                                 //   noUserTables: false,
-    //                                 //   tables: database,
-    //                                 //   databaseFound: true,
-    //                                 //   userNeedsSave: true,
-    //                                 // });
-    //
-    //
-    //                             })
-    //                             .catch(error => {
-    //                                 logger.error(`Error with Reading Messages: ${error}`);
-    //                                 reject(`Error with Reading Messages: ${error}`);
-    //                             })
-    //                     })
-    //                     .catch(error => {
-    //                         const errorMessage = `getBlockChainMessageTransactions().catch() ${error}`;
-    //                         logger.error(errorMessage);
-    //                         reject(errorMessage);
-    //                     })
-    //             })
-    //             .catch((error) => {
-    //                 const errorMessage = `retrieveAccountFromPassphrase() getAppAccountData().catch() ${error}`
-    //                 logger.error(errorMessage);
-    //                 reject(errorMessage);
-    //             });
-    //     });
-    // }
-
-
-
-
-    /**
-     *
-     * @returns { numberOfRecords,success,app: {tables,appData:{name,address,description}, address}, message, tables: {}, hasUserTable,userRecord }
-     */
-    // getUserAccountData(accountProperties) { // ie gravity.loadAppData
-    //     logger.verbose('getUserAccountData()');
-    //     return new Promise((resolve, reject) => {
-    //         this.getAccountData(accountProperties)
-    //             .then( response => resolve(response))
-    //             .catch( error => reject(error));
-    //     })
-    // }
-
-
-//
-//     return new Promise((resolve, reject) => {
-//     this.jupiterTransactionsService.fetchMessages(accountProperties)  //gravity.getRecords()
-// .then((transactionMessages) => {
-//     logger.verbose('---------------------------------------------------------------------------------------');
-//     logger.verbose(`fetchAttachedTables().fetchMessages().then(transactionMessages)`);
-//     logger.verbose('---------------------------------------------------------------------------------------');
-//     logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
-//
-//     // const tableProperties = this.tableService.extractTablePropertiesFromMessages('users' ,transactionMessages);
-//     // logger.verbose(`TOTAL tableProperties: ${tableProperties.length}`);
-//
-// const attachedTables = this.extractTablesFromMessages(transactionMessages);
-// logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
-//
-//     // let tableList = this.tableService.extractTableListFromRecords(records);
-//     // logger.verbose(`TOTAL tableList: ${tableList.length}`);
-//     // tableList = this.gravityObjectMapper.sortByDate(tableList);
-//
-//     // const currentList = this.gravityTablesService.extractCurrentListFromTableList(tableList);
-//     // logger.verbose(`TOTAL currentList: ${currentList.length}`);
-//     // const tableData = this.tableService.extractTableData(currentList, attachedTables);
-//     // logger.verbose(`TOTAL tableData: ${tableData.length}`);
-//
-//     // let accountDataContainer = this.this.getAccountDataContainer()();
-//     // accountDataContainer.numberOfRecords = recordsFound;
-//     // accountDataContainer.tableNames = currentList;
-//     // accountDataContainer.tableData = tableData;
-//     // accountDataContainer.accountRecord = tableProperties;
-//     // accountDataContainer.accountProperties = accountProperties;
-//
-// return resolve(attachedTables);
-// })
-// .catch((error) => {
-// logger.error(`fetchMessagesContainer.catch() ${error}`);
-// reject({success: false, error: 'There was an error loading records'});
-// });
-// });
-
-
-// {
-//     "errorDescription": "Unknown account",
-//     "accountRS": "JUP-TD3N-4NEY-65QL-BYZC5",
-//     "errorCode": 5,
-//     "account": "10496762723099782196"
-// }
-//
-
-// {
-//     "errorDescription": "Incorrect \"account\"",
-//     "errorCode": 4
-// }
-    async getAccountOrNull(address){
-        return this.jupiterAPIService.getAccount(address)
-            .then(response=> {
-                return response;
+        return this.jupiterAPIService
+            .getAccount(address)
+            .then((response) => {
+                return response.data;
             })
-            .catch( error => {
-                if(error === 'Unknown account'){
-                    return null
+            .catch((error) => {
+                if (error === 'Unknown account') {
+                    return null;
                 }
-                if(error === 'Incorrect \\"account\\"' ){
-                    return null
+                if (error === 'Incorrect \\"account\\"') {
+                    return null;
                 }
 
                 throw error;
-            })
+            });
     }
 
 
-    /**
-     *
-     * @param passphrase
-     * @returns {Promise<{accountRS,publicKey, requestProcessingTime, account }>}
-     */
-    async getAccountId(passphrase){
-        return this.jupiterAPIService.getAccountId(passphrase)
-            .then(response=> {
-                return response;
-            })
-    }
 
     /**
      *
@@ -362,266 +182,877 @@ class JupiterAccountService {
      * @param statementId
      * @param accountType
      * @param params
-     * @returns {Promise<{Promise<{ GravityAccountProperties, balance, records,  attachedTables: [tableStatement]}>}
+     * @returns {Promise<{GravityAccountProperties, balance, records,  attachedTables: []}>}
      */
-    async fetchAccountStatement( address, passphrase, password, statementId = '', accountType, params = {}) {
-        logger.verbose('#####################################################################################');
-        logger.verbose(`## fetchAccountStatement(address=${address}, passphrase, password, statementId=${statementId}, accountType=${accountType})`);
-        logger.verbose('##');
-        return new Promise( async (resolve, reject) => {
-            const properties = new GravityAccountProperties(address,'','',passphrase,'',password);
+    async fetchAccountStatement(passphrase, password, statementId = '', accountType = '', params = {}) {
+        logger.verbose(`#### fetchAccountStatement(passphrase, password, statementId=${statementId}, accountType=${accountType})`);
+        if (!gu.isWellFormedPassphrase(passphrase)) {throw new Error('problem with passphrase')}
+        if(!gu.isNonEmptyString(password)){throw new Error('password is not valid')}
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+        logger.sensitive(`passphrase=${passphrase}`);
+        logger.sensitive(`password=${JSON.stringify(password)}`);
+        logger.sensitive(`statementId=${JSON.stringify(statementId)}`);
+        logger.sensitive(`accountType=${JSON.stringify(accountType)}`);
+        logger.sensitive(`params=${JSON.stringify(params)}`);
+        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
 
-            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllBlockChainTransactions(address)
-            const promises = []
-            promises.push(this.getAccountOrNull(address))
-            promises.push(this.getAccountId(passphrase))
-            // async getAllMessagesFromBlockChain(accountProperties, blockChainTransactions,  decipherWith=null){
-            promises.push(this.jupiterTransactionsService.getAllMessagesFromBlockChain(properties, allBlockChainTransactions))
-            // promises.push(this.jupiterTransactionsService.fetchAllMessagesBySender(properties))
+        try {
+            const accountProperties = await instantiateGravityAccountProperties(passphrase, password);
+            logger.sensitive(`address= ${accountProperties.address}`);
+            const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(accountProperties.address);
+            logger.sensitive(`allBlockChainTransactions.length= ${allBlockChainTransactions.length}`);
+            const promises = [];
+            promises.push(this.fetchAccountOrNull(accountProperties.address));
+            promises.push(this.jupiterTransactionsService.messageService.extractMessagesBySender(accountProperties, allBlockChainTransactions));
+            const [account, _transactionMessages] = await Promise.all(promises);
+            const transactionMessages = _transactionMessages.map((message) => message.message);
+            logger.sensitive(`transactionMessages.length= ${transactionMessages.length}`);
+            let accountBalance = null;
+            let accountUnconfirmedBalance = null;
+            if (account && account.data) {
+                accountProperties.accountId = account.data.account;
+                accountBalance = account.data.balanceNQT;
+                accountUnconfirmedBalance = account.data.unconfirmedBalanceNQT;
+            }
+            const records = this.tableService.extractRecordsFromMessages(transactionMessages);
+            logger.sensitive(`records.length= ${records.length}`);
+            const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
+            logger.sensitive(`attachedTablesProperties.length= ${attachedTablesProperties.length}`);
+            const attachedTablesStatementsPromises = [];
+            for (let i = 0; i < attachedTablesProperties.length; i++) {
+                const tableAccountProperties = attachedTablesProperties[i];
+                // console.log(tableAccountProperties);
+                attachedTablesStatementsPromises.push(
+                    this.fetchAccountStatement(tableAccountProperties.passphrase, password, `table-${tableAccountProperties.name}`, 'table', {
+                        tableName: tableAccountProperties.name,
+                    })
+                );
+            }
+            const attachedTablesStatements = await Promise.all(attachedTablesStatementsPromises);
+            logger.debug(`statementId= ${statementId}`);
+            logger.debug(`attachedTables.length= ${attachedTablesStatements.length}`);
 
-            promises.push(this.jupiterAPIService.getAliases(address))
+            const statement = {
+                statementId: statementId,
+                properties: accountProperties,
+                balance: accountBalance,
+                unconfirmedBalance: accountUnconfirmedBalance,
+                records: records,
+                messages: transactionMessages,
+                attachedTables: attachedTablesStatements,
+                blockchainTransactionCount: allBlockChainTransactions.length,
+                transactions: allBlockChainTransactions,
+            };
 
-            Promise.all(promises)
-                .then( results => {
-                logger.verbose('---------------------------------------------------------------------------');
-                logger.verbose(`-- fetchAccountStatement().promise.all().then()`);
-                logger.verbose('--');
-
-                const [account, getAccountIdResponse, transactionMessages, aliases] = results
-                properties.publicKey = getAccountIdResponse.publicKey
-                let accountBalance = null;
-                let accountUnconfirmedBalance = null;
-
-
-                // console.log('## ###### #');
-                // console.log(account.data);
-
-
-                if(account && account.data){
-                    properties.accountId = account.data.account;
-                    accountBalance = account.data.balanceNQT;
-                    accountUnconfirmedBalance = account.data.unconfirmedBalanceNQT;
-                }
-
-                const records = this.tableService.extractRecordsFromMessages(transactionMessages);
-
-                aliases.forEach( aliasInfo => {
-                    properties.addAlias(aliasInfo);
-                }  )
-
-                const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
-                const attachedTablesStatementsPromises = []
-                for( let i = 0; i < attachedTablesProperties.length; i++  ){
-                    const tableAccountProperties = attachedTablesProperties[i];
-                    attachedTablesStatementsPromises.push(this.fetchAccountStatement(
-                        tableAccountProperties.address,
-                        tableAccountProperties.passphrase,
-                        password,
-                        `table-${tableAccountProperties.name}`,
-                        'table',
-                        {tableName: tableAccountProperties.name}))
-                }
-
-                Promise.all(attachedTablesStatementsPromises).then( attachedTablesStatements => {
-                    // logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
-                    const statement = {
-                        statementId: statementId,
-                        properties: properties,
-                        balance: accountBalance,
-                        unconfirmedBalance: accountUnconfirmedBalance,
-                        records: records,
-                        messages: transactionMessages,
-                        attachedTables: attachedTablesStatements,
-                        blockchainTransactionCount: allBlockChainTransactions.length
-                    }
-
-                    if(accountType === 'table'){
-                        statement.tableName = params.tableName
-                    }
-
-                    return resolve(statement)
-                })
-            })
-                .catch( error => {
-                    logger.error('*******************************************************************')
-                    logger.error(`** fetchAccountStatement(address=${address}, statemetnId=${statementId})`)
-                    logger.error('**')
-                    reject(error);
-                })
-        })
+            if (accountType === 'table') {
+                statement.tableName = params.tableName;
+            }
+            return statement;
+        }catch (error){
+                logger.sensitive('*****************************ERROR**************************************');
+                logger.sensitive(`** fetchAccountStatement( passphrase, password, statementId = '', accountType, params = {})`);
+                logger.sensitive(`** passphrase= ${passphrase} `);
+                logger.sensitive(`** password= ${password} `);
+                logger.sensitive(`** statementId= ${statementId} `);
+                throw(error);
+        }
     }
 
+    /**
+     *
+     * @param accountProperties
+     * @return {Promise<{allRecords: *, accountProperties, allMessages: *, attachedTables: *[]}>}
+     */
+    async fetchAccountData(accountProperties) {
+        logger.verbose(`#### fetchAccountData(accountProperties): accountProperties.address=${accountProperties.address}`);
+        const transactionMessagesContainers = await this.jupiterTransactionsService.fetchAllMessagesBySender(accountProperties);
+        const transactionMessages = transactionMessagesContainers.map((messageContainer) => messageContainer.message);
+        const attachedTables = this.tableService.extractTablesFromMessages(transactionMessages);
+        logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
+        const records = this.tableService.extractRecordsFromMessages(transactionMessages);
+        const accountInformationResponse = await this.fetchAccountInfo(accountProperties.passphrase);
+        accountProperties.publicKey = accountInformationResponse.publicKey;
+        return {
+            attachedTables: attachedTables,
+            allMessages: transactionMessagesContainers,
+            allRecords: records,
+            accountProperties: accountProperties,
+        };
+    }
 
-    fetchAccountData(accountProperties) {
-        logger.verbose('#####################################################################################');
-        logger.verbose('## fetchAccountData(accountProperties)');
-        logger.verbose('##');
-        return new Promise((resolve, reject) => {
+    /**
+     * Retrieves all public keys associated to an address
+     * @param {GravityAccountProperties} accountProperties
+     * @returns {Promise<unknown>}
+     */
+    async getPublicKeysFromUserAccount(accountProperties) {
+        logger.verbose(`#### getPublicKeysFromUserAccount(accountProperties)`);
+        // logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
+        if(!(accountProperties instanceof GravityAccountProperties)){throw new Error('invalid accountProperties')}
+        try {
+            const publicKeyContainers = await this.jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(accountProperties, userConfig.userPublicKeyList);
+            return publicKeyContainers.map(pkc => {
+                const {e2ePublicKey} = pkc.message;
+                if(!gu.isWellFormedE2EPublicKey(e2ePublicKey)){
+                    throw new mError.MetisErrorBadJupiterPublicKey(e2ePublicKey);
+                }
+                return e2ePublicKey;
+            });
+            // return  await this.gravityService.getLatestListByTag(accountProperties, userConfig.userPublicKeyList);
+        } catch (error) {
+            error.message = `getPublicKeysFromUserAccount: ${error.message}`;
+            logger.error(`${error}`);
+            throw error;
+        }
+    }
 
-            this.jupiterTransactionsService.fetchAllMessagesBySender(accountProperties)
-                .then((transactionMessages) => {
-                    logger.verbose('---------------------------------------------------------------------------------------');
-                    logger.verbose(`fetchAccountData().fetchAllMessagesBySender().then(transactionMessages)`);
-                    logger.verbose('---------------------------------------------------------------------------------------');
-                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
-                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+    // async getPublicKeysFromChannelAccount(accountProperties) {
+    //     try {
+    //         const transactions = await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(accountProperties.address, channelConfig.channelMemberPublicKeyList);
+    //         const [latestTransaction] = transactions;
+    //
+    //         if(!latestTransaction){
+    //             return [];
+    //         }
+    //
+    //         const message = await jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+    //             latestTransaction.transaction,
+    //             accountProperties.crypto,
+    //             accountProperties.passphrase
+    //         );
+    //
+    //         if(!gu.isWellFormedJupiterTransactionId(message.message)){throw new Error('transactionId invalid')};
+    //         const publicKeyIds = await jupiterTransactionsService.messageService.readMessagesFromMessageTransactionIdsAndDecryptOrPassThroughAndReturnMessageContainers(
+    //             message.message,
+    //             accountProperties.crypto,
+    //             accountProperties.passphrase
+    //         );
+    //
+    //         return publicKeyIds.map((pk) => pk.message);
+    //     } catch (error) {
+    //         logger.error('######### getPublicKeysFromChannelAccount ########')
+    //         logger.error(`${error}`);
+    //     }
+    // }
 
 
-                    const attachedTables = this.tableService.extractTablesFromMessages(transactionMessages);
-                    logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
-                    // logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
+
+    // async updateAllMemberChannelsWithNewE2EPublicKey(memberProperties, publicKey) {
+    //     try {
+    //         const memberChannels = await this.getMemberChannels(memberProperties);
+    //
+    //         memberChannels.map(async ({passphrase, password}) => {
+    //             const properties = await instantiateGravityAccountProperties(passphrase, password);
+    //             await this.addPublicKeyToChannelOrNull(publicKey, memberProperties.address, properties);
+    //         });
+    //
+    //     } catch (error) {
+    //         logger.error(`ERROR: [updateAllMemberChannelsWithNewE2EPublicKey]: ${JSON.stringify(error)}`);
+    //         throw error;
+    //     }
+    // }
 
 
-                    const records = this.tableService.extractRecordsFromMessages(transactionMessages);
 
-                    this.jupiterAPIService.getAccountInformation(accountProperties.passphrase)
-                        .then(accountInformationResponse => {
-                            accountProperties.publicKey = accountInformationResponse.publicKey;
-                            resolve({
-                                attachedTables: attachedTables,
-                                allMessages: transactionMessages,
-                                allRecords: records,
-                                accountProperties: accountProperties
-                            })
-                        })
-                        .catch(error => {
-                            reject(error);
-                        })
-                })
-                .catch(error => {
-                    reject(error);
-                })
-        });
+    /**
+     *
+     * @param {GravityAccountProperties} gravityAccountProperties
+     * @param {string} tag
+     */
+    // async getPublicKeyTransactionsList(gravityAccountProperties, tag) {
+    //     logger.verbose(`#### getPublicKeyTransactionsList(gravityAccountProperties, tag)`);
+    //     if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`)
+    //     if(!tag) throw new mError.MetisError(`tag is invalid`)
+    //     try {
+    //         const transactions = await jupiterTransactionsService.fetchConfirmedBlockChainTransactionsByTag(gravityAccountProperties.address, tag);
+    //         const latestTransaction = this.transactionUtils.extractLatestTransaction(transactions);
+    //         // const [latestList] = await jupiterTransactionsService.fetchConfirmedBlockChainTransactionsByTag(gravityAccountProperties.address, tag);
+    //         return jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+    //             latestTransaction.transaction,
+    //             gravityAccountProperties.crypto,
+    //             gravityAccountProperties.passphrase
+    //         );
+    //     } catch (error) {
+    //         console.log('\n')
+    //         logger.error(`************************* ERROR ***************************************`);
+    //         logger.error(`* ** getPublicKeyTransactionsList(gravityAccountProperties, tag).catch(error)`);
+    //         logger.error(`************************* ERROR ***************************************\n`);
+    //         logger.error(`error= ${error}`)
+    //         throw error;
+    //
+    //     }
+    // }
+
+
+    // async addPublicKeyToChannelOrNull(userPublicKey, userAddress, channelAccountProperties){
+    //     try {
+    //         return this.addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties);
+    //     } catch (error){
+    //         logger.error(`ERROR: [addPublicKeyToChannelOrNull]: ${JSON.stringify(error)}`);
+    //         return null;
+    //     }
+    // }
+
+    // /**
+    //  *
+    //  * @param userPublicKey
+    //  * @param userAddress
+    //  * @param {GravityAccountProperties} channelAccountProperties
+    //  */
+    // async addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties) {
+    //     logger.verbose(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
+    //     try {
+    //         if(channelAccountProperties.isMinimumProperties){
+    //             await refreshGravityAccountProperties(channelAccountProperties);
+    //         }
+    //         const hasPublicKey = await this.hasPublicKeyInChannelAccount(userPublicKey, channelAccountProperties)
+    //         if (hasPublicKey) {
+    //             // TODO create an error business handler
+    //             const error = new Error();
+    //             error.code = 'PUBLIC-KEY_EXIST';
+    //             error.message = 'Public key already exists';
+    //             throw error;
+    //         }
+    //         const newUserChannel = {
+    //             userAddress,
+    //             userPublicKey,
+    //             date: Date.now()
+    //         };
+    //         logger.sensitive(`newUserChannel=${JSON.stringify(newUserChannel)}`);
+    //         const encryptedMessage = channelAccountProperties.crypto.encrypt(JSON.stringify(newUserChannel));
+    //         const checksumPublicKey = gu.generateChecksum(userPublicKey);
+    //         const channelUserTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
+    //         const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.account_record);
+    //         const {subtype} = feeManagerSingleton.getTransactionTypeAndSubType(FeeManager.feeTypes.account_record); //{type:1, subtype:12}
+    //         if (channelAccountProperties.isMinimumProperties) {
+    //             await refreshGravityAccountProperties(channelAccountProperties);
+    //         }
+    //         const newUserTransactionResponse = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+    //             channelAccountProperties.passphrase,
+    //             channelAccountProperties.address,
+    //             encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];
+    //             channelUserTag, // message: 'v1.metis.channel.public-key.JupAccount.checksum'
+    //             fee,
+    //             subtype,
+    //             false,
+    //             channelAccountProperties.publicKey
+    //         );
+    //         const latestPublicKeyTransactionsList = await this.getPublicKeyTransactionsList(channelAccountProperties, channelConfig.channelMemberPublicKeyList);
+    //         latestPublicKeyTransactionsList.push(newUserTransactionResponse.transaction);
+    //         const encryptedPublicKeyTransactionList = channelAccountProperties.crypto.encryptJson(latestPublicKeyTransactionsList);
+    //         const publicKeyList = await jupiterAPIService.sendEncipheredMetisMessageAndMessage(
+    //             channelAccountProperties.passphrase,
+    //             channelAccountProperties.address,
+    //             encryptedPublicKeyTransactionList,
+    //             channelConfig.channelMemberPublicKeyList,
+    //             fee,
+    //             subtype,
+    //             false,
+    //             channelAccountProperties.publicKey
+    //         );
+    //     } catch (error) {
+    //         logger.error(`**** functionName.catch(error)`);
+    //         logger.error(`** - error= ${error}`)
+    //         throw error;
+    //     }
+    // }
+
+    /**
+     *
+     * @param e2ePublicKey
+     * @param gravityAccountProperties
+     * @param userAddress
+     * @param userAlias
+     * @param accountType
+     * @return {Promise<void>}
+     */
+    async addE2EPublicKeyToJupiterAccount(e2ePublicKey, gravityAccountProperties, userAddress = null , userAlias = '', accountType = 'UserAccount') {
+        logger.verbose(`#### addE2EPublicKeyToJupiterAccount(publicKey, gravityAccountProperties, accountType)`);
+        if(!gu.isWellFormedE2EPublicKey(e2ePublicKey)) throw new mError.MetisErrorBadJupiterPublicKey(`publicKey: ${e2ePublicKey}`);
+        if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`);
+        if(!(accountType === 'UserAccount' || accountType === 'ChannelAccount')) throw new mError.MetisError(`invalid accountType: ${accountType}`)
+
+        try {
+            const checksumPublicKey = gu.generateChecksum(e2ePublicKey);
+            let listTag = '';
+            let recordTag = '';
+            let payload = '';
+            if (accountType === 'UserAccount') {
+                listTag = userConfig.userPublicKeyList;
+                recordTag = `${userConfig.userPublicKey}.${checksumPublicKey}`;
+                payload = {
+                    recordType: 'e2eUserPublicKeyRecord',
+                    e2ePublicKey: e2ePublicKey,
+                    createdAt: Date.now(),
+                    version: 1,
+                }
+            } else {
+                if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(`userAddress: ${userAddress}`)
+                listTag = channelConfig.channelMemberPublicKeyList
+                recordTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
+                payload = {
+                    recordType: 'e2eChannelMemberPublicKeyRecord',
+                    memberAccountAddress: userAddress,
+                    memberAccountAlias: userAlias,
+                    e2ePublicKey: e2ePublicKey,
+                    createdAt: Date.now(),
+                    version: 1,
+                }
+            }
+            const latestE2EPublicKeysContainers = await this.jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(
+                gravityAccountProperties,
+                listTag
+            )
+            const latestUserE2EPublicKeys = latestE2EPublicKeysContainers.map(containers => containers.message);
+            const latestUserE2ETransactionIds = latestE2EPublicKeysContainers.map(containers => containers.transactionId);
+            if (latestUserE2EPublicKeys.some(pk => pk.e2ePublicKey === e2ePublicKey)) {
+                throw new mError.MetisErrorPublicKeyExists('', e2ePublicKey);
+            }
+            //Send A New PublicKey Transaction
+            const encryptedMessage = gravityAccountProperties.crypto.encryptJson(payload);
+            const userE2EPublicKeyResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+                gravityAccountProperties.passphrase,
+                gravityAccountProperties.address,
+                encryptedMessage,
+                recordTag,
+                FeeManager.feeTypes.account_record,
+                gravityAccountProperties.publicKey
+            );
+            //Update the PublicKeys List
+            latestUserE2ETransactionIds.push(userE2EPublicKeyResponse.transaction);
+            const encryptedLatestUserE2ETransactionIds = gravityAccountProperties.crypto.encryptJson(latestUserE2ETransactionIds);
+            await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+                gravityAccountProperties.passphrase,
+                gravityAccountProperties.address,
+                encryptedLatestUserE2ETransactionIds,
+                listTag,
+                FeeManager.feeTypes.account_record,
+                gravityAccountProperties.publicKey
+            );
+        } catch(error) {
+            if(error instanceof mError.MetisErrorPublicKeyExists){
+                logger.warn(`The PublicKey is already associated: ${e2ePublicKey}`);
+                throw error;
+            }
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** addE2EPublicKeyToJupiterAccount(publicKey, gravityAccountProperties, userAddress = null ,accountType = 'UserAccount').catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+
+            logger.error(`error= ${error}`);
+            throw error;
+        }
+    }
+
+    /**
+     *
+     * @param {string} publicKey
+     * @param {GravityAccountProperties} gravityAccountProperties
+     * @param {string} tag
+     * @returns {*}
+     */
+
+    // publicKeyMessages(publicKey, gravityAccountProperties, tag) {
+    //     return jupiterTransactionsService
+    //         .fetchConfirmedBlockChainTransactionsByTag(gravityAccountProperties.address, tag)
+    //         .then((transactions) => {
+    //             const [transactionId] = transactions;
+    //             sdf
+    //             return transactionId ? jupiterTransactionsService.messageService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+    //                 transactionId.transaction,
+    //                 gravityAccountProperties.crypto,
+    //                 gravityAccountProperties.passphrase
+    //             ) : [];
+    //         })
+    //         .then((publicKeyTransactionIds) => {
+    //             if (!Array.isArray(publicKeyTransactionIds) || publicKeyTransactionIds.length === 0) {
+    //                 return [];
+    //             }
+    //
+    //
+    //             logger.error('might need to do a map')
+    //             throw new Error('might need to do a map')
+    //
+    //
+    //
+    //             return jupiterTransactionsService.messageService.readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(
+    //                 publicKeyTransactionIds,
+    //                 gravityAccountProperties.crypto,
+    //                 gravityAccountProperties.passphrase
+    //             );
+    //         });
+    // }
+
+
+
+    // hasPublicKeyInUserAccount(publicKey, gravityAccountProperties) {
+    //     return this.publicKeyMessages(publicKey, gravityAccountProperties, userConfig.userPublicKeyList)
+    //         .then((userPublicKeyArray) => userPublicKeyArray.some((upk) => upk === publicKey));
+    // }
+
+    // /**
+    //  *  @description OBSOLETE!!!!
+    //  * @param channelAddress
+    //  * @param memberAccountProperties
+    //  */
+    // async getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties ){
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
+    //     logger.verbose(`## `);
+    //     if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
+    //     // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
+    //     logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
+    //     if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
+    //     const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
+    //     const channelAccountPropertiesArray = allMemberChannels.filter( channelAccountProperties => channelAccountProperties.address === channelAddress );
+    //     if(channelAccountPropertiesArray.length > 0){
+    //         return channelAccountPropertiesArray[0];
+    //     }
+    //
+    //     throw new Error('doesnt exist!')
+    // }
+    //
+    // /**
+    //  *
+    //  * @param channelAccountProperties
+    //  * @returns {Promise<[*]>}
+    //  */
+    // getChannelMembers(channelAccountProperties){
+    //     logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
+    //     if(!(channelAccountProperties instanceof GravityAccountProperties )){ throw new Error('channelAccountProperties is invalid')}
+    //     logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
+    //     const listTag = channelConfig.channelMemberList;
+    //     return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
+    //         .then( messageContainers  => {
+    //             console.log(`\n\n\n`);
+    //             console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //             console.log('messageContainers');
+    //             console.log(messageContainers);
+    //             console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
+    //             return messageContainers.map(messageContainer => messageContainer.message);
+    //         })
+    // }
+
+
+//     const [latestList] = await jupiterTransactionsService.fetchConfirmedBlockChainTransactionsByTag(gravityAccountProperties.address, tag);
+//     return await jupiterTransactionsService.getReadableMessageContainerFromMessageTransactionIdAndDecrypt(
+//         latestList.transaction,
+//     gravityAccountProperties.crypto,
+//     gravityAccountProperties.passphrase
+// );
+
+
+
+    // async getTableAccountProperties( tag, userAccountProperties){ //tableConfig.channelsTable
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getTableAccountProperties( tag, userAccountProperties)`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`tag=${JSON.stringify(tag)}`);
+    //
+    //     // const allBlockChainTransactions = await this.jupiterTransactionsService.getAllConfirmedAndUnconfirmedBlockChainTransactions(userAccountProperties.address);
+    //     // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
+    //     // const transactionMessages = messagesBySender.map((message) => message.message);
+    //     // const attachedTablesProperties = this.tableService.extractTablesFromMessages(transactionMessages);
+    //
+    //     const transactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAccountProperties.address, tag)
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //     console.log('transactions.length');
+    //     console.log(transactions.length);
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //
+    //     if(transactions.length === 0){ throw new Error('No Transactions/ValidMessages Found')}
+    //
+    //     const transactionIds = transactions.map(transaction=> transaction.transaction);
+    //
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //     console.log('transactionIds');
+    //     console.log(transactionIds);
+    //     console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //
+    //
+    //     //[{"message":{"channels":{"address":"JUP-GBN3-DL5H-GU9G-DB5H5","passphrase":"break felicity knee any distance replace witch twenty pen problem diamond surprise","public_key":"8b4a47a687a7061c540d17030489279721371600e2cf766da6d9b46bc7ad3547"}},"transactionId":"17261131886870606461"}]
+    //     const [message] = await this.jupiterTransactionsService.readMessagesFromMessageTransactionIdsAndDecryptAndReturnMessageContainer(transactionIds,userAccountProperties.crypto, userAccountProperties.passphrase)
+    //     if(!message){ throw new Error('No Transactions/ValidMessages Found')}
+    //
+    //     let tableName = null;
+    //     switch(tag){
+    //         case tableConfig.channelsTable: tableName='channels';break;
+    //     }
+    //
+    //
+    //
+    //     const properties = await GravityAccountProperties.instantiateBasicGravityAccountProperties(message.message[tableName].passphrase, message.message[tableName].password);
+    //
+    //
+    //     return properties;
+    //     // const messagesBySender = await this.jupiterTransactionsService.extractMessagesBySender(userAccountProperties, allBlockChainTransactions);
+    //
+    //
+    //     // const firstMemberAccountStatement = await this.fetchAccountStatement(userAccountProperties.passphrase, userAccountProperties.password);
+    //     // const  channelStatement = transactions.find(transaction => statement.statementId === 'table-channels');
+    //
+    //
+    //
+    //     // return channelStatement.properties;
+    // }
+
+    // /**
+    //  * example: {address, accountId, publicKey, passphrase}
+    //  * @param passphrase
+    //  * @returns {Promise<{address, accountId, publicKey, passphrase}>}
+    //  */
+    // getAccountIdOrNewAccount(passphrase) {
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getAccountIdOrNewAccount(passphrase)`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+    //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+    //
+    //     return jupiterAPIService.fetchAccountId(passphrase)
+    //         .then(accountIdResponse => {
+    //
+    //             if( !(accountIdResponse.data.hasOwnProperty('accountRS') &&  gu.isWellFormedJupiterAddress(accountIdResponse.data.accountRS))){
+    //                 throw new Error('theres a problem with fetchAccountId.accountRS')
+    //             }
+    //
+    //             if( !(accountIdResponse.data.hasOwnProperty('account') &&  gu.isWellFormedJupiterTransactionId(accountIdResponse.data.account))){
+    //                 throw new Error('theres a problem with fetchAccountId.account')
+    //             }
+    //
+    //             if( !(accountIdResponse.data.hasOwnProperty('publicKey') &&  gu.isWellFormedPublicKey(accountIdResponse.data.publicKey))){
+    //                 throw new Error('theres a problem with fetchAccountId.publicKey')
+    //             }
+    //
+    //
+    //             console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //             console.log('accountIdResponse.data');
+    //             console.log(accountIdResponse.data);
+    //             console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+    //
+    //
+    //             const accountInformation =  {
+    //                 address: accountIdResponse.data.accountRS,
+    //                 accountId: accountIdResponse.data.account,
+    //                 publicKey: accountIdResponse.data.publicKey,
+    //                 passphrase: passphrase
+    //             }
+    //             logger.sensitive(`accountInformation= ${JSON.stringify(accountInformation)}`);
+    //
+    //             return accountInformation
+    //         })
+    //         .catch( error => {
+    //             logger.error(`***********************************************************************************`);
+    //             logger.error(`** getAccountIdOrNewAccount().fetchAccountId()catch(error)`);
+    //             logger.error(`** `);
+    //             console.log(error);
+    //             throw error;
+    //         })
+    // }
+
+    /**
+     *
+     * @param {string} passphrase
+     * @returns {Promise<{accountRS,publicKey,requestProcessingTime, account }>}
+     */
+    // async fetchAccountId(passphrase) {
+    //     return this.jupiterAPIService.getAccountId(passphrase).then((response) => {
+    //         return response.data;
+    //     });
+    // }
+
+    /**
+     *
+     * @param {string} passphrase
+     * @returns {Promise<{address,accountId,publicKey,passphrase}>}
+     */
+    async fetchAccountInfo(passphrase) {
+        logger.verbose(`#### fetchAccountInfo(passphrase)`);
+        if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
+        return this.jupiterAPIService.getAccountId(passphrase)
+            .then(response => {
+                return {
+                            address: response.data.accountRS,
+                            accountId: response.data.account,
+                            publicKey: response.data.publicKey,
+                            passphrase: passphrase
+                        }
+            })
+            .catch( error => {
+                logger.error(`********************************************`)
+                logger.error('** fetchAccountInfo().fetchAccountId(passphrase).catch(error)')
+                logger.error(`********************************************`)
+                logger.error(`${error}`);
+                throw error
+            })
+    };
+
+    /**
+     * @todo this is a duplciate of fetchAccountInfo!
+     * @param passphrase
+     * @returns {Promise<{accountId: *, address: *, passphrase: *, publicKey: *}>}
+     */
+    // getAccountInformation(passphrase) {
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getAccountInformation(passphrase)`);
+    //     logger.verbose(`## `);
+    //     logger.sensitive(`passphrase=${JSON.stringify(passphrase)}`);
+    //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+    //
+    //     return jupiterAPIService.fetchAccountId(passphrase)
+    //         .then(accountIdResponse => {
+    //             if (!accountIdResponse) {
+    //                 throw new Error('theres a problem with fetchAccountId')
+    //             }
+    //
+    //             return {
+    //                 address: accountIdResponse.accountRS,
+    //                 accountId: accountIdResponse.account,
+    //                 publicKey: accountIdResponse.publicKey,
+    //                 passphrase: passphrase
+    //             }
+    //         })
+    // }
+
+
+    /**
+     * @todo this looks wrong! Please refactor and test.
+     *
+     * @param passphrase
+     * @returns {passphrase, unconfirmedBalanceNqt, accountId, address, forgedBalanceNqt, publicKey, balanceNqt}
+     */
+    // getAccountInformationUsingPassphrase(passphrase){
+    //     logger.verbose(`###################################################################################`);
+    //     logger.verbose(`## getAccountInformationUsingPassphrase(passphrase)`);
+    //     logger.verbose(`## `);
+    //     if(!gu.isWellFormedPassphrase(passphrase)){throw new Error(`Jupiter passphrase is not valid: ${passphrase}`)}
+    //     return this.getAccountIdOrNewAccount(passphrase)
+    //         .then(account => {
+    //             console.log('** $$ ** $$ ** $$');
+    //             return this.getAccountInformation(account.address);
+    //         })
+    //         .then(accountInfo => {
+    //             const accountInformationUsingPassphrase = {
+    //                 ...accountInfo,
+    //                 passphrase
+    //             }
+    //             logger.sensitive(JSON.stringify(accountInformationUsingPassphrase));
+    //             return accountInformationUsingPassphrase;
+    //         })
+    // }
+
+    /**
+     *
+     * @param address
+     * @returns {Promise<{aliasURI, aliasName, accountRS, alias, account, timestamp}[] | *[]>}
+     */
+    getAliasesOrEmptyArray(address){
+        logger.verbose(`##### getAliasesOrEmptyArray(address= ${address})`);
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
+        // if(!gu.isWellFormedJupiterAddress(address)){throw new Error(`Jupiter Address is not valid: ${address}`)}
+
+        return this.jupiterAPIService.getAliases(address)
+            .then(getAliasesResponse => {
+                logger.verbose(`---- getAliasesOrEmptyArray(address).jupiterAPI().getAliases().then()`);
+                logger.debug(`address= ${address}`);
+                if(getAliasesResponse.hasOwnProperty('data') && getAliasesResponse.data.hasOwnProperty('aliases')){
+                    logger.debug(`aliases= ${getAliasesResponse.data.aliases}`);
+                    return getAliasesResponse.data.aliases;
+                }
+                return [];
+            })
+            .catch( error => {
+                if(error.message === 'Unknown account'){
+                    logger.warn('This account has no aliases');
+                    return [];
+                }
+
+                logger.error(`***********************************************************************************`);
+                logger.error(`*** getAliasesOrEmptyArray(address=${address}).catch(error)`);
+                logger.error(`***********************************************************************************`);
+                // console.log(error);
+                logger.error(`${error}`);
+                throw error;
+                // return [];
+            })
+    }
+
+    /**
+     *
+     * @param aliasName
+     * @returns {Promise<boolean>}
+     */
+    isAliasAvailable(aliasName){
+        logger.verbose(`#### isAliasAvailable(aliasName=${aliasName})`);
+        return this.jupiterAPIService.getAlias(aliasName)
+            .then(response => {
+                logger.verbose(`---- isAliasAvailable(aliasName=${aliasName}).then() : false`)
+                return false;
+            })
+            .catch( error => {
+                if(error.name === "UnknownAliasError"){
+                    return true;
+                }
+
+                logger.error(`***********************************************************************************`);
+                logger.error(`** isAliasAvailable(aliasName).catch(error)`);
+                logger.error(`** `);
+                logger.sensitive(`error=${error}`);
+
+                console.log(error);
+                throw error;
+            })
     }
 
 
     /**
      *
-     * @param { JupiterAccountService } accountService
+     * @param accountProperties
      * @returns {Promise<unknown>}
      */
-    // getAccountDataOld(address, passphrase, password) { // ie gravity.loadAppData
-    //     logger.verbose('getUserAccountData()');
-    //     return new Promise((resolve, reject) => {
-    //         this.jupiterTransactionsService.fetchMessages()  //gravity.getRecords()
-    //             .then((messagesContainer) => {
-    //                 logger.verbose(`getAccountData().fetchMessagesContainer().then()`);
-    //                 // { recordsFound: 1, pending: 1, records: [], last_record: undefined }
-    //                 logger.debug(messagesContainer);
-    //
-    //                 const records = messagesContainer.records;
-    //                 const recordsFound = messagesContainer.recordsFound;
-    //                 // const pending = messagesContainer.pending;
-    //                 // const last_record = messagesContainer.last_record;
-    //
-    //                 logger.verbose(`TOTAL Account Records: ${records.length}`);
-    //
-    //                 if (records.length === 0) {
-    //                     logger.verbose(`No records found.`);
-    //                     const appAccountDataContainer = this.generateNoRecordsFoundAppAccountDataContainer();
-    //                     return resolve(appAccountDataContainer);
-    //                 }
-    //
-    //                 const accountRecord = this.gravityTablesService.extractAccountRecordFromRecords(records);
-    //                 logger.verbose(`TOTAL Account Records: ${accountRecord.length}`);
-    //
-    //                 const usersTable = this.gravityTablesService.extractUsersTableFromRecords(records);
-    //                 logger.verbose(`TOTAL UsersTable: ${usersTable.length}`);
-    //                 const hasUserTable = (usersTable !== null) ? false : true;
-    //                 const tablesRetrieved = this.gravityTablesService.extractTablesRetrievedFromRecords(records);
-    //
-    //                 // Object.keys(myObject).length;
-    //                 logger.verbose(`TOTAL tablesRetrieved: ${Object.keys(tablesRetrieved).length}`);
-    //
-    //                 logger.debug(JSON.stringify(tablesRetrieved));
-    //
-    //                 let tableList = this.gravityTablesService.extractTableListFromRecords(records);
-    //                 logger.verbose(`TOTAL tableList: ${tableList.length}`);
-    //                 // tableList = this.gravityObjectMapper.sortByDate(tableList);
-    //                 const currentList = this.gravityTablesService.extractCurrentListFromTableList(tableList);
-    //                 logger.verbose(`TOTAL currentList: ${currentList.length}`);
-    //                 const tableData = this.gravityTablesService.extractTableData(currentList, tablesRetrieved);
-    //                 logger.verbose(`TOTAL tableData: ${tableData.length}`);
-    //
-    //
-    //
-    //                 let accountDataContainer = this.getEmptyAccountDataContainer();
-    //                 accountDataContainer.app.appData.name = this.appJupiterAccountService.gravityAccountProperties.firstName;
-    //                 accountDataContainer.app.address = this.appJupiterAccountService.gravityAccountProperties.address;
-    //                 accountDataContainer.app.appData.description = '';
-    //                 accountDataContainer.app.tables = tableData;
-    //                 accountDataContainer.numberOfRecords = recordsFound;
-    //                 accountDataContainer.success = true;
-    //                 accountDataContainer.message = 'Existing record found';
-    //                 accountDataContainer.tables = currentList;
-    //                 accountDataContainer.hasUserTable = hasUserTable;
-    //                 accountDataContainer.userRecord = accountRecord;
-    //
-    //                 return resolve({
-    //                     isRegistered: true,
-    //                     attachedTables: attachedTables,
-    //
-    //                 });
-    //
-    //             })
-    //             .catch((error) => {
-    //                 logger.error(`fetchMessagesContainer.catch() ${error}`);
-    //                 reject({success: false, error: 'There was an error loading records'});
-    //             });
-    //     });
-    // }
-
-
-
-    // fetchTableProperties(tableName, accountOwnerProperties ){
-    //
-    // }
-
-
-    // getAccountDataContainer(numberOfRecords = 0,
-    //                         tableNames = [],
-    //                         tableData,
-    //                         accountRecord = null ,
-    //                         accountProperties = JupiterAccountService.createProperties())
-    // {
-    //     return {
-    //         numberOfRecords: numberOfRecords,
-    //         tableNames: tableNames,
-    //         tableData: tableData,
-    //         accountRecord: accountRecord,
-    //         accountProperties: accountProperties
-    //     }
-    //
-    // }
-
-
     async getStatement(accountProperties) {
-        logger.verbose('##############################################################')
+        logger.verbose('##############################################################');
         logger.verbose('## getStatement()');
-        logger.verbose('##############################################################')
-        return new Promise((resolve, reject) =>{
-            this.jupiterAPIService.getBalance(accountProperties.address)
-                .then(response => {
+        logger.verbose('##############################################################');
+        return new Promise((resolve, reject) => {
+            this.jupiterAPIService
+                .getBalance(accountProperties.address)
+                .then((response) => {
                     let accountStatement = {};
                     accountStatement.balanceNQT = response.data.balanceNQT;
                     accountStatement.hasMinimumAppBalance = null;
                     accountStatement.hasMinimumTableBalance = null;
 
-                    if(this.applicationProperties.isApp()){
-                        logger.info(`Balance: ${(parseFloat(response.data.balanceNQT) / (10 ** this.applicationProperties.moneyDecimals))} JUP.`);
+                    if (this.applicationProperties.isApp()) {
+                        logger.info(`Balance: ${parseFloat(response.data.balanceNQT) / 10 ** this.applicationProperties.moneyDecimals} JUP.`);
                         accountStatement.hasMinimumAppBalance = response.data.balanceNQT >= this.applicationProperties.minimumAppBalance;
                         accountStatement.hasMinimumTableBalance = response.data.balanceNQT >= this.applicationProperties.minimumTableBalance;
                     }
 
                     return resolve(accountStatement);
                 })
-                .catch( error => {
-                    logger.error(error);
+                .catch((error) => {
+                    logger.error(`${error}`);
                     reject(error);
-                })
-        })
+                });
+        });
     }
+
+
+    /**
+     *
+     * @param {string} memberPassphrase
+     * @param {string} memberPassword
+     * @return {Promise<null|GravityAccountProperties>}
+     */
+    async getMemberAccountPropertiesFromPersistedUserRecordOrNull(memberPassphrase, memberPassword) {
+        if(!gu.isWellFormedPassphrase(memberPassphrase)){throw new MetisError('memberPassphrase is invalid')}
+        if(!gu.isNonEmptyString(memberPassword)){throw new MetisError('memberPassword is empty')}
+        const memberAccountProperties =  await instantiateGravityAccountProperties(memberPassphrase, memberPassword);
+        const messageContainers = await jupiterTransactionsService.getReadableTaggedMessageContainers(
+            memberAccountProperties,
+            `${userConfig.userRecord}.${memberAccountProperties.address}`,
+            true,
+            null,
+            null,
+            transaction => transaction.senderRS === memberAccountProperties.address
+
+        );
+        if(messageContainers.length === 0){ return null }
+        const messageContainer = messageContainers[0] //{recordType, password, email, firstName, lastName, status, createdAt, updatedAt, version}
+        memberAccountProperties.email = messageContainer.message.email;
+        memberAccountProperties.firstName = messageContainer.message.firstName;
+        memberAccountProperties.lastName = messageContainer.message.lastName;
+        memberAccountProperties.status = messageContainer.message.status;
+        memberAccountProperties.createdAt = messageContainer.message.createdAt;
+        memberAccountProperties.updatedAt = messageContainer.message.updatedAt;
+
+        return memberAccountProperties //get latest userRecord version
+    }
+
+
+    /**
+     *
+     * @param {string} aliasOrAddress
+     * @return {Promise<{unconfirmedBalanceNQT, address: (string|*), publicKey, account}>}
+     */
+    async fetchAccountInfoFromAliasOrAddress(aliasOrAddress){
+        if(!gu.isNonEmptyString(aliasOrAddress)) throw new MetisError(`empty: aliasOrAddress`)
+        let fetchAccountResponse = null;
+        if(gu.isWellFormedJupiterAddress(aliasOrAddress)){
+            fetchAccountResponse = await this.fetchAccountOrNull(aliasOrAddress);
+        } else if (gu.isWellFormedJupiterAlias(aliasOrAddress)){
+            // It's an alias so lets get the address
+            const getAliasResponse = await jupiterAPIService.getAlias(aliasOrAddress)
+            const address = getAliasResponse.data.accountRS;
+            if(address){
+                fetchAccountResponse = await this.fetchAccountOrNull(address);
+            }
+        } else {
+            throw new MetisError(`Account Not Found`);
+        }
+
+        if(fetchAccountResponse === null){
+            throw new MetisError(`Account Not Found`);
+        }
+
+        return {
+            address: fetchAccountResponse.accountRS,
+            publicKey: fetchAccountResponse.publicKey,
+            account: fetchAccountResponse.account,
+            unconfirmedBalanceNQT: fetchAccountResponse.unconfirmedBalanceNQT
+        }
+
+    }
+
+    // getStatement(address, moneyDecimals, minimumAppBalance, minimumTableBalance, isApp = false) {
+    //     logger.verbose('getStatement()');
+    //
+    //     return new Promise((resolve, reject) => {
+    //         this.jupiterAPIService.getBalance(address)
+    //             .then(response => {
+    //
+    //                 logger.info(`Balance: ${(parseFloat(response.data.balanceNQT) / (10 ** moneyDecimals))} JUP.`);
+    //
+    //
+    //                 let accountStatement = {};
+    //
+    //                 if (isApp) {
+    //                     accountStatement.hasMinimumAppBalance = response.data.balanceNQT >= minimumAppBalance;
+    //                     accountStatement.hasMinimumTableBalance = response.data.balanceNQT >= minimumTableBalance;
+    //                 }
+    //
+    //                 accountStatement.balanceNQT = response.data.balanceNQT;
+    //
+    //
+    //                 return resolve(accountStatement);
+    //             })
+    //             .catch(error => {
+    //                 logger.error(`${error}`);
+    //                 reject(error);
+    //             })
+    //
+    //     })
+    //
+    // }
+
+
+    // generateNewJupiterAccount(){
+    //     const newPassphrase = gu.generatePassphrase();
+    //     const newPassword = gu.generateRandomPassword();
+    //     const accountInfoResponse = this.fetchAccountInfo(newPassphrase);
+    // }
+
 
 }
 
 module.exports.JupiterAccountService = JupiterAccountService;
+
+module.exports.jupiterAccountService = new JupiterAccountService(
+    jupiterAPIService,
+    metisGravityAccountProperties,
+    tableService,
+    jupiterTransactionsService,
+    gravityService,
+    transactionUtils
+);

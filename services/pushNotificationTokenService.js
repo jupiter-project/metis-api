@@ -1,48 +1,49 @@
 import {
-  findNotificationAndUpdate,
   findMutedChannels,
   updateBadgeCounter,
   findOneNotificationAndUpdate,
-  findOneNotificationAndRemovePNToken
+  findOneNotificationAndRemovePNToken, upsertNotificationDocumentWithNewToken
 } from './notificationService';
-
+// import {BadJupiterAddressError} from "../errors/metisError";
+import {StatusCode} from "../utils/statusCode";
+const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
+const mError = require('../errors/metisError');
 
 module.exports = {
-  addTokenNotification: (req, res) => {
-    const { token, jupId, provider } = req.body;
-    logger.debug(`[addTokenNotification]->Token: ${token}`);
 
-    if ( !(jupId && provider && token) ){
-      const error = {
-        success: false,
-        message: 'Token, Provider and JupId are required',
-      };
-      logger.error(error);
-      return res.status(400).json(error);
+  /**
+   *
+   * @param req
+   * @param res
+   * @return {Promise<*>}
+   */
+  addTokenNotification: async (req, res) => {
+    try {
+      const {token, jupId: userAddress, provider} = req.body;
+      logger.debug(`[addTokenNotification]->Token: ${token}`);
+      if (!gu.isWellFormedJupiterAddress(userAddress)) {
+        const message = {message: `JupId is not valid: ${userAddress}`};
+        logger.error(`${message}`);
+        return res.status(StatusCode.ClientErrorBadRequest).json(message);
+      }
+
+      if (!(provider && token)) {
+        const message = {message: 'Token, Provider and JupId are required'};
+        logger.error(`${message}`);
+        return res.status(StatusCode.ClientErrorBadRequest).json(message);
+      }
+
+      console.log('Upserting Token: ', token);
+      const notification = await upsertNotificationDocumentWithNewToken(userAddress, provider, token);
+
+      return res.json(notification);
+    } catch(error){
+      const message = {message: `Problem with addTokenNotification`};
+      logger.error(`${error}`);
+
+      return res.status(StatusCode.ServerErrorInternal).json(message);
     }
-
-    const filter = { userAddress: jupId};
-
-    const update = {
-      userAddress: jupId,
-      mutedChannelIds: [],
-      pnAccounts: [
-        {
-          provider: provider,
-          token: token,
-          createdAt: new Date(),
-          badgeCounter: 0,
-        }
-      ]
-    };
-
-    findNotificationAndUpdate(filter, update, token, provider)
-        .then(notificationInfo => res.json({success: true, notificationInfo}))
-        .catch((error) => {
-          logger.error(error);
-          res.status(400).json({ ok: false, error });
-        });
   },
   deleteTokenPushNotification: (req, res) => {
     const { jupId, provider, token } = req.params;
@@ -52,7 +53,7 @@ module.exports = {
         success: false,
         message: 'Token, Provider and JupId are required',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 
@@ -61,58 +62,49 @@ module.exports = {
     findOneNotificationAndRemovePNToken(filter, provider, token)
         .then(() => res.json({success: true}))
         .catch(error => {
-          logger.error(error);
+          logger.error(`${error}`);
           res.status(500).json({ ok: false, error });
         })
   },
   editMutedChannels: (req, res) => {
-    const { userAddress, channelId, isMuted } = req.body;
+    const { userData: { address: userAddress } } = req.user;
+    const { channelAddress, isMuted } = req.body;
 
-    if (!(userAddress && channelId)) {
-      const error = {
-        ok: false,
-        error: 'bad request',
-        message: 'Alias and Channel id are required.',
-      };
-      logger.error(error);
-      return res.status(400).json(error);
+    if (!channelAddress) {
+      return res.status(400).json({message: 'Alias and Channel id are required.'});
     }
 
     const filter = { userAddress };
     const update = isMuted
-      ? { $pull: { mutedChannelIds: channelId } }
-      : { $push: { mutedChannelIds: channelId } };
+      ? { $pull: { mutedChannelAddressList: channelAddress } }
+      : { $push: { mutedChannelAddressList: channelAddress } };
 
     findOneNotificationAndUpdate(filter, update)
-      .then(notification => res.json({ success: true, notification }))
+      .then(notification => {
+        res.json({success: true, notification})
+      })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.status(400).json({ ok: false, error });
       });
   },
   findMutedChannels: (req, res) => {
-    const { userAddress } = req.params;
+    const { address: userAddress } = req.user;
 
     if (!userAddress){
-      const error = {
-        ok: false,
-        error: 'bad request',
-        message: 'Alias is required.',
-      };
-      logger.error(error);
-      return res.status(400).json(error);
+      return res.status(400).json({ message: 'Alias is required.' });
     }
 
     findMutedChannels(userAddress)
       .then(([response]) => {
-        const { mutedChannelIds } = response || { mutedChannelIds: [] };
+        const { mutedChannelAddressList } = response || { mutedChannelAddressList: [] };
         res.json({
           success: true,
-          mutedChannelIds,
+          mutedChannelAddressList,
         });
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(`${error}`);
         res.status(500).json({ ok: false, error });
       });
   },
@@ -125,7 +117,7 @@ module.exports = {
         error: 'bad request',
         message: 'userAddress id are required.',
       };
-      logger.error(error);
+      logger.error(`${error}`);
       return res.status(400).json(error);
     }
 

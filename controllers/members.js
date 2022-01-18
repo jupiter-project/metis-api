@@ -1,55 +1,39 @@
-import controller from '../config/controller';
-import metis from '../config/metis';
+import {instantiateMinimumGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {chanService} from "../services/chanService";
+import {StatusCode} from "../utils/statusCode";
 
-const _ = require('lodash');
-const device = require('express-device');
+const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
 
 module.exports = (app) => {
-  app.use(device.capture());
-  app.get('/v1/api/data/members', async (req, res) => {
-    const tableData = {
-      account: req.headers.channeladdress,
-      password: req.headers.channelkey,
-    };
-    let memberList = null;
-    try {
-      memberList = await metis.getMember({
-        channel: tableData.account,
-        account: req.user.account,
-        password: tableData.password,
-      });
-    } catch (error) {
-      logger.error(error);
-    }
+    /**
+     * GET Channel Members
+     */
+    app.get('/v1/api/:channelAddress/members', async (req, res) => {
+        console.log('\n\n\n');
+        logger.info('======================================================================================');
+        logger.info('== Get Channel Members');
+        logger.info('======================================================================================\n\n\n');
+        const {user} = req;
+        const {channelAddress} = req.params;
 
-    res.send(memberList);
-  });
-
-
-  //@TODO this endpoint has to be removed! Metis is responsible for adding users to channels. Not the user.
-  app.post('/v1/api/data/members', async (req, res) => {
-    logger.info(req.body);
-    const { userData } = req.user;
-    const tableData = {
-      account: req.body.channeladdress,
-      password: req.body.channelkey,
-    };
-    logger.info(tableData);
-    let response = null;
-
-    try {
-      response = await metis.addToMemberList({
-        channel: tableData.account,
-        password: tableData.password,
-        account: userData.account,
-        alias: userData.alias,
-      });
-      res.send(response);
-    } catch (error) {
-      logger.error(error);
-      res.status(500).send(response);
-    }
-
-  });
+        try {
+            if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+                logger.error(`The ChannelAddress is Invalid: ${channelAddress}`)
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: `The channelAddress is invalid`})
+            }
+            const memberAccountProperties = await instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
+            // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
+            if (!channelAccountProperties) {
+                return res.status(StatusCode.ServerErrorInternal).send({message: `The channel is not available: ${channelAddress}`})
+            }
+            const channelMembers = await chanService.getChannelMembers(channelAccountProperties)
+            return res.send(channelMembers);
+        } catch (error) {
+            logger.error(`Error getting members`);
+            console.log(error);
+            return res.status(StatusCode.ServerErrorInternal).send({message: `Error getting members`})
+        }
+    });
 };

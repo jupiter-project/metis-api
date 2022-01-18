@@ -1,56 +1,98 @@
 const jwt = require('jsonwebtoken');
+const {GravityCrypto} = require("../services/gravityCrypto");
+const {StatusCode} = require("../utils/statusCode");
+const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {metisConf} = require("../config/metisConf");
 const logger = require('../utils/logger')(module);
 
-// ============================
-//  Verificar Token
-// ============================
+/**
+ *
+ * @param req
+ * @param res
+ * @param next
+ * @return {*}
+ */
 const tokenVerify = (req, res, next) => {
-  logger.debug(`tokenVerify(), URL:  ${req.url}`);
+  logger.verbose(`#### tokenVerify(req, res, next)`);
   const token = req.get('Authorization');
-  const channelToken = req.get('AuthorizationChannel');
-  const omittedUrls = [
+  const noAuthenticationRouteList = [
     '/create_passphrase',
-    '/v1/api/create_jupiter_account',
+    '/v1/api/create-jupiter-account',
     '/v1/api/appLogin',
+    '/v2/api/login',
     '/v1/api/signup',
-    '/v1/api/get_jupiter_account',
+    '/metis/v2/api/signup',
+    '/v1/api/get-jupiter-account',
     '/v1/api/jupiter/alias/',
     '/v1/api/version',
-    '/v1/api/pn/badge_counter',
+    '/v1/api/pn/badge-counter',
     '/v1/api/job/status',
     '/api-docs',
+    '/jim/v1/api/ping',
   ];
-  const valid = omittedUrls.filter(url => req.url.toLowerCase().startsWith(url.toLowerCase()));
 
-  if (valid.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token')) {
+  // app.get('/v1/api/accounts/:accountAddress/aliases', async (req, res) => {
+  const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter(route => req.url.toLowerCase().startsWith(route.toLowerCase()));
+  const regex = /^\/v1\/api\/accounts\/.+\/aliases$/
+  if(regex.test(req.url.toLowerCase()) && req.method === 'GET') {
+    logger.info(`No Auth needed for getting aliases`);
     return next();
   }
-
-
+  if (routeDoesntNeedAuthentication.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token') ) {
+    logger.debug(`No Authentication Needed.`);
+    logger.info('Testing URL = ' + req.url);
+    return next();
+  }
   if (!token) {
-    return res.status(403).send({ success: false, message: 'Please provide a token' });
+    return res.status(StatusCode.ClientErrorUnauthorized).send({ message: 'Please provide a token' });
   }
-  const decodedChannel = channelToken ? jwt.decode(channelToken) : null;
+  const _token = (token.startsWith('Bearer')) ? token.substring(7) : token
+  const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64;
+  const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64');
+  try {
+    jwt.verify(_token, privateKeyBuffer, async (error, decodedToken) => {
+      logger.debug('tokenVerify().verify(updatedToken, session, CALLBACK(err, decodedUser))');
+      if (error) {
+        logger.error(`****************************************************************`);
+        logger.error(`** tokenVerify.jwtVerify().callback(error)`);
+        logger.error(`****************************************************************`);
+        console.log(error);
+        return res.status(StatusCode.ClientErrorUnauthorized).send({message: 'Not authorized to access'});
+        // return next()
+      }
+      try {
+        const metisCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer);
+        const jwtContent = metisCrypto.decryptAndParse(decodedToken.data);
+        req.user = {};
+        req.user.gravityAccountProperties = await instantiateGravityAccountProperties(
+            jwtContent.passphrase,
+            jwtContent.password
+        )
 
-  let updatedToken = token;
-  if (token.startsWith('Bearer')) {
-    updatedToken = updatedToken.substring(7);
+        //@TODO remove the following...
+        req.user.address = req.user.gravityAccountProperties.address;
+        req.user.publicKey = req.user.gravityAccountProperties.publicKey;
+        req.user.passphrase = req.user.gravityAccountProperties.passphrase;
+        req.user.password = req.user.gravityAccountProperties.password;
+        return next();
+      } catch (error) {
+        logger.error(`****************************************************************`);
+        logger.error(`** tokenVerify.jwtVerify().callback().catch(error)`);
+        logger.error(`****************************************************************`);
+        console.log(error);
+        return res.status(StatusCode.ClientErrorUnauthorized).send({message: 'Not authorized to access'});
+        // return next();
+      }
+    });
+  } catch (error) {
+    console.log('\n')
+    logger.error(`************************* ERROR ***************************************`);
+    logger.error(`* ** tokenVerify().catch(error)`);
+    logger.error(`************************* ERROR ***************************************\n`);
+    console.log(error);
+    res.status(StatusCode.ClientErrorUnauthorized).send({message: 'Not authorized to access', code: error.code});
+    // return next();
   }
-
-  jwt.verify(updatedToken, process.env.SESSION_SECRET, (err, decodedUser) => {
-    logger.debug('tokenVerify().verify()');
-    if (err) {
-      console.log(err);
-      return res.status(401).json({
-        ok: false,
-        err,
-      });
-    }
-    req.user = decodedUser;
-    req.channel = decodedChannel;
-
-    next();
-  });
 };
 
 module.exports = {

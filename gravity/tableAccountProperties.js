@@ -27,6 +27,11 @@ class TableAccountProperties {
         algorithm = 'aes-256-cbc'
     ) {
 
+        if(!name){throw new Error('missing name')}
+        if(!address){throw new Error('missing address')}
+        if(!passphrase){throw new Error('missing passphrase')}
+        if(!algorithm){throw new Error('missing algorithm')}
+
         this.name = name;
         this.address = address;
         this.passphrase = passphrase;

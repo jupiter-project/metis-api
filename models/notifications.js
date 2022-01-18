@@ -9,7 +9,7 @@ const pnAccountSchema = new mongoose.Schema({
 
 const notificationsSchema = new mongoose.Schema({
   userAddress: String,
-  mutedChannelIds: [String],
+  mutedChannelAddressList: [String],
   pnAccounts: [pnAccountSchema],
 });
 
