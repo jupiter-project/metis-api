@@ -1,7 +1,8 @@
-const logger = require('./utils/logger')(module);
+
 require('babel-register')({
   presets: ['react'],
 });
+const logger = require('./utils/logger')(module);
 // const logger = require('./utils/logger')(module);
 const mError = require('./errors/metisError');
 const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');

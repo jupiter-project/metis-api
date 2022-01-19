@@ -10,6 +10,7 @@ const {mongoConf} = require("../config/mongoConf");
 const {appConf} = require("../config/appConf");
 
 
+
 /**
  *
  * @param level
@@ -169,9 +170,24 @@ const getLabel = (callingModule) => {
   return path.join(parts[parts.length - 2], parts.pop());
 };
 
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
+const serverDevLogger = (callingModule) => {
+    const transports = [];
+    transports.push(initializeFileTransport(callingModule, 'metis.log','sensitive', false));
+    transports.push(initializeFileTransport(callingModule, 'metis.errors','error', true));
+    transports.push(initializeConsoleTransport(callingModule, 'sensitive'));
+    return winston.createLogger({
+        levels: loggerConf.levels.ids,
+        transports: transports,
+    });
+}
+
 const localDevLogger = (callingModule) => {
     const transports = [];
-  // const errorFileTransport =  initializeFileTransport(callingModule, 'metis.log','error', true);
     transports.push(initializeFileTransport(callingModule, 'metis.log','sensitive', false));
     transports.push(initializeFileTransport(callingModule, 'metis.errors','error', true));
     transports.push(initializeConsoleTransport(callingModule, 'sensitive'));
@@ -189,45 +205,12 @@ const localDevLogger = (callingModule) => {
  */
 const productionLogger = (callingModule) => {
     const transports = [];
+    transports.push(initializeFileTransport(callingModule, 'metis.log','sensitive', false));
+    transports.push(initializeFileTransport(callingModule, 'metis.errors','error', true));
+    transports.push(initializeConsoleTransport(callingModule, loggerConf.levels.names.error));
+    transports.push(initializeSlackTransport(callingModule))
     return winston.createLogger({
         levels: loggerConf.levels.ids,
-        format: winston.format.combine(
-            winston.format.splat(),
-            winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
-            winston.format.label({label:'*'}),
-            winston.format.align(),
-            winston.format.simple(),
-            winston.format.printf(({ level, message, label, timestamp }) => {
-              const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
-              const output = `${pre}${message}`
-              return output
-            }),
-    ),
-    transports: transports,
-  });
-}
-
-/**
- *
- * @param callingModule
- * @return {*}
- */
-const stagingLogger = (callingModule) => {
-    const transports = [];
-    return winston.createLogger({
-        levels: loggerConf.levels.ids,
-        format: winston.format.combine(
-            winston.format.splat(),
-            winston.format.timestamp({format: 'MM-DD HH:mm:ss'}),
-            winston.format.label({label:'*'}),
-            winston.format.align(),
-            winston.format.simple(),
-            winston.format.printf(({ level, message, label, timestamp }) => {
-              const pre = `${label}${timestamp}|${level}|${getLabel(callingModule)}|`
-              const output = `${pre}${message}`
-              return output
-            }),
-        ),
         transports: transports,
     });
 }
@@ -247,7 +230,8 @@ const noLogger = (callingModule) => {
 
 module.exports = function (callingModule) {
     if(!loggerConf.isEnabled) return noLogger(callingModule);
-    if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.development) return localDevLogger(callingModule)
-    if( appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.staging ) return stagingLogger(callingModule)
+    if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.localDev) return localDevLogger(callingModule)
+    if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.serverDev) return serverDevLogger(callingModule)
+    if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.qa) return serverDevLogger(callingModule)
     return productionLogger(callingModule);
 };
