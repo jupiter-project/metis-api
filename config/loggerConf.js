@@ -42,8 +42,8 @@ conf.levels = {
 };
 if(!process.env.NODE_ENV) throw new mError.MetisErrorBadEnvironmentVariable('','NODE_ENV');
 conf.nodeEnvrionment = process.env.NODE_ENV;
-if(!process.env.LOGGING_ENABLED) throw new mError.MetisErrorBadEnvironmentVariable('Needs to be 0 or 1','LOGGING_ENABLED');
-conf.isEnabled = dotenvUtils.evaluateBoolean(process.env.LOGGING_ENABLED);
+// if(!process.env.LOGGING_ENABLED) throw new mError.MetisErrorBadEnvironmentVariable('Needs to be 0 or 1','LOGGING_ENABLED');
+conf.isEnabled = dotenvUtils.convertToBooleanOrFail(process.env.LOGGING_ENABLED);
 if(!process.env.LOGGING_DEFAULT_LEVEL) throw new mError.MetisErrorBadEnvironmentVariable('','LOGGING_DEFAULT_LEVEL');
 conf.defaultLevel =  process.env.LOGGING_DEFAULT_LEVEL;
 if(conf.nodeEnvrionment === NODE_ENV_OPTIONS.PRODUCTION){
@@ -57,7 +57,7 @@ if(process.env.LOGGING_SLACK_TRANSPORT_LEVEL && process.env.LOGGING_SLACK_HOOK){
     conf.slackHook = process.env.LOGGING_SLACK_HOOK;
     conf.hasSlackTransport = true;
 }
-conf.hasS3Option = dotenvUtils.evaluateBoolean(process.env.S3_OPTION);
+conf.hasS3Option = dotenvUtils.convertToBooleanOrFail(process.env.S3_OPTION);
 if(conf.hasS3Option){
     s3 = {};
     if(!process.env.S3_ENDPOINT) throw new Error(`Environment variable not configured properly: S3_ENDPOINT`)

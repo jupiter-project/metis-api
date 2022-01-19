@@ -1,27 +1,23 @@
+// const isWellFormedJupiterAccountData = require("./gravityUtils");
+
 
 /**
  *
  * @param value
  * @return {boolean}
  */
-const evaluateBoolean = function (value) {
-    if(value.toLowerCase() === 'true'){
-        return true;
+const convertToBooleanOrFail = function (value) {
+    if(value === 'true'){
+     return true;
     }
-    if(value === '1'){
-        return true;
+    if(value === 'false'){
+        return false;
     }
-    if(value === 1){
-        return true;
-    }
-    if(value === true){
-        return true;
-    }
-    return false;
+    throw new Error('Needs to have a value');
 }
 
 module.exports = {
-    evaluateBoolean,
+    convertToBooleanOrFail: convertToBooleanOrFail,
 };
 
 

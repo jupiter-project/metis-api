@@ -7,8 +7,8 @@ if(!process.env.NODE_ENV) throw new mError.MetisErrorBadEnvironmentVariable('','
 if(!process.env.EMAIL) throw new mError.MetisErrorBadEnvironmentVariable('','EMAIL');
 if(!process.env.APP_PORT) throw new mError.MetisErrorBadEnvironmentVariable('','APP_PORT');
 conf.nodeEnvironmentOptions = {
-    development: 'development',
-    staging: 'staging',
+    localDev: 'development-local',
+    serverDev: 'development-dev',
     production: 'production',
     qa: 'qa',
 }
@@ -18,6 +18,6 @@ conf.email = process.env.EMAIL;
 conf.port = process.env.APP_PORT;
 conf.nodeEnvrionment = process.env.NODE_ENV;
 if(!Object.values(conf.nodeEnvironmentOptions).includes(conf.nodeEnvrionment)){
-    throw new mError.MetisErrorBadEnvironmentVariable(`Value is not valid ${conf.nodeEnvrionment}`,'NODE_ENV');
+    throw new mError.MetisErrorBadEnvironmentVariable(`Value is not valid: "${conf.nodeEnvrionment}"`,'NODE_ENV');
 }
 module.exports.appConf = conf;
