@@ -6,18 +6,19 @@
  * @param value
  * @return {boolean}
  */
-const convertToBooleanOrFail = function (value) {
+const convertToBooleanOrNull = function (value) {
     if(value === 'true'){
      return true;
     }
     if(value === 'false'){
         return false;
     }
-    throw new Error('Needs to have a value');
+    return null;
+    // throw new Error(`Boolean conversion error: ${value}`);
 }
 
 module.exports = {
-    convertToBooleanOrFail: convertToBooleanOrFail,
+    convertToBooleanOrNull: convertToBooleanOrNull,
 };
 
 
