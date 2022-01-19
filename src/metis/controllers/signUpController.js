@@ -12,7 +12,7 @@ let counter = 1;
 const createJob = (jobs,newAccountProperties,newAccountAlias,res,websocket, subscriberId, next = ()=>{}) => {
     const startTime = Date.now();
     const namespace = '/sign-up';
-    const room = `sign-up-${subscriberId}`;
+    const room = `sign-up-${newAccountProperties.address}`;
     const job = jobs.create('MetisJobRegisterJupiterAccount', {userAccountProperties: newAccountProperties, userAlias: newAccountAlias})
         .priority('high')
         .removeOnComplete(false)
@@ -23,7 +23,7 @@ const createJob = (jobs,newAccountProperties,newAccountAlias,res,websocket, subs
                 logger.error(`** job.catch(error)`);
                 logger.error(`****************************************************************`);
                 logger.error(`${error}`);
-                // websocket.of('/sign-up').to(`sign-up-${job.created_at}`).emit('signUpFailed', job.created_at);
+                websocket.of('/sign-up').to(`sign-up-${newAccountProperties.address}`).emit('signUpFailed', job.created_at);
                 res.status(StatusCode.ServerErrorInternal).send({
                     message: 'Internal Error',
                     jobId: job.id,
@@ -33,7 +33,7 @@ const createJob = (jobs,newAccountProperties,newAccountAlias,res,websocket, subs
             }
             logger.debug(`job.id= ${job.id}`);
             logger.debug(`job.created_at= ${job.created_at}`);
-            // websocket.of('/sign-up').to(`sign-up-${job.created_at}`).emit('signUpJobCreated', job.id);
+            websocket.of('/sign-up').to(`sign-up-${newAccountProperties.address}`).emit('signUpJobCreated', job.id);
             res.status(StatusCode.SuccessAccepted).send({
                 job: {
                     id: job.id,
