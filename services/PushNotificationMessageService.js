@@ -5,7 +5,6 @@ const gu = require('../utils/gravityUtils');
 const logger = require('../utils/logger')(module);
 const { sendFirebasePN, sendApplePN } = require('../config/notifications');
 
-
 /**
  *
  * @param notificationsCollection
@@ -18,7 +17,6 @@ const incrementBadgeCountersForNotifications = async (notificationsCollection) =
     promises.push(incrementBadgeCounter({ _id: notification._id }))
   });
   const updatedNotificationsCollection = await Promise.all(promises);
-
   return updatedNotificationsCollection;
 }
 
@@ -31,29 +29,11 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
   logger.verbose(`#### extractPNAccountsFromCollection = (notificationsCollection)`);
   if(!Array.isArray(notificationsCollection)){throw new Error(`notificationsCollection is not an array`)}
   if(notificationsCollection.length === 0 ){return []}
-
-  // console.log(`\n\n\n`);
-  // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-  // console.log(`notificationsCollection: `, notificationsCollection);
-  // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
   const pnAccountsArrayOfArrays = notificationsCollection.map(notificationDocument => notificationDocument.pnAccounts);
-  //
-  // console.log(`\n\n\n`);
-  // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-  // console.log(`pnAccountsArrayOfArrays: `, pnAccountsArrayOfArrays);
-  // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
-
-  // if(pnAccountsArrayOfArrays.length === 0 ){return []}
-
   let pnAccounts = [];
   pnAccountsArrayOfArrays.forEach(_pnAccounts => {
     pnAccounts = [...pnAccounts, ..._pnAccounts]
   })
-
-  // console.log(`\n\n\n`);
-  // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-  // console.log(`pnAccounts: `, pnAccounts);
-  // console.log(`=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n\n`)
 
   return pnAccounts;
 }
@@ -63,49 +43,18 @@ const extractPNAccountsFromCollection = (notificationsCollection) => {
  * @param text
  * @return {*[]}
  */
-const getMessageMentions = (text) => {
-  if (text) {
-    const reg = /@\w+/gim;
-    const mentions = text.match(reg) || [];
-    if (mentions && Array.isArray(mentions)) {
-      return mentions.map(mention => mention.replace('@', ''));
-    }
-  }
-  return [];
-}
+// const getMessageMentions = (text) => {
+//   if (text) {
+//     const reg = /@\w+/gim;
+//     const mentions = text.match(reg) || [];
+//     if (mentions && Array.isArray(mentions)) {
+//       return mentions.map(mention => mention.replace('@', ''));
+//     }
+//   }
+//   return [];
+// }
 
 module.exports = {
-
-  /**
-   *
-   * @param senderAlias
-   * @param userAddress
-   * @param channelName
-   */
-  // getPNTokenAndSendInviteNotification: async (senderAlias, userAddress, channelName) => {
-  //   logger.verbose(`#### getPNTokenAndSendInviteNotification: (senderAlias=${senderAlias}, userAddress=${userAddress}, channelName=${channelName})`);
-  //   if(!gu.isWellFormedJupiterAddress(userAddress)){throw new BadJupiterAddressError(userAddress)};
-  //   if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
-  //   if(!channelName){throw new Error(`channelName is empty`)};
-  //
-  //   const notificationsCollection = await findNotificationsByAddress(userAddress);
-  //   // Do nothing if Nulls
-  //   if(!gu.isNonEmptyArray(notificationsCollection)){ return }
-  //   const updatedNotificationsCollection = await incrementBadgeCountersForNotifications(notificationsCollection);
-  //   // Do nothing if Nulls
-  //   if(!gu.isNonEmptyArray(updatedNotificationsCollection)) { return }
-  //   const alert = `${senderAlias} invited you to the channel "${channelName}"`;
-  //   const threeMinutesDelay = 180000;
-  //   updatedNotificationsCollection.forEach( notification => {
-  //     sendPushNotification(
-  //         notification.tokenList,
-  //         alert,
-  //         notification.badgeCounter,
-  //         { title: 'Invitation', isInvitation: true },
-  //         'channels',
-  //         threeMinutesDelay)
-  //   } )
-  // },
 
   /**
    *
@@ -116,23 +65,19 @@ module.exports = {
    * @param title
    * @param metadata
    */
-  getPNTokensAndSendPushNotification: async (recipientAddresses, mutedChannelAddressesToExclude, message, title, metadata) => {
-    logger.verbose(`#### getPNTokensAndSendPushNotification: (recipientAddressArray=${recipientAddresses}, mutedChannelsToExclude=${mutedChannelAddressesToExclude})`);
-    // if(!gu.isWellFormedJupiterAlias(senderAlias)){throw new Error(`senderAlias is not valid: ${senderAlias}`)};
-     if(!Array.isArray(mutedChannelAddressesToExclude)){throw new Error(`mutedChannelsToExclude is not an Array`)}
-    mutedChannelAddressesToExclude.forEach(mutedChannelAddress => {
-      if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)) throw new mError.MetisErrorBadJupiterAddress(`mutedChannelAddress: ${mutedChannelAddress}`)
-      // if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)){throw new BadJupiterAddressError(mutedChannelAddress)}
-    })
-    if(!message){throw new Error(`message is empty`)}
-    if(!title){throw new Error(`title is empty`)}
+  getPNTokensAndSendPushNotification: async (recipientAddresses, mutedChannelAddressesToExclude, body, title, metadata) => {
+    logger.verbose(`#### getPNTokensAndSendPushNotification: (recipientAddressArray, mutedChannelsToExclude)`);
     // If not recipientAddress then just return. Do nothing.
     if(!gu.isNonEmptyArray(recipientAddresses)){return}
+    if(!body){throw new mError.MetisError(`body is empty`)}
+    if(!title){throw new mError.MetisError(`title is empty`)}
+    if(!Array.isArray(mutedChannelAddressesToExclude)){throw new Error(`mutedChannelsToExclude is not an Array`)}
+    mutedChannelAddressesToExclude.forEach(mutedChannelAddress => {
+      if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)) throw new mError.MetisErrorBadJupiterAddress(`mutedChannelAddress: ${mutedChannelAddress}`)
+    })
     recipientAddresses.forEach(recipientAddress => {
       if(!gu.isWellFormedJupiterAddress(recipientAddress)) throw new mError.MetisErrorBadJupiterAddress(`recipientAddress: ${recipientAddress}`)
-      // if(!gu.isWellFormedJupiterAddress(recipientAddress)){throw new BadJupiterAddressError(recipientAddress)};
     })
-
     const notificationsCollection = await findNotifications(recipientAddresses, mutedChannelAddressesToExclude);
     const updatedNotificationsCollection = await incrementBadgeCountersForNotifications(notificationsCollection);
     const pnAccounts = extractPNAccountsFromCollection(updatedNotificationsCollection);
@@ -140,9 +85,9 @@ module.exports = {
       if (pnAccount.provider === 'ios'){
         return sendApplePN(
             pnAccount.token,
-            message,
+            body,
             pnAccount.badgeCounter,
-            {title, message, metadata},
+            {title, body, metadata},
             'channels');
       }
 
@@ -150,12 +95,12 @@ module.exports = {
         return sendFirebasePN(
             pnAccount.token,
             title,
-            message,
+            body,
             metadata
         )}
 
-      throw new Error(`Problem sending a PN: ${message}`);
-
+      logger.error(`The PN record is malformed!: pnAccount.provider=${pnAccount.provider}`);
+      // throw new Error(`Problem sending a PN: ${message}`);
     })
   },
 

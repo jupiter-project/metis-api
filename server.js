@@ -353,25 +353,20 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
   transferWorker.fundAccount(job.data, job.id, done);
 }); */
 
-
-mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions, (err, resp) => {
-  if (err) {
-    throw err;
-  }
-  logger.info('Mongo DB Online.');
-});
+  mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions).catch( error => {
+    logger.error(`Mongo is not available: ${process.env.MONGO_DB_URI}`);
+    process.exit(1);
+  });
 
 server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized
 
-
-// JUPITER
-require('./src/jupiter/app')(app,jobQueue,io);
+// GRAVITY
+require('./src/gravity/app')(app,jobQueue,io);
 // NEW METIS SERVER CODE
 require('./src/metis/app')(app,jobQueue,io);
 // JIM SERVER
 require('./src/jim/app')(app,jobQueue,io);
-
 
 // Route any invalid routes black to the root page
 app.get('/*', (req, res) => {

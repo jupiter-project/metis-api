@@ -258,6 +258,32 @@ class MetisErrorBadEnvironmentVariable extends MetisError {
     }
 }
 
+class MetisErrorBadRequestParams extends MetisError {
+    constructor(message = '') {
+        super(`Problem with request values. ${message}`);
+        this.name = "MetisErrorBadRequestParams"
+        this.code = MetisErrorCode.MetisErrorBadRequestParams;
+        Object.setPrototypeOf(this, MetisErrorBadRequestParams.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorPushNotificationFailed extends MetisError {
+    constructor(message = '') {
+        super(`PushNotification Failure. ${message}`);
+        this.name = "MetisErrorPushNotificationFailed"
+        this.code = MetisErrorCode.MetisErrorPushNotificationFailed;
+        Object.setPrototypeOf(this, MetisErrorPushNotificationFailed.prototype); //fixes a problem with instanceof
+    }
+}
+
+class MetisErrorSendMessageToJupiterFailed extends MetisError {
+    constructor(message = '') {
+        super(`MetisErrorSendMessageToJupiterFailed. ${message}`);
+        this.name = "MetisErrorSendMessageToJupiterFailed"
+        this.code = MetisErrorCode.MetisErrorSendMessageToJupiterFailed;
+        Object.setPrototypeOf(this, MetisErrorSendMessageToJupiterFailed.prototype); //fixes a problem with instanceof
+    }
+}
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -284,3 +310,6 @@ module.exports.MetisErrorNoBinaryFileFound = MetisErrorNoBinaryFileFound;
 module.exports.MetisErrorBadJupiterAlias = MetisErrorBadJupiterAlias;
 module.exports.MetisErrorNotEnoughFunds = MetisErrorNotEnoughFunds;
 module.exports.MetisErrorBadEnvironmentVariable = MetisErrorBadEnvironmentVariable;
+module.exports.MetisErrorBadRequestParams = MetisErrorBadRequestParams;
+module.exports.MetisErrorPushNotificationFailed = MetisErrorPushNotificationFailed;
+module.exports.MetisErrorSendMessageToJupiterFailed = MetisErrorSendMessageToJupiterFailed;

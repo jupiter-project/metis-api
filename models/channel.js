@@ -4,14 +4,6 @@ import Model from './_model';
 import Methods from '../config/_methods';
 import {gravity} from '../config/gravity';
 import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
-import JupiterFSService from "../services/JimService";
-import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
-import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
-import {JupiterAPIService} from "../services/jupiterAPIService";
-import {GravityCrypto} from "../services/gravityCrypto";
-import {channelConfig} from "../config/constants";
-import {JupiterFundingService} from "../services/jupiterFundingService";
-import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
 
 const logger = require('../utils/logger')(module);
 

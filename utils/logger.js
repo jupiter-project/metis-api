@@ -232,8 +232,22 @@ const stagingLogger = (callingModule) => {
     });
 }
 
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
+const noLogger = (callingModule) => {
+    const transports = [];
+    return winston.createLogger({
+        levels: loggerConf.levels.ids,
+        transports: transports,
+    });
+}
+
 module.exports = function (callingModule) {
-  if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.development) return localDevLogger(callingModule)
-  if( appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.staging ) return stagingLogger(callingModule)
-  return productionLogger(callingModule);
+    if(!loggerConf.isEnabled) return noLogger(callingModule);
+    if(appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.development) return localDevLogger(callingModule)
+    if( appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.staging ) return stagingLogger(callingModule)
+    return productionLogger(callingModule);
 };

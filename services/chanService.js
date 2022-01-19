@@ -1036,10 +1036,19 @@ class ChanService {
 
 
 
+    // payload = {
+    //     recordType: 'e2eChannelMemberPublicKeyRecord',
+    //     memberAccountAddress: userAddress,
+    //     memberAccountAlias: userAlias,
+    //     e2ePublicKey: e2ePublicKey,
+    //     createdAt: Date.now(),
+    //     version: 1,
+    // }
+
     /**
      *
      * @param channelAccountProperties
-     * @returns {Promise<[*]>}
+     * @return {Promise<{recordType,memberAccountAddress,memberAccountAlias,e2ePublicKey,createdAt,version}[]>}
      */
     getChannelMembers(channelAccountProperties){
         logger.verbose(`#### getChannelMembers(channelAccountProperties) )`);
