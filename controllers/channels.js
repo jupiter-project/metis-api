@@ -16,6 +16,7 @@ import {StatusCode} from "../utils/statusCode";
 import {messagesConfig} from "../config/constants";
 import {MetisErrorCode} from "../utils/metisErrorCode";
 import {axiosDefault} from "../config/axiosConf";
+import {websocketConstants} from "../src/metis/constants/websocketConstants";
 var moment = require('moment'); // require
 const gu = require('../utils/gravityUtils');
 const {v4: uuidv4} = require('uuid');
@@ -251,30 +252,36 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== Send a message');
         logger.info('== POST: /v1/api/data/messages');
         logger.info('======================================================================================');
+        try{
+            const {user} = req;
+            const {
+                message,
+                replyMessage,
+                replyRecipientAlias,
+                replyRecipientAddress,
+                attachmentObj = null,
+                version,
+                mentions = [],
+                messageType = 'message'
+            } = req.body;
+            const {channelAddress} = req.params;
 
-        const {user} = req;
-        const {
-            message,
-            replyMessage,
-            replyRecipientAlias,
-            replyRecipientAddress,
-            attachmentObj,
-            version,
-            mentions = [],
-            messageType = 'message'
-        } = req.body;
-        const {channelAddress} = req.params;
-        console.log(`\n`);
-        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-        console.log(`address:`);
-        console.log(channelAddress);
-        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
-        if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
-        if (!message) {
-            return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
-        }
-        const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
-        try {
+            if(!(attachmentObj || message)){
+                //@todo throw exception. needs to be at lease one.
+            }
+
+            // @TODO
+            // if(attachmentObj){
+            //     validate(attachmentObj)
+            // }
+
+            if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
+            if (!message) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
+            if (!Array.isArray(mentions)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'mentions should be an array'});
+            mentions.forEach(mention => {
+                if(!gu.isWellFormedJupiterAddress(mention)) return res.status(StatusCode.ClientErrorBadRequest).send({message: `mention needs to be an address: ${mention}`});
+            })
+            const memberAccountProperties = user.gravityAccountProperties;
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
                 message,
@@ -285,19 +292,10 @@ module.exports = (app, passport, jobs, websocket) => {
                 attachmentObj,
                 version,
             );
-
-            if (messageType === 'invitation') {
-                websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
-            }
-
-            websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord });
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
             if(!channelAccountProperties){
-                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.'})
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.', code: MetisErrorCode.MetisError});
             }
-            // if(channelAccountProperties.isMinimumProperties){
-            //     await refreshGravityAccountProperties(channelAccountProperties)
-            // }
             await createMessageRecord(
                 memberAccountProperties,
                 channelAccountProperties,
@@ -309,14 +307,21 @@ module.exports = (app, passport, jobs, websocket) => {
                 attachmentObj,
                 version
                 );
-            // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
-            // await sendMetisMessage(memberAccountProperties, channelAccountProperties, messageRecord);
+            if (messageType === 'invitation') websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
+            websocket.of(websocketConstants.invitation.chat.namespace).to(channelAddress).emit(websocketConstants.invitation.chat.rooms.createMessage, { message: messageRecord });
+            // websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord });
             await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
             res.send({message: 'Message successfully sent'});
         } catch (error) {
             logger.error('Error sending metis message:')
             logger.error(JSON.stringify(error));
-            return res.status(500).send({message: 'Error sending message'})
+            // if(error instanceof mError.MetisErrorPushNotificationFailed){
+            //     return res.status(StatusCode.ServerErrorInternal).send({message: 'Error sending message', code: error.code})
+            // }
+            // if(error instanceof mError.MetisErrorSendMessageToJupiterFailed){
+            //     return res.status(StatusCode.ServerErrorInternal).send({message: 'Error sending message', code:  error.code})
+            // }
+            return res.status(StatusCode.ServerErrorInternal).send({message: `Error sending message. ${error.message}`, code:  error.code})
         }
     });
 

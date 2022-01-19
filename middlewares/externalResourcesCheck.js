@@ -6,6 +6,8 @@ const {jupiterAPIService} = require("../services/jupiterAPIService");
 const logger = require('../utils/logger')();
 const mError = require("../errors/metisError");
 
+
+
 module.exports.externalResourcesCheck =  async (req, res, next) => {
     // @TODO enable once we get a jupiter.isAlive()
     return next();
@@ -13,6 +15,9 @@ module.exports.externalResourcesCheck =  async (req, res, next) => {
     try {
         const jupiterState = await jupiterAPIService.getState();
         logger.info(`++ Jupiter Time: ${jupiterState.data.time}`);
+
+        //@TODO CHECK MONGO
+        //CHECK MONGO.
         return next();
     } catch(error){
         console.log('\n')

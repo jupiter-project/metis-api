@@ -22,8 +22,7 @@ module.exports = (app) => {
                 logger.error(`The ChannelAddress is Invalid: ${channelAddress}`)
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: `The channelAddress is invalid`})
             }
-            const memberAccountProperties = await instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
-            // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
+            const memberAccountProperties = user.gravityAccountProperties;
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
             if (!channelAccountProperties) {
                 return res.status(StatusCode.ServerErrorInternal).send({message: `The channel is not available: ${channelAddress}`})

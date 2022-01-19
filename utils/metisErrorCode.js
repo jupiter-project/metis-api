@@ -32,4 +32,6 @@ module.exports.MetisErrorCode = {
     MetisErrorNotEnoughFunds: 16024,
     MetisErrorBadEnvironmentVariable: 16025,
     MetisErrorBadRequestParams: 16026,
+    MetisErrorPushNotificationFailed: 16027,
+    MetisErrorSendMessageToJupiterFailed: 16028,
 }

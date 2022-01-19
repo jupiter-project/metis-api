@@ -1,5 +1,6 @@
 const dirTree = require("directory-tree");
 const path = require('path');
+const fs = require('fs');
 
 // Initialize all metis routes
 module.exports = (app, jobs, websocket) => {
@@ -18,5 +19,12 @@ module.exports = (app, jobs, websocket) => {
     jobsTree.children.forEach(element => {
         require(element.path)
     })
+    const constantsPath = `${__dirname}/constants`;
+    if(fs.existsSync(constantsPath)) {
+        const constantsTree = dirTree(constantsPath, {extensions: /\.js$/});
+        constantsTree.children.forEach(element => {
+            require(element.path);
+        })
+    }
 }
 
