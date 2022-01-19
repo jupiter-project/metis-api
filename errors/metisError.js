@@ -258,6 +258,15 @@ class MetisErrorBadEnvironmentVariable extends MetisError {
     }
 }
 
+class MetisErrorBadRequestParams extends MetisError {
+    constructor(message = '') {
+        super(`Problem with request values. ${message}`);
+        this.name = "MetisErrorBadRequestParams"
+        this.code = MetisErrorCode.MetisErrorBadRequestParams;
+        Object.setPrototypeOf(this, MetisErrorBadRequestParams.prototype); //fixes a problem with instanceof
+    }
+}
+
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -284,3 +293,4 @@ module.exports.MetisErrorNoBinaryFileFound = MetisErrorNoBinaryFileFound;
 module.exports.MetisErrorBadJupiterAlias = MetisErrorBadJupiterAlias;
 module.exports.MetisErrorNotEnoughFunds = MetisErrorNotEnoughFunds;
 module.exports.MetisErrorBadEnvironmentVariable = MetisErrorBadEnvironmentVariable;
+module.exports.MetisErrorBadRequestParams = MetisErrorBadRequestParams;
