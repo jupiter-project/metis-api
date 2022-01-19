@@ -80,9 +80,7 @@ module.exports = {
       : { $push: { mutedChannelAddressList: channelAddress } };
 
     findOneNotificationAndUpdate(filter, update)
-      .then(notification => {
-        res.json({success: true, notification})
-      })
+      .then(notification => res.json({success: true, notification}))
       .catch((error) => {
         logger.error(`${error}`);
         res.status(400).json({ ok: false, error });
