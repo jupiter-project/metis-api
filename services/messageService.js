@@ -1,3 +1,5 @@
+import {chanService} from "./chanService";
+
 const logger = require('../utils/logger')(module);
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {messagesConfig} = require("../config/constants");
@@ -129,7 +131,7 @@ const sendMessagePushNotifications = async (memberAccountProperties, channelAcco
         })
         const senderAlias = memberAccountProperties.getCurrentAliasNameOrNull();
         const {address: channelAddress} = channelAccountProperties;
-        const allChannelMembers = await this.chanService.getChannelMembers(channelAccountProperties)
+        const allChannelMembers = await chanService.getChannelMembers(channelAccountProperties)
         const channelMembersExceptOne = allChannelMembers.filter( member => member.memberAccountAddress !== memberAccountProperties.address );
         const channelMemberAddresses = channelMembersExceptOne.map(member => member.memberAccountAddress);
         const pnBody = (senderAlias)?

@@ -44,6 +44,14 @@ if(!process.env.NODE_ENV) throw new mError.MetisErrorBadEnvironmentVariable('','
 conf.nodeEnvrionment = process.env.NODE_ENV;
 // if(!process.env.LOGGING_ENABLED) throw new mError.MetisErrorBadEnvironmentVariable('Needs to be 0 or 1','LOGGING_ENABLED');
 conf.isEnabled = dotenvUtils.convertToBooleanOrNull(process.env.LOGGING_ENABLED);
+
+//     LOGGING_DEFAULT_LEVEL=sensitive
+//
+// LOGGING_FILE_TRANSPORT_LEVEL=sensitive
+// LOGGING_SLACK_TRANSPORT_LEVEL=blast
+// LOGGING_S3_TRANSPORT_LEVEL=blast
+
+
 if(!process.env.LOGGING_DEFAULT_LEVEL) throw new mError.MetisErrorBadEnvironmentVariable('','LOGGING_DEFAULT_LEVEL');
 conf.defaultLevel =  process.env.LOGGING_DEFAULT_LEVEL;
 if(conf.nodeEnvrionment === NODE_ENV_OPTIONS.PRODUCTION){
@@ -81,4 +89,19 @@ if(conf.hasS3Option === true){
     conf.hasS3Option = true;
     conf.s3Stream = s3;
 }
+if(process.env.LOGGING_ERROR_LOG_FILE_PATH){
+    conf.errorLogFilePath = process.env.LOGGING_ERROR_LOG_FILE_PATH;
+} else {
+    conf.errorLogFilePath = 'logs/error.log'
+}
+if(process.env.LOGGING_COMBINED_LOG_FILE_PATH){
+    conf.combinedLogFilePath = process.env.LOGGING_COMBINED_LOG_FILE_PATH;
+} else {
+    conf.combinedLogFilePath = 'logs/combined.log'
+}
+
+
+
+
+
 module.exports.loggerConf = conf;

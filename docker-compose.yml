@@ -29,6 +29,7 @@ services:
       - /apps/metis/node_modules
       - ./tmp:/tmp
       - ./file_cache:/apps/metis/file_cache
+      - ./logs:/apps/metis/logs
     environment:
       - MONGO_URL=mongodb://mongo:27017/metisPN
       - URL_DB=mongodb://mongo:27017/metisPN

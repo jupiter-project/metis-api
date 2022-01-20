@@ -17,6 +17,7 @@ conf.nodeEnvironmentOptions = {
 conf.email = process.env.EMAIL;
 conf.port = process.env.APP_PORT;
 conf.nodeEnvrionment = process.env.NODE_ENV;
+conf.isProduction = (conf.nodeEnvrionment === conf.nodeEnvironmentOptions.production)
 if(!Object.values(conf.nodeEnvironmentOptions).includes(conf.nodeEnvrionment)){
     throw new mError.MetisErrorBadEnvironmentVariable(`Value is not valid: "${conf.nodeEnvrionment}"`,'NODE_ENV');
 }

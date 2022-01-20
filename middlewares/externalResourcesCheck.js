@@ -5,6 +5,8 @@ const {StatusCode} = require("../utils/statusCode");
 const {jupiterAPIService} = require("../services/jupiterAPIService");
 const logger = require('../utils/logger')();
 const mError = require("../errors/metisError");
+const {appConf} = require("../config/appConf");
+const {metisConf} = require("../config/metisConf");
 
 
 
@@ -27,10 +29,10 @@ module.exports.externalResourcesCheck =  async (req, res, next) => {
         console.log(error);
         if( error instanceof mError.MetisErrorBadJupiterGateway){
             //Send The Alert!
-            const nodeEnvironment = process.env.NODE_ENV;
-            const notifyEmail = process.env.EMAIL;
-            const appName = process.env.APPNAME;
-            const jupiterServerUrl = process.env.JUPITERSERVER;
+            const nodeEnvironment = appConf.nodeEnvrionment;
+            const notifyEmail = metisConf.email;
+            const appName = metisConf.appName;
+            const jupiterServerUrl = metisConf.appJupiterServerUrl;
             // adminNotifier.notify(  ,'RED_ALERT' ); Includes Metis Server identification.
             logger.blast(`jupiter is down! jupiterUrl: ${jupiterServerUrl} `)
             return res.status(StatusCode.ServerErrorServiceUnavailable).send({ message: 'Service not available', code: error.code });
