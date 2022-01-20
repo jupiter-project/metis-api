@@ -34,4 +34,5 @@ module.exports.MetisErrorCode = {
     MetisErrorBadRequestParams: 16026,
     MetisErrorPushNotificationFailed: 16027,
     MetisErrorSendMessageToJupiterFailed: 16028,
+    MetisErrorFileTooLarge: 16029,
 }

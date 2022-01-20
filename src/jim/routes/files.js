@@ -60,7 +60,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
             console.log(data);
             return res.status(StatusCode.ClientErrorNotAcceptable).send({
                 message: `File size must be lower than ${jimConfig.maxMbSize} MB`,
-                code: MetisErrorCode.MetisError
+                code: MetisErrorCode.MetisErrorFileTooLarge
             });
             //     req.file.size <= ApiConfig.maxMbSize * 1024 * 1024,
         })
@@ -233,10 +233,13 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                     logger.error(`* ** job.on(failed)`);
                     logger.error(`************************* ERROR ***************************************\n`);
                     logger.error(`errorMessage= ${errorMessage}`)
-
-                    const errorCode = errorMessage.includes('Not enough funds') ?
-                        MetisErrorCode.MetisErrorNotEnoughFunds:
-                        MetisErrorCode.MetisError
+                    ///'File size too large ( 15.488063 MBytes) limit is: 1.6 MBytes'
+                    let errorCode = MetisErrorCode.MetisError;
+                    if(errorMessage.includes('Not enough funds')){
+                        errorCode = MetisErrorCode.MetisErrorNotEnoughFunds
+                    } else if(errorMessage.includes('File size too large')){
+                        errorCode = MetisErrorCode.MetisErrorFileTooLarge
+                    }
                     const payload = {
                         senderAddress: userAccountProperties.address,
                         jobId: job.id,
