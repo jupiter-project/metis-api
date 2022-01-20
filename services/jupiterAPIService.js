@@ -93,14 +93,6 @@ class JupiterAPIService {
     async jupiterRequest(rtype, params, data = {}) {
         // const url = this.jupiterUrl(params);
         const url = `${this.jupiterHost}/nxt`;
-
-
-        console.log(`\n`);
-        console.log(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
-        console.log(` rtype: ${rtype}`);
-        console.log(params);
-
-
         try {
             const response = await this._jupiterRequest(rtype, params, data);
             if (response.error) {

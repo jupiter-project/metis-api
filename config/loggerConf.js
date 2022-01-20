@@ -1,4 +1,6 @@
+// dotenv loads all the variables from your .env file into process.env as string
 const mError = require("../errors/metisError");
+const dotenvUtils = require("../utils/dovenvUtils");
 const NODE_ENV_OPTIONS = {
     PRODUCTION: 'production',
     SERVER_DEV: 'development',
@@ -38,9 +40,18 @@ conf.levels = {
         insane: 'yellow'
     }
 };
-
 if(!process.env.NODE_ENV) throw new mError.MetisErrorBadEnvironmentVariable('','NODE_ENV');
 conf.nodeEnvrionment = process.env.NODE_ENV;
+// if(!process.env.LOGGING_ENABLED) throw new mError.MetisErrorBadEnvironmentVariable('Needs to be 0 or 1','LOGGING_ENABLED');
+conf.isEnabled = dotenvUtils.convertToBooleanOrNull(process.env.LOGGING_ENABLED);
+
+//     LOGGING_DEFAULT_LEVEL=sensitive
+//
+// LOGGING_FILE_TRANSPORT_LEVEL=sensitive
+// LOGGING_SLACK_TRANSPORT_LEVEL=blast
+// LOGGING_S3_TRANSPORT_LEVEL=blast
+
+
 if(!process.env.LOGGING_DEFAULT_LEVEL) throw new mError.MetisErrorBadEnvironmentVariable('','LOGGING_DEFAULT_LEVEL');
 conf.defaultLevel =  process.env.LOGGING_DEFAULT_LEVEL;
 if(conf.nodeEnvrionment === NODE_ENV_OPTIONS.PRODUCTION){
@@ -54,8 +65,10 @@ if(process.env.LOGGING_SLACK_TRANSPORT_LEVEL && process.env.LOGGING_SLACK_HOOK){
     conf.slackHook = process.env.LOGGING_SLACK_HOOK;
     conf.hasSlackTransport = true;
 }
-conf.hasS3Option = false;
-if(process.env.S3_OPTION === 1){
+
+if(!process.env.S3_OPTION) throw new mError.MetisErrorBadEnvironmentVariable('','S3_OPTION');
+conf.hasS3Option = dotenvUtils.convertToBooleanOrNull(process.env.S3_OPTION);
+if(conf.hasS3Option === true){
     s3 = {};
     if(!process.env.S3_ENDPOINT) throw new Error(`Environment variable not configured properly: S3_ENDPOINT`)
     if(!process.env.S3_STREAM_KEY) throw new Error(`Environment variable not configured properly: S3_STREAM_KEY`)
@@ -76,4 +89,19 @@ if(process.env.S3_OPTION === 1){
     conf.hasS3Option = true;
     conf.s3Stream = s3;
 }
+if(process.env.LOGGING_ERROR_LOG_FILE_PATH){
+    conf.errorLogFilePath = process.env.LOGGING_ERROR_LOG_FILE_PATH;
+} else {
+    conf.errorLogFilePath = 'logs/error.log'
+}
+if(process.env.LOGGING_COMBINED_LOG_FILE_PATH){
+    conf.combinedLogFilePath = process.env.LOGGING_COMBINED_LOG_FILE_PATH;
+} else {
+    conf.combinedLogFilePath = 'logs/combined.log'
+}
+
+
+
+
+
 module.exports.loggerConf = conf;
