@@ -21,13 +21,24 @@ const meter = require('stream-meter');
 // const asyncHandler = require('express-async-handler');
 
 
-function abort(request, busboy){
-    logger.verbose(`#### abort()`);
+function abort(request, response, busboy, statusCode = StatusCode.ServerErrorInternal, metisError){
+    logger.error(`#### abort()`);
+    logger.error(`statusCode= ${statusCode}`);
+    logger.error(`metisError.code= ${metisError.code}`);
+    logger.error(`metisError.message= ${metisError.message}`);
     request.unpipe(busboy);
-    if (!request.aborted) {
-        request.set("Connection", "close");
-        request.sendStatus(StatusCode.ClientErrorPayloadTooLarge);
+    if (!response.aborted) {
+        response.set("Connection", "close");
+        response.status(statusCode).send({message: metisError.message, code: metisError.code})
     }
+
+    // return res.status(StatusCode.ClientErrorNotAcceptable).send({
+    //     message: `File size must be lower than ${jimConfig.maxMbSize} MB`,
+    //     code: MetisErrorCode.MetisErrorFileTooLarge
+    // });
+
+
+
 }
 const uploadController = (req,res,next,app,jobs,websocket) => {
     console.log(`\n\n\n`);
@@ -50,20 +61,12 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
     fileUploadData.fileUuid = fileUuid;
     fileUploadData.filePath = bufferDataFilePath;
     fileUploadData.userAccountProperties = req.user.gravityAccountProperties;
+
     const bb = busboy({
         headers: req.headers,
-        limits: {files: 1, fileSize: jimConfig.maxMbSize}
+        limits: {files: 1, fileSize: jimConfig.maxBytesSize}
     });
     try{
-        bb.on('limit', (data)=> {
-            logger.verbose(`---- bb.on(limit)`);
-            console.log(data);
-            return res.status(StatusCode.ClientErrorNotAcceptable).send({
-                message: `File size must be lower than ${jimConfig.maxMbSize} MB`,
-                code: MetisErrorCode.MetisError
-            });
-            //     req.file.size <= ApiConfig.maxMbSize * 1024 * 1024,
-        })
         bb.on('field', (fieldName, value)=>{
             logger.verbose(`---- bb.on(field)`);
             if(fieldName === 'attachToJupiterAddress'){
@@ -85,32 +88,48 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
         })
         bb.on('file', (formDataKey,file,info) => {
             logger.sensitive(`---- bb.on(file)`);
+            file.on('limit', ()=> {
+                logger.sensitive(`---- file.on(limit)`);
+                // console.log(data);
+                const metisError = new mError.MetisErrorFileTooLarge();
+                return abort(req, res,bb,StatusCode.ClientErrorNotAcceptable, metisError);
+            })
             if(formDataKey !== 'file') {
-                return res.status(StatusCode.ClientErrorNotAcceptable).send({
-                    message: `file key needs to be (file) not: ${formDataKey}`,
-                    code: MetisErrorCode.MetisError
-                });
+                return abort(
+                    req,
+                    res,
+                    bb,
+                    StatusCode.ClientErrorNotAcceptable,
+                    new mError.MetisErrorBadRequestParams(`file key needs to be (file) not: ${formDataKey}`)
+                );
+                // return res.status(StatusCode.ClientErrorNotAcceptable).send({
+                //     message: `file key needs to be (file) not: ${formDataKey}`,
+                //     code: MetisErrorCode.MetisError
+                // });
             }
             try {
                 if(formDataKey === 'file') {
                     logger.verbose(`---- bb.on(file)`);
                     if (!gu.isNonEmptyString(info.filename)) {
-                        return res.status(StatusCode.ClientErrorNotAcceptable).send({
-                            message: `filename is not valid: ${info.filename}`,
-                            code: MetisErrorCode.MetisError
-                        });
+                        return abort(req,res,bb,StatusCode.ClientErrorNotAcceptable,new mError.MetisError(`filename is not valid: ${info.filename}`))
+                        // return res.status(StatusCode.ClientErrorNotAcceptable).send({
+                        //     message: `filename is not valid: ${info.filename}`,
+                        //     code: MetisErrorCode.MetisError
+                        // });
                     }
                     if (!gu.isNonEmptyString(info.encoding)) {
-                        return res.status(StatusCode.ClientErrorNotAcceptable).send({
-                            message: `encoding is not valid: ${info.encoding}`,
-                            code: MetisErrorCode.MetisError
-                        });
+                        return abort(req,res,bb,StatusCode.ClientErrorNotAcceptable, new mError.MetisError(`encoding is not valid: ${info.encoding}`))
+                        // return res.status(StatusCode.ClientErrorNotAcceptable).send({
+                        //     message: `encoding is not valid: ${info.encoding}`,
+                        //     code: MetisErrorCode.MetisError
+                        // });
                     }
                     if (!gu.isNonEmptyString(info.mimeType)) {
-                        return res.status(StatusCode.ClientErrorNotAcceptable).send({
-                            message: `mimeType is not valid: ${info.mimeType}`,
-                            code: MetisErrorCode.MetisError
-                        });
+                        return abort(req,res,bb,StatusCode.ClientErrorNotAcceptable, new mError.MetisError(`mimeType is not valid: ${info.mimeType}`));
+                        // return res.status(StatusCode.ClientErrorNotAcceptable).send({
+                        //     message: `mimeType is not valid: ${info.mimeType}`,
+                        //     code: MetisErrorCode.MetisError
+                        // });
                     }
                     fileUploadData.fileName = info.filename;
                     fileUploadData.fileEncoding = info.encoding;
@@ -121,10 +140,11 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                     const fsStream = fs.createWriteStream(bufferDataFilePath);
                     fsStream.on( 'error', error => {
                         logger.error(`Error writing file ${error}`);
-                        return res.status(StatusCode.ServerErrorInternal).send({
-                            message: 'Internal server error',
-                            code: MetisErrorCode.MetisError
-                        });
+                        return abort(req,res,bb,StatusCode.ServerErrorInternal, new mError.MetisError(`Error writing file ${error}`));
+                        // return res.status(StatusCode.ServerErrorInternal).send({
+                        //     message: 'Internal server error',
+                        //     code: MetisErrorCode.MetisError
+                        // });
                     });
                     const _meter = meter();
                     file.pipe(_meter).pipe(fsStream).on('finish', () => {
@@ -137,7 +157,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 logger.error(`* ** bb.on(file).catch(error)`);
                 logger.error(`************************* ERROR ***************************************\n`);
                 logger.error(`error= ${error}`)
-                return abort(req,bb);
+                return abort(req, res,bb,StatusCode.ServerErrorInternal, error);
             }
         })
         bb.on('close', async () => {
@@ -233,10 +253,13 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                     logger.error(`* ** job.on(failed)`);
                     logger.error(`************************* ERROR ***************************************\n`);
                     logger.error(`errorMessage= ${errorMessage}`)
-
-                    const errorCode = errorMessage.includes('Not enough funds') ?
-                        MetisErrorCode.MetisErrorNotEnoughFunds:
-                        MetisErrorCode.MetisError
+                    ///'File size too large ( 15.488063 MBytes) limit is: 1.6 MBytes'
+                    let errorCode = MetisErrorCode.MetisError;
+                    if(errorMessage.includes('Not enough funds')){
+                        errorCode = MetisErrorCode.MetisErrorNotEnoughFunds
+                    } else if(errorMessage.includes('File size too large')){
+                        errorCode = MetisErrorCode.MetisErrorFileTooLarge
+                    }
                     const payload = {
                         senderAddress: userAccountProperties.address,
                         jobId: job.id,
@@ -253,8 +276,8 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
             }
         })
-        req.on("aborted", ()=> abort(req,bb));
-        bb.on("error", ()=> abort(req,bb));
+        req.on("aborted", ()=> abort(req, res,bb,StatusCode.ServerErrorInternal, new mError.MetisError('aborted')));
+        bb.on("error", ()=> abort(req, res,bb,StatusCode.ServerErrorInternal, new mError.MetisError('error')));
         req.pipe(bb);
         return;
     } catch(error) {

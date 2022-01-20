@@ -22,7 +22,9 @@ if(fileCacheStrategy === 'local'){
     }}
 }
 if(!process.env.JIMSRV_MAX_FILE_SIZE_MB) throw new Error(`Environment Variable missing: JIMSRV_MAX_FILE_SIZE_MB `)
-const maxFileSize = process.env.JIMSRV_MAX_FILE_SIZE_MB;
+const maxFileSizeMB = process.env.JIMSRV_MAX_FILE_SIZE_MB;
+const maxFileSizeBytes = process.env.JIMSRV_MAX_FILE_SIZE_MB * 1000000;
+
 if(!process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE) throw new Error(`Environment Variable missing: JIMSRV_BINARY_ACCOUNT_MIN_BALANCE `)
 // const binaryAccountMinBalance = process.env.JIMSRV_BINARY_ACCOUNT_MIN_BALANCE;
 
@@ -34,7 +36,8 @@ module.exports.jimConfig = {
             fit: 'cover',
         },
     },
-    maxMbSize: maxFileSize,
+    maxMbSize: maxFileSizeMB,
+    maxBytesSize: maxFileSizeBytes,
     // binaryAccountMinimumBalance: binaryAccountMinBalance,
     fileCache: fileCacheConfig
 };

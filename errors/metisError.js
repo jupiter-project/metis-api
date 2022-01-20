@@ -284,6 +284,16 @@ class MetisErrorSendMessageToJupiterFailed extends MetisError {
         Object.setPrototypeOf(this, MetisErrorSendMessageToJupiterFailed.prototype); //fixes a problem with instanceof
     }
 }
+
+class MetisErrorFileTooLarge extends MetisError {
+    constructor(message = '', size='') {
+        super(`MetisErrorFileTooLarge: ${size}. ${message}`);
+        this.name = "MetisErrorFileTooLarge";
+        this.size = size
+        this.code = MetisErrorCode.MetisErrorFileTooLarge;
+        Object.setPrototypeOf(this, MetisErrorFileTooLarge.prototype); //fixes a problem with instanceof
+    }
+}
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.UnknownAliasError = UnknownAliasError;
@@ -313,3 +323,4 @@ module.exports.MetisErrorBadEnvironmentVariable = MetisErrorBadEnvironmentVariab
 module.exports.MetisErrorBadRequestParams = MetisErrorBadRequestParams;
 module.exports.MetisErrorPushNotificationFailed = MetisErrorPushNotificationFailed;
 module.exports.MetisErrorSendMessageToJupiterFailed = MetisErrorSendMessageToJupiterFailed;
+module.exports.MetisErrorFileTooLarge = MetisErrorFileTooLarge;

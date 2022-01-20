@@ -68,7 +68,6 @@ const initializeConsoleTransport = (callingModule, level = loggerConf.levels.nam
         return `${info.timestamp}|${paddedLevel}|${paddedCallingModuleName}|${info.message}`
     }))
 
-
     return new winston.transports.Console({
         level:level,
         colorize: true,
