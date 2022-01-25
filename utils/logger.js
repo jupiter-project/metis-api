@@ -211,8 +211,8 @@ const serverDevLogger = (callingModule) => {
 
 const localDevLogger = (callingModule) => {
     const transports = [];
-    transports.push(initializeFileTransport(callingModule, loggerConf.errorLogFilePath, loggerConf.levels.names.error, LEVEL_FILTER_TYPE.includeOnlyOne));
-    transports.push(initializeFileTransport(callingModule, loggerConf.combinedLogFilePath, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none));
+    // transports.push(initializeFileTransport(callingModule, loggerConf.errorLogFilePath, loggerConf.levels.names.error, LEVEL_FILTER_TYPE.includeOnlyOne));
+    // transports.push(initializeFileTransport(callingModule, loggerConf.combinedLogFilePath, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none));
     transports.push(initializeConsoleTransport(callingModule, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none));
   return winston.createLogger({
     levels: loggerConf.levels.ids,

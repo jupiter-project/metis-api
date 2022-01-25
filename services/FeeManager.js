@@ -188,10 +188,10 @@ class FeeManager {
      */
     calculateFileFee(base64FileSize){
         if(!base64FileSize) return 0; //@TODO what should we return?
-        const numberOfChunks = Math.ceil(base64FileSize/jimConfig.fileChunkSize);
+        const numberOfChunks = Math.ceil(base64FileSize/+jimConfig.fileChunkSize);
         let fee = 0;
         for(let i=0; i<numberOfChunks; i++){
-            fee = fee + this.calculateMessageFee(jimConfig.fileChunkSize);
+            fee = fee + this.calculateMessageFee(+jimConfig.fileChunkSize);
         }
         return  fee;
     }
