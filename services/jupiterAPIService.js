@@ -8,6 +8,7 @@ import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 // import {add} from "lodash";
 import {refreshGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {transactionConstants} from "../src/gravity/constants/transactionContants";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 const mError = require("../errors/metisError");
@@ -309,9 +310,9 @@ class JupiterAPIService {
      * requireLastBlock
      *
      * @param {string} address - JUP-123
-     * @param {string} [message=null] - Usually the tag message
+     * @param {string|null} [message=null] - Usually the tag message
      * @param {boolean} [withMessage=false] - when true its used as a tag
-     * @param {boolean} [type=1]
+     * @param {number|null} [type=1]
      * @param {boolean} [includeExpiredPrunable=true]
      * @param {number|null} [firstIndex=null]
      * @param {number|null} [lastIndex=null]
@@ -324,12 +325,12 @@ class JupiterAPIService {
         address,
         message = null ,
         withMessage = false,
-        type = 1 ,
+        type = transactionConstants.type.messaging.value ,
         includeExpiredPrunable = true,
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.verbose(`#### getBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.verbose(`#### getBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${withMessage}, type: ${type}, includeExpiredPrunable, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
         const requestType = JupiterAPIService.RequestType.GetBlockchainTransactions;
         const transactionsResponse = await this._getConfirmedOrUnconfirmedBlockChainTransactions(
@@ -342,7 +343,6 @@ class JupiterAPIService {
             firstIndex,
             lastIndex
         )
-        // logger.debug(`total found: ${transactionsResponse.data.transactions.length}`)
         return transactionsResponse;
     }
 
@@ -391,9 +391,9 @@ class JupiterAPIService {
         }
      *
      * @param {string} address - JUP-123
-     * @param {string} [message=null] - Usually the tag message
+     * @param {string|null} [message=null] - Usually the tag message
      * @param {boolean} [withMessage=false] - when true its used as a tag
-     * @param {boolean} [type=1]
+     * @param {number|null} [type=1]
      * @param {boolean} [includeExpiredPrunable=true]
      * @param {number|null} [firstIndex=null]
      * @param {number|null} [lastIndex=null]
@@ -410,18 +410,18 @@ class JupiterAPIService {
         address,
         message = null,
         withMessage = false,
-        type = 1,
+        type = transactionConstants.type.messaging.value,
         includeExpiredPrunable = true,
         firstIndex = null,
         lastIndex = null
     ) {
-        logger.verbose(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${!!withMessage}, type, includeExpiredPrunable, firstIndex, lastIndex)`);
+        logger.verbose(`#### getUnconfirmedBlockChainTransactions(address= ${address}, message= ${message}, withMessage: ${!!withMessage}, type:${type}, includeExpiredPrunable, firstIndex:${firstIndex}, lastIndex:${lastIndex})`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`);
-        logger.verbose(`address= ${address}`);
-        logger.verbose(`message= ${message}`);
-        logger.verbose(`withMessage= ${withMessage}`);
-        logger.verbose(`type= ${type}`);
-        logger.verbose(`firstIndex= ${firstIndex}`);
+        // logger.verbose(`address= ${address}`);
+        // logger.verbose(`message= ${message}`);
+        // logger.verbose(`withMessage= ${withMessage}`);
+        // logger.verbose(`type= ${type}`);
+        // logger.verbose(`firstIndex= ${firstIndex}`);
         const transactionsResponse = await this._getConfirmedOrUnconfirmedBlockChainTransactions(
             JupiterAPIService.RequestType.GetUnconfirmedTransactions,
             address,
@@ -483,7 +483,7 @@ class JupiterAPIService {
         address,
         message = null ,
         withMessage = false,
-        type = 1 ,
+        type = transactionConstants.type.messaging.value,
         includeExpiredPrunable = true,
         firstIndex = null,
         lastIndex = null

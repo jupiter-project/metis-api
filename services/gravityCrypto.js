@@ -1,17 +1,17 @@
 const logger = require('../utils/logger')(module);
+const gu = require("../utils/gravityUtils");
 const crypto = require('crypto');
 
 class GravityCrypto {
 
     constructor(decryptionAlgorithm, decryptionPassword) {
         if(!decryptionAlgorithm){throw new Error('missing decryptionAlgorithm')}
+        if(!gu.isValidEncryptionAlgorithm(decryptionAlgorithm)) throw new mError.MetisError(`invalid algorithm: ${decryptionAlgorithm}`);
         if(!decryptionPassword){throw new Error('missing decryptionPassword')}
         if(decryptionPassword === undefined){throw new Error('password cannot be undefined')}
         if(decryptionPassword === 'undefined'){throw new Error('password cannot be undefined')}
         if(decryptionAlgorithm === undefined){throw new Error('decryptionAlgorithm cannot be undefined')}
         if(decryptionAlgorithm === 'undefined'){throw new Error('decryptionAlgorithm cannot be undefined')}
-
-
         this.decryptionAlgorithm = decryptionAlgorithm;
         this.decryptionPassword = decryptionPassword;
     }
@@ -53,24 +53,18 @@ class GravityCrypto {
             const jsonString = JSON.stringify(json);
             return this.encrypt(jsonString);
         } catch(error){
-            logger.error(`not ablet to encrypt the json object`);
+            logger.error(`not able to encrypt the json object`);
+            logger.error(`${error}`)
             throw error;
         }
     }
 
     encrypt(data) {
-        if(data === '') {
-            throw new Error('the data to decrypt is empty');
-        }
-
-        if( !(typeof data === 'string')) {
-            throw new Error('the data to decrypt is not a string');
-        }
-
+        if(data === '') throw new Error('the data to decrypt is empty');
+        if( !(typeof data === 'string')) throw new Error('the data to decrypt is not a string');
         const cipher = crypto.createCipher(this.decryptionAlgorithm, this.decryptionPassword);
         let crypted = cipher.update(data, 'utf8', 'hex');
         crypted += cipher.final('hex');
-
         return crypted;
     }
 

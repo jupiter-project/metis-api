@@ -1,3 +1,4 @@
+import mError from "../errors/metisError";
 
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
@@ -7,6 +8,7 @@ import axios from 'axios';
 import {randomFillSync} from "crypto";
 import bcrypt from 'bcrypt-nodejs';
 import _ from 'lodash';
+import {metisConf} from "../config/metisConf";
 
 
 /**
@@ -265,6 +267,20 @@ const isNumberGreaterThanZero = function(number) {
     return false
 }
 
+
+
+// const conf = {};
+// conf.encryptionAlgorithmOptions = {
+//     aes256cbc: 'aes-256-cbc'
+// }
+// if(!Object.values(conf.encryptionAlgorithmOptions).includes(conf.appPasswordAlgorithm)){
+//     throw new mError.MetisErrorBadEnvironmentVariable(`Value is not valid: "${conf.appPasswordAlgorithm}"`,'ENCRYPT_ALGORITHM');
+// }
+
+
+const isValidEncryptionAlgorithm = function(algorithm){
+    return Object.values(metisConf.encryptionAlgorithmOptions).includes(algorithm);
+}
 /**
  *
  * @param key
@@ -512,7 +528,8 @@ module.exports = {
     formatUsd,
     getCurrentJupiterValueOrNull,
     isWellFormedE2EPublicKey,
-    isWellFormedUuid
+    isWellFormedUuid,
+    isValidEncryptionAlgorithm
 };
 
 

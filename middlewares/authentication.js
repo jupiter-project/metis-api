@@ -29,6 +29,7 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/job/status',
     '/api-docs',
     '/jim/v1/api/ping',
+    `/v1/api/generate-passphrase`
   ];
 
   // app.get('/v1/api/accounts/:accountAddress/aliases', async (req, res) => {
@@ -40,7 +41,7 @@ const tokenVerify = (req, res, next) => {
   }
   if (routeDoesntNeedAuthentication.length > 0 || req.url === '/' || req.url.startsWith('/v1/api/pn/token') ) {
     logger.debug(`No Authentication Needed.`);
-    logger.info('Testing URL = ' + req.url);
+    // logger.info('Testing URL = ' + req.url);
     return next();
   }
   if (!token) {

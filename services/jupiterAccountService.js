@@ -95,6 +95,8 @@ class JupiterAccountService {
      * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
     async addUserRecordToUserAccount(userAccountProperties) {
+        logger.verbose(`####  addUserRecordToUserAccount(userAccountProperties)`);
+        if(!(userAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`userAccountProperties`);
         const tag = `${userConfig.userRecord}.${userAccountProperties.address}`;
         const createdDate = Date.now();
         const userRecord = {
@@ -109,16 +111,16 @@ class JupiterAccountService {
             version: 1
         };
         const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
-        return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+        const response = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             userAccountProperties.passphrase,
             userAccountProperties.address,
             encryptedUserRecord,
             tag,
             FeeManager.feeTypes.account_record,
             userAccountProperties.publicKey
-        ).then(response => {
-            return response.transactionJSON;
-        })
+        );
+
+        return response.transactionJSON;
     }
 
     /**

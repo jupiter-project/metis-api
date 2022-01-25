@@ -55,7 +55,7 @@ conf.isEnabled = dotenvUtils.convertToBooleanOrNull(process.env.LOGGING_ENABLED)
 if(!process.env.LOGGING_DEFAULT_LEVEL) throw new mError.MetisErrorBadEnvironmentVariable('','LOGGING_DEFAULT_LEVEL');
 conf.defaultLevel =  process.env.LOGGING_DEFAULT_LEVEL;
 if(conf.nodeEnvrionment === NODE_ENV_OPTIONS.PRODUCTION){
-    if([conf.levels.name.insane, conf.levels.name.sensitive].includes(conf.defaultLevel)){
+    if([conf.levels.names.insane, conf.levels.names.sensitive].includes(conf.defaultLevel)){
         throw new mError.MetisErrorBadEnvironmentVariable(`Production cannot have level ${conf.defaultLevel}`);
     }
 }

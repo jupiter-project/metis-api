@@ -1,4 +1,4 @@
-
+// pm2-runtime server.js -- --max-old-space-size=4096 NODE_ENV=production --trace-warnings
 require('babel-register')({
   presets: ['react'],
 });
@@ -359,10 +359,10 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
   transferWorker.fundAccount(job.data, job.id, done);
 }); */
 
-  mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions).catch( error => {
-    logger.error(`Mongo is not available: ${process.env.MONGO_DB_URI}`);
-    process.exit(1);
-  });
+mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions).catch( error => {
+  logger.error(`Mongo is not available: ${process.env.MONGO_DB_URI}`);
+  process.exit(1);
+});
 
 server.setTimeout(1000 * 60 * 10);
 // Tells server to listen to port 4000 when app is initialized

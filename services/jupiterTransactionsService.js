@@ -9,6 +9,7 @@ const {MetisError} = require("../errors/metisError");
 const mError = require("../errors/metisError");
 const {validator} = require("./validator");
 const {GravityCrypto} = require("./gravityCrypto");
+const {transactionConstants} = require("../src/gravity/constants/transactionContants");
 
 class JupiterTransactionsService {
 
@@ -243,8 +244,207 @@ class JupiterTransactionsService {
     }
 
 
+    /**
+     *
+     * @param address
+     * @param {null|number}filterByType
+     * @param filterByTag
+     * @param withMessage
+     * @param includeUnconfirmed
+     * @param firstIndex
+     * @param lastIndex
+     * @param orderBy
+     * @return {Promise<*[]>}
+     */
+    async fetchTransactions(address,filterByType=null, filterByTag=null, withMessage=null, includeUnconfirmed= true, firstIndex=null, lastIndex=null, orderBy='desc' ){
+        logger.verbose(`####  fetchTransactions(address,filterByType=null, filterByTag=null, withMessage=null, includeUnconfirmed=true, firstIndex=null, lastIndex=null, orderBy='desc')`);
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        if(!gu.isNonEmptyString(filterByTag)){throw new Error('filterByTag is empty')}
+        logger.sensitive(`address= ${JSON.stringify(address)}`);
+        logger.sensitive(`tag= ${JSON.stringify(filterByTag)}`);
+        try {
+            const confirmedTransactionsPromise = this.fetchConfirmedTransactions(address, filterByType, filterByTag, withMessage, firstIndex, lastIndex, orderBy);
+            const unconfirmedTransactionsPromise = (includeUnconfirmed)? this.fetchUnconfirmedTransactions(address, filterByType, filterByTag, withMessage, firstIndex, lastIndex, orderBy):[];
+            const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise]);
+            const combinedTransactions = [...unconfirmendTransactionsResponse, ...confirmedTransactionsResponse];
+            const allAreValidTransactions = combinedTransactions.every(transaction => {
+                const valid = this.validator.validateBaseTransaction(transaction);
+                if (!valid.isValid) logger.error(`Transactions from Jupiter are invalid! ${valid.errors}`);
+                return valid.isValid;
+            })
+            if (!allAreValidTransactions) {
+                throw new mError.MetisError(`Transactions from Jupiter are invalid!`);
+            }
+            const sortedCombinedTransactions = this.transactionUtils.sortTransactionsByTimestamp(combinedTransactions, orderBy);
+            logger.debug(`sortedCombinedTransactions.length= ${sortedCombinedTransactions.length}`);
 
+            if (filterByTag) {
+                // @TODO Jupiter needs to be fixed!
+                return sortedCombinedTransactions.filter(transaction => {
+                    return transaction.hasOwnProperty('attachment') &&
+                        transaction.attachment.hasOwnProperty('message') &&
+                        transaction.attachment.message.includes(filterByTag)
+                });
+            }
+            return sortedCombinedTransactions
+        }catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** fetchTransactions().catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
+    }
 
+    /**
+     *
+     * @param {string}address
+     * @param {number|null} filterByType
+     * @param {string|null}filterByTag
+     * @param {boolean|null}withMessage
+     * @param {number|null}firstIndex
+     * @param {number|null}lastIndex
+     * @param {string}orderBy
+     * @return {Promise<{signature, transactionIndex, type, phased, ecBlockId, signatureHash, attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData, versionEncryptedMessage}, senderRS, subtype, amountNQT, recipientRS, block, blockTimestamp, deadline, timestamp, height, senderPublicKey, feeNQT, confirmations, fullHash, version, sender, recipient, ecBlockHeight, transaction}[]|*[]>}
+     */
+    async fetchConfirmedTransactions(address,filterByType= null, filterByTag= null, withMessage=null, firstIndex= null, lastIndex= null, orderBy='desc') {
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        if(firstIndex && !Number.isInteger(firstIndex)){throw new Error(`firstIndex needs to be an int or null`) }
+        if(lastIndex && !Number.isInteger(lastIndex)){throw new Error(`lastIndex needs to be an int or null`) }
+        if(firstIndex && !lastIndex){
+            lastIndex = firstIndex+10;
+        }
+        if(filterByType && !Number.isInteger(filterByType)){throw new Error(`filterByType needs to be an int or null`) }
+        const transactionsResponse = await this.jupiterAPIService.getBlockChainTransactions(
+            address,
+            filterByTag,
+            withMessage,
+            filterByType,
+            true,
+            firstIndex,
+            lastIndex
+        )
+        if(!transactionsResponse.data) return []
+        const transactionsData = transactionsResponse.data;
+        if(!transactionsData.hasOwnProperty('transactions')) return []
+        if(!Array.isArray(transactionsData.transactions)) return []
+        const transactions = transactionsData.transactions;
+        const filteredTransactions =  transactions.filter( t => {
+            const valid = this.validator.validateBaseTransaction(t);
+            if(!valid.isValid){
+                logger.warn('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                logger.warn(`++ this transaction coming from Jupiter is not valid!!!`);
+                logger.warn(`++ ${JSON.stringify(t)}`);
+                logger.warn('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
+                logger.warn(`${t}`)
+            }
+            return valid.isValid;
+        })
+        if(filterByTag) {
+            filteredTransactions.forEach(t => {
+                if (!(t.hasOwnProperty('attachment') && t.attachment.hasOwnProperty('message'))) {
+                    console.log(`\n`);
+                    logger.error('???????????????????????????????????????????????');
+                    logger.error(`?? CONFIRMED TRANS.`)
+                    logger.error(`?? Tags arent working! This transaction doesnt belong. TAG= ${filterByTag}`);
+                    logger.error('???????????????????????????????????????????????\n');
+                    console.log(t);
+                } else if (!t.attachment.message.includes(filterByTag)) {
+                    logger.warn('???????????????????????????????????????????????');
+                    logger.warn(`?? CONFIRMED TRANS.`)
+                    logger.warn(`?? Tags arent working! this transaction doesnt belong. Tag is missing. TAG=${filterByTag}`);
+                    logger.warn('???????????????????????????????????????????????\n');
+                    console.log(t);
+                }
+            })
+        }
+
+        if(filterByType === transactionConstants.type.messaging.value){
+            return filteredTransactions.filter(transaction => {
+                return transaction.hasOwnProperty('attachment') &&
+                    transaction.attachment.hasOwnProperty('message') &&
+                    transaction.attachment.message.includes(filterByTag)
+            });
+        }
+        return filteredTransactions;
+    }
+
+    /**
+     *
+     * @param {string}address
+     * @param {null|number}filterByType
+     * @param {null|string}filterByTag
+     * @param {boolean|null}withMessage
+     * @param {null|number}firstIndex
+     * @param {null|number}lastIndex
+     * @param {string}orderBy
+     * @return {Promise<{senderPublicKey, signature, feeNQT, type, fullHash, version, phased, ecBlockId, signatureHash, attachment: {versionMessage, encryptedMessage: {data, nonce, isText, isCompressed}, versionEncryptedMessage, versionPublicKeyAnnouncement, recipientPublicKey, versionMetisAccountInfo, messageIsText, message}, senderRS, subtype, amountNQT, sender, recipientRS, recipient, ecBlockHeight, deadline, transaction, timestamp, height}[]>}
+     */
+    async fetchUnconfirmedTransactions(address, filterByType= null, filterByTag= null, withMessage=false, firstIndex= null, lastIndex= null, orderBy='desc') {
+        if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
+        if(firstIndex && !Number.isInteger(firstIndex)){throw new Error(`firstIndex needs to be an int or null`) }
+        if(lastIndex && !Number.isInteger(lastIndex)){throw new Error(`lastIndex needs to be an int or null`) }
+        if(firstIndex && !lastIndex) lastIndex = firstIndex+10;
+        try {
+            const response = await this.jupiterAPIService.getUnconfirmedBlockChainTransactions(
+                address,
+                filterByTag,
+                withMessage,
+                filterByType,
+                true,
+                firstIndex,
+                lastIndex
+            )
+            if (!response.hasOwnProperty('data')) {
+                throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Missing "data"');
+            }
+            if (!response.data.hasOwnProperty('unconfirmedTransactions')) {
+                throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Missing "data.unconfirmedTransactions"');
+            }
+            if (!Array.isArray(response.data.unconfirmedTransactions)) {
+                throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Not Array "data.unconfirmedTransactions"');
+            }
+            const transactions = response.data.unconfirmedTransactions;
+            if(filterByTag) {
+                transactions.forEach(t => {
+                    if (!(t.hasOwnProperty('attachment') && t.attachment.hasOwnProperty('message'))) {
+                        console.log(`\n`);
+                        logger.warn('???????????????????????????????????????????????');
+                        logger.warn(`?? UNCONFIRMED.`)
+                        logger.warn(`?? Tags arent working! this transaction doesnt belong, Json not well formed`);
+                        logger.warn(`?? tag= ${filterByTag}`);
+                        logger.warn('???????????????????????????????????????????????\n');
+                        console.log(t);
+                    } else if (!t.attachment.message.includes(filterByTag)) {
+                        logger.warn('???????????????????????????????????????????????');
+                        logger.warn(`?? UNCONFIRMED.`)
+                        logger.warn(`?? Tags arent working! this transaction doesnt belong. Tag is missing`);
+                        logger.warn(`?? tag= ${filterByTag}`);
+                        logger.warn('???????????????????????????????????????????????\n');
+                        console.log(t);
+                    }
+                })
+            }
+
+            if(filterByType === transactionConstants.type.messaging.value) {
+                return transactions.filter(transaction => {
+                    return transaction.hasOwnProperty('attachment') &&
+                        transaction.attachment.hasOwnProperty('message') &&
+                        transaction.attachment.message.includes(tag)
+                });
+            }
+            return transactions;
+
+        }catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** fetchUnconfirmedTransactions().catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
+    }
 
 
     /**
@@ -263,7 +463,6 @@ class JupiterTransactionsService {
     async fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex = null, lastIndex = null, orderBy = 'desc'){
         logger.verbose(`#### fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address, tag, firstIndex, lastIndex)`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
-        // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.sensitive(`address= ${JSON.stringify(address)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
@@ -437,7 +636,6 @@ class JupiterTransactionsService {
         if(firstIndex && !lastIndex){
             lastIndex = firstIndex+10;
         }
-
         const transactionsResponse = await this.jupiterAPIService.getBlockChainTransactions(
             address,
             tag,

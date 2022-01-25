@@ -400,8 +400,8 @@ class ChanService {
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
-        logger.sensitive(`memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
-        logger.sensitive(`channelAddress= ${channelAddress}`);
+        logger.verbose(`memberAccountProperties.address= ${memberAccountProperties.address}`);
+        logger.verbose(`channelAddress= ${channelAddress}`);
 
         try {
             // First: lets get the list of invitations

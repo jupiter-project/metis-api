@@ -4,6 +4,7 @@ const {GravityAccountProperties} = require("./gravityAccountProperties");
 const {jupiterAccountService} = require("../services/jupiterAccountService");
 const mError = require("../errors/metisError");
 const {GravityCrypto} = require("../services/gravityCrypto");
+const {metisConf} = require("../config/metisConf");
 const logger = require('../utils/logger')(module);
 const encryptAlgorithm = process.env.ENCRYPT_ALGORITHM;
 
@@ -26,9 +27,8 @@ module.exports.instantiateMinimumGravityAccountProperties = (passphrase,password
         null,
         null,
         passphrase,
-        gu.generateHash(password),
         password,
-        encryptAlgorithm
+        metisConf.appPasswordAlgorithm
     );
 }
 
@@ -55,9 +55,8 @@ module.exports.instantiateGravityAccountProperties = (passphrase, password) => {
                 accountInfo.accountId,
                 accountInfo.publicKey,
                 passphrase,
-                gu.generateHash(password),
                 password,
-                encryptAlgorithm
+                metisConf.appPasswordAlgorithm
             );
             return jupiterAccountService.getAliasesOrEmptyArray(accountInfo.address)
                 .then(aliases => {
