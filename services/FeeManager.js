@@ -1,118 +1,77 @@
+const {feeConf} = require("../config/feeConf");
+const _ = require("lodash");
+const {jimConfig} = require("../src/jim/config/jimConfig");
 const logger = require('../utils/logger')(module);
-
-// Jupiter v2.4.0 Fee Enhancements
-// Regular transactions = 0.00005 JUP
-// DEX orders = 0.00005 JUP
-// alias = 0.00005 JUP
-// Data, JIM, IO = 0.00007 JUP (~2400 JUP per GB of data)
-// Metis text messages = 0.00001 JUP
-// Shuffling = 10 JUP
-// Asset Creation = 50 JUP
-// NFT Creation = 50 JUP
-
 class FeeManager {
-
-    constructor(
-        regularTransactionFee,
-        invitationToChannelFee,
-        metisChannelMemberFee,
-        arbitraryMessageFee,
-        aliasAssigmentFee,
-        accountPropertyFee,
-        accountPropertyDeletionFee,
-        newUserFundingFee,
-        newTableFundingFee,
-        accountRecordFee,
-        ordinaryPaymentFee,
-        metisMessageFee
-    ) {
-
-        if(!regularTransactionFee){throw new Error('missing regularTransactionFee')}
-        if(!invitationToChannelFee){throw new Error('missing invitationToChannelFee')}
-        if(!metisChannelMemberFee){throw new Error('missing metisChannelMemberFee')}
-        if(!arbitraryMessageFee){throw new Error('missing arbitraryMessageFee')}
-        if(!aliasAssigmentFee){throw new Error('missing aliasAssigmentFee')}
-        if(!accountPropertyFee){throw new Error('missing accountPropertyFee')}
-        if(!accountPropertyDeletionFee){throw new Error('missing accountPropertyDeletionFee')}
-        if(!newUserFundingFee){throw new Error('missing newUserFundingFee')}
-        if(!newTableFundingFee){throw new Error('missing newTableFundingFee')}
-        if(!accountRecordFee){throw new Error('missing accountRecordFee')}
-        if(!ordinaryPaymentFee){throw new Error('missing ordinaryPaymentFee')}
-        if(!metisMessageFee){throw new Error('missing metisMessageFee')}
-
+    constructor() {
         this.fees = [];
         this.fees.push({
             feeType: FeeManager.feeTypes.metisMessage,
-            fee: metisMessageFee,
+            fee: feeConf.message.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
         })
-
         this.fees.push({
             feeType: FeeManager.feeTypes.regular_transaction,
-            fee: regularTransactionFee,
+            fee: feeConf.regularTransaction.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.arbitraryMessage
         })
-
-
         this.fees.push({
             feeType: FeeManager.feeTypes.account_record,
-            fee: accountRecordFee,
+            fee: feeConf.accountRecord.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisAccountRecord
         })
-
         this.fees.push({
             feeType: FeeManager.feeTypes.invitation_to_channel,
-            fee: invitationToChannelFee,
+            fee: feeConf.invitationToChannel.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelInvitation
         })
         this.fees.push({
             feeType: FeeManager.feeTypes.metis_channel_member,
-            fee: metisChannelMemberFee,
+            fee: feeConf.channelMember.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.metisChannelMember
         });
         this.fees.push({
             feeType: FeeManager.feeTypes.alias_assignment,
-            fee: aliasAssigmentFee,
+            fee: feeConf.aliasAssignment.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.aliasAssignment
         });
         this.fees.push({
             feeType: FeeManager.feeTypes.account_property,
-            fee: accountPropertyFee,
+            fee: feeConf.accountProperty.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.accountProperty
         });
         this.fees.push({
             feeType: FeeManager.feeTypes.account_property_deletion,
-            fee: accountPropertyDeletionFee,
+            fee: feeConf.accountPropertyDeletion.NQT,
             type: FeeManager.TransactionTypes.messaging_voting_aliases,
             subtype: FeeManager.JupiterTypeOneSubtypes.accountPropertyDeletion
         });
 
         this.fees.push({
             feeType: FeeManager.feeTypes.new_user_funding,
-            fee: newUserFundingFee,
-            type: FeeManager.TransactionTypes.payment,
-            subtype: FeeManager.JupiterTypZeroSubtypes.ordinaryPayment
-        });
-
-        this.fees.push({
-            feeType: FeeManager.feeTypes.new_table_funding,
-            fee: newTableFundingFee,
+            fee: feeConf.newUserFunding.NQT,
             type: FeeManager.TransactionTypes.payment,
             subtype: FeeManager.JupiterTypZeroSubtypes.ordinaryPayment
         });
 
         this.fees.push({
             feeType: FeeManager.feeTypes.ordinary_payment,
-            fee: ordinaryPaymentFee ,
+            fee: feeConf.ordinaryPayment.NQT ,
             type: FeeManager.TransactionTypes.payment,
             subtype: FeeManager.JupiterTypZeroSubtypes.ordinaryPayment
+        });
+        this.fees.push({
+            feeType: FeeManager.feeTypes.messageCharacter,
+            fee: feeConf.messageCharacter.NQT ,
+            type: FeeManager.TransactionTypes.messaging_voting_aliases,
+            subtype: FeeManager.JupiterTypeOneSubtypes.metisMessage
         });
     }
 
@@ -130,9 +89,9 @@ class FeeManager {
         'account_property': 'account_property',
         'account_property_deletion': 'account_property_deletion',
         'new_user_funding':'new_user_funding',
-        'new_table_funding':'new_table_funding',
         'ordinary_payment': 'ordinary_payment',
         'metisMessage': 'metisMessage',
+        'messageCharacter': 'message_character',
     }
 
     static TransactionTypes = {
@@ -207,28 +166,54 @@ class FeeManager {
         return typeSubType[0]
     }
 
-    getTotalDataFee(bufferData){
-        const total =  bufferData.reduce( (reduced,item)=>{
-            reduced = reduced + this.getCalculatedMessageFee(item);
-        }, 0 )
 
-        return total * 1.03
+    /**
+     *
+     * @param messageSize
+     * @return {number}
+     */
+     calculateMessageFee(messageSize){
+        if(!_.isNumber(messageSize)){
+            throw new Error(`messageSize needs to be a number`);
+        }
+        const baseFee = +this.getFee(FeeManager.feeTypes.metisMessage);
+        const charFee = +this.getFee(FeeManager.feeTypes.messageCharacter);
+        return baseFee + (messageSize*charFee);
     }
 
-    getCalculatedMessageFee(message) {
-        const size = message.length;
-        const fee = this.getFee(FeeManager.feeTypes.metisMessage);
-        if (size === 0) return fee
-        if (size <= 5000) return 800000
-        if (size <= 10000) return 1600000
-        if (size <= 15000) return 2300000
-        if (size <= 20000) return 3100000
-        if (size <= 25000) return 3900000
-        if (size <= 30000) return 4700000
-        if (size <= 35000) return 5500000
-        if (size <= 40000) return 6300000
-        return 6500000
+    /**
+     *
+     * @param base64FileSize
+     * @return {number}
+     */
+    calculateFileFee(base64FileSize){
+        if(!base64FileSize) return 0; //@TODO what should we return?
+        const numberOfChunks = Math.ceil(base64FileSize/+jimConfig.fileChunkSize);
+        let fee = 0;
+        for(let i=0; i<numberOfChunks; i++){
+            fee = fee + this.calculateMessageFee(+jimConfig.fileChunkSize);
+        }
+        return  fee;
     }
+
+
+
+
+
+    // getCalculatedMessageFee(message) {
+    //     const size = message.length;
+    //     const fee = this.getFee(FeeManager.feeTypes.metisMessage);
+    //     if (size === 0) return fee
+    //     if (size <= 5000) return 800000
+    //     if (size <= 10000) return 1600000
+    //     if (size <= 15000) return 2300000
+    //     if (size <= 20000) return 3100000
+    //     if (size <= 25000) return 3900000
+    //     if (size <= 30000) return 4700000
+    //     if (size <= 35000) return 5500000
+    //     if (size <= 40000) return 6300000
+    //     return 6500000
+    // }
     // export function calculateExpectedFees(data: Array<string>): number {
     //     let expectedFees = 0;
     //     data.forEach((data) => expectedFees += calculateMessageFee(data.length));
@@ -237,17 +222,5 @@ class FeeManager {
 }
 
 module.exports.FeeManager = FeeManager;
-module.exports.feeManagerSingleton = new FeeManager(
-    process.env.REGULAR_TRANSACTION_FEE,
-    process.env.INVITATION_TO_CHANNEL_FEE,
-    process.env.METIS_CHANNEL_MEMBER_FEE,
-    process.env.ARBITRARY_MESSAGE_FEE,
-    process.env.ALIAS_ASSIGNMENT_FEE,
-    process.env.ACCOUNT_PROPERTY_FEE,
-    process.env.ACCOUNT_PROPERTY_DELETION_FEE,
-    process.env.NEW_USER_FUNDING_FEE,
-    process.env.NEW_TABLE_FUNDING_FEE,
-    process.env.ACCOUNT_RECORD_FEE,
-    process.env.ORDINARY_PAYMENT_FEE,
-    process.env.METIS_MESSAGE_FEE
-);
+module.exports.feeManagerSingleton = new FeeManager();
+

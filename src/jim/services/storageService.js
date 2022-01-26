@@ -568,7 +568,17 @@ class StorageService {
                 throw new Error(`File size too large ( ${fileSizeInMegaBytes} MBytes) limit is: ${jimConfig.maxMbSize} MBytes`)
             }
             // compress the binary data before to convert to base64
-            const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64')
+            const encodedFileData = zlib.deflateSync(Buffer.from(bufferData)).toString('base64');
+
+            const encodedFileDataSize = encodedFileData.length;
+
+            // Confirm user has enough funding!!!
+            const fileFee = feeManagerSingleton.calculateFileFee(encodedFileDataSize);
+            const userBalance = +await jupiterFundingService.getBalance(fromAccountProperties.address);
+            if(userBalance < fileFee){
+                throw new Error(`User ${fromAccountProperties.address} does not have enough funding for file fee ${fileFee}. user balance: ${userBalance}`)
+            }
+
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
             logger.sensitive(`chunks.length=${JSON.stringify(chunks.length)}`);
             //Send Each Chunk as a transaction.
