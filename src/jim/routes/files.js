@@ -175,7 +175,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                     `/jim/v1/api/users/${fileUploadData.attachToJupiterAddress}/files/public-profile` :
                     `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
 
-                if (fileSizeInBytes > jimConfig.maxMbSize) {
+                if (fileSizeInMegaBytes > jimConfig.maxMbSize) {
                     throw new mError.MetisError(`file is too large. Limit is ${jimConfig.maxMbSize} MB`)
                 }
                 if (fileUploadData.fileName === undefined) {
