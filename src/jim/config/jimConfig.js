@@ -1,5 +1,7 @@
 
 
+if(!process.env.FILE_CHUNK_SIZE) throw new Error(`Environment Variable missing: FILE_CHUNK_SIZE `)
+const fileChunkSize = process.env.FILE_CHUNK_SIZE;
 if(!process.env.FILE_CACHE_STRATEGY) throw new Error(`Environment Variable missing: FILE_CACHE_STRATEGY `)
 const fileCacheStrategy = process.env.FILE_CACHE_STRATEGY;
 if(!(fileCacheStrategy === 'local' || fileCacheStrategy === 's3'))  throw new Error(`Environment Variable is invalid: FILE_CACHE_STRATEGY= ${fileCacheStrategy}`)
@@ -39,5 +41,6 @@ module.exports.jimConfig = {
     maxMbSize: maxFileSizeMB,
     maxBytesSize: maxFileSizeBytes,
     // binaryAccountMinimumBalance: binaryAccountMinBalance,
-    fileCache: fileCacheConfig
+    fileCache: fileCacheConfig,
+    fileChunkSize
 };

@@ -9,6 +9,7 @@ services:
       - 28017:28017
   redis:
     image: "redis"
+    command: redis-server --requirepass 123
     volumes:
       - $PWD/redis-data:/var/lib/redis
       - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
