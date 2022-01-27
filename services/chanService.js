@@ -615,7 +615,7 @@ class ChanService {
             return;
         } catch (error){
             logger.error(`**** createNewChannelAndAddFirstMember(channelName, firstMemberProperties).catch(error)`);
-            logger.error(`channelName= ${channelName}`)
+            logger.error(`channelName= ${channelAccountProperties.channelName}`)
             logger.error(`firstMemberProperties.address= ${firstMemberProperties.address}`)
             logger.error(`error= ${error}`)
             throw error;
@@ -701,6 +701,7 @@ class ChanService {
      */
     async generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties) {
         logger.verbose(`#### generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties)`);
+        console.log('#->13', channelName);
         if(!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`channelAccountProperties`)
         if(!(inviterAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`inviterAccountProperties`)
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
@@ -746,6 +747,7 @@ class ChanService {
      */
     async generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress) {
         logger.verbose(`#### generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress)`);
+        console.log('#->14', channelName);
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
         if(!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.MetisErrorBadJupiterAddress(`createdByAddress: ${createdByAddress}`)
         // if (!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.BadJupiterAddressError(createdByAddress)
@@ -893,6 +895,7 @@ class ChanService {
         }
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`  ++ channelAccountProperties.channelName`);
+        console.log('#->15', channelAccountProperties);
         logger.verbose(channelAccountProperties.channelName);
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         const channelRecordPayload = await this.generateNewChannelRecordJson(
@@ -1000,6 +1003,7 @@ class ChanService {
             const multiChannelRecords = await this.fetchMultiChannelRecords(transactionIds,memberProperties.crypto, memberProperties.passphrase);
             const listOfChannelsAndTheirProperties = multiChannelRecords.map( async channelRecord => {
                 const properties = await instantiateGravityAccountProperties(channelRecord.passphrase, channelRecord.password);
+                console.log('#->16', channelRecord);
                 properties.channelName = channelRecord.channelName; //@TODO make this more robust.
                 properties.createdBy = channelRecord.createdBy; //@TODO make this more robust.
                 properties.createdAt = channelRecord.createdAt; //@TODO make this more robust.
