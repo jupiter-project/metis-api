@@ -85,7 +85,10 @@ class JupiterFundingService {
                         workTime += milliseconds;
                         return; // Continue the countdown.
                     }
-
+                    if(error instanceof mError.MetisErrorJupiterUnknownTransaction){
+                        workTime += milliseconds;
+                        return; // Continue the countdown.
+                    }
                     throw error;
                 }
             }, milliseconds);

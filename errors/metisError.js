@@ -18,25 +18,24 @@ class MetisError extends Error {
 
 
 class JupiterApiError extends Error {
-    constructor(messsage = '', httpResponseStatus = StatusCode.ServerErrorInternal) {
+    constructor(messsage = '', httpResponseStatus = StatusCode.ServerErrorInternal, serverErrorCode = null) {
         super(`API Response Error: ${messsage}`);
         this.name = `MetisApiError`;
         this.status = httpResponseStatus;
         this.code = MetisErrorCode.JupiterApiError;
+        this.serverErrorCode = serverErrorCode;
         Object.setPrototypeOf(this, JupiterApiError.prototype); //fixes a problem with instanceof
     }
 }
 
-class UnknownAliasError extends Error {
-    /**
-     *
-     * @param message
-     */
-    constructor(message = '') {
+
+class MetisErrorUnknownAlias extends Error {
+    constructor(message = '', aliasName = '') {
         super(message);
-        this.name = `UnknownAliasError`;
-        this.code = MetisErrorCode.UnknownAliasError;
-        Object.setPrototypeOf(this, UnknownAliasError.prototype); //fixes a problem with instanceof
+        this.name = `MetisErrorUnknownAlias`;
+        this.code = MetisErrorCode.MetisErrorUnknownAlias;
+        this.aliasName = aliasName;
+        Object.setPrototypeOf(this, MetisErrorUnknownAlias.prototype); //fixes a problem with instanceof
     }
 }
 
@@ -294,9 +293,17 @@ class MetisErrorFileTooLarge extends MetisError {
         Object.setPrototypeOf(this, MetisErrorFileTooLarge.prototype); //fixes a problem with instanceof
     }
 }
+class MetisErrorJupiterUnknownTransaction extends MetisError {
+    constructor(message = '', transactionId='') {
+        super(`Unknown Transaction ${transactionId}. ${message}`);
+        this.name = "MetisErrorJupiterUnknownTransaction"
+        this.code = MetisErrorCode.MetisErrorJupiterUnknownTransaction;
+        Object.setPrototypeOf(this, MetisErrorJupiterUnknownTransaction.prototype); //fixes a problem with instanceof
+    }
+}
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
-module.exports.UnknownAliasError = UnknownAliasError;
+module.exports.MetisErrorUnknownAlias = MetisErrorUnknownAlias;
 // module.exports.BadJupiterAddressError = BadJupiterAddressError;
 module.exports.BadGravityAccountPropertiesError = BadGravityAccountPropertiesError;
 module.exports.ChannelRecordValidatorError = ChannelRecordValidatorError;
@@ -324,3 +331,4 @@ module.exports.MetisErrorBadRequestParams = MetisErrorBadRequestParams;
 module.exports.MetisErrorPushNotificationFailed = MetisErrorPushNotificationFailed;
 module.exports.MetisErrorSendMessageToJupiterFailed = MetisErrorSendMessageToJupiterFailed;
 module.exports.MetisErrorFileTooLarge = MetisErrorFileTooLarge;
+module.exports.MetisErrorJupiterUnknownTransaction = MetisErrorJupiterUnknownTransaction;

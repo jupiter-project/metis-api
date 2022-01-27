@@ -8,7 +8,7 @@
 module.exports.MetisErrorCode = {
     MetisError: 16000,
     JupiterApiError: 16001,
-    UnknownAliasError: 16002,
+    MetisErrorUnknownAlias: 16002,
     MetisErrorNoChannelAccountFound: 16003,
     BadGravityAccountPropertiesError: 16004,
     ChannelRecordValidatorError: 16005,
@@ -35,4 +35,5 @@ module.exports.MetisErrorCode = {
     MetisErrorPushNotificationFailed: 16027,
     MetisErrorSendMessageToJupiterFailed: 16028,
     MetisErrorFileTooLarge: 16029,
+    MetisErrorJupiterUnknownTransaction: 16030,
 }

@@ -138,11 +138,7 @@ class FeeManager {
         const fees = this.fees.filter(fee => {
             return feeType === fee.feeType
         })
-
-        if (fees.length) {
-            return fees[0].fee
-        }
-
+        if (fees.length) return fees[0].fee
         throw new Error('Fee doesnt exist');
     }
 
@@ -173,12 +169,12 @@ class FeeManager {
      * @return {number}
      */
      calculateMessageFee(messageSize){
-        if(!_.isNumber(messageSize)){
-            throw new Error(`messageSize needs to be a number`);
-        }
-        const baseFee = +this.getFee(FeeManager.feeTypes.metisMessage);
+         logger.verbose(`#### calculateMessageFee(messageSize)`);
+        if(!_.isNumber(messageSize)) throw new Error(`messageSize needs to be a number`);
+        const baseFee = this.getFee(FeeManager.feeTypes.metisMessage);
         const charFee = +this.getFee(FeeManager.feeTypes.messageCharacter);
-        return baseFee + (messageSize*charFee);
+        const calculatedFee =  baseFee + (messageSize*charFee);
+        return calculatedFee;
     }
 
     /**

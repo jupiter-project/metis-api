@@ -273,7 +273,8 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 logger.error(`** /jim/v1/api/file bb.on(Close)`);
                 logger.error(`****************************************************************`);
                 console.log(error);
-                return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
+                return abort(req, res,bb,StatusCode.ClientErrorBadRequest, error);
+                // return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
             }
         })
         req.on("aborted", ()=> abort(req, res,bb,StatusCode.ServerErrorInternal, new mError.MetisError('aborted')));

@@ -1,29 +1,23 @@
 import gu from '../utils/gravityUtils';
 import {channelConfig, userConfig} from '../config/constants';
 import {
-    instantiateGravityAccountProperties,
-    refreshGravityAccountProperties
+    instantiateGravityAccountProperties
 } from "../gravity/instantiateGravityAccountProperties";
 import {gravityService} from "./gravityService";
 import {transactionUtils} from "../gravity/transactionUtils";
 import {
     BadGravityAccountPropertiesError,
     BadJupiterAddressError,
-    MetisError, MetisErrorPublicKeyExists,
-    UnknownAliasError
+    MetisError, MetisErrorPublicKeyExists
 } from "../errors/metisError";
-import {axiosDefault} from "../config/axiosConf";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
-
-// metisGravityAccountProperties
-
 const mError = require(`../errors/metisError`);
 const {GravityAccountProperties, metisGravityAccountProperties, myTest} = require('../gravity/gravityAccountProperties');
 const {jupiterAPIService} = require('./jupiterAPIService');
 const {tableService} = require('./tableService');
 const {jupiterTransactionsService} = require('./jupiterTransactionsService');
 const logger = require('../utils/logger')(module);
-const bcrypt = require('bcrypt-nodejs');
+// const bcrypt = require('bcrypt-nodejs');
 
 class JupiterAccountService {
     constructor(jupiterAPIService, applicationProperties, tableService, jupiterTransactionsService, gravityService, transactionUtils) {
@@ -890,15 +884,17 @@ class JupiterAccountService {
                 return false;
             })
             .catch( error => {
-                if(error.name === "UnknownAliasError"){
+                if(error instanceof mError.MetisErrorUnknownAlias){
                     return true;
                 }
+                // if(error.name === "UnknownAliasError"){
+                //     return true;
+                // }
 
                 logger.error(`***********************************************************************************`);
                 logger.error(`** isAliasAvailable(aliasName).catch(error)`);
                 logger.error(`** `);
-                logger.sensitive(`error=${error}`);
-
+                logger.error(`error=${error}`);
                 console.log(error);
                 throw error;
             })
