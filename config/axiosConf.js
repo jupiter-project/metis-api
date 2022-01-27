@@ -25,5 +25,4 @@ const axiosDefault = axios.create({...config, ...{headers:{'Content-Type':'appli
 // const axiosData = axios.create({...config, ...{headers:{'Content-Type':'multipart/form-data'}}});
 // const axiosData = axios.create(config);
 const axiosData = axios.create({...config, ...{headers:{'Content-Type':'application/x-www-form-urlencoded'}}});
-
 module.exports = {axiosDefault, axiosData};

@@ -1,13 +1,13 @@
-
+require('dotenv').load();
 require('babel-register')({
   presets: ['react'],
 });
+const {metisConf} = require("./config/metisConf");
 const logger = require('./utils/logger')(module);
-logger.sensitive('SENSITIVE IS ON')
 // const logger = require('./utils/logger')(module);
-const mError = require('./errors/metisError');
-const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
-const gu = require('./utils/gravityUtils');
+// const mError = require('./errors/metisError');
+// const { instantiateGravityAccountProperties, instantiateMinimumGravityAccountProperties} = require('./gravity/instantiateGravityAccountProperties');
+// const gu = require('./utils/gravityUtils');
 const { tokenVerify } = require('./middlewares/authentication');
 const {externalResourcesCheck} = require('./middlewares/externalResourcesCheck');
 const firebaseAdmin = require("firebase-admin");
@@ -28,6 +28,9 @@ const firebaseServiceAccount = {
 module.exports.firebaseAdmin =  firebaseAdmin.initializeApp({
    credential: firebaseAdmin.credential.cert(firebaseServiceAccount)
 });
+
+// redisClient is here to ensure the Redis Server is properly created.
+const redisClient = require("./services/redisService");
 const url = require('url');
 // const kue = require('kue');
 const fs = require('fs');
@@ -35,71 +38,26 @@ const cors = require('cors');
 // const appConf = require('config/appConf');
 const {appConf} = require("./config/appConf");
 if(!appConf.isProduction) require('dotenv').load();
-
-// if (process.env.NODE_ENV !== 'production') {
-//   require('dotenv').load();
-// }
-
-
-// index.js
 const path = require('path');
 global.appRoot = path.resolve(__dirname);
-
 const {metisRegistration} = require('./config/passport');
-// Loads Express and creates app object
 const express = require('express');
-
 const app = express();
 const port = process.env.PORT || 4000;
-
 const pingTimeout = 9000000;
 const pingInterval = 30000;
-
-
-const {jobQueue, kue} = require('./config/configJobQueue');
-
-// // Loads job queue modules and variables
-// //@TODO redis needs a password!!!!
-// const jobs = kue.createQueue({
-//   redis: {
-//     host: process.env.REDIS_HOST || 'localhost',
-//     port: process.env.REDIS_PORT || '6379',
-//     auth: process.env.REDIS_PASSWORD || undefined,
-//   },
-// });
-
-// module.exports.metisJobQueue = jobs;
-
+const {jobQueue} = require('./services/queueService');
 // Loads Body parser
 const bodyParser = require('body-parser');
-
-// Loads react libraries
 const React = require('react');
-const ReactDOMServer = require('react-dom/server');
-
-// Loads request library
-// const request = require('request')
-
-// Loads passport for authentication
 const passport = require('passport');
-
-// const flash = require('connect-flash');
-
-// Request logger
-// const morgan = require('morgan');
-
 const swaggerUi = require('swagger-ui-express');
-
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const RedisStore = require('connect-redis')(session);
-
-// File and folder finding module
 const find = require('find');
-
 const mongoose = require('mongoose');
 const swaggerDocument = require('./swagger.json');
-
 // https://medium.com/@SigniorGratiano/express-error-handling-674bfdd86139
 // app.all('*', (req,res,next) =>{
 //   next(new mError.MetisError(`TEST`))
@@ -111,7 +69,6 @@ process.on('uncaughtException', error => {
   console.log(error);
   console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
 })
-
 process.on('unhandledRejection', error => {
   console.log(`\n\n`);
   console.log('=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
@@ -119,13 +76,9 @@ process.on('unhandledRejection', error => {
   console.log(error);
   console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n`)
 })
-
-
 app.use(cors());
-// app.use(morgan('dev')); // log every request to the console
 app.use(cookieParser()); // read cookies (needed for authentication)
 app.use(express.urlencoded({ extended: true })); // get information from html forms
-
 app.use((req, res, next) => {
   logger.verbose(`#### middleware...`);
   if (req.url !== '/favicon.ico') {
@@ -137,18 +90,11 @@ app.use((req, res, next) => {
   res.end();
   return null;
 });
-
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, { showExplorer: true }));
-
 app.use(externalResourcesCheck);
 app.use(tokenVerify);
-
-// Sets public directory
-// app.use(express.static(`${__dirname}/public`));
-
-// required for passport
 const sessionSecret = process.env.SESSION_SECRET !== undefined ? process.env.SESSION_SECRET : 'undefined';
 const sslOptions = {};
 if (process.env.CERTFILE) { // Set the certificate file
@@ -157,7 +103,6 @@ if (process.env.CERTFILE) { // Set the certificate file
 if (process.env.KEYFILE) { // set the key file
   sslOptions.key = fs.readFileSync(`${__dirname}/${process.env.KEYFILE}`);
 }
-
 // Create a session middleware with the given options.
 // @see https://www.npmjs.com/package/express-session
 app.use(session({
@@ -165,18 +110,16 @@ app.use(session({
   saveUninitialized: true,
   resave: false,
   store: new RedisStore({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || '6379',
-    auth_pass: process.env.REDIS_PASSWORD || undefined,
+    host: metisConf.redis.host,
+    port: metisConf.redis.port,
+    auth_pass: metisConf.redis.password,
   }),
   // @see https://stackoverflow.com/questions/16434893/node-express-passport-req-user-undefined
   cookie: { secure: (sslOptions.length) }, // use secure cookies if SSL env vars are present
 }));
-
 app.use(passport.initialize());
 // app.use(passport.session()); // persistent login sessions
 // app.use(flash()); // use connect-flash for flash messages stored in session
-
 // If both cert and key files env vars exist use https,
 // otherwise use http
 const server = Object.keys(sslOptions).length >= 2
@@ -185,7 +128,6 @@ const server = Object.keys(sslOptions).length >= 2
 // Enables websocket
 const socketIO = require('socket.io');
 const socketService = require('./services/socketService');
-
 const socketOptions = {
   serveClient: true,
   pingTimeout, // pingTimeout value to consider the connection closed
@@ -256,7 +198,7 @@ find.fileSync(/\.js$/, `${__dirname}/controllers`).forEach((file) => {
 const { gravity } = require('./config/gravity');
 
 // const {AccountRegistration} = require("./services/accountRegistrationService");
-const { jobScheduleService } = require('./services/jobScheduleService');
+// const { jobScheduleService } = require('./services/jobScheduleService');
 // const {jupiterFundingService} = require("./services/jupiterFundingService");
 const {chanService} = require("./services/chanService");
 // const {GravityAccountProperties} = require("./gravity/gravityAccountProperties");
@@ -270,7 +212,7 @@ const {GravityAccountProperties} = require("./gravity/gravityAccountProperties")
 // const {chanService} = require("./services/chanService");
 
 
-jobScheduleService.init(kue);
+// jobScheduleService.init(kue);
 
 
 // gravity.getFundingMonitor()
@@ -304,9 +246,9 @@ jobScheduleService.init(kue);
 //   registrationWorker.checkRegistration(job.data, job.id, done);
 // });
 
-const WORKERS = 100;
+// const WORKERS = 100;
 
-jobQueue.process('user-registration', WORKERS, (job,done) => {
+jobQueue.process('user-registration', metisConf.jobQueue.workers, (job,done) => {
   logger.info('##### jobs.process(user-registration)');
   try {
     const decryptedData = gravity.decrypt(job.data.data)
@@ -331,7 +273,7 @@ jobQueue.process('user-registration', WORKERS, (job,done) => {
   }
 })
 
-jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) => {
+jobQueue.process('channel-creation-confirmation', metisConf.jobQueue.workers, async ( job, done ) => {
   logger.verbose(`#### jobs.process(channel-creation-confirmation)`)
   try {
     const {channelAccountProperties, memberAccountProperties} = job.data;
@@ -351,14 +293,10 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async ( job, done ) =
   }
 
 })
-
-
 // require('./jobs/registrationJob');
-
 /* jobs.process('fundAccount', (job, done) => {
   transferWorker.fundAccount(job.data, job.id, done);
 }); */
-
   mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions).catch( error => {
     logger.error(`Mongo is not available: ${process.env.MONGO_DB_URI}`);
     process.exit(1);
@@ -403,7 +341,3 @@ server.listen(port, () => {
   logger.info(`Metis version ${process.env.VERSION} is now running on port ${port} 🎉`);
   logger.info(`Jupiter Node running on ${process.env.JUPITERSERVER}`);
 });
-
-// kue.app.listen(4000, () => {
-//   logger.info('Job queue server running on port 4000');
-// });

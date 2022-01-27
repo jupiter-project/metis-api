@@ -9,6 +9,7 @@ RUN npm install
 COPY . .
 RUN mkdir -p /apps/metis/file_cache
 RUN mkdir -p /apps/metis/logs
+RUN mkdir -p /apps/metis/redis
 RUN npm run build
 # remove development dependencies
 # RUN npm prune --production

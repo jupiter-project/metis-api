@@ -16,6 +16,11 @@ if(!process.env.JUPITERSERVER) throw new Error('Environment Variable missing: JU
 if(!process.env.APP_EMAIL) throw new Error('Environment Variable missing: APP_EMAIL');
 if(!process.env.JWT_TOKEN_EXPIRATION) throw new Error('Environment Variable missing: JWT_TOKEN_EXPIRATION');
 if(!process.env.JWT_PRIVATE_KEY_BASE64) throw new Error('Environment Variable missing: JWT_PRIVATE_KEY_BASE64');
+if(!process.env.REDIS_HOST) throw new Error('Environment Variable missing: REDIS_HOST');
+if(!process.env.REDIS_PORT) throw new Error('Environment Variable missing: REDIS_PORT');
+if(!process.env.REDIS_PASSWORD) throw new Error('Environment Variable missing: REDIS_PASSWORD');
+if(!process.env.JOB_QUEUE_PORT) throw new Error('Environment Variable missing: JOB_QUEUE_PORT');
+if(!process.env.JOB_QUEUE_WORKERS) throw new Error('Environment Variable missing: JOB_QUEUE_WORKERS');
 
 module.exports.metisConf = {
     appName: process.env.APPNAME,
@@ -32,5 +37,14 @@ module.exports.metisConf = {
     jwt: {
         privateKeyBase64: process.env.JWT_PRIVATE_KEY_BASE64,
         expiresIn: process.env.JWT_TOKEN_EXPIRATION
+    },
+    redis: {
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT,
+        password: process.env.REDIS_PASSWORD
+    },
+    jobQueue: {
+        port: process.env.JOB_QUEUE_PORT,
+        workers: process.env.JOB_QUEUE_WORKERS
     }
 }

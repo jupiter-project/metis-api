@@ -7,6 +7,7 @@ const logger = require('../utils/logger')();
 const mError = require("../errors/metisError");
 const {appConf} = require("../config/appConf");
 const {metisConf} = require("../config/metisConf");
+const {jobQueue} = require("../services/queueService");
 
 
 
@@ -20,6 +21,10 @@ module.exports.externalResourcesCheck =  async (req, res, next) => {
 
         //@TODO CHECK MONGO
         //CHECK MONGO.
+
+//Check Redis
+
+
         return next();
     } catch(error){
         console.log('\n')
