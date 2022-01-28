@@ -3,7 +3,7 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {axiosData, axiosDefault} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterApiError, MetisError, UnknownAliasError} from "../errors/metisError";
+import {JupiterApiError, MetisError, MetisErrorUnknownAlias} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 // import {add} from "lodash";
@@ -26,6 +26,13 @@ class JupiterAPIService {
         this.jupiterHost = jupiterHost;
         this.appProps = applicationAccountProperties;
     }
+
+
+    // static get JupiterErrorCodes(){
+    //     return {
+    //         unknownTransaction: 5
+    //     }
+    // }
 
     /**
      *
@@ -103,14 +110,27 @@ class JupiterAPIService {
                 throw new JupiterApiError(response.error, StatusCode.ServerErrorInternal)
             }
             if (response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription') && response.data.errorDescription) {
+                const serverErrorCode = response.data.errorCode;
+                const serverErrorDescription = response.data.errorDescription;
+                if(serverErrorDescription === 'Unknown alias'){
+                    const aliasName = params.hasOwnProperty('aliasName')?params.aliasName:'';
+                    throw new mError.MetisErrorUnknownAlias(serverErrorDescription, aliasName);
+                }
+                if(serverErrorDescription === 'Unknown Transaction'){
+                    const transactionId = params.hasOwnProperty('transaction')?params.transaction:'';
+                    throw new mError.MetisErrorJupiterUnknownTransaction(serverErrorDescription, transactionId);
+                }
                 logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`);
                 logger.error(`errorDescription= ${response.data.errorDescription}`);
                 logger.error(`errorCode= ${response.data.errorCode}`);
                 logger.sensitive(`params= ${JSON.stringify(params)}`);
-                throw new JupiterApiError(response.data.errorDescription, StatusCode.ServerErrorInternal)
+                throw new JupiterApiError(serverErrorDescription, StatusCode.ServerErrorInternal, serverErrorCode)
+
             }
             return response;
         } catch(error){
+            if(error instanceof mError.MetisErrorUnknownAlias) throw error;
+            // if(error instanceof mError.MetisErrorJupiterUnknownTransaction)throw error;
             logger.error(`****************************************************************`);
             logger.error(`** jupiterRequest().axios.catch(error)`)
             logger.error(`****************************************************************`);
@@ -1036,13 +1056,15 @@ class JupiterAPIService {
             aliasName,
             requestType: JupiterAPIService.RequestType.GetAlias,
         }
+        return this.get(params);
 
-        return this.get(params).catch( error => {
-            if( error.message === 'API Response Error: Unknown alias'){
-                throw new UnknownAliasError('Alias is not found');
-            }
-            throw error;
-        })
+        // return this.get(params).catch( error => {
+        //     if( error.message === 'API Response Error: Unknown alias'){
+        //         throw new mError.MetisErrorUnknownAlias(`alias is not found.`, params.aliasName);
+        //         // throw new UnknownAliasError('Alias is not found');
+        //     }
+        //     throw error;
+        // })
     }
 
     /**

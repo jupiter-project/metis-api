@@ -138,11 +138,7 @@ class FeeManager {
         const fees = this.fees.filter(fee => {
             return feeType === fee.feeType
         })
-
-        if (fees.length) {
-            return fees[0].fee
-        }
-
+        if (fees.length) return fees[0].fee
         throw new Error('Fee doesnt exist');
     }
 
@@ -173,12 +169,12 @@ class FeeManager {
      * @return {number}
      */
      calculateMessageFee(messageSize){
-        if(!_.isNumber(messageSize)){
-            throw new Error(`messageSize needs to be a number`);
-        }
-        const baseFee = +this.getFee(FeeManager.feeTypes.metisMessage);
+         logger.verbose(`#### calculateMessageFee(messageSize)`);
+        if(!_.isNumber(messageSize)) throw new Error(`messageSize needs to be a number`);
+        const baseFee = this.getFee(FeeManager.feeTypes.metisMessage);
         const charFee = +this.getFee(FeeManager.feeTypes.messageCharacter);
-        return baseFee + (messageSize*charFee);
+        const calculatedFee =  baseFee + (messageSize*charFee);
+        return calculatedFee;
     }
 
     /**
@@ -188,10 +184,10 @@ class FeeManager {
      */
     calculateFileFee(base64FileSize){
         if(!base64FileSize) return 0; //@TODO what should we return?
-        const numberOfChunks = Math.ceil(base64FileSize/jimConfig.fileChunkSize);
+        const numberOfChunks = Math.ceil(base64FileSize/+jimConfig.fileChunkSize);
         let fee = 0;
         for(let i=0; i<numberOfChunks; i++){
-            fee = fee + this.calculateMessageFee(jimConfig.fileChunkSize);
+            fee = fee + this.calculateMessageFee(+jimConfig.fileChunkSize);
         }
         return  fee;
     }

@@ -1,5 +1,6 @@
 // const gu = require("../utils/gravityUtils");
 const mError = require("../errors/metisError");
+
 const conf = {};
 if(!process.env.NODE_ENV) throw new mError.MetisErrorBadEnvironmentVariable('','NODE_ENV');
 // if(!process.env.NODE_OPTIONS) throw new mError.MetisErrorBadEnvironmentVariable('','NODE_OPTIONS');

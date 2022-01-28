@@ -582,10 +582,11 @@ class JupiterTransactionMessageService {
         if(!gu.isWellFormedPublicKey(_recipientPublicKey)){
             throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
         }
-        const fee = feeManagerSingleton.calculateMessageFee(metisMessage);
+        const fee = feeManagerSingleton.calculateMessageFee(metisMessage.length);
         const {subtype,type} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
         logger.debug(`subtype= ${subtype}`);
         logger.debug(`type= ${type}`);
+        logger.debug(`fee= ${fee}`);
         const response = await this.jupiterAPIService.sendMetisMessageOrMessage(
             JupiterAPIService.RequestType.SendMetisMessage,
             toAddress,
