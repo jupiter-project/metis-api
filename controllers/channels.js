@@ -497,7 +497,7 @@ module.exports = (app, passport, jobs, websocket) => {
             logger.error(`****************************************************************`);
             logger.error(`** JobQueue: channel-creation-confirmation.on(failed))`);
             logger.error(`****************************************************************`);
-            logger.error(`error= ${error}`)
+            logger.error(`error= ${errorMessage}`)
             logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
             console.log(errorMessage)

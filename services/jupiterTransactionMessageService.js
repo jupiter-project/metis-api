@@ -574,38 +574,19 @@ class JupiterTransactionMessageService {
         logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
         if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
         if(!gu.isWellFormedJupiterAddress(toAddress)) throw new mError.MetisErrorBadJupiterAddress(`toAddress: ${toAddress}`)
-        // if(!gu.isWellFormedJupiterAddress(toAddress)){throw new BadJupiterAddressError(toAddress)}
         logger.sensitive(`fromPassphrase= ${fromPassphrase}`);
         logger.debug(`toAddress= ${toAddress}`);
         logger.debug(`tag= ${tag}`);
         logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
         let _recipientPublicKey = recipientPublicKey;
-        // if(!gu.isWellFormedPublicKey(recipientPublicKey)){
-            // this.jupiterAccountService.getAccountInformation()
-            // const toPublicKeyResponse = await this.jupiterAPIService.getAccountId();
-            // resolve({
-            //     address,
-            //     accountId: response.data.account,
-            //     publicKey: response.data.publicKey,
-            //     success: true,
-            // });
-            // this.jupiterAccountService.getAccountInformation()
-
-            // const toPublicKeyResponse = await this.jupiterAPIService.getAccountPublicKey(toAddress);
-            // if(!(toPublicKeyResponse.hasOwnProperty('data') &&  toPublicKeyResponse.data.hasOwnProperty('publicKey'))){
-            //     throw new Error(`${toAddress} does not have a publicKey`)
-            // }
-            // _recipientPublicKey = toPublicKeyResponse.data.publicKey;
-        // }
         if(!gu.isWellFormedPublicKey(_recipientPublicKey)){
             throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
         }
-        const fee = feeManagerSingleton.getCalculatedMessageFee(metisMessage);
-        // const fee = feeManagerSingleton.getFee(feeType);
+        const fee = feeManagerSingleton.calculateMessageFee(metisMessage.length);
         const {subtype,type} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
         logger.debug(`subtype= ${subtype}`);
         logger.debug(`type= ${type}`);
-
+        logger.debug(`fee= ${fee}`);
         const response = await this.jupiterAPIService.sendMetisMessageOrMessage(
             JupiterAPIService.RequestType.SendMetisMessage,
             toAddress,

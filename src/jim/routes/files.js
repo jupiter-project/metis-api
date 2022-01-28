@@ -175,7 +175,7 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                     `/jim/v1/api/users/${fileUploadData.attachToJupiterAddress}/files/public-profile` :
                     `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
 
-                if (fileSizeInBytes > jimConfig.maxMbSize) {
+                if (fileSizeInMegaBytes > jimConfig.maxMbSize) {
                     throw new mError.MetisError(`file is too large. Limit is ${jimConfig.maxMbSize} MB`)
                 }
                 if (fileUploadData.fileName === undefined) {
@@ -273,7 +273,8 @@ const uploadController = (req,res,next,app,jobs,websocket) => {
                 logger.error(`** /jim/v1/api/file bb.on(Close)`);
                 logger.error(`****************************************************************`);
                 console.log(error);
-                return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
+                return abort(req, res,bb,StatusCode.ClientErrorBadRequest, error);
+                // return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
             }
         })
         req.on("aborted", ()=> abort(req, res,bb,StatusCode.ServerErrorInternal, new mError.MetisError('aborted')));
