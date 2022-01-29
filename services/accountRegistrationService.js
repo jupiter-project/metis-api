@@ -214,7 +214,7 @@ class AccountRegistration {
             return newAccountProperties;
         }catch(error){
             logger.error(`****************************************************************`);
-            logger.error(`** createNewAccountAndRegister(newAccountAliasName, newAccountPassword).catch(error)`);
+            logger.error(`** createNewAccount(newAccountPassword).catch(error)`);
             logger.error(`****************************************************************`);
             logger.error(`error= ${error}`)
             throw error;
@@ -246,6 +246,10 @@ class AccountRegistration {
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountProperties);
             const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.data.transaction;
+
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(` Waiting for money to be confirmed`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFundingTransactionId);
             // Third: Add the UserRecord transaction
             console.log(`\n`);
@@ -270,7 +274,7 @@ class AccountRegistration {
             return;
         }catch(error){
             logger.error(`****************************************************************`);
-            logger.error(`** createNewAccountAndRegister(newAccountAliasName, newAccountPassword).catch(error)`);
+            logger.error(`** register3(newAccountProperties, newAccountAliasName).catch(error)`);
             logger.error(`****************************************************************`);
             logger.error(`error= ${error}`)
             throw error;
