@@ -961,7 +961,7 @@ class JupiterAPIService {
      * @param {GravityAccountProperties} toAccountProperties
      * @param {int} amountNqt
      * @param {number} feeNqt
-     * @returns {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"versionOrdinaryPayment"},"senderRS","subtype","amountNQT","sender","recipientRS","recipient","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
+     * @returns {Promise<{"signatureHash",data: {"transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"versionOrdinaryPayment"},"senderRS","subtype","amountNQT","sender","recipientRS","recipient","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}, transaction}>}
      */
     async transferMoney(fromAccountProperties, toAccountProperties, amountNqt, feeNqt = this.appProps.feeNQT) {
         logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
