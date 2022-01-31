@@ -8,6 +8,10 @@ const {GravityAccountProperties} = require("../gravity/gravityAccountProperties"
 const {transactionUtils} = require("../gravity/transactionUtils");
 const assert = require("assert");
 const mError = require("../errors/metisError");
+const {transactionFeeAdjuster, TransactionFeeAdjuster} = require("./TransactionFeeAdjuster");
+const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
+const {jupiterTransactionsService} = require("./jupiterTransactionsService");
+const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 
 class JupiterTransactionMessageService {
 
@@ -559,6 +563,7 @@ class JupiterTransactionMessageService {
             })
     }
 
+
     /**
      *
      * @param {string} fromPassphrase
@@ -570,7 +575,12 @@ class JupiterTransactionMessageService {
      * @param prunable
      * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
      */
-    async sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable= false ) {
+    async sendTaggedAndEncipheredMetisMessage(
+        fromPassphrase, 
+        toAddress, 
+        metisMessage, 
+        tag, 
+        feeType, recipientPublicKey, prunable= false ) {
         logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
         if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
         if(!gu.isWellFormedJupiterAddress(toAddress)) throw new mError.MetisErrorBadJupiterAddress(`toAddress: ${toAddress}`)
@@ -582,8 +592,17 @@ class JupiterTransactionMessageService {
         if(!gu.isWellFormedPublicKey(_recipientPublicKey)){
             throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
         }
-        const fee = feeManagerSingleton.calculateMessageFee(metisMessage.length);
+
         const {subtype,type} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
+
+        const accountProperties = await instantiateGravityAccountProperties(fromPassphrase, 'NOPASSWORDNEEDED');
+        const baseFee = await jupiterTransactionsService.fetchTransactionFeeNqt(accountProperties,metisMessage,tag);
+        // const feeStrategy = TransactionFeeAdjuster.getFeeStrategy(type,subtype);
+        const fee = transactionFeeAdjuster.calculateFee(baseFee, type, subtype);
+
+
+        // const fee = feeManagerSingleton.calculateMessageFee(metisMessage.length);
+
         logger.debug(`subtype= ${subtype}`);
         logger.debug(`type= ${type}`);
         logger.debug(`fee= ${fee}`);

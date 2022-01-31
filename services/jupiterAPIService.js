@@ -41,6 +41,7 @@ class JupiterAPIService {
      static get RequestType() {
         return {
             SendMetisMessage: 'sendMetisMessage',
+            SendMessage: 'sendMessage',
             GetAccountProperties: 'getAccountProperties',
             GetAccountId: 'getAccountId',
             GetAliases: 'getAliases',

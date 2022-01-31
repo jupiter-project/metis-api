@@ -16,6 +16,7 @@ if(!process.env.JUPITERSERVER) throw new Error('Environment Variable missing: JU
 if(!process.env.APP_EMAIL) throw new Error('Environment Variable missing: APP_EMAIL');
 if(!process.env.JWT_TOKEN_EXPIRATION) throw new Error('Environment Variable missing: JWT_TOKEN_EXPIRATION');
 if(!process.env.JWT_PRIVATE_KEY_BASE64) throw new Error('Environment Variable missing: JWT_PRIVATE_KEY_BASE64');
+if(!process.env.JUPITER_DEADLINE) throw new Error('Environment Variable missing: JUPITER_DEADLINE');
 
 module.exports.metisConf = {
     appName: process.env.APPNAME,
@@ -32,5 +33,8 @@ module.exports.metisConf = {
     jwt: {
         privateKeyBase64: process.env.JWT_PRIVATE_KEY_BASE64,
         expiresIn: process.env.JWT_TOKEN_EXPIRATION
+    },
+    jupiter: {
+        deadline: process.env.JUPITER_DEADLINE
     }
 }
