@@ -895,7 +895,7 @@ class ChanService {
         }
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`  ++ channelAccountProperties.channelName`);
-        console.log('#->15', channelAccountProperties);
+//        console.log('#->15', channelAccountProperties);
         logger.verbose(channelAccountProperties.channelName);
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         const channelRecordPayload = await this.generateNewChannelRecordJson(
