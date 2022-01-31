@@ -61,6 +61,7 @@ class ChanService {
         this.gravityService = gravityService;
         this.transactionUtils = transactionUtils;
         this.validator = validator;
+        this.jupiterFundingService = jupiterFundingService;
     }
 
 
@@ -364,6 +365,8 @@ class ChanService {
                 feeType,
                 inviteePublicKey
             )
+            //@TODO technically we should not need to wait for confirmation. but we are getting errors when acception a confirmation.
+            await this.jupiterFundingService.waitForTransactionConfirmation(sendTaggedAndEncipheredMetisMessageResponse.transaction);
             const createInvitationResponse = {
                 invitationId: sendTaggedAndEncipheredMetisMessageResponse.transaction,
                 channelAddress: channelAccountProperties.address,
