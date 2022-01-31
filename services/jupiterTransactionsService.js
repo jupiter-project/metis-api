@@ -356,11 +356,9 @@ class JupiterTransactionsService {
                 throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Missing "data"');
             }
             if (!response.data.hasOwnProperty('unconfirmedTransactions')) {
-                console.log(response.data);
                 throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Missing "data.unconfirmedTransactions"');
             }
             if (!Array.isArray(response.data.unconfirmedTransactions)) {
-                console.log(response.data.unconfirmedTransactions);
                 throw new mError.MetisError('getUnconfirmedBlockChainTransactions returned invalid response. Not Array "data.unconfirmedTransactions"');
             }
             const transactions = response.data.unconfirmedTransactions;
@@ -373,14 +371,12 @@ class JupiterTransactionsService {
                     logger.warn(`?? Tags arent working! this transaction doesnt belong, Json not well formed`);
                     logger.warn(`?? tag= ${tag}`);
                     logger.warn('???????????????????????????????????????????????\n');
-                    console.log(t);
                 } else if(!t.attachment.message.includes(tag)){
                     logger.warn('???????????????????????????????????????????????');
                     logger.warn(`?? UNCONFIRMED.`)
                     logger.warn(`?? Tags arent working! this transaction doesnt belong. Tag is missing`);
                     logger.warn(`?? tag= ${tag}`);
                     logger.warn('???????????????????????????????????????????????\n');
-                    console.log(t);
                 }
             })
 
@@ -466,7 +462,6 @@ class JupiterTransactionsService {
                 logger.info(`++ this transaction coming from Jupiter is not valid!!!`);
                 logger.info(`++ ${JSON.stringify(t)}`);
                 logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
-                console.log(t);
             }
             return valid.isValid;
         })
@@ -479,14 +474,12 @@ class JupiterTransactionsService {
                 logger.warn(`?? Tags arent working! this transaction doesnt belong, Json not well formed`);
                 logger.warn(`?? tag= ${tag}`);
                 logger.warn('???????????????????????????????????????????????\n');
-                console.log(t);
             } else if(!t.attachment.message.includes(tag)){
                 logger.warn('???????????????????????????????????????????????');
                 logger.warn(`?? CONFIRMED TRANS.`)
                 logger.warn(`?? Tags arent working! this transaction doesnt belong. Tag is missing`);
                 logger.warn(`?? tag= ${tag}`);
                 logger.warn('???????????????????????????????????????????????\n');
-                console.log(t);
             }
         })
 
@@ -534,10 +527,8 @@ class JupiterTransactionsService {
         logger.verbose(`## fetchAllMessagesBySender(accountProperties, decipherWith)`);
         logger.verbose('##');
 
-        return this.getAllConfirmedAndUnconfirmedBlockChainTransactions(accountProperties.address).then(
-            transactions => {
-            return this.messageService.fetchAllMessagesBySender(transactions,accountProperties,decipherWith);
-        })
+        return this.getAllConfirmedAndUnconfirmedBlockChainTransactions(accountProperties.address)
+            .then(transactions => this.messageService.fetchAllMessagesBySender(transactions,accountProperties,decipherWith))
     }
 
     /**

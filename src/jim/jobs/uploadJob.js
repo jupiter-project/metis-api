@@ -155,7 +155,6 @@ class UploadJob {
                 if(!fileMimeType) throw new mError.MetisError('fileMimeType is invalid');
                 if(!fileCategory) throw new mError.MetisError('fileCategory is invalid');
 
-                console.log('File uuid[::] --->', fileUuid);
                 if(!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError(`The file is not found`);
                 const fileBufferDataPath = localFileCacheService.generateBufferDataPath(fileUuid);
                 const fromAccountProperties = await GravityAccountProperties.Clone(_userAccountProperties);
