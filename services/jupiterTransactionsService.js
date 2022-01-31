@@ -175,8 +175,8 @@ class JupiterTransactionsService {
         logger.verbose(`##`)
         logger.verbose(`##`)
         logger.debug(`accountProperties.address= ${accountProperties.address}`)
-        logger.debug(`accountProperties.passphrase= ${accountProperties.passphrase}`)
-        logger.debug(`accountProperties.crypto= ${JSON.stringify(accountProperties.crypto)}`)
+        logger.sensitive(`accountProperties.passphrase= ${accountProperties.passphrase}`)
+        logger.sensitive(`accountProperties.crypto= ${JSON.stringify(accountProperties.crypto)}`)
 
 
         return new Promise((resolve, reject) => {
@@ -508,7 +508,8 @@ class JupiterTransactionsService {
      */
     async fetchUnconfirmedMessages(accountProperties) {
         logger.verbose('#####################################################################################');
-        logger.verbose(`## fetchUnconfirmedMessages(accountProperties= ${!!accountProperties})`);
+        logger.verbose(`## fetchUnconfirmedMessages(accountProperties)`);
+        logger.sensitive(`## fetchUnconfirmedMessages(accountProperties= ${!!accountProperties})`);
         logger.verbose('#####################################################################################');
         logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
 
