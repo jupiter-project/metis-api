@@ -580,6 +580,7 @@ class StorageService {
                 throw new Error(`User ${fromAccountProperties.address} does not have enough funding for file fee ${fileFee}. user balance: ${userBalance}`)
             }
 
+
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
             logger.sensitive(`chunks.length=${JSON.stringify(chunks.length)}`);
             //Send Each Chunk as a transaction.
