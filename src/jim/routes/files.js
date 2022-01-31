@@ -314,7 +314,6 @@ module.exports = (app, jobs, websocket) => {
             if(!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(``, userAddress);
 
             const [messageContainers] = await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAddress, transactionTags.jimServerTags.binaryFilePublicProfileSharedKey);
-            console.log('messageContainers--------', messageContainers);
 
             if(!messageContainers){
                 return res.status(StatusCode.ClientErrorNotFound).send({message: 'No image found'});

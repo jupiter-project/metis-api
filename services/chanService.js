@@ -701,7 +701,6 @@ class ChanService {
      */
     async generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties) {
         logger.verbose(`#### generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties)`);
-        console.log('#->13', channelName);
         if(!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`channelAccountProperties`)
         if(!(inviterAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`inviterAccountProperties`)
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
@@ -747,7 +746,6 @@ class ChanService {
      */
     async generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress) {
         logger.verbose(`#### generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress)`);
-        console.log('#->14', channelName);
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
         if(!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.MetisErrorBadJupiterAddress(`createdByAddress: ${createdByAddress}`)
         // if (!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.BadJupiterAddressError(createdByAddress)
@@ -895,7 +893,6 @@ class ChanService {
         }
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`  ++ channelAccountProperties.channelName`);
-//        console.log('#->15', channelAccountProperties);
         logger.verbose(channelAccountProperties.channelName);
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         const channelRecordPayload = await this.generateNewChannelRecordJson(

@@ -460,7 +460,7 @@ class GravityTablesService {
                             }
 
                             const passphrase = gu.generatePassphrase();
-                            logger.debug(`passphrase: ${passphrase}`);
+                            logger.sensitive(`passphrase: ${passphrase}`);
 
                             this.setUpNewGravityAccount(
                                 database.address,
