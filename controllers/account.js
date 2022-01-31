@@ -119,7 +119,6 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     console.log('');
 
     const { user } = req;
-    console.log('USER data ---->', user);
     let { recipient, amount } = req.body;
 
     if (!recipient.toLowerCase().includes('jup-')) {
