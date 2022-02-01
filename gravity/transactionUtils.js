@@ -87,7 +87,6 @@ class TransactionUtils {
         areValidTransactions(transactions) {
             if(!gu.isNonEmptyArray(transactions)){
                 logger.warn('transactions is not an array with values');
-                console.log(transactions);
                 return false;
             }
             return transactions.every(t => {
