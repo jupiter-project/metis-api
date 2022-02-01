@@ -397,15 +397,11 @@ class ChanService {
     async acceptInvitation(memberAccountProperties, channelAddress){
         logger.verbose(`#### acceptInvitation(memberAccountProperties, channelAddress)`);
         if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
-        // if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-        //     throw new BadJupiterAddressError(channelAddress)
-        // }
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
         logger.sensitive(`memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
         logger.sensitive(`channelAddress= ${channelAddress}`);
-
         try {
             // First: lets get the list of invitations
             const invitationContainers = await this.getChannelInvitationContainersSentToAccount(memberAccountProperties);
@@ -420,10 +416,6 @@ class ChanService {
             if(!validateResult){
                 throw new InviteRecordValidatorError(validateResult.message);
             }
-            // const ExistingChannelAccountProperties = await this.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
-            // if (ExistingChannelAccountProperties) { // member already has access to channel.
-            //     return;
-            // }
             const channelAccountPropertiesInvitedTo = await instantiateGravityAccountProperties(
                 invitationRecord.channelRecord.passphrase,
                 invitationRecord.channelRecord.password

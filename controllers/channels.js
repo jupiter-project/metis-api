@@ -111,21 +111,12 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('== Accept Channel Invite');
         logger.info('== v1/api/channel/invite/accept');
         logger.info(`======================================================================================\n\n`);
-
         const {channelAddress} = req.body
-
         if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
-        // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
-
-        // if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-        //     throw new BadJupiterAddressError(channelAddress)
-        // }
-
         const memberAccountProperties = await instantiateGravityAccountProperties(
             req.user.passphrase,
             req.user.password
         );
-
         chanService.acceptInvitation(memberAccountProperties, channelAddress)
             .then(() => {
                 websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
@@ -135,12 +126,12 @@ module.exports = (app, passport, jobs, websocket) => {
                 logger.error(`*********************************************`)
                 logger.error(`** channel/invite/accept ERROR`)
                 logger.error(`${error}`);
+                logger.error(`Invitation to channel: ${channelAddress}`);
                 if (error.message === 'Invitation Not Found') {
-                    return res.status(404).send({message: error.message});
+                    return res.status(StatusCode.ClientErrorNotFound).send({message: error.message, code: error.code});
                 }
-                return res.status(StatusCode.ServerErrorInternal).send({message: error.message});
+                return res.status(StatusCode.ServerErrorInternal).send({message: error.message, code: error.code});
             });
-
     });
 
     /**
@@ -278,9 +269,16 @@ module.exports = (app, passport, jobs, websocket) => {
             if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
             if (!message) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
             if (!Array.isArray(mentions)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'mentions should be an array'});
-            mentions.forEach(mention => {
-                if(!gu.isWellFormedJupiterAddress(mention)) return res.status(StatusCode.ClientErrorBadRequest).send({message: `mention needs to be an address: ${mention}`});
-            })
+            const mentionedAddresses = await mentions.reduce( async (reduced,mention) => {
+                try {
+                    const inviteeAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(mention);
+                    const data = await reduced;
+                    return  [...data, inviteeAccountInfo.address];
+                } catch(error){
+                    return await reduced;
+                }
+            }, Promise.resolve([]));
+
             const memberAccountProperties = user.gravityAccountProperties;
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
@@ -309,8 +307,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 );
             if (messageType === 'invitation') websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
             websocket.of(websocketConstants.invitation.chat.namespace).to(channelAddress).emit(websocketConstants.invitation.chat.rooms.createMessage, { message: messageRecord });
-            // websocket.of('/chat').to(channelAddress).emit('createMessage', { message: messageRecord });
-            await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentions);
+            await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentionedAddresses);
             res.send({message: 'Message successfully sent'});
         } catch (error) {
             logger.error('Error sending metis message:')
