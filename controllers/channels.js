@@ -269,15 +269,16 @@ module.exports = (app, passport, jobs, websocket) => {
             if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
             if (!message) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
             if (!Array.isArray(mentions)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'mentions should be an array'});
-            const mentionedAddresses = mentions.reduce( async (reduced,mention) => {
+            const mentionedAddresses = await mentions.reduce( async (reduced,mention) => {
                 try {
                     const inviteeAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(mention);
-                    reduced.push(inviteeAccountInfo.address);
-                    return reduced;
+                    const data = await reduced;
+                    return  [...data, inviteeAccountInfo.address];
                 } catch(error){
-                    return reduced;
+                    return await reduced;
                 }
-            }, [])
+            }, Promise.resolve([]));
+
             const memberAccountProperties = user.gravityAccountProperties;
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
