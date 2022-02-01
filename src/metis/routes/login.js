@@ -54,12 +54,21 @@ module.exports = (app, jobs, websocket) => {
             const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64');
             const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm,privateKeyBuffer);
             const userAccountProperties = await jupiterAccountService.getMemberAccountPropertiesFromPersistedUserRecordOrNull(passphrase, password);
-            if (userAccountProperties === null) {
+            if (!userAccountProperties) {
                 return res.status(StatusCode.ClientErrorBadRequest).send({
                     message: 'Not able to authenticate.',
                     code: MetisErrorCode.MetisErrorFailedUserAuthentication
                 });
             }
+
+            const userAlias = userAccountProperties.getCurrentAliasNameOrNull();
+            if(!userAlias){
+                return res.status(StatusCode.ClientErrorBadRequest).send({
+                    message: 'Not alias found.',
+                    code: MetisErrorCode.MetisErrorAccountHasNoAlias
+                });
+            }
+
             const jwtContent = {
                 passphrase: passphrase,
                 password: password,
@@ -79,8 +88,7 @@ module.exports = (app, jobs, websocket) => {
             testCounter = testCounter + 1;
             const user = {
                 address: userAccountProperties.address,
-                alias: userAccountProperties.getCurrentAliasNameOrNull(),
-                profileUrl: 'http://bla.bla', //TODO get the profile url
+                alias: userAlias,
             };
             return res.status(StatusCode.SuccessOK).send({
                 user,

@@ -36,4 +36,5 @@ module.exports.MetisErrorCode = {
     MetisErrorSendMessageToJupiterFailed: 16028,
     MetisErrorFileTooLarge: 16029,
     MetisErrorJupiterUnknownTransaction: 16030,
+    MetisErrorAccountHasNoAlias: 16031,
 }
