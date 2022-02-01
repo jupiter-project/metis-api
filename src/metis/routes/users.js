@@ -13,24 +13,19 @@ module.exports = (app, jobs, websocket) => {
     app.put('/v1/api/users/:userAddress/e2e-public-keys', async (req, res) => {
         console.log('');
         logger.info('======================================================================================');
-        logger.info('==');
         logger.info('== Add Publickey');
         logger.info('== PUT: /v1/api/public-keys');
-        logger.info('==');
         logger.info('======================================================================================');
         console.log('');
-
         try {
             const {e2ePublicKey} = req.body;
             const userAddress = req.params.userAddress;
             if (!e2ePublicKey){
-            // if (!gu.isWellFormedPublicKey(e2ePublicKey)) {
-                console.log(new mError.MetisErrorBadJupiterPublicKey(`userPublicKey: ${e2ePublicKey}`));
-                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'User public key is required'});
+                const error = new mError.MetisErrorBadJupiterPublicKey(`userPublicKey: ${e2ePublicKey}`);
+                logger.error(`${error}`);
+                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'User public key is required', code: error.code});
             }
-
             const userProperties = req.user.gravityAccountProperties;
-
             if(!(userProperties.address === userAddress)){
                 logger.error(`The userAddress is not the same as currently logged in user userAddress: ${userAddress}, currently: ${userProperties.address}`)
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: 'bad user address'});

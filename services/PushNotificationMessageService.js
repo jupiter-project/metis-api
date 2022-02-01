@@ -67,17 +67,17 @@ module.exports = {
    */
   getPNTokensAndSendPushNotification: async (recipientAddresses, mutedChannelAddressesToExclude, body, title, metadata) => {
     logger.verbose(`#### getPNTokensAndSendPushNotification: (recipientAddressArray, mutedChannelsToExclude)`);
-    // If not recipientAddress then just return. Do nothing.
-    if(!gu.isNonEmptyArray(recipientAddresses)){return}
+    if(!gu.isNonEmptyArray(recipientAddresses)) return
+    if(!recipientAddresses.every(address=>gu.isWellFormedJupiterAddress(address))) throw new mError.MetisErrorBadJupiterAddress(`${recipientAddresses}`);
     if(!body){throw new mError.MetisError(`body is empty`)}
     if(!title){throw new mError.MetisError(`title is empty`)}
     if(!Array.isArray(mutedChannelAddressesToExclude)){throw new Error(`mutedChannelsToExclude is not an Array`)}
     mutedChannelAddressesToExclude.forEach(mutedChannelAddress => {
       if(!gu.isWellFormedJupiterAddress(mutedChannelAddress)) throw new mError.MetisErrorBadJupiterAddress(`mutedChannelAddress: ${mutedChannelAddress}`)
     })
-    recipientAddresses.forEach(recipientAddress => {
-      if(!gu.isWellFormedJupiterAddress(recipientAddress)) throw new mError.MetisErrorBadJupiterAddress(`recipientAddress: ${recipientAddress}`)
-    })
+    // recipientAddresses.forEach(recipientAddress => {
+    //   if(!gu.isWellFormedJupiterAddress(recipientAddress)) throw new mError.MetisErrorBadJupiterAddress(`recipientAddress: ${recipientAddress}`)
+    // })
     const notificationsCollection = await findNotifications(recipientAddresses, mutedChannelAddressesToExclude);
     const updatedNotificationsCollection = await incrementBadgeCountersForNotifications(notificationsCollection);
     const pnAccounts = extractPNAccountsFromCollection(updatedNotificationsCollection);

@@ -115,39 +115,42 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
 
 /**
  *
- * @param memberAccountProperties
- * @param channelAccountProperties
- * @param {[]} memberAddressMentions
+ * @param {object} senderAccountProperties
+ * @param {object} channelAccountProperties
+ * @param {string[]} mentions
  * @return {Promise<void>}
  */
-const sendMessagePushNotifications = async (memberAccountProperties, channelAccountProperties, memberAddressMentions = []) => {
+const sendMessagePushNotifications = async (senderAccountProperties, channelAccountProperties, mentions = []) => {
     logger.verbose(`#### sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mention)`);
     try {
-        if (!(memberAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterGateway('Invalid memberAccountProperties')
-        if (!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterGateway('Invalid channelAccountProperties')
-        if(!Array.isArray(memberAddressMentions)) throw new mError.MetisError(`mentions needs to be an array`);
-        memberAddressMentions.forEach(mentionedMemberAddress => {
+        if (!(senderAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterAddress('Invalid memberAccountProperties')
+        if (!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterAddress('Invalid channelAccountProperties')
+        if(!Array.isArray(mentions)) throw new mError.MetisError(`mentions needs to be an array`);
+        
+        
+        
+        mentions.forEach(mentionedMemberAddress => {
             if(!gu.isWellFormedJupiterAddress(mentionedMemberAddress)) throw new mError.MetisErrorBadJupiterAddress('', mentionedMemberAddress);
         })
-        const senderAlias = memberAccountProperties.getCurrentAliasNameOrNull();
+        const senderAlias = senderAccountProperties.getCurrentAliasNameOrNull();
         const {address: channelAddress} = channelAccountProperties;
         const allChannelMembers = await chanService.getChannelMembers(channelAccountProperties)
-        const channelMembersExceptOne = allChannelMembers.filter( member => member.memberAccountAddress !== memberAccountProperties.address );
+        const channelMembersExceptOne = allChannelMembers.filter( member => member.memberAccountAddress !== senderAccountProperties.address );
         const channelMemberAddresses = channelMembersExceptOne.map(member => member.memberAccountAddress);
         const pnBody = (senderAlias)?
             `${senderAlias} has sent a message`:
-            `${memberAccountProperties.address} has sent a message`;
+            `${senderAccountProperties.address} has sent a message`;
         const pnTitle = (senderAlias) ?
             `${senderAlias}`:
-            `${memberAccountProperties.address}`;
+            `${senderAccountProperties.address}`;
         await getPNTokensAndSendPushNotification(channelMemberAddresses, [channelAccountProperties.address], pnBody, pnTitle, {channelAddress: channelAccountProperties.address});
-        const promises = memberAddressMentions.map( (mentionedMemberAddress) => {
+        const promises = mentions.map( (mentionedMemberAddress) => {
             const body = (senderAlias)?
                 `${senderAlias} was tagged`:
-                `${memberAccountProperties.address} was tagged`;
+                `${senderAccountProperties.address} was tagged`;
             const title = (senderAlias) ?
                 `${senderAlias} was tagged`:
-                `${memberAccountProperties.address} was tagged`;
+                `${senderAccountProperties.address} was tagged`;
             return getPNTokensAndSendPushNotification(mentionedMemberAddress, [channelAccountProperties.address], body, title, {channelAddress});
         })
 
