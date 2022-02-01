@@ -264,13 +264,9 @@ class AccountRegistration {
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
             logger.info(` NEXT: Set The Alias`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
-            await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
-            // Fifth: Create the binaryAccount
-            // console.log(`\n`);
-            // logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
-            // logger.info(` Fifth: Create the binaryAccount`);
-            // logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
-            // this.binaryAccountJob.create(newAccountProperties);
+            const aliasResponse = await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
+            await this.jupiterFundingService.waitForTransactionConfirmation(aliasResponse.data.transaction);
+
             return;
         }catch(error){
             logger.error(`****************************************************************`);
