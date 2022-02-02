@@ -246,7 +246,7 @@ class AccountRegistration {
             logger.info(` Second: Provide Funds to the new user account`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountProperties);
-            const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.transactionId;
+            const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.data.transaction;
             await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFundingTransactionId);
             // Third: Add the UserRecord transaction
             console.log(`\n`);
@@ -261,17 +261,13 @@ class AccountRegistration {
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
             logger.info(` NEXT: Set The Alias`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
-            await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
-            // Fifth: Create the binaryAccount
-            // console.log(`\n`);
-            // logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
-            // logger.info(` Fifth: Create the binaryAccount`);
-            // logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
-            // this.binaryAccountJob.create(newAccountProperties);
+            const aliasResponse = await this.jupApi.setAlias(newAccountProperties.address, newAccountProperties.passphrase, newAccountAliasName);
+            await this.jupiterFundingService.waitForTransactionConfirmation(aliasResponse.data.transaction);
+
             return;
         }catch(error){
             logger.error(`****************************************************************`);
-            logger.error(`** createNewAccountAndRegister(newAccountAliasName, newAccountPassword).catch(error)`);
+            logger.error(`** register3(newAccountProperties, newAccountAliasName).catch(error)`);
             logger.error(`****************************************************************`);
             logger.error(`error= ${error}`)
             throw error;
@@ -479,6 +475,7 @@ const {jupiterAPIService} = require("./jupiterAPIService");
 const { gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
+const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
 const mError = require("../errors/metisError");
 // const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");

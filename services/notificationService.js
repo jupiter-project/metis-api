@@ -74,7 +74,6 @@ module.exports = {
             ]
         };
 
-        console.log('Update payload :', update);
         const notification = await Notifications.findOne(filter);
         if(!notification){
             return Notifications.create(update);
@@ -96,9 +95,6 @@ module.exports = {
             badgeCounter: 0,
         };
 
-        // pnAccounts.push(newPNAccount);
-
-        console.log('New pn account payload', newPNAccount);
         return Notifications.updateOne(filter, { $push: { pnAccounts: newPNAccount } });
     },
 

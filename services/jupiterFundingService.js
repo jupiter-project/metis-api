@@ -119,7 +119,7 @@ class JupiterFundingService {
      * @returns {Promise<*>}
      */
     async provideInitialChannelAccountFunds(recipientProperties){
-        logger.verbose(`#### provideInitialChannelAccountFunds( recipientProperties= ${!!recipientProperties})`);
+        logger.sensitive(`#### provideInitialChannelAccountFunds( recipientProperties= ${!!recipientProperties})`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('invalid recipientProperties')};
         const initialAmount = this.defaultNewChannelTransferAmount;
         return this.jupiterMoneyTransactionService.transferMoney(this.applicationProperties,recipientProperties,initialAmount);

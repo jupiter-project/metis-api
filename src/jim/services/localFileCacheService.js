@@ -34,7 +34,6 @@ class LocalFileCacheService {
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`${fileUuid}`);
         //make sure both file and record exist
         const bufferDataPath = this.generateBufferDataPath(fileUuid);
-        console.log('File pathhhhh', bufferDataPath);
         return fs.existsSync(bufferDataPath);
     }
 

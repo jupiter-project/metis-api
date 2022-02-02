@@ -34,7 +34,6 @@ module.exports = {
         return res.status(StatusCode.ClientErrorBadRequest).json(message);
       }
 
-      console.log('Upserting Token: ', token);
       const notification = await upsertNotificationDocumentWithNewToken(userAddress, provider, token);
 
       return res.json(notification);

@@ -120,7 +120,8 @@ class User extends Model {
 
   async setAlias(passphrase) {
     logger.verbose('###############################################################################################')
-    logger.verbose(`## setAlias(passphrase= ${passphrase}`);
+    logger.verbose(`## setAlias`);
+    logger.sensitive(`## setAlias(passphrase= ${passphrase}`);
     logger.verbose('###############################################################################################')
 
     logger.debug(`alias= ${this.record.alias}`);

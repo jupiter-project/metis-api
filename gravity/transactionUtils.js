@@ -87,7 +87,6 @@ class TransactionUtils {
         areValidTransactions(transactions) {
             if(!gu.isNonEmptyArray(transactions)){
                 logger.warn('transactions is not an array with values');
-                console.log(transactions);
                 return false;
             }
             return transactions.every(t => {
@@ -154,11 +153,9 @@ class TransactionUtils {
         }
         const valid = validator.validateBaseTransaction(transaction);
         if(!valid.isValid){
-            logger.debug(`Validation: Transaction is not valid ${valid.message}`);
-            console.log(valid.errors);
+            logger.error(`Validation: Transaction is not valid ${valid.message}`);
+            logger.error(`${valid.errors}`);
         }
-
-        logger.debug(`Validation: Transaction is valid`);
         return valid.isValid;
     }
 

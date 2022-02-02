@@ -666,7 +666,7 @@ class Gravity {
     if(allSpecificTables[0].user_record){
       userRecord = allSpecificTables[0].user_record;
     }
-    logger.debug(JSON.stringify(userRecord));
+    logger.sensitive(JSON.stringify(userRecord));
 
     return userRecord;
   }

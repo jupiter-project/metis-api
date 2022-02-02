@@ -62,6 +62,7 @@ class ChanService {
         this.gravityService = gravityService;
         this.transactionUtils = transactionUtils;
         this.validator = validator;
+        this.jupiterFundingService = jupiterFundingService;
     }
 
 
@@ -365,6 +366,8 @@ class ChanService {
                 transactionTypeConstants.messaging.metisChannelInvitation,
                 inviteePublicKey
             )
+            //@TODO technically we should not need to wait for confirmation. but we are getting errors when acception a confirmation.
+            await this.jupiterFundingService.waitForTransactionConfirmation(sendTaggedAndEncipheredMetisMessageResponse.transaction);
             const createInvitationResponse = {
                 invitationId: sendTaggedAndEncipheredMetisMessageResponse.transaction,
                 channelAddress: channelAccountProperties.address,
@@ -395,15 +398,11 @@ class ChanService {
     async acceptInvitation(memberAccountProperties, channelAddress){
         logger.verbose(`#### acceptInvitation(memberAccountProperties, channelAddress)`);
         if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
-        // if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-        //     throw new BadJupiterAddressError(channelAddress)
-        // }
         if (!(memberAccountProperties instanceof GravityAccountProperties)) {
             throw new Error('memberAccountProperties incorrect')
         }
         logger.sensitive(`memberAccountProperties.address= ${JSON.stringify(memberAccountProperties.address)}`);
         logger.sensitive(`channelAddress= ${channelAddress}`);
-
         try {
             // First: lets get the list of invitations
             const invitationContainers = await this.getChannelInvitationContainersSentToAccount(memberAccountProperties);
@@ -418,10 +417,6 @@ class ChanService {
             if(!validateResult){
                 throw new InviteRecordValidatorError(validateResult.message);
             }
-            // const ExistingChannelAccountProperties = await this.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
-            // if (ExistingChannelAccountProperties) { // member already has access to channel.
-            //     return;
-            // }
             const channelAccountPropertiesInvitedTo = await instantiateGravityAccountProperties(
                 invitationRecord.channelRecord.passphrase,
                 invitationRecord.channelRecord.password
@@ -702,7 +697,6 @@ class ChanService {
      */
     async generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties) {
         logger.verbose(`#### generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties)`);
-        console.log('#->13', channelName);
         if(!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`channelAccountProperties`)
         if(!(inviterAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`inviterAccountProperties`)
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
@@ -748,7 +742,6 @@ class ChanService {
      */
     async generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress) {
         logger.verbose(`#### generateNewChannelRecordJson(channelName, channelAccountProperties, createdByAddress)`);
-        console.log('#->14', channelName);
         if (!gu.isNonEmptyString(channelName)) throw new mError.MetisError('channelName is empty')
         if(!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.MetisErrorBadJupiterAddress(`createdByAddress: ${createdByAddress}`)
         // if (!gu.isWellFormedJupiterAddress(createdByAddress)) throw new mError.BadJupiterAddressError(createdByAddress)
@@ -896,7 +889,6 @@ class ChanService {
         }
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         logger.info(`  ++ channelAccountProperties.channelName`);
-        console.log('#->15', channelAccountProperties);
         logger.verbose(channelAccountProperties.channelName);
         logger.info('  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
         const channelRecordPayload = await this.generateNewChannelRecordJson(
