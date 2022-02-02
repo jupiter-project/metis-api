@@ -9,7 +9,8 @@ const _ = require('lodash');
 const methods = require('./_methods');
 const logger = require('../utils/logger')(module);
 import {tableConfig, userConfig} from "./constants";
-import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+// import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {transactionTypeConstants} from "../src/gravity/constants/transactionTypesConstants";
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 
@@ -2496,21 +2497,16 @@ class Gravity {
         }
 
         if(!tag){throw new Error(`theres a problem with attaching the table: ${tableName}`)}
-
-
         logger.sensitive(`tableName= ${JSON.stringify(tableName)}`);
         logger.sensitive(`tag= ${JSON.stringify(tag)}`);
-
-
         const sendRecordResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             accountCredentials.passphrase,
             accountCredentials.account,
             encryptedData,
             tag,
-            FeeManager.feeTypes.account_record,
+            transactionTypeConstants.messaging.metisAccountInfo,
             accountCredentials.publicKey
         )
-
 
         // const callUrl = `${this.jupiter_data.server}/nxt?requestType=sendMetisMessage&secretPhrase=${accountCredentials.passphrase}&recipient=${accountCredentials.account}&messageToEncrypt=${encryptedData}&feeNQT=${fee}&subtype=${subtype}&deadline=${this.jupiter_data.deadline}&compressMessageToEncrypt=true${recipientPublicKey}`;
         // let response;
@@ -2530,7 +2526,7 @@ class Gravity {
               accountCredentials.account,
               encryptedTableData,
               tableConfig.tableList,
-              FeeManager.feeTypes.account_record,
+              transactionTypeConstants.messaging.metisAccountInfo,
               accountCredentials.publicKey
           )
 

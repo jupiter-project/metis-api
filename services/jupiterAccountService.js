@@ -10,6 +10,7 @@ import {
     BadJupiterAddressError,
     MetisError, MetisErrorPublicKeyExists
 } from "../errors/metisError";
+import {transactionTypeConstants} from "../src/gravity/constants/transactionTypesConstants";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const mError = require(`../errors/metisError`);
 const {GravityAccountProperties, metisGravityAccountProperties, myTest} = require('../gravity/gravityAccountProperties');
@@ -85,34 +86,45 @@ class JupiterAccountService {
 
     /**
      *
-     * @param userAccountProperties
+     * @param {GravityAccountProperties} userAccountProperties
      * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
     async addUserRecordToUserAccount(userAccountProperties) {
-        const tag = `${userConfig.userRecord}.${userAccountProperties.address}`;
-        const createdDate = Date.now();
-        const userRecord = {
-            recordType: 'userRecord',
-            password: userAccountProperties.password,
-            email: userAccountProperties.email,
-            firstName: userAccountProperties.firstName,
-            lastName: userAccountProperties.lastName,
-            status: 'active',
-            createdAt: createdDate,
-            updatedAt: createdDate,
-            version: 1
-        };
-        const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
-        return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
-            userAccountProperties.passphrase,
-            userAccountProperties.address,
-            encryptedUserRecord,
-            tag,
-            FeeManager.feeTypes.account_record,
-            userAccountProperties.publicKey
-        ).then(response => {
+        logger.verbose(`####  addUserRecordToUserAccount(userAccountProperties)`);
+        if(!(userAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`userAccountProperties`);
+        try {
+            const tag = `${userConfig.userRecord}.${userAccountProperties.address}`;
+            logger.verbose(`tag=${JSON.stringify(tag)}`);
+            const createdDate = Date.now();
+            const userRecord = {
+                recordType: 'userRecord',
+                password: userAccountProperties.password,
+                email: userAccountProperties.email,
+                firstName: userAccountProperties.firstName,
+                lastName: userAccountProperties.lastName,
+                status: 'active',
+                createdAt: createdDate,
+                updatedAt: createdDate,
+                version: 1
+            };
+            const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
+            const response = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
+                userAccountProperties.passphrase,
+                userAccountProperties.address,
+                encryptedUserRecord,
+                tag,
+                transactionTypeConstants.messaging.metisAccountInfo,
+                userAccountProperties.publicKey
+            );
             return response.transactionJSON;
-        })
+        } catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* **  addUserRecordToUserAccount(userAccountProperties).catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
     }
 
     /**
@@ -509,7 +521,7 @@ class JupiterAccountService {
                 gravityAccountProperties.address,
                 encryptedMessage,
                 recordTag,
-                FeeManager.feeTypes.account_record,
+                transactionTypeConstants.messaging.metisAccountInfo,
                 gravityAccountProperties.publicKey
             );
             //Update the PublicKeys List
@@ -520,7 +532,7 @@ class JupiterAccountService {
                 gravityAccountProperties.address,
                 encryptedLatestUserE2ETransactionIds,
                 listTag,
-                FeeManager.feeTypes.account_record,
+                transactionTypeConstants.messaging.metisAccountInfo,
                 gravityAccountProperties.publicKey
             );
         } catch(error) {
@@ -975,9 +987,11 @@ class JupiterAccountService {
     async fetchAccountInfoFromAliasOrAddress(aliasOrAddress){
         if(!gu.isNonEmptyString(aliasOrAddress)) throw new MetisError(`empty: aliasOrAddress`)
         let fetchAccountResponse = null;
+        let alias;
         if(gu.isWellFormedJupiterAddress(aliasOrAddress)){
             fetchAccountResponse = await this.fetchAccountOrNull(aliasOrAddress);
         } else if (gu.isWellFormedJupiterAlias(aliasOrAddress)){
+            // alias = aliasOrAddress;
             // It's an alias so lets get the address
             const getAliasResponse = await jupiterAPIService.getAlias(aliasOrAddress)
             const address = getAliasResponse.data.accountRS;
@@ -985,18 +999,25 @@ class JupiterAccountService {
                 fetchAccountResponse = await this.fetchAccountOrNull(address);
             }
         } else {
-            throw new MetisError(`Account Not Found`);
+            throw new MetisError(`Account Not Found: ${aliasOrAddress}`);
         }
 
         if(fetchAccountResponse === null){
             throw new MetisError(`Account Not Found`);
         }
 
+        const aliases = await this.getAliasesOrEmptyArray(fetchAccountResponse.accountRS)
+            .then(aliases => {
+                properties.addAliases(aliases);
+                return properties;
+            });
+
         return {
             address: fetchAccountResponse.accountRS,
             publicKey: fetchAccountResponse.publicKey,
             account: fetchAccountResponse.account,
-            unconfirmedBalanceNQT: fetchAccountResponse.unconfirmedBalanceNQT
+            unconfirmedBalanceNQT: fetchAccountResponse.unconfirmedBalanceNQT,
+            alias: alias
         }
 
     }

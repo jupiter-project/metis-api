@@ -7,26 +7,37 @@ const logger = require('../utils/logger')();
 const mError = require("../errors/metisError");
 const {appConf} = require("../config/appConf");
 const {metisConf} = require("../config/metisConf");
+const mongoose = require('mongoose');
 
 
 
 module.exports.externalResourcesCheck =  async (req, res, next) => {
     // @TODO enable once we get a jupiter.isAlive()
-    return next();
+    // return next();
     logger.verbose(`#### externalResourcesCheck(req, res, next)`);
     try {
         const jupiterState = await jupiterAPIService.getState();
         logger.info(`++ Jupiter Time: ${jupiterState.data.time}`);
 
         //@TODO CHECK MONGO
-        //CHECK MONGO.
+        // curl --connect-timeout 10 --silent --show-error hostname:27017
+
+        const mongooseConnectionReadyStates = {
+            'disconnected': 0,
+            'connected': 1,
+            'connecting': 2,
+            'disconnecting': 3
+        }
+        if(mongoose.connection.readyState !== mongooseConnectionReadyStates.connected){
+            throw new Error('Mongo is not connected');
+        }
         return next();
     } catch(error){
         console.log('\n')
         logger.error(`************************* ERROR ***************************************`);
         logger.error(`* ** ExternalResourcesCheck.catch(error)`);
         logger.error(`************************* ERROR ***************************************\n`);
-        console.log(error);
+        logger.error(`${error}`);
         if( error instanceof mError.MetisErrorBadJupiterGateway){
             //Send The Alert!
             const nodeEnvironment = appConf.nodeEnvrionment;

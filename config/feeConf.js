@@ -28,10 +28,11 @@ const accountPropertyDeletionFee = +process.env.ACCOUNT_PROPERTY_DELETION_FEE;
 // if(!process.env.ACCOUNT_PROPERTY_DELETION_FEE) throw new Error('Environment Variable missing: ACCOUNT_PROPERTY_DELETION_FEE');
 if(isNaN(process.env.METIS_MESSAGE_FEE)) throw new Error(`Environment Variable METIS_MESSAGE_FEE is not a number ${process.env.METIS_MESSAGE_FEE}`);
 const metisMessageFee = +process.env.METIS_MESSAGE_FEE;
+if(isNaN(process.env.METIS_MESSAGE_MARKUP_FEE_PERCENTAGE)) throw new Error(`Environment Variable METIS_MESSAGE_MARKUP_FEE_PERCENTAGE is not a number ${process.env.METIS_MESSAGE_MARKUP_FEE_PERCENTAGE}`);
+const metisMessageMarkupFeePercentage = +process.env.METIS_MESSAGE_MARKUP_FEE_PERCENTAGE;
 if(isNaN(process.env.MESSAGE_CHARACTER_FEE)) throw new Error(`Environment Variable MESSAGE_CHARACTER_FEE is not a number ${process.env.MESSAGE_CHARACTER_FEE}`);
 const messageCharacterFee = +process.env.MESSAGE_CHARACTER_FEE;
 // if(!process.env.MESSAGE_CHARACTER_FEE) throw new Error('Environment Variable missing: MESSAGE_CHARACTER_FEE');
-
 module.exports.feeConf = {
     regularTransaction: {NQT: regularTransactionFee},
     accountRecord: {NQT: accountRecordFee},
@@ -43,7 +44,7 @@ module.exports.feeConf = {
     channelMember: {NQT: metisChannelMemberFee},
     aliasAssignment: {NQT: aliasAssignmentFee},
     message: {NQT: metisMessageFee},
+    metisMessageMarkupFeePercentage: metisMessageMarkupFeePercentage,
     messageCharacter: {NQT: messageCharacterFee}
 }
-
 

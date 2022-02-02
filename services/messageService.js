@@ -4,13 +4,14 @@ const logger = require('../utils/logger')(module);
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {messagesConfig} = require("../config/constants");
 const {FeeManager} = require("./FeeManager");
-const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
+const {jupiterMessageTransactionService} = require("./jupiterMessageTransactionService");
 const {getPNTokensAndSendPushNotification} = require("../services/PushNotificationMessageService");
 // const metis = require("../config/metis");
 // const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 // const {chanService} = require("./chanService");
 // const {StatusCode} = require("../utils/statusCode");
 import mError from "../errors/metisError";
+import {transactionTypeConstants} from "../src/gravity/constants/transactionTypesConstants";
 const gu = require("../utils/gravityUtils")
 
 const generateNewMessageRecordJson = (
@@ -72,12 +73,12 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
         const messageRecordString = JSON.stringify(messageRecord);
         const tag = messagesConfig.messageRecord;
         const feeType = FeeManager.feeTypes.account_record;
-        return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
+        return jupiterMessageTransactionService.sendTaggedAndEncipheredMetisMessage(
             fromAccountProperties.passphrase,
             toAccountProperties.address,
             messageRecordString,
             tag,
-            feeType,
+            transactionTypeConstants.messaging.metisAccountInfo,
             toAccountProperties.publicKey
         );
     }catch(error){
@@ -102,7 +103,7 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
 //         await refreshGravityAccountProperties(channelAccountProperties);
 //     }
 //
-//     return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
+//     return jupiterMessageTransactionService.sendTaggedAndEncipheredMetisMessage(
 //         memberAccountProperties.passphrase,
 //         channelAccountProperties.address,
 //         messageRecordString,

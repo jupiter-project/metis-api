@@ -8,6 +8,7 @@ import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 // import {add} from "lodash";
 import {refreshGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {isNumber} from "lodash";
 const logger = require('../utils/logger')(module);
 const queryString = require('query-string');
 const mError = require("../errors/metisError");
@@ -841,7 +842,7 @@ class JupiterAPIService {
      * @param {string} referencedTransactionFullHash
      * @param {string} broadcast
      * @param {string} message
-     * @param {boolean} messageIsText
+     * @param {boolean|null} messageIsText
      * @param {boolean} messageIsPrunable
      * @param {string} messageToEncrypt
      * @param {boolean} messageToEncryptIsText
@@ -885,13 +886,16 @@ class JupiterAPIService {
         subtype
     ) {
         logger.verbose(`### jupiterApiService.sendMetisMessageOrMessage(*)`);
-        if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )) throw new Error('invalid request type')
-        if(requestType === 'sendMetisMessage' && !subtype) throw new Error('subtype is invalid')
-        if(!secretPhrase)throw new Error('secretPhrase is required')
-        if(!recipient) throw new Error('recipient is required')
-        if(!feeNQT) throw new Error('feeNQT is required')
-        if(!deadline) throw new Error('deadline is required')
-
+        if(! (requestType === 'sendMessage' || requestType === 'sendMetisMessage' )) throw new Error('invalid request type');
+        if(requestType === 'sendMetisMessage' && !subtype) throw new Error('subtype is invalid');
+        if(!secretPhrase)throw new Error('secretPhrase is required');
+        if(!recipient) throw new Error('recipient is required');
+        // if(feeNQT === null)  throw new Error(`feeNQT is required: ${feeNQT}`);
+        // if(!isNumber(feeNQT))throw new Error(`feeNQT is required: ${feeNQT}`);
+        if (typeof feeNQT !== 'number') throw new Error(`feeNQT is required: ${feeNQT}`);
+        if(!deadline) throw new Error('deadline is required');
+        logger.sensitive(`messageToEncrypt.length= ${messageToEncrypt.length}`);
+        logger.sensitive(`message.length= ${message.length}`);
         let params = {}
         params.requestType = requestType;
         let data = {}
@@ -980,26 +984,27 @@ class JupiterAPIService {
      *
      * @param {GravityAccountProperties} fromAccountProperties
      * @param {GravityAccountProperties} toAccountProperties
-     * @param {int} amountNqt
+     * @param {number} amountNqt
      * @param {number} feeNqt
      * @returns {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"versionOrdinaryPayment"},"senderRS","subtype","amountNQT","sender","recipientRS","recipient","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
      */
-    async transferMoney(fromAccountProperties, toAccountProperties, amountNqt, feeNqt = this.appProps.feeNQT) {
-        logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
-        if (!gu.isNumberGreaterThanZero(amountNqt)) {throw new Error('amount is invalid')}
-        if(!(fromAccountProperties instanceof GravityAccountProperties)){throw new Error('fromAccountProperties is not valid')}
-
-        const amountJup = gu.convertNqtToJup(amountNqt, this.appProps.moneyDecimals)
-        const feeJup = gu.convertNqtToJup(feeNqt, this.appProps.moneyDecimals)
-        const amountUsd = await gu.convertNqtToUsd(amountNqt, this.appProps.moneyDecimals)
-        const feeUsd = await gu.convertNqtToUsd(feeNqt, this.appProps.moneyDecimals)
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        logger.info(`++ Transferring Money`);
-        logger.info(`++ from: ${fromAccountProperties.address}`);
-        logger.info(`++ to: ${toAccountProperties.address}`);
-        logger.info(`++ amount: ${gu.formatNqt(amountNqt)} | JUP ${amountJup} | USD $${amountUsd}`);
-        logger.info(`++ fee: ${ gu.formatNqt(feeNqt)} | JUP ${feeJup} | USD $${feeUsd} `);
-        logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    async sendMoney(fromAccountProperties, toAccountProperties, amountNqt, feeNqt = this.appProps.feeNQT, broadcast=true) {
+        logger.verbose(`#### sendMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`);
+        if (!gu.isNumberGreaterThanZero(amountNqt)) throw new mError.MetisError('amount is invalid')
+        if(!(fromAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`fromAccountProperties`);
+        if(!(toAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`toAccountProperties`);
+        logger.verbose(`## feeNqt=${feeNqt}`);
+        // const amountJup = gu.convertNqtToJup(amountNqt, this.appProps.moneyDecimals)
+        // const feeJup = gu.convertNqtToJup(feeNqt, this.appProps.moneyDecimals)
+        // const amountUsd = await gu.convertNqtToUsd(amountNqt, this.appProps.moneyDecimals)
+        // const feeUsd = await gu.convertNqtToUsd(feeNqt, this.appProps.moneyDecimals)
+        // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        // logger.info(`++ Transferring Money`);
+        // logger.info(`++ from: ${fromAccountProperties.address}`);
+        // logger.info(`++ to: ${toAccountProperties.address}`);
+        // logger.info(`++ amount: ${gu.formatNqt(amountNqt)} | JUP ${amountJup} | USD $${amountUsd}`);
+        // logger.info(`++ fee: ${ gu.formatNqt(feeNqt)} | JUP ${feeJup} | USD $${feeUsd} `);
+        // logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
         return this.post( {
             requestType: JupiterAPIService.RequestType.SendMoney,
             recipient: toAccountProperties.address,
@@ -1010,14 +1015,6 @@ class JupiterAPIService {
         })
     }
 
-    /**
-     *
-     * @param {string} dataToDecipher
-     * @param {string} address
-     * @param {string} passphrase - 12 word passphrase
-     * @param {string} nonce
-     * @returns {Promise<*>}
-     */
     // async decryptFrom(dataToDecipher, address, passphrase, nonce){
     //     logger.verbose(`###################################################################################`);
     //     logger.verbose(`## getDecipheredData(dataToDecipher, address, passphrase, nonce)`);
@@ -1102,17 +1099,13 @@ class JupiterAPIService {
     async getAliases(address){
         logger.verbose(`#### getAliases(address=${address})`);
         if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
-        // if(!gu.isWellFormedJupiterAddress(address)){
-        //     throw new BadJupiterAddressError(address);
-        //     // throw new Error(`Jupiter Address is not valid: ${address}`);
-        // }
         const params = {
             requestType: JupiterAPIService.RequestType.GetAliases,
             account: address
         }
-
         return this.post(params);
     }
+
 
     /**
      * @example {

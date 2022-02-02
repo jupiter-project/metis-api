@@ -7,6 +7,7 @@ const {transactionUtils} = require("../gravity/transactionUtils");
 const gu = require("../utils/gravityUtils");
 const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {axiosDefault} = require("../config/axiosConf");
+const {transactionTypeConstants} = require("../src/gravity/constants/transactionTypesConstants");
 
 class GravityService{
 
@@ -51,7 +52,7 @@ class GravityService{
                 gravityAccountProperties.address,
                 payload,
                 recordTag,
-                feeType,
+                transactionTypeConstants.messaging.metisAccountInfo,
                 gravityAccountProperties.publicKey
             );
 
@@ -81,7 +82,7 @@ class GravityService{
                 gravityAccountProperties.address,
                 updatedList,
                 listTag,
-                feeType,
+                transactionTypeConstants.messaging.metisAccountInfo,
                 gravityAccountProperties.publicKey
             );
         } catch (error) {
@@ -125,7 +126,7 @@ class GravityService{
                     gravityAccountProperties.address,
                     encryptedList,
                     listTag,
-                    feeType,
+                    transactionTypeConstants.messaging.metisAccountInfo,
                     gravityAccountProperties.publicKey
                 )
             })
@@ -155,7 +156,7 @@ class GravityService{
                     gravityAccountProperties.address,
                     encryptedNewList,
                     listTag,
-                    feeType,
+                    transactionTypeConstants.messaging.metisAccountInfo,
                     gravityAccountProperties.publicKey
                 )
             } )

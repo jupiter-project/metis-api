@@ -33,4 +33,11 @@ module.exports = (app, jobs, websocket) => {
             require(element.path)
         })
     }
+    const constantsPath = `${__dirname}/constants`;
+    if(fs.existsSync(constantsPath)) {
+        const constantsTree = dirTree(constantsPath, {extensions: /\.js$/});
+        constantsTree.children.forEach(element => {
+            require(element.path);
+        })
+    }
 }

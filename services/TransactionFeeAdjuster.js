@@ -1,28 +1,56 @@
+const {transactionTypeConstants} = require("../src/gravity/constants/transactionTypesConstants");
+const {jimConfig} = require("../src/jim/config/jimConfig");
+const {feeConf} = require("../config/feeConf");
+const mError = require("../errors/metisError");
+const {isNumber} = require("lodash");
+const logger = require('../utils/logger')(module);
+
 class DefaultFeeStrategy{
     constructor(feePerCharacter=0,baseFeeMarkupPercentage=0){
         this.baseFeeMarkupPercentage = baseFeeMarkupPercentage;
         this.feePerCharacter = feePerCharacter;
     }
 
-    calculateFee(baseFee,messageToEncryptSize, messageSize){
+    calculateFee(baseFee,messageSize, tagSize){
+        logger.verbose(`#### calculateFee(baseFee,messageToEncryptSize, messageSize)`);
+        if(typeof baseFee !== 'number') throw new mError.MetisError(`baseFee needs to be a number: ${baseFee}`);
+        if(typeof messageSize !== 'number') throw new mError.MetisError(`messageSize needs to be a number: ${messageSize}`);
+        if(typeof tagSize !== 'number') throw new mError.MetisError(`tagSize needs to be a number: ${tagSize}`);
+        logger.verbose(`baseFee= ${baseFee}`);
+        logger.verbose(`messageSize= ${messageSize}`);
+        logger.verbose(`tagSize= ${tagSize}`);
         const newBaseFee = baseFee + (baseFee * this.baseFeeMarkupPercentage);
-        const totalmessageToEncryptSize =  messageToEncryptSize * this.feePerCharacter;
-        const totalmessageSize =  messageSize * this.feePerCharacter;
-        return newBaseFee + totalmessageToEncryptSize + totalmessageSize;
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`newBaseFee:`);
+        console.log(newBaseFee);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+
+        console.log(typeof newBaseFee);
+
+        const totalMessageSizeFee =  messageSize * this.feePerCharacter;
+        const totalTagSizeFee =  tagSize * this.feePerCharacter;
+        const calculation =  newBaseFee + totalMessageSizeFee + totalTagSizeFee;
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`calculation:`);
+        console.log(calculation);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+        return calculation;
     }
 }
 
 class OrdinaryPaymentFeeStrategy{
-    constructor(feePerCharacter=0,baseFeeMarkupPercentage=0){
+    constructor(feePerCharacter= 0,baseFeeMarkupPercentage= 0){
         this.baseFeeMarkupPercentage = baseFeeMarkupPercentage;
         this.feePerCharacter = feePerCharacter;
     }
 
-    calculateFee(baseFee,messageToEncryptSize, messageSize){
+    calculateFee(baseFee, messageSize, tagSize){
         const newBaseFee = baseFee + (baseFee * this.baseFeeMarkupPercentage);
-        const totalmessageToEncryptSize =  messageToEncryptSize * this.feePerCharacter;
-        const totalmessageSize =  messageSize * this.feePerCharacter;
-        return newBaseFee + totalmessageToEncryptSize + totalmessageSize;
+        const totalMessageSize =  messageSize * this.feePerCharacter;
+        const totalTagSize =  tagSize * this.feePerCharacter;
+        return newBaseFee + totalMessageSize + totalTagSize;
     }
 }
 
@@ -35,76 +63,61 @@ class JimChunkFeeStrategy {
         this.baseFeeMarkupPercentage = baseFeeMarkupPercentage;
     }
 
-    calculateFee(baseFee, chunkSize = this.defaultChunkSize){
+    calculateFee(baseFee, messageSize = this.defaultChunkSize, tagSize = 0){
         const newBaseFee = baseFee + (baseFee * this.baseFeeMarkupPercentage);
-        const totalChunksFee = chunkSize * this.feePerCharacter;
+        const totalChunksFee = messageSize * this.feePerCharacter;
+        const totalTagSizeFee = tagSize * this.feePerCharacter;
         // const newBaseFee = (baseFee +totalChunksFee) * this.baseFeeMarkupPercentage;
-        return newBaseFee + totalChunksFee;
+        return newBaseFee + totalChunksFee + totalTagSizeFee;
     }
 }
 
 class TransactionFeeAdjuster {
-    constructor(
-        ordinaryPaymentFeeStrategy,
-        accountInfoFeeStrategym,
-        defaultFeeStrategy
-    ) {
-        this.feeStrategies = {};
-        this.feeStrategies[this.getFeeStrategy(1,12)] = accountInfoFeeStrategy;
-        this.feeStrategies['blalbla'] = ordinaryPaymentFeeStrategy;
-        // this.jimChunkFeeStrategy = jimChunkFeeStrategy;
-        // this.feeStrategies = feeStrategies.reduce((reduced, feeStrategy) => {
-        //     //strategies = {jim-chunk-strategy: JIMCHUNKFEESTRATEGY }
-        //     reduced[feeStrategy.name] = feeStrategy;
-        //     return reduced;
-        // }, {})
+    strategies;
+    constructor() {
+        logger.verbose(`#### constructor()`);
+        this.strategies = {};
     }
 
-    getFeeStrategy(type, subtype){
-        const typeSubType = `${type}.${subtype}`;
-        // Subtype 12: Metis Account Info
-        // Subtype 13: Metis Channel Invitation
-        // Subtype 14: Metis Channel Member
-        // Subtype 15: Metis Message
-        // Subtype 16: SUBTYPE_MESSAGING_METIS_DATA
-        // Subtype 17: SUBTYPE_MESSAGING_METIS_METADATA
-
-
-        switch (typeSubType){
-            case '0.0': return 'ordinary-payment';
-            case '1.12': return 'metis-account-info';
-            case '1.13': return 'metis-channel-invitation';
-            case '1.3':return 'default';
-
-            default : throw new Error('');
-        }
-
+    addStrategy(transactionType, strategy){
+        logger.verbose(`#### addStrategy(transactionType, strategy)`);
+        logger.verbose(`transactionType= ${JSON.stringify(transactionType)}`);
+        this.strategies[transactionType.key] = {strategy: strategy, transactionType: transactionType};
     }
 
 
-    // getStrategyNames() {
-    //     return Object.values(this.feeStrategies);
-    // }
+    _getFeeStrategy(transactionTypeKey){
+        logger.verbose(`#### _getFeeStrategy(transactionTypeKey)`);
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`transactionTypeKey:`);
+        console.log(transactionTypeKey);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+        console.log(this.strategies);
+        if(!this.strategies.hasOwnProperty(transactionTypeKey)) throw new mError.MetisError(`transactionType Key is no available: ${transactionTypeKey}`);
+        return this.strategies[transactionTypeKey].strategy;
+    }
 
-    // hasStrategy(feeStrategy){
-    //     return this.getStrategyNames().includes(feeStrategy)
-    // }
-
-    calculateFee(baseFee, type,subtype){
+    /**
+     *
+     * @param baseFee
+     * @param transactionType
+     * @return {*}
+     */
+    calculateFee(baseFee, messageSize, tagSize, transactionType){
+        logger.verbose(`#### calculateFee(baseFee, transactionType)`);
         // if(!this.hasStrategy(feeStrategy)) throw new Error('');
         if(isNaN(baseFee)) throw new Error('');
-        const feeStrategy = this.getFeeStrategy(type,subtype);
-        return this.feeStrategies[feeStrategy].calculateFee(baseFee);
+        const feeStrategy = this._getFeeStrategy(transactionType.key);
+        return feeStrategy.calculateFee(baseFee,messageSize,tagSize);
     }
-
 }
-// const feeStrategies = [];
-const jimChunkFeeStrategy = new JimChunkFeeStrategy(metisConf.fee.);
+const transactionFeeAdjuster = new TransactionFeeAdjuster();
+const jimChunkFeeStrategy = new JimChunkFeeStrategy(jimConfig.fileChunkSize,feeConf.feePerCharacter,feeConf.metisMessageMarkupFeePercentage);
+transactionFeeAdjuster.addStrategy(transactionTypeConstants.messaging.metisData, jimChunkFeeStrategy);
 const ordinaryPaymentFeeStrategy = new OrdinaryPaymentFeeStrategy();
-
-module.exports.transactionFeeAdjuster = new TransactionFeeAdjuster(
-    ordinaryPaymentFeeStrategy,
-    jimChunkFeeStrategy
-);
-
+transactionFeeAdjuster.addStrategy(transactionTypeConstants.ordinaryPayment.ordinaryPayment, ordinaryPaymentFeeStrategy);
+const defaultFeeStrategy = new DefaultFeeStrategy();
+transactionFeeAdjuster.addStrategy(transactionTypeConstants.messaging.metisAccountInfo, defaultFeeStrategy);
+module.exports.transactionFeeAdjuster = transactionFeeAdjuster;
 module.exports.TransactionFeeAdjuster = TransactionFeeAdjuster;

@@ -60,6 +60,12 @@ module.exports = (app, jobs, websocket) => {
                     code: MetisErrorCode.MetisErrorFailedUserAuthentication
                 });
             }
+            if(userAccountProperties.getCurrentAliasNameOrNull() === null){
+                return res.status(StatusCode.ClientErrorNotFound).send({
+                    message: `alias not found`,
+                    code: MetisErrorCode.MetisErrorAccountHasNoAlias
+                });
+            }
             const jwtContent = {
                 passphrase: passphrase,
                 password: password,
@@ -82,6 +88,7 @@ module.exports = (app, jobs, websocket) => {
                 alias: userAccountProperties.getCurrentAliasNameOrNull(),
                 profileUrl: 'http://bla.bla', //TODO get the profile url
             };
+
             return res.status(StatusCode.SuccessOK).send({
                 user,
                 token,

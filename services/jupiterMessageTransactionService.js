@@ -9,12 +9,15 @@ const {transactionUtils} = require("../gravity/transactionUtils");
 const assert = require("assert");
 const mError = require("../errors/metisError");
 const {transactionFeeAdjuster, TransactionFeeAdjuster} = require("./TransactionFeeAdjuster");
-const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
+// const {jupiterMessageTransactionService} = require("./jupiterMessageTransactionService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
-const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+// const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
+const {transactionTypeConstants} = require("../src/gravity/constants/transactionTypesConstants");
+const {metisConf} = require("../config/metisConf");
 
-class JupiterTransactionMessageService {
+import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 
+class JupiterMessageTransactionService {
     /**
      *
      * @param jupiterAPIService
@@ -563,67 +566,56 @@ class JupiterTransactionMessageService {
             })
     }
 
+    getMessageTransactionRequestType(transactionType){
+        let requestType;
+        switch (transactionType.key){
+            case transactionTypeConstants.messaging.metisMessage.key:
+                requestType = JupiterAPIService.RequestType.SendMetisMessage
+                break;
+            case transactionTypeConstants.messaging.metisData.key:
+                requestType = JupiterAPIService.RequestType.SendMetisMessage
+                break;
+            case transactionTypeConstants.messaging.arbitraryMessage:
+                requestType = JupiterAPIService.RequestType.SendMessage;
+                break;
+            default:
+                requestType = JupiterAPIService.RequestType.SendMessage;
+        }
+        return requestType;
+    }
+
 
     /**
      *
-     * @param {string} fromPassphrase
-     * @param {string} toAddress
-     * @param metisMessage
-     * @param {string} tag
-     * @param feeType
-     * @param recipientPublicKey
-     * @param prunable
-     * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
+     * @param {GravityAccountProperties} accountProperties
+     * @param {{key,type,subType}}transactionType
+     * @param {string} messageToEncrypt
+     * @param {string} message
+     * @return {Promise<number>}
      */
-    async sendTaggedAndEncipheredMetisMessage(
-        fromPassphrase, 
-        toAddress, 
-        metisMessage, 
-        tag, 
-        feeType, recipientPublicKey, prunable= false ) {
-        logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, feeType, recipientPublicKey, prunable )`);
-        if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
-        if(!gu.isWellFormedJupiterAddress(toAddress)) throw new mError.MetisErrorBadJupiterAddress(`toAddress: ${toAddress}`)
-        logger.sensitive(`fromPassphrase= ${fromPassphrase}`);
-        logger.debug(`toAddress= ${toAddress}`);
-        logger.debug(`tag= ${tag}`);
-        logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
-        let _recipientPublicKey = recipientPublicKey;
-        if(!gu.isWellFormedPublicKey(_recipientPublicKey)){
-            throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
-        }
-
-        const {subtype,type} = feeManagerSingleton.getTransactionTypeAndSubType(feeType); //{type:1, subtype:12}
-
-        const accountProperties = await instantiateGravityAccountProperties(fromPassphrase, 'NOPASSWORDNEEDED');
-        const baseFee = await jupiterTransactionsService.fetchTransactionFeeNqt(accountProperties,metisMessage,tag);
-        // const feeStrategy = TransactionFeeAdjuster.getFeeStrategy(type,subtype);
-        const fee = transactionFeeAdjuster.calculateFee(baseFee, type, subtype);
-
-
-        // const fee = feeManagerSingleton.calculateMessageFee(metisMessage.length);
-
-        logger.debug(`subtype= ${subtype}`);
-        logger.debug(`type= ${type}`);
-        logger.debug(`fee= ${fee}`);
+    async fetchMessageTransactionFeeNqt(accountProperties, transactionType, messageToEncrypt='', message=''){
+        const ZERO = 0;
+        const NOBROADCAST = false;
+        const subtype = transactionType.subType;
+        let requestType = this.getMessageTransactionRequestType(transactionType);
         const response = await this.jupiterAPIService.sendMetisMessageOrMessage(
-            JupiterAPIService.RequestType.SendMetisMessage,
-            toAddress,
-            _recipientPublicKey,
-            fromPassphrase,
+            requestType,
+            accountProperties.address,
+            accountProperties.publicKey,
+            accountProperties.passphrase,
             null,
-            fee,
-            process.env.JUPITER_DEADLINE,
+            ZERO,
+            metisConf.jupiter.deadline,
+            null,
+            NOBROADCAST,
+            message,
             null,
             null,
-            tag,
-            null,
-            null,
-            metisMessage,
+            messageToEncrypt,
             true,
             null,
             null,
-            prunable,
+            true,
             true,
             null,
             null,
@@ -633,13 +625,112 @@ class JupiterTransactionMessageService {
             subtype
         );
 
-        return response.data
+        if(!response.hasOwnProperty('data')) throw new mError.MetisError(`response doesnt have data`);
+        if(!response.data.hasOwnProperty('transactionJSON')) throw new mError.MetisError(`response doesnt have data.transactioJSON`);
+        if(!response.data.transactionJSON.hasOwnProperty('feeNQT')) throw new mError.MetisError(`response doesnt have data.transactioJSON.feeNQT`);
+
+        console.log(`\n`);
+        console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+        console.log(`response.data.transactionJSON:`);
+        console.log(response.data.transactionJSON);
+        console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+
+        const feeNqt =  response.data.transactionJSON.feeNQT;
+        if(isNaN(feeNqt))throw new mError.MetisError(`feeNQT is not a number ${feeNqt}`);
+        return +feeNqt;
+    }
+
+
+    /**
+     *
+     * @param {string} fromPassphrase
+     * @param {string} toAddress
+     * @param {string} metisMessage
+     * @param {string} tag
+     * @param {{key,type,subType}} transactionType
+     * @param {string|null} recipientPublicKey
+     * @param {boolean} prunable
+     * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
+     */
+    async sendTaggedAndEncipheredMetisMessage(
+        fromPassphrase,
+        toAddress,
+        metisMessage,
+        tag,
+        transactionType,
+        recipientPublicKey,
+        prunable= false
+    ) {
+        logger.verbose(`#### sendTaggedAndEncipheredMetisMessage(fromPassphrase, toAddress, metisMessage, tag, transactionType, recipientPublicKey, prunable )`);
+        if(!gu.isWellFormedPassphrase(fromPassphrase)){throw new Error(`fromPassphrase is not valid: ${fromPassphrase}`)}
+        if(!gu.isWellFormedJupiterAddress(toAddress)) throw new mError.MetisErrorBadJupiterAddress(`toAddress: ${toAddress}`)
+        logger.debug(`toAddress= ${toAddress}`);
+        logger.debug(`tag= ${tag}`);
+        logger.debug(`recipientPublicKey= ${recipientPublicKey}`);
+        logger.debug(`transactionType= ${transactionType}`);
+        try {
+            let _recipientPublicKey = recipientPublicKey;
+            if (!gu.isWellFormedPublicKey(_recipientPublicKey)) {
+                throw new Error(`recipientPublicKey is not valid: ${_recipientPublicKey}`)
+            }
+            const accountProperties = await instantiateGravityAccountProperties(fromPassphrase, 'NOPASSWORDNEEDED');
+            const baseFee = await this.fetchMessageTransactionFeeNqt(accountProperties, transactionType, metisMessage, tag)
+            console.log(`\n`);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+            console.log(`baseFee:`);
+            console.log(baseFee);
+            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+            // calculateFee(baseFee, messageSize, tagSize, transactionType){
+            const feeNqt = transactionFeeAdjuster.calculateFee(baseFee, metisMessage.length,tag.length,transactionType);
+            console.log(`\n`);
+            console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
+            console.log(`feeNqt:`);
+            console.log(feeNqt);
+            console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
+            const subtype = transactionType.subType;
+            const requestType = this.getMessageTransactionRequestType(transactionType);
+            const response = await this.jupiterAPIService.sendMetisMessageOrMessage(
+                requestType,
+                toAddress,
+                _recipientPublicKey,
+                fromPassphrase,
+                null,
+                feeNqt,
+                process.env.JUPITER_DEADLINE,
+                null,
+                null,
+                tag,
+                null,
+                null,
+                metisMessage,
+                true,
+                null,
+                null,
+                prunable,
+                true,
+                null,
+                null,
+                null,
+                null,
+                null,
+                subtype
+            );
+
+            return response.data
+        }catch(error){
+            console.log('\n')
+            logger.error(`************************* ERROR ***************************************`);
+            logger.error(`* ** sendTaggedAndEncipheredMetisMessage.catch(error)`);
+            logger.error(`************************* ERROR ***************************************\n`);
+            logger.error(`error= ${error}`)
+            throw error;
+        }
     }
 
 }
 
-module.exports.JupiterTransactionMessageService = JupiterTransactionMessageService;
-module.exports.jupiterTransactionMessageService = new JupiterTransactionMessageService(
+module.exports.JupiterTransactionMessageService = JupiterMessageTransactionService;
+module.exports.jupiterMessageTransactionService = new JupiterMessageTransactionService(
     jupiterAPIService,
     transactionUtils
 );

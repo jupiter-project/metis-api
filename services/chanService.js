@@ -17,6 +17,7 @@ const {transactionUtils} = require("../gravity/transactionUtils");
 const {BadGravityAccountPropertiesError, ChannelRecordValidatorError, InviteRecordValidatorError} = require("../errors/metisError");
 const {validator} = require("../services/validator");
 const {GravityCrypto} = require("./gravityCrypto");
+const {transactionTypeConstants} = require("../src/gravity/constants/transactionTypesConstants");
 // const {axiosDefault} = require("../config/axiosConf");
 
 class ChanService {
@@ -352,7 +353,7 @@ class ChanService {
             // Second: Send the invitation transaction
             const channelName = channelAccountProperties.channelName;
             const inviteRecordJson = await this.generateInviteRecordJson(channelName, inviteeAddress, inviteePublicKey, inviterAccountProperties, channelAccountProperties);
-            const feeType = FeeManager.feeTypes.invitation_to_channel;
+            // const feeType = FeeManager.feeTypes.invitation_to_channel;
             // const inviteeInfo = await jupiterAccountService.getAccountOrNull(inviteeAddress);
             // const inviteePublicKey = inviteeInfo.publicKey;
             const recordTag = `${channelConfig.channelInviteRecord}.${channelAccountProperties.address}`;
@@ -361,7 +362,7 @@ class ChanService {
                 inviteeAddress,
                 JSON.stringify(inviteRecordJson), //Not encrypted on Purpose
                 recordTag,
-                feeType,
+                transactionTypeConstants.messaging.metisChannelInvitation,
                 inviteePublicKey
             )
             const createInvitationResponse = {
@@ -905,7 +906,7 @@ class ChanService {
         );
 
         const encryptedChannelRecordPayload = accountProperties.crypto.encryptJson(channelRecordPayload);
-        const feeType =   FeeManager.feeTypes.account_record;
+        // const feeType =   FeeManager.feeTypes.account_record;
         const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}`;
 
         // if(accountProperties.isMinimumProperties){
@@ -916,7 +917,7 @@ class ChanService {
             accountProperties.address,
             encryptedChannelRecordPayload,
             recordTag,
-            feeType,
+            transactionTypeConstants.messaging.metisAccountInfo,
             accountProperties.publicKey
         )
     }

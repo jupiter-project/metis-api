@@ -3,6 +3,7 @@ const gu = require('../utils/gravityUtils');
 const {metisGravityAccountProperties, GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {jupiterAccountService} = require("./jupiterAccountService");
 const {tableService} = require("./tableService");
+const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 
 /**
  *
@@ -214,7 +215,7 @@ class AccountRegistration {
             return newAccountProperties;
         }catch(error){
             logger.error(`****************************************************************`);
-            logger.error(`** createNewAccountAndRegister(newAccountAliasName, newAccountPassword).catch(error)`);
+            logger.error(`** createNewAccount(newAccountPassword).catch(error)`);
             logger.error(`****************************************************************`);
             logger.error(`error= ${error}`)
             throw error;
@@ -245,7 +246,7 @@ class AccountRegistration {
             logger.info(` Second: Provide Funds to the new user account`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const provideInitialStandardUserFundsResponse = await this.jupiterFundingService.provideInitialStandardUserFunds(newAccountProperties);
-            const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.data.transaction;
+            const transactionIdForUserFundingTransactionId = provideInitialStandardUserFundsResponse.transactionId;
             await this.jupiterFundingService.waitForTransactionConfirmation(transactionIdForUserFundingTransactionId);
             // Third: Add the UserRecord transaction
             console.log(`\n`);
@@ -478,7 +479,6 @@ const {jupiterAPIService} = require("./jupiterAPIService");
 const { gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
-const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
 const mError = require("../errors/metisError");
 // const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");

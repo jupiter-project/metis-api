@@ -2,7 +2,7 @@ const gu = require('../utils/gravityUtils');
 const _ = require("lodash");
 const logger = require('../utils/logger')(module);
 const {jupiterAPIService, JupiterAPIService} = require("./jupiterAPIService");
-const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
+const {jupiterMessageTransactionService} = require("./jupiterMessageTransactionService");
 const {transactionUtils} = require("../gravity/transactionUtils");
 const {GravityAccountProperties} = require("../gravity/gravityAccountProperties");
 const {MetisError} = require("../errors/metisError");
@@ -11,6 +11,7 @@ const {validator} = require("./validator");
 const {GravityCrypto} = require("./gravityCrypto");
 const {feeManagerSingleton} = require("./FeeManager");
 const {metisConf} = require("../config/metisConf");
+const {transactionTypeConstants} = require("../src/gravity/constants/transactionTypesConstants");
 
 class JupiterTransactionsService {
 
@@ -62,51 +63,6 @@ class JupiterTransactionsService {
     }
 
 // {"signatureHash":"c50ad122e2a88696db9e62c05a145c54e7d0e6a57744b82968eed1283f38878f","transactionJSON":{"senderPublicKey":"edb9e1a00bea145784a2d9881d69cd1854da7dd7cc3b25c4b2b534a2a6e49d1e","signature":"03af12dd7c2bf390b1ac01b95f3e280e06e680afa7e9b1dc3f23431bb89a4b02646f03dcab5779b8522b3564dc4cc03a2c3b3e2abb8aa3a523e59657f36c5633","feeNQT":"5000","type":1,"fullHash":"949a18028b5066db642e6eca036dc76cf95224ed99005a2b11a64ff5375f2b12","version":1,"phased":false,"ecBlockId":"10407560762442229640","signatureHash":"c50ad122e2a88696db9e62c05a145c54e7d0e6a57744b82968eed1283f38878f","attachment":{"version.Message":1,"messageIsText":true,"message":"test5","version.ArbitraryMessage":0},"senderRS":"JUP-C45C-BS6X-6GPK-BBTF8","subtype":0,"amountNQT":"0","sender":"10607992862443636842","ecBlockHeight":2374935,"deadline":60,"transaction":"15809412099896547988","timestamp":134752250,"height":2147483647},"unsignedTransactionBytes":"0110fa2708083c00edb9e1a00bea145784a2d9881d69cd1854da7dd7cc3b25c4b2b534a2a6e49d1e00000000000000000000000000000000881300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000173d240088a7a92f5f156f9001050000807465737435","broadcasted":true,"requestProcessingTime":6,"transactionBytes":"0110fa2708083c00edb9e1a00bea145784a2d9881d69cd1854da7dd7cc3b25c4b2b534a2a6e49d1e000000000000000000000000000000008813000000000000000000000000000000000000000000000000000000000000000000000000000003af12dd7c2bf390b1ac01b95f3e280e06e680afa7e9b1dc3f23431bb89a4b02646f03dcab5779b8522b3564dc4cc03a2c3b3e2abb8aa3a523e59657f36c563301000000173d240088a7a92f5f156f9001050000807465737435","fullHash":"949a18028b5066db642e6eca036dc76cf95224ed99005a2b11a64ff5375f2b12","transaction":"15809412099896547988"}
-
-    /**
-     *
-     * @param accountProperties
-     * @param messageToEncrypt
-     * @param message
-     * @return {Promise<*>}
-     */
-    async fetchTransactionFeeNqt(accountProperties, messageToEncrypt='', message=''){
-        const ZERO = 0;
-        const NOBROADCAST = false;
-        const response = await this.jupiterAPIService.sendMetisMessageOrMessage(
-            JupiterAPIService.RequestType.SendMessage,
-            accountProperties.address,
-            accountProperties.publicKey,
-            accountProperties.passphrase,
-            null,
-            ZERO,
-            metisConf.jupiter.deadline,
-            null,
-            NOBROADCAST,
-            message,
-            null,
-            null,
-            messageToEncrypt,
-            true,
-            null,
-            null,
-            true,
-            true,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null
-        );
-
-        if(!response.hasOwnProperty('data')) throw new mError.MetisError(`response doesnt have data`);
-        if(!response.data.hasOwnProperty('transactionJSON')) throw new mError.MetisError(`response doesnt have data.transactioJSON`);
-        if(!response.data.transactionJSON.hasOwnProperty('feeNQT')) throw new mError.MetisError(`response doesnt have data.transactioJSON.feeNQT`);
-        const feeNqt =  response.data.transactionJSON.feeNQT;
-        if(isNaN(feeNqt))throw new mError.MetisError(`feeNQT is not a number ${feeNqt}`);
-        return +feeNqt;
-    }
 
     /**
      *
@@ -697,7 +653,7 @@ class JupiterTransactionsService {
 module.exports.JupiterTransactionsService = JupiterTransactionsService;
 module.exports.jupiterTransactionsService = new JupiterTransactionsService(
     jupiterAPIService,
-    jupiterTransactionMessageService,
+    jupiterMessageTransactionService,
     transactionUtils,
     validator
 );

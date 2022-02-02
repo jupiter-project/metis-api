@@ -7,6 +7,8 @@ import {FeeManager, feeManagerSingleton} from "../services/FeeManager";
 import {FundingManager, fundingManagerSingleton} from "../services/fundingManager";
 import {ApplicationAccountProperties} from "../gravity/applicationAccountProperties";
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
+import {jupiterMoneyTransactionService} from "../services/jupiterMoneyTransactionService";
+import {StatusCode} from "../utils/statusCode";
 
 const logger = require('../utils/logger')(module);
 
@@ -111,46 +113,50 @@ module.exports = (app, passport, React, ReactDOMServer) => {
   app.post('/v1/api/transfer-money', async (req, res) => {
     console.log('');
     logger.info('======================================================================================');
-    logger.info('==');
     logger.info('== Transfer Money');
     logger.info('== POST: /v1/api/transfer-money');
-    logger.info('==');
     logger.info('======================================================================================');
     console.log('');
+    try {
+      const {user} = req;
+      let {recipient, amount} = req.body;
 
-    const { user } = req;
-    console.log('USER data ---->', user);
-    let { recipient, amount } = req.body;
+      const fromAccountProperties = user.gravityAccountProperties;
+      const recipientAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(recipient);
+      const recipientAddress = recipientAccountInfo.address;
+      const recipientPublicKey = recipientAccountInfo.publicKey;
 
-    if (!recipient.toLowerCase().includes('jup-')) {
-      const aliasResponse = await gravity.getAlias(recipient);
-      recipient = aliasResponse.accountRS;
+
+
+      if (!recipient.toLowerCase().includes('jup-')) {
+        //@TODO use the method for this.
+        const aliasResponse = await gravity.getAlias(recipient);
+        recipient = aliasResponse.accountRS;
+      }
+      // const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+      // const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+      // const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+      // const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
+      // const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
+      // const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
+      // const DEADLINE = process.env.JUPITER_DEADLINE;
+      // const appAccountProperties = new ApplicationAccountProperties(
+      //     DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
+      // );
+      // const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
+      // const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
+      // const fromJupAccount = { address: user.address, passphrase: user.passphrase };
+      const fromJupAccount = await instantiateGravityAccountProperties(user.passphrase, user.password);
+      const toJupiterAccount = {address: recipient};
+      const response = await jupiterMoneyTransactionService.transferMoney(fromJupAccount, toJupiterAccount, +amount);
+      logger.debug(`transferMoney Transaction: ${response}`)
+      return res.status(StatusCode.SuccessOK).send({message: 'Transfer successfully executed'});
+    } catch(error){
+      logger.error(`${error}`);
+      console.log(error);
+      res.status(StatusCode.ServerErrorInternal).send({message: 'Transfer failed', error: `${error}`});
     }
 
-    const TRANSFER_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-    const ACCOUNT_CREATION_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const STANDARD_FEE = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    const MINIMUM_TABLE_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_table);
-    const MINIMUM_APP_BALANCE = fundingManagerSingleton.getFundingAmount(FundingManager.FundingTypes.new_user);
-    const MONEY_DECIMALS = process.env.JUPITER_MONEY_DECIMALS;
-    const DEADLINE = process.env.JUPITER_DEADLINE;
-
-    const appAccountProperties = new ApplicationAccountProperties(
-        DEADLINE, STANDARD_FEE, ACCOUNT_CREATION_FEE, TRANSFER_FEE, MINIMUM_TABLE_BALANCE, MINIMUM_APP_BALANCE, MONEY_DECIMALS,
-    );
-    const jupiterAPIService = new JupiterAPIService(process.env.JUPITERSERVER, appAccountProperties);
-    const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.regular_transaction);
-    // const fromJupAccount = { address: user.address, passphrase: user.passphrase };
-    const fromJupAccount = await instantiateGravityAccountProperties(user.passphrase, user.password);
-    const toJupiterAccount = { address: recipient };
-
-    //TODO make the "transferMoney" function static in order to avoid generating all unnecessary properties
-    jupiterAPIService.transferMoney(fromJupAccount, toJupiterAccount, +amount, fee)
-        .then(() => res.status(200).send({message: 'Transfer successfully executed'}))
-        .catch(error => {
-          logger.error('Error with the transfer ->' + `${error}`);
-          res.status(500).send({message: 'Transfer failed', error: `${error}`});
-        });
   });
 
   // ===========================================================

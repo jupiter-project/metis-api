@@ -5,6 +5,7 @@ const {metisGravityAccountProperties, GravityAccountProperties} = require("../gr
 const {JupiterAPIService} = require("./jupiterAPIService");
 const {MetisError} = require("../errors/metisError");
 const mError = require("../errors/metisError");
+const {jupiterMoneyTransactionService, JupiterMoneyTransactionService} = require("./jupiterMoneyTransactionService");
 const logger = require('../utils/logger')(module);
 
 class JupiterFundingService {
@@ -13,11 +14,12 @@ class JupiterFundingService {
      *
      * @param {JupiterAPIService} jupiterAPIService
      * @param {GravityAccountProperties} applicationProperties
+     * @param {JupiterMoneyTransactionService} jupiterMoneyTransactionService
      */
-    constructor(jupiterAPIService, applicationProperties) {
+    constructor(jupiterAPIService, applicationProperties,jupiterMoneyTransactionService) {
         if(!(applicationProperties instanceof  GravityAccountProperties)){throw new Error('problem with applicationProperties')}
         if(!(jupiterAPIService instanceof  JupiterAPIService)){throw new Error('problem with applicationProperties')}
-
+        if(!(jupiterMoneyTransactionService instanceof JupiterMoneyTransactionService)) throw new mError.MetisError(`JupiterMoneyTransactionService`);
         this.feeNQT = parseInt(applicationProperties.feeNQT);
         if(!this.feeNQT){throw new Error('problem with feeNqt')}
         // this.tableCreation = parseInt(applicationProperties.accountCreationFeeNQT)
@@ -26,6 +28,7 @@ class JupiterFundingService {
         this.defaultNewChannelTransferAmount = parseInt(applicationProperties.minimumTableBalance)
         if(!this.defaultNewChannelTransferAmount){throw new Error('problem with defaultNewChannelTransferAmount')}
         this.jupiterAPIService = jupiterAPIService;
+        this.jupiterMoneyTransactionService = jupiterMoneyTransactionService;
         this.applicationProperties = applicationProperties;
         this.intervalTimeInSeconds = 8;
         this.maxWaitTimeLimitInSeconds = 180;//seconds
@@ -105,8 +108,9 @@ class JupiterFundingService {
         logger.verbose(`#### provideInitialStandardUserFunds( recipientProperties)`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new MetisError('recipientProperties is invalid')}
         const initialAmount = this.defaultNewUserTransferAmount;
-        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-        return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
+        const transferMoneyResponse = await  this.jupiterMoneyTransactionService.transferMoney(this.applicationProperties,recipientProperties,initialAmount);
+        logger.debug(`transferMoneyResponse: ${transferMoneyResponse}`);
+        return transferMoneyResponse;
     }
 
     /**
@@ -118,8 +122,9 @@ class JupiterFundingService {
         logger.verbose(`#### provideInitialChannelAccountFunds( recipientProperties= ${!!recipientProperties})`);
         if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('invalid recipientProperties')};
         const initialAmount = this.defaultNewChannelTransferAmount;
-        const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
-        return this.transfer(this.applicationProperties, recipientProperties, initialAmount, fee);
+        return this.jupiterMoneyTransactionService.transferMoney(this.applicationProperties,recipientProperties,initialAmount);
+        // const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.new_user_funding);
+        // return this.transfer(this.applicationProperties, recipientProperties, initialAmount);
     }
 
 
@@ -128,10 +133,10 @@ class JupiterFundingService {
      * @param address
      * @return {Promise<*>}
      */
-    async getBalance(address){
-        const senderBalanceResponse = await this.jupiterAPIService.getBalance(address);
-        return +senderBalanceResponse.data.unconfirmedBalanceNQT;
-    }
+    // async getBalance(address){
+    //     const senderBalanceResponse = await this.jupiterAPIService.getBalance(address);
+    //     return +senderBalanceResponse.data.unconfirmedBalanceNQT;
+    // }
 
 
     /**
@@ -142,27 +147,29 @@ class JupiterFundingService {
      * @param {number} fee
      * @returns {Promise<unknown>}
      */
-     async transfer(senderProperties, recipientProperties, transferAmount, fee ) {
-         logger.verbose(`#### transfer(senderProperties, recipientProperties, transferAmount=${transferAmount}, fee=${fee} )`);
-        if (!transferAmount) {throw new Error('transfer amount missing')}
-        if(isNaN(fee)){
-            throw new MetisError(`fee is not a number`)
-        }
-        const _fee = +fee
-        if(isNaN(transferAmount)){ throw new MetisError(`transferAmount is not a number`)};
-        const _transferAmount = +transferAmount
-        if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('recipientProperties is invalid')}
-        if(!(senderProperties instanceof GravityAccountProperties)){throw new Error('senderProperties is invalid')}
-        const senderBalance = await this.getBalance(senderProperties.address);
-        const totalNeeded = _fee + _transferAmount;
-        if(senderBalance < totalNeeded){
-            throw new MetisError(`Not enough funds. Need at least ${totalNeeded}. Current balance: ${senderBalance}`);
-        }
-        //@Todo this should not return the Response. Try changing to return Response.data?
-        return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, _transferAmount, _fee )
-    }
+    //  async transfer(senderProperties, recipientProperties, transferAmount ) {
+    //      logger.verbose(`#### transfer(senderProperties, recipientProperties, transferAmount=${transferAmount})`);
+    //     if (!transferAmount) {throw new Error('transfer amount missing')}
+    //     if(isNaN(transferAmount)){ throw new MetisError(`transferAmount is not a number`)};
+    //     const _transferAmount = +transferAmount
+    //     if(!(recipientProperties instanceof GravityAccountProperties)){throw new Error('recipientProperties is invalid')}
+    //     if(!(senderProperties instanceof GravityAccountProperties)){throw new Error('senderProperties is invalid')}
+    //     const senderBalance = await this.getBalance(senderProperties.address);
+    //     const totalNeeded = _fee + _transferAmount;
+    //     if(senderBalance < totalNeeded){
+    //         throw new MetisError(`Not enough funds. Need at least ${totalNeeded}. Current balance: ${senderBalance}`);
+    //     }
+    //     const response = await this.jupiterMoneyTransactionService.transferMoney(senderProperties,recipientProperties,_transferAmount);
+    //     return response;
+    //     //@Todo this should not return the Response. Try changing to return Response.data?
+    //     // return this.jupiterAPIService.transferMoney( senderProperties, recipientProperties, _transferAmount, _fee )
+    // }
 
 }
 
 module.exports.JupiterFundingService = JupiterFundingService;
-module.exports.jupiterFundingService = new JupiterFundingService(jupiterAPIService, metisGravityAccountProperties);
+module.exports.jupiterFundingService = new JupiterFundingService(
+    jupiterAPIService,
+    metisGravityAccountProperties,
+    jupiterMoneyTransactionService
+    );

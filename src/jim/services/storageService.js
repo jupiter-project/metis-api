@@ -3,6 +3,7 @@ import {chanService} from "../../../services/chanService";
 import {localFileCacheService} from "./localFileCacheService";
 import {GravityCrypto} from "../../../services/gravityCrypto";
 import {TransactionFeeAdjuster} from "../../../services/TransactionFeeAdjuster";
+import {transactionTypeConstants} from "../../gravity/constants/transactionTypesConstants";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
@@ -584,8 +585,9 @@ class StorageService {
             const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
             logger.sensitive(`chunks.length=${JSON.stringify(chunks.length)}`);
             //Send Each Chunk as a transaction.
-            const type = config.type.message;
-            const subtype = config.subtype.binaryData;
+            // const type = config.type.message;
+            // const subtype = config.subtype.binaryData;
+            const transactionType = transactionTypeConstants.messaging.metisData;
             const sendMessageResponsePromises = chunks.map(chunk => {
                 //@INFO chunks will not be encrypted. Not necessary for e2e
                 logger.info(`sending chunk (${chunk.length})....`)
@@ -594,9 +596,7 @@ class StorageService {
                     toAccountProperties.address,
                     chunk,
                     `${transactionTags.jimServerTags.binaryFileChunk}.${fileUuid}`,
-                    // FeeManager.feeTypes.metisMessage,
-                    type,
-                    subtype,
+                    transactionType,
                     toAccountProperties.publicKey
                 )
             })
@@ -647,7 +647,7 @@ class StorageService {
                 toAccountProperties.address,
                 _fileRecord,
                 `${transactionTags.jimServerTags.binaryFileRecord}.${fileUuid}`,
-                FeeManager.feeTypes.metisMessage,
+                transactionTypeConstants.messaging.metisMetadata,
                 toAccountProperties.publicKey
             );
 
@@ -664,7 +664,7 @@ class StorageService {
                     toAccountProperties.address,
                     _fileRecord,
                     `${transactionTags.jimServerTags.binaryFilePublicProfileSharedKey}.${fileUuid}.${xInfo.transactionId}.${xSharedKey}`,
-                    FeeManager.feeTypes.metisMessage,
+                    transactionTypeConstants.messaging.metisMetadata,
                     toAccountProperties.publicKey
                 );
                 return {fileRecord: encryptedFileRecord, sharedKey: xSharedKey}

@@ -301,6 +301,15 @@ class MetisErrorJupiterUnknownTransaction extends MetisError {
         Object.setPrototypeOf(this, MetisErrorJupiterUnknownTransaction.prototype); //fixes a problem with instanceof
     }
 }
+
+class MetisErrorAccountHasNoAlias extends MetisError {
+    constructor(message = '') {
+        super(`Account has no alias. ${message}`);
+        this.name = "MetisErrorAccountHasNoAlias"
+        this.code = MetisErrorCode.MetisErrorAccountHasNoAlias;
+        Object.setPrototypeOf(this, MetisErrorAccountHasNoAlias.prototype); //fixes a problem with instanceof
+    }
+}
 module.exports.MetisError = MetisError;
 module.exports.JupiterApiError = JupiterApiError;
 module.exports.MetisErrorUnknownAlias = MetisErrorUnknownAlias;
@@ -332,3 +341,4 @@ module.exports.MetisErrorPushNotificationFailed = MetisErrorPushNotificationFail
 module.exports.MetisErrorSendMessageToJupiterFailed = MetisErrorSendMessageToJupiterFailed;
 module.exports.MetisErrorFileTooLarge = MetisErrorFileTooLarge;
 module.exports.MetisErrorJupiterUnknownTransaction = MetisErrorJupiterUnknownTransaction;
+module.exports.MetisErrorAccountHasNoAlias = MetisErrorAccountHasNoAlias;
