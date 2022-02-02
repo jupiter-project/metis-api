@@ -178,7 +178,7 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info('======================================================================================\n');
         const { user } = req;
         // pageNumber starts at Page 0;
-        const { pageNumber: _pageNumber, pageSize: _pageSize } = req.query
+        const { pageNumber: _pageNumber, pageSize: _pageSize } = req.query;
         const {channelAddress} = req.params;
 
         if(!gu.isWellFormedJupiterAddress(channelAddress)) {
@@ -217,16 +217,16 @@ module.exports = (app, passport, jobs, websocket) => {
             }
 
             //@TODO this will be a big problem when channel has alot of messages!!!!!!!
-            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, null, null);
+            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
 
             // Sorting messages descending
-            messageTransactions.sort((a, b) =>
-                new Date(b.message.createdAt) - new Date(a.message.createdAt)
-            );
+            // messageTransactions.sort((a, b) =>
+            //     new Date(b.message.createdAt) - new Date(a.message.createdAt)
+            // );
 
-            const paginatesMessages = messageTransactions.slice(firstIndex, lastIndex + 1);
+            // const paginatesMessages = messageTransactions.slice(firstIndex, lastIndex + 1);
 
-            res.send(paginatesMessages);
+            res.send(messageTransactions);
         } catch (error) {
             logger.error('Error getting messages:');
             logger.error(`${error}`);

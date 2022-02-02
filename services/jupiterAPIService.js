@@ -3,7 +3,7 @@ import {ApplicationAccountProperties, metisApplicationAccountProperties} from ".
 import {FeeManager, feeManagerSingleton} from "./FeeManager";
 import {axiosData, axiosDefault} from "../config/axiosConf";
 import {GravityAccountProperties} from "../gravity/gravityAccountProperties";
-import {JupiterApiError, MetisError, MetisErrorUnknownAlias} from "../errors/metisError";
+import {JupiterApiError, MetisErrorNotEnoughFunds} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
 import {HttpMethod} from "../utils/httpMethod";
 // import {add} from "lodash";
@@ -110,7 +110,7 @@ class JupiterAPIService {
                 throw new JupiterApiError(response.error, StatusCode.ServerErrorInternal)
             }
             if (response.hasOwnProperty('data') && response.data.hasOwnProperty('errorDescription') && response.data.errorDescription) {
-                const serverErrorCode = response.data.errorCode;
+                let serverErrorCode = response.data.errorCode;
                 const serverErrorDescription = response.data.errorDescription;
                 if(serverErrorDescription === 'Unknown alias'){
                     const aliasName = params.hasOwnProperty('aliasName')?params.aliasName:'';
@@ -120,6 +120,11 @@ class JupiterAPIService {
                     const transactionId = params.hasOwnProperty('transaction')?params.transaction:'';
                     throw new mError.MetisErrorJupiterUnknownTransaction(serverErrorDescription, transactionId);
                 }
+
+                if(serverErrorDescription.includes('Not enough funds')){
+                    throw new MetisErrorNotEnoughFunds(serverErrorDescription)
+                }
+
                 logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`);
                 logger.error(`errorDescription= ${response.data.errorDescription}`);
                 logger.error(`errorCode= ${response.data.errorCode}`);
