@@ -113,10 +113,8 @@ module.exports = (app, passport, jobs, websocket) => {
         logger.info(`======================================================================================\n\n`);
         const {channelAddress} = req.body
         if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
-        const memberAccountProperties = await instantiateGravityAccountProperties(
-            req.user.passphrase,
-            req.user.password
-        );
+        const memberAccountProperties = req.user.gravityAccountProperties;
+
         chanService.acceptInvitation(memberAccountProperties, channelAddress)
             .then(() => {
                 websocket.of('/chat').to(channelAddress).emit('newMemberChannel');

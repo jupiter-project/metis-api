@@ -201,29 +201,44 @@ class ChanService {
      */
     async getChannelInvitationContainersSentToAccount(sentToMemberAccountProperties) {
         logger.verbose(`#### getChannelInvitationContainersSentToAccount(sentToMemberAccountProperties)`);
-        if(!(sentToMemberAccountProperties instanceof GravityAccountProperties)) {throw new Error('sentToMemberAccountProperties is not well formed')};
+        if(!(sentToMemberAccountProperties instanceof GravityAccountProperties)) {throw new Error('sentToMemberAccountProperties is not well formed')}
         try {
             // First: Get All Invitations. @TODO later we'll only get invitations for the past X days.
             const recordTag = channelConfig.channelInviteRecord;
             const invitationContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
                 sentToMemberAccountProperties,
                 recordTag,
-                false)
+                false);
             // Second: Only get invitations sent to the member. Not invitations the member sent to others.
             const invitationContainersFilteredByTo = invitationContainers.filter( invitationContainer => invitationContainer.message.inviteeAddress === sentToMemberAccountProperties.address);
+
+            logger.debug(`Total invitations: ${invitationContainersFilteredByTo.length}`);
+
             // Third: Get All channels the user is a member of
             const memberChannels = await this.getMemberChannels(sentToMemberAccountProperties);
+
+            logger.debug(`This user belong to ${memberChannels.length} channels`);
             // Fourth: Get the difference
             const invitationContainersNotInExistingChannels = invitationContainersFilteredByTo.filter(invitationContainer =>
-                !memberChannels.some(channel=> channel.address === invitationContainer.message.channelRecord.address))
+                !memberChannels.some(channel=> channel.address === invitationContainer.message.channelRecord.address)
+            )
+
+            logger.debug(`Total not accepted invitations: ${invitationContainersNotInExistingChannels.length}`);
+
             // Fifth: Get the declined Invitations
             const declinedTagList = channelConfig.channelInvitationDeclinedList;
             const declinedTag = channelConfig.channelInvitationDeclinedRecord;
             const declinedInvitationContainers = await this.gravityService.getAllMessageContainersReferencedByList(sentToMemberAccountProperties, declinedTag, declinedTagList)
+
+            logger.debug(`Total declined invitations: ${declinedInvitationContainers.length}`);
+
             // Sixth: Remove declined Invitations from invitation list
             const filteredInvitationContainers = invitationContainersNotInExistingChannels.filter( invitationContainer =>
-                ! declinedInvitationContainers.some(declinedInvitationContainer => declinedInvitationContainer.transactionId === invitationContainer.transactionId)
-            )
+                !declinedInvitationContainers.some(declinedInvitationContainer => declinedInvitationContainer.transactionId === invitationContainer.transactionId)
+            );
+
+            logger.debug(`Total not accepted, not declined invitations: ${filteredInvitationContainers.length}`);
+
             // Seventh: De-dup
             const dedupedInvitationContainers = filteredInvitationContainers.reduce((reduced, invitationContainer) => {
                 if( reduced.some( ic => ic.message.channelRecord.address ===  invitationContainer.message.channelRecord.address)){
@@ -233,6 +248,7 @@ class ChanService {
                 return reduced;
             },[]);
 
+            logger.debug(`Total after all filters: ${dedupedInvitationContainers.length}`);
 
             // Eighth: Filter out bad channelRecords.
             const validInvitationContainers = dedupedInvitationContainers.filter( invitationContainer => {
@@ -246,7 +262,7 @@ class ChanService {
                     console.log(`\n\n\n`);
                     console.log('REMOVEME=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
                     console.log(`invitationContainer:`);
-                    console.log(invitationContainer)
+                    logger.sensitive(`${invitationContainer}`);
                     console.log('valid.errors')
                     console.log(valid.errors)
                     console.log(`REMOVEME=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n\n\n`)
@@ -407,7 +423,7 @@ class ChanService {
             const invitationContainers = await this.getChannelInvitationContainersSentToAccount(memberAccountProperties);
             // Second: confirm the channel being invited to is in the invitation list
             const hasInvitation = invitationContainers.some(invitationContainer => invitationContainer.message.channelRecord.address === channelAddress )
-            if(!hasInvitation){throw new Error('Invitation Not Found')}
+            if(!hasInvitation){throw new Error(`Invitation Not Found: ${memberAccountProperties.address} invited to ${channelAddress}`)}
             //Third: Add the records to both Channel and User Accounts
             const invitationContainer = invitationContainers.find(invitationContainer => invitationContainer.message.channelRecord.address === channelAddress)
             if(invitationContainer === undefined){throw new Error('Invitation Not Found..')}
