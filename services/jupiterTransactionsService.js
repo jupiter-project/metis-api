@@ -265,10 +265,12 @@ class JupiterTransactionsService {
         if(!gu.isNonEmptyString(tag)){throw new Error('tag is empty')}
         logger.debug(`address= ${JSON.stringify(address)}`);
         logger.debug(`tag= ${JSON.stringify(tag)}`);
-        const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag, firstIndex, lastIndex);
+        const unconfirmedTransactionsPromise = this.getUnconfirmedTransactionsByTag(address,tag);
         const confirmedTransactionsPromise = this.fetchConfirmedBlockChainTransactionsByTag(address,tag,firstIndex,lastIndex);
         const [confirmedTransactionsResponse, unconfirmendTransactionsResponse] = await Promise.all([confirmedTransactionsPromise, unconfirmedTransactionsPromise]);
-        const combinedTransactions = [ ...unconfirmendTransactionsResponse, ...confirmedTransactionsResponse ];
+
+        // const combinedTransactions = [ ...unconfirmendTransactionsResponse, ...confirmedTransactionsResponse ];
+        const combinedTransactions = this.filterByBetweenTimestamp(confirmedTransactionsResponse, unconfirmendTransactionsResponse);
         const hasInvalidTransactions = combinedTransactions.every(t => {
             const valid = this.validator.validateBaseTransaction(t);
             if(!valid.isValid){
@@ -281,14 +283,38 @@ class JupiterTransactionsService {
         if(!hasInvalidTransactions){
             throw new mError.MetisError(`Transactions from Jupiter are invalid!`);
         }
+
         const sortedCombinedTransactions = this.transactionUtils.sortTransactionsByTimestamp(combinedTransactions, orderBy);
         logger.debug(`sortedCombinedTransactions.length= ${sortedCombinedTransactions.length}`);
+
         // @TODO Jupiter needs to be fixed!
         return combinedTransactions.filter(transaction => {
             return transaction.hasOwnProperty('attachment') &&
                 transaction.attachment.hasOwnProperty('message') &&
                 transaction.attachment.message.includes(tag)
         });
+    }
+
+    filterByBetweenTimestamp(confirmedTransactions, unconfirmedTransactions){
+        if (!Array.isArray(confirmedTransactions)){
+            throw new Error('Confirmed transactions must be an array');
+        }
+
+        if(!Array.isArray(unconfirmedTransactions)){
+            throw new Error('Un ConfirmedTransactions transactions must be an array');
+        }
+
+        const [lasConfirmedTransaction] = confirmedTransactions.slice(-1);
+        const unConfirmedTransactionsFilter = unconfirmedTransactions.filter(unconfirmed => {
+            if (lasConfirmedTransaction){
+                return unconfirmed.timestamp >= lasConfirmedTransaction.timestamp;
+            }
+            return true;
+        });
+        const results = [...confirmedTransactions, ...unConfirmedTransactionsFilter];
+        return results.sort((a, b) =>
+            new Date(b.timestamp) - new Date(a.timestamp)
+        );
     }
 
     /**
