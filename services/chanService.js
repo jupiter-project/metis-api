@@ -193,7 +193,7 @@ class ChanService {
      * @CASE what if the user is invited; the user declines; the user is invited again?
      * @param {GravityAccountProperties} sentToMemberAccountProperties
      * @returns {Promise<[{ message:{
-     *                          recordType, inviteeAddress, inviterAddress,createdAt, version,
+     *                          recordType, inviteeAddress, inviterAddress,inviterAlias,createdAt, version,
      *                          channelRecord: {recordType, channelName, address, passphrase, password, publicKey, accountId, sender, createdBy, status, createdAt, updatedAt, version},
      *                      transactionId: string
      *                   }
@@ -728,6 +728,7 @@ class ChanService {
             inviteeAddress: inviteeAddress,
             inviteePublicKey: inviteePublicKey,
             inviterAddress: inviterAccountProperties.address,
+            inviterAlias: inviterAccountProperties.getCurrentAliasNameOrNull(),
             channelRecord: channelRecordJson,
             createdBy: inviterAccountProperties.address,
             status: 'active',

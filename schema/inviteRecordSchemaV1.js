@@ -24,6 +24,9 @@ const inviteRecordSchemaV1 = {
             type: "string",
             pattern: '^JUP-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w-\\w\\w\\w\\w\\w$'
         },
+        inviterAlias: {
+            type: "string"
+        },
         channelRecord: {
              "$ref": 'channelRecordSchemaV1.json'
         },
