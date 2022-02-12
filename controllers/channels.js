@@ -207,22 +207,21 @@ module.exports = (app, passport, jobs, websocket) => {
             const firstIndex = pageNumber * pageSize
             const lastIndex = firstIndex + (pageSize - 1);
             const memberAccountProperties = instantiateMinimumGravityAccountProperties(user.passphrase, user.password, user.address);
-            // const memberAccountProperties = await instantiateGravityAccountProperties(user.passphrase, user.password);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
 
             if (!channelAccountProperties) {
                 return res.status(StatusCode.ServerErrorInternal).send({message: `channel is not available: ${channelAddress}`})
             }
 
-            //@TODO this will be a big problem when channel has alot of messages!!!!!!!
-            const messageTransactions = await jupiterTransactionsService.getReadableTaggedMessageContainers(channelAccountProperties, messagesConfig.messageRecord, false, firstIndex, lastIndex);
-
-            // Sorting messages descending
-            // messageTransactions.sort((a, b) =>
-            //     new Date(b.message.createdAt) - new Date(a.message.createdAt)
-            // );
-
-            // const paginatesMessages = messageTransactions.slice(firstIndex, lastIndex + 1);
+            //@TODO this will be a big problem when channel has a lot of messages!!!!!!!
+            const messageTransactions = await jupiterTransactionsService
+                .getReadableTaggedMessageContainers(
+                    channelAccountProperties,
+                    messagesConfig.messageRecord,
+                    false,
+                    firstIndex,
+                    lastIndex
+                );
 
             res.send(messageTransactions);
         } catch (error) {
@@ -305,17 +304,17 @@ module.exports = (app, passport, jobs, websocket) => {
                 );
             if (messageType === 'invitation') websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
             websocket.of(websocketConstants.invitation.chat.namespace).to(channelAddress).emit(websocketConstants.invitation.chat.rooms.createMessage, { message: messageRecord });
-            await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentionedAddresses);
             res.send({message: 'Message successfully sent'});
+
+            try{
+                await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentionedAddresses);
+            } catch (error){
+                logger.error('Error sending the push notification');
+                logger.error(`${error}`)
+            }
         } catch (error) {
             logger.error('Error sending metis message:')
             logger.error(JSON.stringify(error));
-            // if(error instanceof mError.MetisErrorPushNotificationFailed){
-            //     return res.status(StatusCode.ServerErrorInternal).send({message: 'Error sending message', code: error.code})
-            // }
-            // if(error instanceof mError.MetisErrorSendMessageToJupiterFailed){
-            //     return res.status(StatusCode.ServerErrorInternal).send({message: 'Error sending message', code:  error.code})
-            // }
             return res.status(StatusCode.ServerErrorInternal).send({message: `Error sending message. ${error.message}`, code:  error.code})
         }
     });
@@ -347,6 +346,7 @@ module.exports = (app, passport, jobs, websocket) => {
                             channelName: channelInvitationContainer.message.channelRecord.channelName,
                             channelAddress: channelInvitationContainer.message.channelRecord.address,
                             inviterAddress: channelInvitationContainer.message.inviterAddress,
+                            inviterAlias: channelInvitationContainer.message.inviterAlias,
                             invitationSentAt: channelInvitationContainer.message.createdAt
                         }
                     })

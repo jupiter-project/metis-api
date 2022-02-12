@@ -147,8 +147,8 @@ module.exports = (app, passport, React, ReactDOMServer) => {
     jupiterAPIService.transferMoney(fromJupAccount, toJupiterAccount, +amount, fee)
         .then(() => res.status(200).send({message: 'Transfer successfully executed'}))
         .catch(error => {
-          logger.error('Error with the transfer ->' + `${error}`);
-          res.status(500).send({message: 'Transfer failed', error: `${error}`});
+          logger.error('Error with the transfer' + `${error}`);
+          res.status(500).send({message: 'There was an issue transferring money, please try again later', error: `${error}`});
         });
   });
 
