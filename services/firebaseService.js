@@ -1,4 +1,5 @@
 import {firebaseAdmin} from '../server';
+const logger = require('../utils/logger')(module);
 
 /**
  *
@@ -33,6 +34,8 @@ class FirebaseService {
         }
 
         return this.firebaseAdmin.messaging().sendToDevice(registrationToken, message, options)
+            .then(result => logger.debug(`${result}`))
+            .catch(error => console.log('Error sending Android PN', error))
     }
 
     /**
