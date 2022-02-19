@@ -19,6 +19,9 @@ if(!process.env.JWT_TOKEN_EXPIRATION) throw new Error('Environment Variable miss
 if(!process.env.JWT_PRIVATE_KEY_BASE64) throw new Error('Environment Variable missing: JWT_PRIVATE_KEY_BASE64');
 if(!process.env.JUPITER_DEADLINE) throw new Error('Environment Variable missing: JUPITER_DEADLINE');
 if(isNaN(process.env.JUPITER_DEADLINE)) throw new Error('Environment Variable not a number: JUPITER_DEADLINE');
+if(!process.env.P12_CERT) throw new Error('Environment Variable missing: P12_CERT');
+
+
 
 module.exports.metisConf = {
     appName: process.env.APPNAME,

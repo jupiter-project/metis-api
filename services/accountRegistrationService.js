@@ -73,9 +73,12 @@ class AccountRegistration {
      * @return {Promise<boolean>}
      */
   async isAccountRegisteredWithApp(address){
+      logger.verbose(`#### isAccountRegisteredWithApp(address)`);
+      logger.sensitive(`address=${JSON.stringify(address)}`);
       if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`);
-      const tag = userConfig.metisUserRecord;
+      const tag = userConfig.userRecord;
       const transactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address,tag);
+      console.log(`length: ${transactions.length}`);
       if (!gu.isNonEmptyArray(transactions)) return false;
       return true;
   }
@@ -228,7 +231,7 @@ class AccountRegistration {
             //  First: check if Account is not already registered
             console.log(`\n`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
-            logger.info(`  First: check if Account is not already registered`);
+            logger.info(`  First: check if Account is not already registered: ${newAccountProperties.address}`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const isAlreadyRegistered = await this.isAccountRegisteredWithApp(newAccountProperties.address);
             if (isAlreadyRegistered) {
