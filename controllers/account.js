@@ -9,6 +9,7 @@ import {ApplicationAccountProperties} from "../gravity/applicationAccountPropert
 import {instantiateGravityAccountProperties} from "../gravity/instantiateGravityAccountProperties";
 import {jupiterMoneyTransactionService} from "../services/jupiterMoneyTransactionService";
 import {StatusCode} from "../utils/statusCode";
+import {feeConf} from "../config/feeConf";
 
 const logger = require('../utils/logger')(module);
 
