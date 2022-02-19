@@ -69,22 +69,15 @@ class AccountRegistration {
 
     /**
      *
-     * @param clientAddress
-     * @param appRecords
-     * @return {boolean}
+     * @param address
+     * @return {Promise<boolean>}
      */
-  isAccountRegisteredWithApp(clientAddress, appRecords){
-      if(!gu.isWellFormedJupiterAddress(clientAddress)) throw new mError.MetisErrorBadJupiterAddress(`clientAddress: ${clientAddress}`)
-      // if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new BadJupiterAddressError(clientAddress)}
-      // if(!gu.isWellFormedJupiterAddress(clientAddress)){throw new Error('clientAddress is not valid')}
-      if(!Array.isArray(appRecords)){throw new Error('appRecords is not an array')}
-      if(!appRecords.hasOwnProperty('account')){throw new Error('records is not valid. missing property: account')}
-      const record = appRecords.filter(record => record.account == clientAddress);
-        if(record.length === 0){
-            return false;
-        }
-
-        return true
+  async isAccountRegisteredWithApp(address){
+      if(!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`);
+      const tag = userConfig.metisUserRecord;
+      const transactions = await this.jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(address,tag);
+      if (!gu.isNonEmptyArray(transactions)) return false;
+      return true;
   }
 
 
@@ -232,6 +225,15 @@ class AccountRegistration {
         if(!(newAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`newAccountProperties`)
         if(!gu.isWellFormedJupiterAlias(newAccountAliasName)) throw new mError.MetisErrorBadJupiterAlias(newAccountAliasName);
         try {
+            //  First: check if Account is not already registered
+            console.log(`\n`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
+            logger.info(`  First: check if Account is not already registered`);
+            logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
+            const isAlreadyRegistered = await this.isAccountRegisteredWithApp(newAccountProperties.address);
+            if (isAlreadyRegistered) {
+                throw new Error('Account is already registered');
+            }
             // First: Make sure the alias is available
             console.log(`\n`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
@@ -481,6 +483,7 @@ const {jupiterTransactionsService} = require("./jupiterTransactionsService");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {MetisError, MetisErrorWeakPassword} = require("../errors/metisError");
 const mError = require("../errors/metisError");
+const {userConfig} = require("../config/constants");
 // const {binaryAccountJob, BinaryAccountJob} = require("../src/jim/jobs/binaryAccountJob");
 
 module.exports.AccountRegistration = AccountRegistration;

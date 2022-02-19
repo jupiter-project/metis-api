@@ -1,4 +1,5 @@
 // const gu = require("../utils/gravityUtils");
+const {appConf} = require("./appConf");
 if(!process.env.APPNAME) throw new Error('Environment Variable missing: APPNAME');
 if(!process.env.VERSION) throw new Error('Environment Variable missing: VERSION');
 if(!process.env.APP_ACCOUNT) throw new Error('Environment Variable missing: APP_ACCOUNT');
@@ -16,6 +17,8 @@ if(!process.env.JUPITERSERVER) throw new Error('Environment Variable missing: JU
 if(!process.env.APP_EMAIL) throw new Error('Environment Variable missing: APP_EMAIL');
 if(!process.env.JWT_TOKEN_EXPIRATION) throw new Error('Environment Variable missing: JWT_TOKEN_EXPIRATION');
 if(!process.env.JWT_PRIVATE_KEY_BASE64) throw new Error('Environment Variable missing: JWT_PRIVATE_KEY_BASE64');
+if(!process.env.JUPITER_DEADLINE) throw new Error('Environment Variable missing: JUPITER_DEADLINE');
+if(isNaN(process.env.JUPITER_DEADLINE)) throw new Error('Environment Variable not a number: JUPITER_DEADLINE');
 
 module.exports.metisConf = {
     appName: process.env.APPNAME,
@@ -32,5 +35,13 @@ module.exports.metisConf = {
     jwt: {
         privateKeyBase64: process.env.JWT_PRIVATE_KEY_BASE64,
         expiresIn: process.env.JWT_TOKEN_EXPIRATION
+    },
+    jupiter: {
+        deadline: +process.env.JUPITER_DEADLINE
+    },
+    pushNotification: {
+        pfx: Buffer.from(process.env.P12_CERT, 'base64'),
+        passphrase: process.env.APN_PASSPHRASE,
+        production: appConf.isProduction
     }
 }
