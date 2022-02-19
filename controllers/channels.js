@@ -9,7 +9,7 @@ import {
 } from "../gravity/instantiateGravityAccountProperties";
 import {jupiterTransactionsService} from "../services/jupiterTransactionsService";
 import {jupiterAPIService} from "../services/jupiterAPIService";
-import {generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord} from "../services/messageService";
+import {generateNewMessageRecordJson, sendMessagePushNotifications, sendChatMessage} from "../services/messageService";
 // const {mError} = require("../errors/metisError");
 import mError from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
@@ -17,6 +17,7 @@ import {messagesConfig} from "../config/constants";
 import {MetisErrorCode} from "../utils/metisErrorCode";
 import {axiosDefault} from "../config/axiosConf";
 import {websocketConstants} from "../src/metis/constants/websocketConstants";
+import {metisConstants} from "../src/metis/constants/constants";
 var moment = require('moment'); // require
 const gu = require('../utils/gravityUtils');
 const {v4: uuidv4} = require('uuid');
@@ -238,7 +239,7 @@ module.exports = (app, passport, jobs, websocket) => {
         console.log('');
         logger.info('======================================================================================');
         logger.info('== Send a message');
-        logger.info('== POST: /v1/api/data/messages');
+        logger.info('== POST: /v1/api/channels/:channelAddress/messages');
         logger.info('======================================================================================');
         try{
             const {user} = req;
@@ -250,32 +251,19 @@ module.exports = (app, passport, jobs, websocket) => {
                 attachmentObj = null,
                 version,
                 mentions = [],
-                messageType = 'message'
+                messageType = metisConstants.messageRecord.type.message,
             } = req.body;
             const {channelAddress} = req.params;
-
             if(!(attachmentObj || message)){
                 //@todo throw exception. needs to be at lease one.
             }
-
             // @TODO
             // if(attachmentObj){
             //     validate(attachmentObj)
             // }
-
-            if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid address'});
+            if(!gu.isWellFormedJupiterAddress(channelAddress)) return res.status(StatusCode.ClientErrorBadRequest).send({message: `Must include a valid address. ${channelAddress}`});
             if (!message) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Must include a valid message'});
             if (!Array.isArray(mentions)) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'mentions should be an array'});
-            const mentionedAddresses = await mentions.reduce( async (reduced,mention) => {
-                try {
-                    const inviteeAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(mention);
-                    const data = await reduced;
-                    return  [...data, inviteeAccountInfo.address];
-                } catch(error){
-                    return await reduced;
-                }
-            }, Promise.resolve([]));
-
             const memberAccountProperties = user.gravityAccountProperties;
             const messageRecord = generateNewMessageRecordJson(
                 memberAccountProperties,
@@ -288,10 +276,8 @@ module.exports = (app, passport, jobs, websocket) => {
                 version,
             );
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
-            if(!channelAccountProperties){
-                return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.', code: MetisErrorCode.MetisError});
-            }
-            await createMessageRecord(
+            if(!channelAccountProperties) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'Invalid channel address.', code: MetisErrorCode.MetisError});
+            await sendChatMessage(
                 memberAccountProperties,
                 channelAccountProperties,
                 message,
@@ -305,8 +291,8 @@ module.exports = (app, passport, jobs, websocket) => {
             if (messageType === 'invitation') websocket.of('/chat').to(channelAddress).emit('newMemberChannel');
             websocket.of(websocketConstants.invitation.chat.namespace).to(channelAddress).emit(websocketConstants.invitation.chat.rooms.createMessage, { message: messageRecord });
             res.send({message: 'Message successfully sent'});
-
             try{
+                const mentionedAddresses = await jupiterAccountService.extractAddressesFromArrayOfAliasesAndAddresses(mentions);
                 await sendMessagePushNotifications(memberAccountProperties, channelAccountProperties, mentionedAddresses);
             } catch (error){
                 logger.error('Error sending the push notification');

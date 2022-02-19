@@ -10,6 +10,7 @@ import {
     BadJupiterAddressError,
     MetisError, MetisErrorPublicKeyExists
 } from "../errors/metisError";
+import _ from "lodash";
 const {FeeManager, feeManagerSingleton} = require('./FeeManager');
 const mError = require(`../errors/metisError`);
 const {GravityAccountProperties, metisGravityAccountProperties, myTest} = require('../gravity/gravityAccountProperties');
@@ -1000,6 +1001,41 @@ class JupiterAccountService {
         }
 
     }
+
+
+    /**
+     *
+     * @param {string[]}mixOfAliasesAndAddresses
+     * @return {Promise<*[]|*>}
+     */
+    async extractAddressesFromArrayOfAliasesAndAddresses(mixOfAliasesAndAddresses){
+        logger.verbose(`#### extractAddressesFromArrayOfAliasesAndAddresses(mixOfAliasesAndAddresses)`);
+
+        if(!_.isArray(mixOfAliasesAndAddresses)) throw new mError.MetisError(`mixOfAliasesAndAddresses needs to be an array`);
+        if(mixOfAliasesAndAddresses.length === 0) return [];
+        const addresses =  mixOfAliasesAndAddresses.reduce( async (reduced,arrayOrAlias) => {
+            try {
+                const inviteeAccountInfo = await this.fetchAccountInfoFromAliasOrAddress(arrayOrAlias);
+                return  [...reduced, inviteeAccountInfo.address];
+            } catch(error){
+                return reduced;
+            }
+        }, []);
+        const uniqueAddresses = _.uniq(addresses);
+
+        return uniqueAddresses;
+        // const mentionedAddresses = await mentions.reduce( async (reduced,mention) => {
+        //     try {
+        //         const inviteeAccountInfo = await jupiterAccountService.fetchAccountInfoFromAliasOrAddress(mention);
+        //         const data = await reduced;
+        //         return  [...data, inviteeAccountInfo.address];
+        //     } catch(error){
+        //         return await reduced;
+        //     }
+        // }, Promise.resolve([]));
+    }
+
+
 
     // getStatement(address, moneyDecimals, minimumAppBalance, minimumTableBalance, isApp = false) {
     //     logger.verbose('getStatement()');

@@ -6,31 +6,40 @@ const {messagesConfig} = require("../config/constants");
 const {FeeManager} = require("./FeeManager");
 const {jupiterTransactionMessageService} = require("./jupiterTransactionMessageService");
 const {getPNTokensAndSendPushNotification} = require("../services/PushNotificationMessageService");
-// const metis = require("../config/metis");
-// const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
-// const {chanService} = require("./chanService");
-// const {StatusCode} = require("../utils/statusCode");
 import mError from "../errors/metisError";
+import {metisConstants} from "../src/metis/constants/constants";
 const gu = require("../utils/gravityUtils")
 
+/**
+ *
+ * @param {GravityAccountProperties} senderAccountProperties
+ * @param {string} message
+ * @param {string} messageType
+ * @param {string|null} replyMessage
+ * @param {string|null} replyRecipientAlias
+ * @param {string|null} replyRecipientAddress
+ * @param {object|null} attachmentObj
+ * @param {string} version
+ * @return {{senderAddress: string, recordType: string, replyRecipientAddress: null, replyRecipientAlias: null, senderAlias: (string|null), message, version: string, createdAt: number, messageType: string, replyMessage: null, attachmentObj: null, status: string, updatedAt: number}}
+ */
 const generateNewMessageRecordJson = (
     senderAccountProperties,
     message,
-    messageType = 'message',
+    messageType = metisConstants.messageRecord.type.message,
     replyMessage = null,
     replyRecipientAlias = null,
     replyRecipientAddress = null,
     attachmentObj = null,
     version = '1.0',
 ) => {
-
-    if(!(senderAccountProperties instanceof GravityAccountProperties)){throw new Error('senderAccountProperties is invalid')}
-
+    if(!(senderAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`senderAccountProperties`);
+    if(!message) throw new mError.MetisError(`message cannot be empty`);
+    if(!messageType) throw new mError.MetisError(`messageType cannot be empty`);
     const createdDate = Date.now();
     return {
         messageType, // message, message-file, file, invitation, removed
-        recordType: 'messageRecord',
-        status: 'active',
+        recordType: metisConstants.recordTypes.messageRecord,
+        status: metisConstants.messageRecord.status.active,
         senderAlias: senderAccountProperties.getCurrentAliasNameOrNull(),
         senderAddress: senderAccountProperties.address,
         message,
@@ -46,10 +55,10 @@ const generateNewMessageRecordJson = (
 
 /**
  *
- * @param fromAccountProperties
- * @param toAccountProperties
- * @param message
- * @param type
+ * @param {GravityAccountProperties} fromAccountProperties
+ * @param {GravityAccountProperties} toAccountProperties
+ * @param {string} message
+ * @param messageType
  * @param replyMessage
  * @param replyRecipientAlias
  * @param replyRecipientAddress
@@ -57,12 +66,20 @@ const generateNewMessageRecordJson = (
  * @param version
  * @return {Promise<{signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}>}
  */
-const createMessageRecord = async (fromAccountProperties, toAccountProperties, message, type, replyMessage, replyRecipientAlias, replyRecipientAddress,attachmentUrl,version) => {
+const sendChatMessage = async (fromAccountProperties,
+                               toAccountProperties,
+                               message,
+                               messageType,
+                               replyMessage,
+                               replyRecipientAlias,
+                               replyRecipientAddress,
+                               attachmentUrl,
+                               version) => {
     try{
         const messageRecord = generateNewMessageRecordJson(
             fromAccountProperties,
             message,
-            type,
+            messageType,
             replyMessage,
             replyRecipientAlias,
             replyRecipientAddress,
@@ -71,7 +88,7 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
         );
         const messageRecordString = JSON.stringify(messageRecord);
         const tag = messagesConfig.messageRecord;
-        const feeType = FeeManager.feeTypes.account_record;
+        const feeType = FeeManager.feeTypes.metisMessage;
         return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
             fromAccountProperties.passphrase,
             toAccountProperties.address,
@@ -80,8 +97,11 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
             feeType,
             toAccountProperties.publicKey
         );
-    }catch(error){
-        logger.error('Error creating messageRecord:')
+    } catch(error) {
+        console.log('\n')
+        logger.error(`************************* ERROR ***************************************`);
+        logger.error(`* ** sendMessage.catch(error)`);
+        logger.error(`************************* ERROR ***************************************\n`);
         logger.error(`${error}`);
         throw error
     }
@@ -126,9 +146,9 @@ const sendMessagePushNotifications = async (senderAccountProperties, channelAcco
         if (!(senderAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterAddress('Invalid memberAccountProperties')
         if (!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterAddress('Invalid channelAccountProperties')
         if(!Array.isArray(mentions)) throw new mError.MetisError(`mentions needs to be an array`);
-        
-        
-        
+
+
+
         mentions.forEach(mentionedMemberAddress => {
             if(!gu.isWellFormedJupiterAddress(mentionedMemberAddress)) throw new mError.MetisErrorBadJupiterAddress('', mentionedMemberAddress);
         })
@@ -187,4 +207,4 @@ const sendMessagePushNotifications = async (senderAccountProperties, channelAcco
     }
 }
 
-module.exports = { generateNewMessageRecordJson, sendMessagePushNotifications, createMessageRecord };
+module.exports = { generateNewMessageRecordJson, sendMessagePushNotifications, sendChatMessage };
