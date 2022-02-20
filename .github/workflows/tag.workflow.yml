@@ -26,6 +26,8 @@ jobs:
         run: doctl registry login --expiry-seconds 600
       - name: Tag image
         run: docker tag metis ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
+      - name: Docker login
+        run: docker login
       - name: Push image to DO Container Registry
         run: docker push ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
       - name: Channel specific notification Slack
