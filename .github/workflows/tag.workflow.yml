@@ -28,6 +28,8 @@ jobs:
         run: docker tag metis ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
       - name: Docker login
         run: docker login
+      - name: Docker logout
+        run: docker logout
       - name: Push image to DO Container Registry
         run: docker push ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
       - name: Channel specific notification Slack
