@@ -5,10 +5,12 @@ const {words} = require('../config/_word_list');
 const checksum = require('checksum');
 const Decimal = require("decimal.js");
 const NewAccountIp = require('../models/newAccountIp');
+const moment = require('moment'); // require
 import axios from 'axios';
 import {randomFillSync} from "crypto";
 import bcrypt from 'bcrypt-nodejs';
 import _ from 'lodash';
+
 
 
 /**
@@ -496,9 +498,19 @@ const ipLogger = function (jupAddress, alias, req) {
         alias: alias,
         timestamp: new Date()
     };
-
-    return NewAccountIp.create(newAccountIp);
+    NewAccountIp.create(newAccountIp);
+    ipLoggerCleanUp();
 }
+
+/**
+ *
+ */
+const ipLoggerCleanUp = function(){
+    const currentDate = new Date();
+    const sinceDate = moment(currentDate).subtract(24, "hours").toDate();
+    NewAccountIp.deleteMany({timestamp: {$lt: sinceDate}});
+}
+
 
 module.exports = {
     isObject,
@@ -534,7 +546,8 @@ module.exports = {
     getCurrentJupiterValueOrNull,
     isWellFormedE2EPublicKey,
     isWellFormedUuid,
-    ipLogger
+    ipLogger,
+    ipLoggerCleanUp
 };
 
 
