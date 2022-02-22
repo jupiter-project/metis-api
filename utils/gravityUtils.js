@@ -487,19 +487,40 @@ const getCurrentJupiterValueOrNull = async function (){
  *
  * @param jupAddress
  * @param alias
- * @param req
+ * @param ipAddress
  * @return {newAccountIp}
  */
-const ipLogger = function (jupAddress, alias, req) {
-    const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    const newAccountIp = {
-        ipAddress: ipAddress,
-        jupAddress: jupAddress,
-        alias: alias,
-        timestamp: new Date()
-    };
-    NewAccountIp.create(newAccountIp);
+const ipLogger = function (jupAddress, alias, ipAddress) {
+    logger.verbose(`#### ipLogger(jupAddress, alias, ipAddress) ${jupAddress}, ${alias}, ${ipAddress}`);
+    if (!isWellFormedJupiterAddress(jupAddress)){
+        throw new Error('Jup address is not well formed');
+    }
+
+    if(!isWellFormedJupiterAlias(alias)){
+        throw new Error('Alias is not well formed');
+    }
+
+    if(!ipAddress){
+        throw new Error('IP address should not be empty');
+    }
+
+    const newAccountIp = {ipAddress, jupAddress, alias, timestamp: new Date()};
+    NewAccountIp.create(newAccountIp)
+        .then(result => console.log('NewAccountIp successfully created', result))
+        .catch(error => logger.error(`Error saving logger record ${error}`))
     ipLoggerCleanUp();
+}
+
+const ipLoggerRepeatedIpAddress =  function (){
+    return NewAccountIp.aggregate([
+        {
+            $group: {
+                "_id":"$ipAddress",
+                "count":{$sum:1}
+            }
+        },
+        {$match:{"count":{$gt:1}}}
+    ]);
 }
 
 /**
@@ -508,7 +529,9 @@ const ipLogger = function (jupAddress, alias, req) {
 const ipLoggerCleanUp = function(){
     const currentDate = new Date();
     const sinceDate = moment(currentDate).subtract(24, "hours").toDate();
-    NewAccountIp.deleteMany({timestamp: {$lt: sinceDate}});
+    NewAccountIp.deleteMany({timestamp: {$lt: sinceDate}})
+        .then(result => console.log('NewAccountIp successfully removed', result))
+        .catch(error => logger.error(`Error cleaning up logger record ${error}`))
 }
 
 
@@ -547,7 +570,8 @@ module.exports = {
     isWellFormedE2EPublicKey,
     isWellFormedUuid,
     ipLogger,
-    ipLoggerCleanUp
+    ipLoggerCleanUp,
+    ipLoggerRepeatedIpAddress
 };
 
 
