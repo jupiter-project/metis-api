@@ -2,6 +2,7 @@ import {StatusCode} from "../../../utils/statusCode";
 import {MetisErrorCode} from "../../../utils/metisErrorCode";
 import {accountRegistration} from "../../../services/accountRegistrationService";
 import {instantiateGravityAccountProperties} from "../../../gravity/instantiateGravityAccountProperties";
+// import httpLogger from "../../../utils/gravityUtils";
 const moment = require('moment'); // require
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
@@ -99,11 +100,13 @@ module.exports = (app, jobs, websocket) => {
             logger.info('== Signup');
             logger.info('== POST: /v1/api/signup ');
             logger.info(`======================================================================================\n\n`);
-
+            // const ipLogger = function (jupAddress, alias, req) {
             const {account, alias, accounthash, public_key, key, jup_account_id, encryption_password} = req.body;
             const newAccountProperties = await instantiateGravityAccountProperties(key, encryption_password);
+            gu.ipLogger(newAccountProperties.address, newAccountProperties.getCurrentAliasNameOrNull(), req);
             createJob(jobs, newAccountProperties, alias, res, websocket, next);
         },
+
         /**
          * V2/SIGNUP
          */

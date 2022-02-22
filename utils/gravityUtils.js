@@ -1,8 +1,10 @@
+import Notifications from "../models/notifications";
 
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
 const Decimal = require("decimal.js");
+const NewAccountIp = require('../models/newAccountIp');
 import axios from 'axios';
 import {randomFillSync} from "crypto";
 import bcrypt from 'bcrypt-nodejs';
@@ -479,6 +481,25 @@ const getCurrentJupiterValueOrNull = async function (){
     return null
 }
 
+/**
+ *
+ * @param jupAddress
+ * @param alias
+ * @param req
+ * @return {newAccountIp}
+ */
+const ipLogger = function (jupAddress, alias, req) {
+    const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const newAccountIp = {
+        ipAddress: ipAddress,
+        jupAddress: jupAddress,
+        alias: alias,
+        timestamp: new Date()
+    };
+
+    return NewAccountIp.create(newAccountIp);
+}
+
 module.exports = {
     isObject,
     jsonPropertyIsNonEmptyArray,
@@ -512,7 +533,8 @@ module.exports = {
     formatUsd,
     getCurrentJupiterValueOrNull,
     isWellFormedE2EPublicKey,
-    isWellFormedUuid
+    isWellFormedUuid,
+    ipLogger
 };
 
 
