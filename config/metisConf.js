@@ -16,6 +16,7 @@ if(!process.env.JUPITERSERVER) throw new Error('Environment Variable missing: JU
 if(!process.env.APP_EMAIL) throw new Error('Environment Variable missing: APP_EMAIL');
 if(!process.env.JWT_TOKEN_EXPIRATION) throw new Error('Environment Variable missing: JWT_TOKEN_EXPIRATION');
 if(!process.env.JWT_PRIVATE_KEY_BASE64) throw new Error('Environment Variable missing: JWT_PRIVATE_KEY_BASE64');
+if(!process.env.IP_ENDPOINT_PASSWORD) throw new Error('Environment Variable missing: IP_ENDPOINT_PASSWORD');
 
 module.exports.metisConf = {
     appName: process.env.APPNAME,
@@ -29,6 +30,7 @@ module.exports.metisConf = {
     appAccountId: process.env.APP_ACCOUNT_ID,
     appJupiterServerUrl: process.env.JUPITERSERVER,
     appEmail: process.env.APP_EMAIL,
+    ipEndpointPassword: process.env.IP_ENDPOINT_PASSWORD,
     jwt: {
         privateKeyBase64: process.env.JWT_PRIVATE_KEY_BASE64,
         expiresIn: process.env.JWT_TOKEN_EXPIRATION

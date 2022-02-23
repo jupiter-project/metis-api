@@ -1,12 +1,16 @@
+import Notifications from "../models/notifications";
 
 const logger = require('./logger')(module);
 const {words} = require('../config/_word_list');
 const checksum = require('checksum');
 const Decimal = require("decimal.js");
+const NewAccountIp = require('../models/newAccountIp');
+const moment = require('moment'); // require
 import axios from 'axios';
 import {randomFillSync} from "crypto";
 import bcrypt from 'bcrypt-nodejs';
 import _ from 'lodash';
+
 
 
 /**
@@ -479,6 +483,58 @@ const getCurrentJupiterValueOrNull = async function (){
     return null
 }
 
+/**
+ *
+ * @param jupAddress
+ * @param alias
+ * @param ipAddress
+ * @return {newAccountIp}
+ */
+const ipLogger = function (jupAddress, alias, ipAddress) {
+    logger.verbose(`#### ipLogger(jupAddress, alias, ipAddress) ${jupAddress}, ${alias}, ${ipAddress}`);
+    if (!isWellFormedJupiterAddress(jupAddress)){
+        throw new Error('Jup address is not well formed');
+    }
+
+    if(!isWellFormedJupiterAlias(alias)){
+        throw new Error('Alias is not well formed');
+    }
+
+    if(!ipAddress){
+        throw new Error('IP address should not be empty or null');
+    }
+
+    const newAccountIp = {ipAddress, jupAddress, alias, timestamp: new Date()};
+    NewAccountIp.create(newAccountIp)
+        .then(result => console.log('NewAccountIp successfully created', result))
+        .catch(error => logger.error(`Error saving logger record ${error}`))
+    ipLoggerCleanUp();
+}
+
+const ipLoggerRepeatedIpAddress =  function (){
+    return NewAccountIp.aggregate([
+        {
+            $group: {
+                "_id":"$ipAddress",
+                "count":{$sum:1}
+            }
+        },
+        {$match:{"count":{$gt:1}}}
+    ]);
+}
+
+/**
+ *
+ */
+const ipLoggerCleanUp = function(){
+    const currentDate = new Date();
+    const sinceDate = moment(currentDate).subtract(24, "hours").toDate();
+    NewAccountIp.deleteMany({timestamp: {$lt: sinceDate}})
+        .then(result => logger.info('NewAccountIp successfully removed'))
+        .catch(error => logger.error(`Error cleaning up logger record ${error}`))
+}
+
+
 module.exports = {
     isObject,
     jsonPropertyIsNonEmptyArray,
@@ -512,7 +568,10 @@ module.exports = {
     formatUsd,
     getCurrentJupiterValueOrNull,
     isWellFormedE2EPublicKey,
-    isWellFormedUuid
+    isWellFormedUuid,
+    ipLogger,
+    ipLoggerCleanUp,
+    ipLoggerRepeatedIpAddress
 };
 
 

@@ -2,6 +2,8 @@ import {StatusCode} from "../../../utils/statusCode";
 import {MetisErrorCode} from "../../../utils/metisErrorCode";
 import {accountRegistration} from "../../../services/accountRegistrationService";
 import {instantiateGravityAccountProperties} from "../../../gravity/instantiateGravityAccountProperties";
+import ipLoggerRepeatedIpAddress from "../../../utils/gravityUtils";
+import {metisConf} from "../../../config/metisConf";
 const moment = require('moment'); // require
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
@@ -99,11 +101,26 @@ module.exports = (app, jobs, websocket) => {
             logger.info('== Signup');
             logger.info('== POST: /v1/api/signup ');
             logger.info(`======================================================================================\n\n`);
-
+            // const ipLogger = function (jupAddress, alias, req) {
             const {account, alias, accounthash, public_key, key, jup_account_id, encryption_password} = req.body;
             const newAccountProperties = await instantiateGravityAccountProperties(key, encryption_password);
+            const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            gu.ipLogger(newAccountProperties.address, alias, ipAddress);
             createJob(jobs, newAccountProperties, alias, res, websocket, next);
         },
+
+        ipLoggerInfo: async (req, res) => {
+            const {password} = req.body;
+
+            if(password !== metisConf.ipEndpointPassword){
+                res.send({});
+            }
+
+            gu.ipLoggerRepeatedIpAddress()
+                .then(data => res.send(data))
+                .catch(error => res.status(StatusCode.ServerErrorInternal).send(error))
+        },
+
         /**
          * V2/SIGNUP
          */
@@ -118,6 +135,7 @@ module.exports = (app, jobs, websocket) => {
             if (!password) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide a password'})
             if (!alias) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide an alias'})
             if (!gu.isWellFormedJupiterAlias(alias)) {
+
                 const error = new mError.MetisErrorBadJupiterAlias(alias);
                 console.log('\n')
                 logger.error(`************************* ERROR ***************************************`);
