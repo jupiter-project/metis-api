@@ -60,9 +60,10 @@ function sendApplePN(token, alertMessage, badgeCount, payload, category){
   // setTimeout(async () => {
   return apnProvider.send(notification, token)
       .then(result=>{
-        // logger.debug(JSON.stringify(result));
+        logger.debug(`${result}`);
         apnProvider.shutdown(); // close all open connections when queue is fully drained.
       })
+      .catch(error => logger.error(`Error sending PN ${error}`))
   // }, delay);
 }
 

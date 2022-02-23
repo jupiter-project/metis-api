@@ -66,7 +66,7 @@ module.exports = {
         })
   },
   editMutedChannels: (req, res) => {
-    const { userData: { address: userAddress } } = req.user;
+    const { address: userAddress } = req.user;
     const { channelAddress, isMuted } = req.body;
 
     if (!channelAddress) {
