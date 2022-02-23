@@ -25,9 +25,9 @@ jobs:
       - name: Log in to DO Container Registry
         run: doctl registry login --expiry-seconds 600
       - name: Tag image
-        run: docker tag metis ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
+        run: docker tag metis registry.digitalocean.com/metis/metis:${{ steps.tag.outputs.tag }}
       - name: Push image to DO Container Registry
-        run: docker push ${{ secrets.DIGITALOCEAN_REGISTRY }}:${{ steps.tag.outputs.tag }}
+        run: docker push registry.digitalocean.com/metis/metis:${{ steps.tag.outputs.tag }}
       - name: Channel specific notification Slack
         uses: adamkdean/simple-slack-notify@master
         env:
