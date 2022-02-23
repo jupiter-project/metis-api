@@ -45,8 +45,19 @@ module.exports = {
         });
   },
 
-    upsertNotificationDocumentWithNewToken: async (userAddress, provider, newToken) => {
+    getTokePushNotifications: async (address, provider) => {
+        if(!address){
+            throw new Error('User address is missing');
+        }
+        let filter = { userAddress: address};
+        if (provider){
+            filter = { ...filter, 'pnAccounts.provider': provider };
+        }
+        return  Notifications.find(filter);
+    },
 
+    upsertNotificationDocumentWithNewToken: async (userAddress, provider, newToken) => {
+      console.log('#### upsertNotificationDocumentWithNewToken ####');
         if(!userAddress){
             throw new Error('User address is missing');
         }
@@ -74,12 +85,19 @@ module.exports = {
             ]
         };
 
+        console.log('Filter --->', filter);
         const notification = await Notifications.findOne(filter);
+        console.log('Notification find()', notification);
         if(!notification){
+            console.log('Creating new object in database!');
             return Notifications.create(update);
         }
 
-        if (!notification.pnAccounts){
+        console.log('Notification pnAccounts', notification.pnAccounts);
+
+        if (notification && notification.pnAccounts.length < 1){
+            console.log('Deleting notification object and creating new one', update);
+
             await Notifications.deleteOne(filter);
             return Notifications.create(update);
         }
@@ -95,6 +113,7 @@ module.exports = {
             badgeCounter: 0,
         };
 
+        console.log('newPNAccount updateOne', newPNAccount);
         return Notifications.updateOne(filter, { $push: { pnAccounts: newPNAccount } });
     },
 

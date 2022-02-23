@@ -2,7 +2,9 @@ import {
   findMutedChannels,
   updateBadgeCounter,
   findOneNotificationAndUpdate,
-  findOneNotificationAndRemovePNToken, upsertNotificationDocumentWithNewToken
+  findOneNotificationAndRemovePNToken,
+  upsertNotificationDocumentWithNewToken,
+  getTokePushNotifications
 } from './notificationService';
 // import {BadJupiterAddressError} from "../errors/metisError";
 import {StatusCode} from "../utils/statusCode";
@@ -39,6 +41,31 @@ module.exports = {
       return res.json(notification);
     } catch(error){
       const message = {message: `Problem with addTokenNotification`};
+      logger.error(`${error}`);
+
+      return res.status(StatusCode.ServerErrorInternal).json(message);
+    }
+  },
+  /**
+   * Get token push notifications
+   * @param req
+   * @param res
+   * @returns {Object}
+   */
+  getTokenNotification: async (req, res) => {
+    try {
+      const {address, provider} = req.params;
+      logger.debug(`[getTokenNotification]: ${address}`);
+      if (!gu.isWellFormedJupiterAddress(address)) {
+        const message = {message: `JupId is not valid: ${address}`};
+        logger.error(`${message}`);
+        return res.status(StatusCode.ClientErrorBadRequest).json(message);
+      }
+
+      const notification = await getTokePushNotifications(address, provider);
+      return res.send(notification);
+    } catch(error){
+      const message = {message: `Problem with getTokenNotification`};
       logger.error(`${error}`);
 
       return res.status(StatusCode.ServerErrorInternal).json(message);
