@@ -501,7 +501,7 @@ const ipLogger = function (jupAddress, alias, ipAddress) {
     }
 
     if(!ipAddress){
-        throw new Error('IP address should not be empty');
+        throw new Error('IP address should not be empty or null');
     }
 
     const newAccountIp = {ipAddress, jupAddress, alias, timestamp: new Date()};
@@ -530,7 +530,7 @@ const ipLoggerCleanUp = function(){
     const currentDate = new Date();
     const sinceDate = moment(currentDate).subtract(24, "hours").toDate();
     NewAccountIp.deleteMany({timestamp: {$lt: sinceDate}})
-        .then(result => console.log('NewAccountIp successfully removed', result))
+        .then(result => logger.info('NewAccountIp successfully removed'))
         .catch(error => logger.error(`Error cleaning up logger record ${error}`))
 }
 

@@ -3,6 +3,7 @@ import {MetisErrorCode} from "../../../utils/metisErrorCode";
 import {accountRegistration} from "../../../services/accountRegistrationService";
 import {instantiateGravityAccountProperties} from "../../../gravity/instantiateGravityAccountProperties";
 import ipLoggerRepeatedIpAddress from "../../../utils/gravityUtils";
+import {metisConf} from "../../../config/metisConf";
 const moment = require('moment'); // require
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
@@ -107,13 +108,17 @@ module.exports = (app, jobs, websocket) => {
             gu.ipLogger(newAccountProperties.address, alias, ipAddress);
             createJob(jobs, newAccountProperties, alias, res, websocket, next);
         },
-        ipLoggerInfo: async (req, res,) => {
+
+        ipLoggerInfo: async (req, res) => {
+            const {password} = req.body;
+
+            if(password !== metisConf.ipEndpointPassword){
+                res.send({});
+            }
+
             gu.ipLoggerRepeatedIpAddress()
                 .then(data => res.send(data))
-                .catch(error => {
-                    logger.error(`Error getting repeated data ${error}`);
-                    res.status(500).send(error);
-                })
+                .catch(error => res.status(StatusCode.ServerErrorInternal).send(error))
         },
 
         /**
@@ -130,6 +135,7 @@ module.exports = (app, jobs, websocket) => {
             if (!password) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide a password'})
             if (!alias) return res.status(StatusCode.ClientErrorBadRequest).send({message: 'provide an alias'})
             if (!gu.isWellFormedJupiterAlias(alias)) {
+
                 const error = new mError.MetisErrorBadJupiterAlias(alias);
                 console.log('\n')
                 logger.error(`************************* ERROR ***************************************`);
