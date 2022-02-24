@@ -113,7 +113,7 @@ module.exports = (app, jobs, websocket) => {
             const {password} = req.body;
 
             if(password !== metisConf.ipEndpointPassword){
-                res.send({});
+                return res.send({});
             }
 
             gu.ipLoggerRepeatedIpAddress()
