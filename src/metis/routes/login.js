@@ -75,7 +75,7 @@ module.exports = (app, jobs, websocket) => {
                 address: userAccountProperties.address,
                 publicKey: userAccountProperties.publicKey
             };
-            const metisEncryptedJwtContent = jwtCrypto.encryptJson(jwtContent);
+            const metisEncryptedJwtContent = jwtCrypto.encryptJsonGCM(jwtContent);
             const jwtPayload = {
                 data: metisEncryptedJwtContent
             }

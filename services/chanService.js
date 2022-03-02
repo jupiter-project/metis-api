@@ -10,7 +10,7 @@ const {jupiterAPIService} = require("./jupiterAPIService");
 const {gravity} = require('../config/gravity');
 const {jupiterFundingService} = require("./jupiterFundingService");
 const {jupiterTransactionsService} = require("./jupiterTransactionsService");
-const {channelConfig, tableConfig, userConfig} = require("../config/constants");
+const {channelConfig, tableConfig, userConfig, metisConfig} = require("../config/constants");
 const metis = require("../config/metis");
 const {instantiateGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
 const {transactionUtils} = require("../gravity/transactionUtils");
@@ -372,7 +372,7 @@ class ChanService {
             const feeType = FeeManager.feeTypes.invitation_to_channel;
             // const inviteeInfo = await jupiterAccountService.getAccountOrNull(inviteeAddress);
             // const inviteePublicKey = inviteeInfo.publicKey;
-            const recordTag = `${channelConfig.channelInviteRecord}.${channelAccountProperties.address}`;
+            const recordTag = `${channelConfig.channelInviteRecord}.${channelAccountProperties.address}.${metisConfig.ev1}`;
             const sendTaggedAndEncipheredMetisMessageResponse = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 inviterAccountProperties.passphrase,
                 inviteeAddress,
@@ -656,7 +656,7 @@ class ChanService {
             alias: memberAccountProperties.getCurrentAliasNameOrNull()
         };
         try {
-            const response1 = await metis.addToMemberList(params); // adds the member to the channel jupiter key/value properties. @TODO this is obsolete. Remove it!
+            // const response1 = await metis.addToMemberList(params); // adds the member to the channel jupiter key/value properties. @TODO this is obsolete. Remove it!
             const response2 = await this.addMemberInfoToChannelIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo,role)
             const response3 = await this.addChannelInfoToAccountIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo)
             await jupiterFundingService.waitForAllTransactionConfirmations(response2.transactionsReport);
@@ -913,9 +913,9 @@ class ChanService {
             accountProperties.address
         );
 
-        const encryptedChannelRecordPayload = accountProperties.crypto.encryptJson(channelRecordPayload);
+        const encryptedChannelRecordPayload = accountProperties.crypto.encryptJsonGCM(channelRecordPayload);
         const feeType =   FeeManager.feeTypes.account_record;
-        const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}`;
+        const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}.${metisConfig.ev1}`;
 
         // if(accountProperties.isMinimumProperties){
         //     await refreshGravityAccountProperties(accountProperties);
@@ -966,7 +966,7 @@ class ChanService {
                 role: role,
                 profileUrl: null
             }
-            const recordTag = `${channelConfig.channelMember}.${memberProperties.address}`;
+            const recordTag = `${channelConfig.channelMember}.${memberProperties.address}.${metisConfig.ev1}`;
             const listTag = channelConfig.channelMemberList;
             const transactionResponse = await this.gravityService.addNewRecordToReferencedDataSet(
                 newMemberPayload,

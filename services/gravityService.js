@@ -44,7 +44,7 @@ class GravityService{
         try {
             let payload = recordJson;
             if (metisEncrypt) {
-                payload = gravityAccountProperties.crypto.encryptJson(recordJson);
+                payload = gravityAccountProperties.crypto.encryptJsonGCM(recordJson);
             }
             const response = await this.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
@@ -74,7 +74,7 @@ class GravityService{
             }
             updatedList.push(responseTransactionId);
             if (metisEncrypt) {
-                updatedList = gravityAccountProperties.crypto.encryptJson(updatedList);
+                updatedList = gravityAccountProperties.crypto.encryptJsonGCM(updatedList);
             }
             return this.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
@@ -114,7 +114,7 @@ class GravityService{
                 list.push(newItem);
                 let encryptedList = list;
                 if (isMetisEncrypted) {
-                    encryptedList = gravityAccountProperties.crypto.encryptJson(list);
+                    encryptedList = gravityAccountProperties.crypto.encryptJsonGCM(list);
                 }
                 // Third: Send the updated list.
                 // if (gravityAccountProperties.isMinimumProperties) {
@@ -147,7 +147,7 @@ class GravityService{
                 const newList = list.filter(item => item !== itemToRemove)
                 let encryptedNewList = newList;
                 if (isMetisEncrypted) {
-                    encryptedNewList = gravityAccountProperties.crypto.encryptJson(newList);
+                    encryptedNewList = gravityAccountProperties.crypto.encryptJsonGCM(newList);
                 }
                 // Second: Send the updated list.
                 return this.messageService.sendTaggedAndEncipheredMetisMessage(
