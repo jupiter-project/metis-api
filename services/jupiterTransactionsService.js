@@ -103,7 +103,7 @@ class JupiterTransactionsService {
         console.log(`\n`)
         logger.verbose(`#### getReadableTaggedMessageContainers(gravityAccountProperties, tag, isMetisEncrypted)`);
         if(!(gravityAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`gravityAccountProperties`)
-        if(!gu.isNonEmptyString(tag)){throw new MetisError('tag is invalid')};
+        if(!gu.isNonEmptyString(tag)){throw new MetisError('tag is invalid')}
         logger.verbose(`tag= ${tag}`);
         logger.verbose(`isMetisEncrypted= ${isMetisEncrypted}`);
         logger.verbose(`gravityAccountProperties.address= ${gravityAccountProperties.address}`);

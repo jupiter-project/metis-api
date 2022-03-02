@@ -62,7 +62,7 @@ const tokenVerify = (req, res, next) => {
       }
       try {
         const metisCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer);
-        const jwtContent = metisCrypto.decryptAndParse(decodedToken.data);
+        const jwtContent = metisCrypto.decryptAndParseGCM(decodedToken.data);
         req.user = {};
         req.user.gravityAccountProperties = await instantiateGravityAccountProperties(
             jwtContent.passphrase,
@@ -80,6 +80,7 @@ const tokenVerify = (req, res, next) => {
         logger.error(`** tokenVerify.jwtVerify().callback().catch(error)`);
         logger.error(`****************************************************************`);
         console.log(error);
+
         return res.status(StatusCode.ClientErrorUnauthorized).send({message: 'Not authorized to access'});
         // return next();
       }
