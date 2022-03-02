@@ -498,9 +498,6 @@ class JupiterAccountService {
                 listTag
             );
 
-            console.log('e2ePublicKey ---------->', e2ePublicKey);
-            console.log('latestE2EPublicKeysContainers ---------->', latestE2EPublicKeysContainers);
-
             const latestUserE2EPublicKeys = latestE2EPublicKeysContainers.map(containers => containers.message);
             const latestUserE2ETransactionIds = latestE2EPublicKeysContainers.map(containers => containers.transactionId);
             if (latestUserE2EPublicKeys.some(pk => pk.e2ePublicKey === e2ePublicKey)) {
