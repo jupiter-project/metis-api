@@ -8,6 +8,7 @@ const {GravityAccountProperties} = require("../gravity/gravityAccountProperties"
 const {transactionUtils} = require("../gravity/transactionUtils");
 const assert = require("assert");
 const mError = require("../errors/metisError");
+import {metisConfig} from '../config/constants';
 
 class JupiterTransactionMessageService {
 
@@ -346,7 +347,9 @@ class JupiterTransactionMessageService {
                 logger.warn('???????????????????????????????????????????????\n');
                 return '';
             }
-            const messageToParse = crypto.decryptOrNull(decryptedMessageContainer.message);
+            const messageToParse = decryptedMessageContainer.tag.includes(metisConfig.ev1)
+                ? crypto.decryptOrNullGCM(decryptedMessageContainer.message)
+                : crypto.decryptOrNull(decryptedMessageContainer.message);
             if (!messageToParse) {
                 console.log(`\n`);
                 logger.warn('???????????????????????????????????????????????');
@@ -379,7 +382,9 @@ class JupiterTransactionMessageService {
                         // logger.error('what happens if i try to parse a non JSON String?');
                         // logger.debug(`decryptedMessage.message= ${decryptedMessage.message}`);
                         // logger.sensitive(`password= ${crypto.decryptionPassword}`);
-                        const messageToParse = crypto.decryptOrPassThrough(messageContainer.message);
+                        const messageToParse = messageContainer.tag.includes(metisConfig.ev1)
+                            ? crypto.decryptOrPassThroughGCM(messageContainer.message)
+                            : crypto.decryptOrPassThrough(messageContainer.message);
 
                         if(!messageToParse){
                             // logger.debug('messageToParse is null');
@@ -417,7 +422,7 @@ class JupiterTransactionMessageService {
      *
      * @param messageTransactionId
      * @param passphrase
-     * @returns {Promise<{message: *, transactionId: *}>}
+     * @returns {Promise<{message: *, transactionId: *, tag: *}>}
      */
     getReadableMessageContainerFromMessageTransactionId(messageTransactionId, passphrase) {
         if(!gu.isWellFormedJupiterTransactionId(messageTransactionId)){throw new Error('messageTransactionId is invalid')}
@@ -426,7 +431,7 @@ class JupiterTransactionMessageService {
         return this.jupiterAPIService.getMessage(messageTransactionId, passphrase)
             .then((response) => {
                 const message = gu.jsonParseOrPassThrough(response.data.decryptedMessage);
-                return {message: message, transactionId: messageTransactionId};
+                return {message: message, transactionId: messageTransactionId, tag: response.data.message};
             })
     }
 

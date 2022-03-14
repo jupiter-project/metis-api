@@ -30,10 +30,10 @@ module.exports = (app, jobs, websocket) => {
                 logger.error(`The userAddress is not the same as currently logged in user userAddress: ${userAddress}, currently: ${userProperties.address}`)
                 return res.status(StatusCode.ClientErrorBadRequest).send({message: 'bad user address'});
             }
-            await Promise.all([
-                jupiterAccountService.addE2EPublicKeyToJupiterAccount(e2ePublicKey, userProperties),
-                chanService.updateAllMemberChannelsWithNewE2EPublicKey(e2ePublicKey, userProperties)
-            ])
+
+            await jupiterAccountService.addE2EPublicKeyToJupiterAccount(e2ePublicKey, userProperties);
+            await chanService.updateAllMemberChannelsWithNewE2EPublicKey(e2ePublicKey, userProperties);
+
             res.status(StatusCode.SuccessOK).send({message: 'Public key was successfully added'});
         } catch (error){
             if(error instanceof mError.MetisErrorPublicKeyExists){

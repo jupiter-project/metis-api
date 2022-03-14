@@ -1,5 +1,5 @@
 import gu from '../utils/gravityUtils';
-import {channelConfig, userConfig} from '../config/constants';
+import {channelConfig, metisConfig, userConfig} from '../config/constants';
 import {
     instantiateGravityAccountProperties
 } from "../gravity/instantiateGravityAccountProperties";
@@ -89,7 +89,7 @@ class JupiterAccountService {
      * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
     async addUserRecordToUserAccount(userAccountProperties) {
-        const tag = `${userConfig.userRecord}.${userAccountProperties.address}`;
+        const tag = `${userConfig.userRecord}.${userAccountProperties.address}.${metisConfig.ev1}`;
         const createdDate = Date.now();
         const userRecord = {
             recordType: 'userRecord',
@@ -102,7 +102,7 @@ class JupiterAccountService {
             updatedAt: createdDate,
             version: 1
         };
-        const encryptedUserRecord = userAccountProperties.crypto.encryptJson(userRecord);
+        const encryptedUserRecord = userAccountProperties.crypto.encryptJsonGCM(userRecord);
         return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
             userAccountProperties.passphrase,
             userAccountProperties.address,
@@ -469,11 +469,11 @@ class JupiterAccountService {
         try {
             const checksumPublicKey = gu.generateChecksum(e2ePublicKey);
             let listTag = '';
-            let recordTag = '';
+            let recordTag = `${userConfig.userPublicKey}.${checksumPublicKey}.${metisConfig.ev1}`;
             let payload = '';
+
             if (accountType === 'UserAccount') {
                 listTag = userConfig.userPublicKeyList;
-                recordTag = `${userConfig.userPublicKey}.${checksumPublicKey}`;
                 payload = {
                     recordType: 'e2eUserPublicKeyRecord',
                     e2ePublicKey: e2ePublicKey,
@@ -483,7 +483,7 @@ class JupiterAccountService {
             } else {
                 if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(`userAddress: ${userAddress}`)
                 listTag = channelConfig.channelMemberPublicKeyList
-                recordTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
+                recordTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}.${metisConfig.ev1}`;
                 payload = {
                     recordType: 'e2eChannelMemberPublicKeyRecord',
                     memberAccountAddress: userAddress,
@@ -496,14 +496,15 @@ class JupiterAccountService {
             const latestE2EPublicKeysContainers = await this.jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(
                 gravityAccountProperties,
                 listTag
-            )
+            );
+
             const latestUserE2EPublicKeys = latestE2EPublicKeysContainers.map(containers => containers.message);
             const latestUserE2ETransactionIds = latestE2EPublicKeysContainers.map(containers => containers.transactionId);
             if (latestUserE2EPublicKeys.some(pk => pk.e2ePublicKey === e2ePublicKey)) {
                 throw new mError.MetisErrorPublicKeyExists('', e2ePublicKey);
             }
             //Send A New PublicKey Transaction
-            const encryptedMessage = gravityAccountProperties.crypto.encryptJson(payload);
+            const encryptedMessage = gravityAccountProperties.crypto.encryptJsonGCM(payload);
             const userE2EPublicKeyResponse = await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
                 gravityAccountProperties.address,
@@ -514,7 +515,7 @@ class JupiterAccountService {
             );
             //Update the PublicKeys List
             latestUserE2ETransactionIds.push(userE2EPublicKeyResponse.transaction);
-            const encryptedLatestUserE2ETransactionIds = gravityAccountProperties.crypto.encryptJson(latestUserE2ETransactionIds);
+            const encryptedLatestUserE2ETransactionIds = gravityAccountProperties.crypto.encryptJsonGCM(latestUserE2ETransactionIds);
             await jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 gravityAccountProperties.passphrase,
                 gravityAccountProperties.address,
@@ -942,6 +943,7 @@ class JupiterAccountService {
      * @return {Promise<null|GravityAccountProperties>}
      */
     async getMemberAccountPropertiesFromPersistedUserRecordOrNull(memberPassphrase, memberPassword) {
+        logger.verbose(`##### getMemberAccountPropertiesFromPersistedUserRecordOrNull(memberPassphrase, memberPassword)`);
         if(!gu.isWellFormedPassphrase(memberPassphrase)){throw new MetisError('memberPassphrase is invalid')}
         if(!gu.isNonEmptyString(memberPassword)){throw new MetisError('memberPassword is empty')}
         const memberAccountProperties =  await instantiateGravityAccountProperties(memberPassphrase, memberPassword);

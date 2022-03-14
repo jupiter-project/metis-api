@@ -13,6 +13,9 @@ import {instantiateGravityAccountProperties} from "../gravity/instantiateGravity
 const addressBreakdown = process.env.APP_ACCOUNT_ADDRESS ? process.env.APP_ACCOUNT_ADDRESS.split('-') : [];
 const {jupiterTransactionsService} = require("../services/jupiterTransactionsService");
 
+/**
+ * @deprecated
+ */
 class Gravity {
   constructor() {
     this.algorithm = process.env.ENCRYPT_ALGORITHM;
@@ -3225,6 +3228,9 @@ class Gravity {
   }
 
   // This class is meant to be used when creating tables from the command line
+  /**
+   * @deprecated
+   */
   createAppDatabase() {
     const readline = require('readline');
     const rl = readline.createInterface({

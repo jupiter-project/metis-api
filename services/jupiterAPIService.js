@@ -601,10 +601,10 @@ class JupiterAPIService {
     async getMessage(transactionId, passphrase) {
         if(!gu.isWellFormedJupiterTransactionId(transactionId)){
             throw new Error(`Jupiter transaction id not valid: ${transactionId}`);
-        };
+        }
         if(!gu.isWellFormedPassphrase(passphrase)){throw new Error('passphrase is not valid')}
 
-        return this.get( {requestType: JupiterAPIService.RequestType.ReadMessage, transaction: transactionId, secretPhrase: passphrase})
+        return this.get( {requestType: JupiterAPIService.RequestType.ReadMessage, transaction: transactionId, secretPhrase: passphrase});
     }
 
 
