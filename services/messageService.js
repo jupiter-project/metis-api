@@ -11,6 +11,7 @@ const {getPNTokensAndSendPushNotification} = require("../services/PushNotificati
 // const {chanService} = require("./chanService");
 // const {StatusCode} = require("../utils/statusCode");
 import mError from "../errors/metisError";
+import {metisConfig} from "../config/constants";
 const gu = require("../utils/gravityUtils")
 
 const generateNewMessageRecordJson = (
@@ -70,7 +71,7 @@ const createMessageRecord = async (fromAccountProperties, toAccountProperties, m
             version,
         );
         const messageRecordString = JSON.stringify(messageRecord);
-        const tag = messagesConfig.messageRecord;
+        const tag = `${messagesConfig.messageRecord}.${metisConfig.evm}`;
         const feeType = FeeManager.feeTypes.account_record;
         return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
             fromAccountProperties.passphrase,
@@ -126,9 +127,9 @@ const sendMessagePushNotifications = async (senderAccountProperties, channelAcco
         if (!(senderAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterAddress('Invalid memberAccountProperties')
         if (!(channelAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadJupiterAddress('Invalid channelAccountProperties')
         if(!Array.isArray(mentions)) throw new mError.MetisError(`mentions needs to be an array`);
-        
-        
-        
+
+
+
         mentions.forEach(mentionedMemberAddress => {
             if(!gu.isWellFormedJupiterAddress(mentionedMemberAddress)) throw new mError.MetisErrorBadJupiterAddress('', mentionedMemberAddress);
         })

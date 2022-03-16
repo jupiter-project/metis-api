@@ -2,8 +2,8 @@ import {StatusCode} from "../../../utils/statusCode";
 import {MetisErrorCode} from "../../../utils/metisErrorCode";
 import {accountRegistration} from "../../../services/accountRegistrationService";
 import {instantiateGravityAccountProperties} from "../../../gravity/instantiateGravityAccountProperties";
-import ipLoggerRepeatedIpAddress from "../../../utils/gravityUtils";
 import {metisConf} from "../../../config/metisConf";
+import {kue} from "../../../config/configJobQueue";
 const moment = require('moment'); // require
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
@@ -35,13 +35,15 @@ const createJob = (jobs,newAccountProperties,newAccountAlias,res,websocket, subs
             }
             logger.debug(`job.id= ${job.id}`);
             logger.debug(`job.created_at= ${job.created_at}`);
-            websocket.of('/sign-up').to(`sign-up-${newAccountProperties.address}`).emit('signUpJobCreated', job.id);
+            const jobInfo = {
+                id: job.id,
+                createdAt: job.created_at,
+                href: `/v1/api/job/status?jobId=${job.id}`,
+            };
+
+            websocket.of('/sign-up').to(`sign-up-${newAccountProperties.address}`).emit('signUpJobCreated', jobInfo);
             res.status(StatusCode.SuccessAccepted).send({
-                job: {
-                    id: job.id,
-                    createdAt: job.created_at,
-                    href: `/v1/api/job/status?jobId=${job.id}`,
-                },
+                job: jobInfo,
                 passphrase: newAccountProperties.passphrase,
                 address: newAccountProperties.address,
                 passwordHash: bcrypt.hashSync(newAccountProperties.crypto.encryptionPassword, bcrypt.genSaltSync(8), null)
@@ -147,6 +149,28 @@ module.exports = (app, jobs, websocket) => {
             }
             const newAccountProperties = await accountRegistration.createNewAccount(password);
             createJob(jobs, newAccountProperties, alias, res, websocket, next);
+        },
+        /**
+         * Sign up job quebe status
+         * @param req
+         * @param res
+         * @param next
+         * @returns {Object}
+         */
+        signUpJobStatus: async (req, res, next) => {
+            console.log(`\n\n`);
+            logger.info('======================================================================================');
+            logger.info('== SignUp job status');
+            logger.info('== GET: /v1/api/job/status ');
+            logger.info(`======================================================================================\n\n`);
+
+            const {jobId} = req.query;
+            kue.Job.get(jobId, (err, job) => {
+                if(err){
+                    return res.status(StatusCode.ServerErrorInternal).send({message: 'Not able to get the job status'});
+                }
+               res.send({status : job._state});
+            });
         }
     }
 }

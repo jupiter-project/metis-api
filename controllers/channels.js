@@ -58,7 +58,7 @@ module.exports = (app, passport, jobs, websocket) => {
                 createdAt: channelAccountProperties.createdAt
             });
             return reduced;
-        }, [])
+        }, []);
 
         res.send(listOfChannels);
 
@@ -455,7 +455,11 @@ module.exports = (app, passport, jobs, websocket) => {
                         href: `/v1/api/job/status?jobId=${job.id}`,
                     }
                 });
-                websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated', {jobId: job.id});
+                websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated',
+                    {
+                        jobId: job.id,
+                        channelAddress: channelAccountProperties.address
+                    });
             });
         job.on('complete', function (result) {
             logger.verbose(`---- JobQueue: channel-creation-confirmation.on(complete)`);
@@ -481,21 +485,27 @@ module.exports = (app, passport, jobs, websocket) => {
             logger.error(`****************************************************************`);
             logger.error(`** JobQueue: channel-creation-confirmation.on(failed attempt))`);
             logger.error(`****************************************************************`);
-            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
-            logger.error(`doneAttempts= ${JSON.stringify(doneAttempts)}`);
-            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
-            console.log(errorMessage)
-            console.log(doneAttempts)
+            logger.error(`channel name= ${channelName}`);
+            logger.error(`channel address= ${channelAccountProperties.address}`);
+            logger.error(`user address= ${memberAccountProperties.address}`);
+            logger.error(`user alias= ${memberAccountProperties.getCurrentAliasNameOrNull()}`);
+            logger.error(`error= ${errorMessage}`);
+            logger.error(`doneAttempts= ${doneAttempts}`);
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed',
+                { jobId: job.id, channelAddress: channelAccountProperties.address });
         });
 
         job.on('failed', function (errorMessage) {
             logger.error(`****************************************************************`);
             logger.error(`** JobQueue: channel-creation-confirmation.on(failed))`);
             logger.error(`****************************************************************`);
-            logger.error(`error= ${errorMessage}`)
-            logger.error(`errorMessage= ${JSON.stringify(errorMessage)}`);
-            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed', job.id);
-            console.log(errorMessage)
+            logger.error(`channel name= ${channelName}`);
+            logger.error(`channel address= ${channelAccountProperties.address}`);
+            logger.error(`user address= ${memberAccountProperties.address}`);
+            logger.error(`user alias= ${memberAccountProperties.getCurrentAliasNameOrNull()}`);
+            logger.error(`error= ${errorMessage}`);
+            websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed',
+                { jobId: job.id, channelAddress: channelAccountProperties.address });
         });
     })
 };
