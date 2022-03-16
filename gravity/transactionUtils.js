@@ -417,7 +417,7 @@ class TransactionUtils {
         if(!gu.isWellFormedJupiterAddress(senderAddress)) throw new mError.MetisErrorBadJupiterAddress(`senderAddress: ${senderAddress}`)
         // if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new BadJupiterAddressError(senderAddress)}
         // if(!gu.isWellFormedJupiterAddress(senderAddress)){throw new Error('senderAddress is wrong')}
-        if(!Array.isArray(transactions)){throw new Error('Not array')};
+        if(!Array.isArray(transactions)){throw new Error('Not array')}
         return  this.filterMessageTransactionsByCallback(transactions, (transaction) =>
             {
                 // console.log('=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')

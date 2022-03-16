@@ -138,10 +138,10 @@ const signUpConnection = function (socket) {
    * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
    */
   socket.on('disconnect', (reason) => {
-    logger.debug(`***********************************************************************************`);
-    logger.debug(`** signUpConnection(socket).onDisconnect(reason)`);
-    logger.debug(`** `);
-    logger.info(`reason: ${reason}`);
+    logger.error(`***********************************************************************************`);
+    logger.error(`** signUpConnection(socket).onDisconnect(reason)`);
+    logger.error(`** `);
+    logger.error(`reason: ${reason}`);
     logger.info(`${socket.name} has disconnected from the chat.${socket.id}`);
   });
 };

@@ -347,7 +347,7 @@ class JupiterTransactionMessageService {
                 logger.warn('???????????????????????????????????????????????\n');
                 return '';
             }
-            const messageToParse = decryptedMessageContainer.tag.includes(metisConfig.ev1)
+            const messageToParse = decryptedMessageContainer.tag.includes(metisConfig.evm)
                 ? crypto.decryptOrNullGCM(decryptedMessageContainer.message)
                 : crypto.decryptOrNull(decryptedMessageContainer.message);
             if (!messageToParse) {
@@ -382,7 +382,7 @@ class JupiterTransactionMessageService {
                         // logger.error('what happens if i try to parse a non JSON String?');
                         // logger.debug(`decryptedMessage.message= ${decryptedMessage.message}`);
                         // logger.sensitive(`password= ${crypto.decryptionPassword}`);
-                        const messageToParse = messageContainer.tag.includes(metisConfig.ev1)
+                        const messageToParse = messageContainer.tag.includes(metisConfig.evm)
                             ? crypto.decryptOrPassThroughGCM(messageContainer.message)
                             : crypto.decryptOrPassThrough(messageContainer.message);
 

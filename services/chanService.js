@@ -372,7 +372,7 @@ class ChanService {
             const feeType = FeeManager.feeTypes.invitation_to_channel;
             // const inviteeInfo = await jupiterAccountService.getAccountOrNull(inviteeAddress);
             // const inviteePublicKey = inviteeInfo.publicKey;
-            const recordTag = `${channelConfig.channelInviteRecord}.${channelAccountProperties.address}.${metisConfig.ev1}`;
+            const recordTag = `${channelConfig.channelInviteRecord}.${channelAccountProperties.address}.${metisConfig.evm}`;
             const sendTaggedAndEncipheredMetisMessageResponse = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                 inviterAccountProperties.passphrase,
                 inviteeAddress,
@@ -435,9 +435,9 @@ class ChanService {
             const channelAccountPropertiesInvitedTo = await instantiateGravityAccountProperties(
                 invitationRecord.channelRecord.passphrase,
                 invitationRecord.channelRecord.password
-            )
+            );
             channelAccountPropertiesInvitedTo.channelName = invitationRecord.channelRecord.channelName;
-            const processNewMemberResponse = await this.processNewMember(memberAccountProperties, channelAccountPropertiesInvitedTo);
+            const processNewMemberResponse = await this.processNewMember(memberAccountProperties, channelAccountPropertiesInvitedTo,'basic-member', invitationRecord.createdBy);
 
         } catch (error) {
             logger.error(`***********************************************************************************`);
@@ -639,9 +639,10 @@ class ChanService {
      * @param {GravityAccountProperties} memberAccountProperties
      * @param {GravityAccountProperties} channelAccountPropertiesInvitedTo
      * @param {string} role
+     * @param {string} createdBy
      * @returns {Promise<void>}
      */
-    async processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo, role = 'basic-member'){
+    async processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo, role = 'basic-member', createdBy = null){
         logger.verbose(`#### processNewMember(memberAccountProperties,channelAccountPropertiesInvitedTo,role)`);
         if(!(memberAccountProperties instanceof GravityAccountProperties)){throw new BadGravityAccountPropertiesError('memberAccountProperties')}
         if(!(channelAccountPropertiesInvitedTo instanceof GravityAccountProperties)){throw new BadGravityAccountPropertiesError('channelAccountPropertiesInvitedTo')}
@@ -658,7 +659,7 @@ class ChanService {
         try {
             // const response1 = await metis.addToMemberList(params); // adds the member to the channel jupiter key/value properties. @TODO this is obsolete. Remove it!
             const response2 = await this.addMemberInfoToChannelIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo,role)
-            const response3 = await this.addChannelInfoToAccountIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo)
+            const response3 = await this.addChannelInfoToAccountIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo, createdBy)
             await jupiterFundingService.waitForAllTransactionConfirmations(response2.transactionsReport);
 
             //@TODO we need to wait for response2. But the addMemberInfoToChannelIfDoesntExist doesnt return the transactions. Need to refactor!
@@ -887,9 +888,10 @@ class ChanService {
      *
      * @param accountProperties
      * @param channelAccountProperties
+     * @param createdBy
      * @return {Promise<{}|{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
-    async addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties) {
+    async addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties, createdBy = null) {
         console.log(`\n\n`)
         logger.verbose(`###################################################################################`);
         logger.verbose(`## addChannelInfoToAccountIfDoesntExist(accountProperties, channelAccountProperties)`);
@@ -910,12 +912,12 @@ class ChanService {
         const channelRecordPayload = await this.generateNewChannelRecordJson(
             channelAccountProperties.channelName,
             channelAccountProperties,
-            accountProperties.address
+            createdBy || accountProperties.address
         );
 
         const encryptedChannelRecordPayload = accountProperties.crypto.encryptJsonGCM(channelRecordPayload);
         const feeType =   FeeManager.feeTypes.account_record;
-        const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}.${metisConfig.ev1}`;
+        const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}.${metisConfig.evm}`;
 
         // if(accountProperties.isMinimumProperties){
         //     await refreshGravityAccountProperties(accountProperties);
@@ -966,8 +968,8 @@ class ChanService {
                 role: role,
                 profileUrl: null
             }
-            const recordTag = `${channelConfig.channelMember}.${memberProperties.address}.${metisConfig.ev1}`;
-            const listTag = channelConfig.channelMemberList;
+            const recordTag = `${channelConfig.channelMember}.${memberProperties.address}.${metisConfig.evm}`;
+            const listTag = `${channelConfig.channelMemberList}.${metisConfig.evm}`;
             const transactionResponse = await this.gravityService.addNewRecordToReferencedDataSet(
                 newMemberPayload,
                 channelProperties,
