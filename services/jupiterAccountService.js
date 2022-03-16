@@ -89,7 +89,7 @@ class JupiterAccountService {
      * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
      */
     async addUserRecordToUserAccount(userAccountProperties) {
-        const tag = `${userConfig.userRecord}.${userAccountProperties.address}.${metisConfig.ev1}`;
+        const tag = `${userConfig.userRecord}.${userAccountProperties.address}.${metisConfig.evm}`;
         const createdDate = Date.now();
         const userRecord = {
             recordType: 'userRecord',
@@ -469,11 +469,11 @@ class JupiterAccountService {
         try {
             const checksumPublicKey = gu.generateChecksum(e2ePublicKey);
             let listTag = '';
-            let recordTag = `${userConfig.userPublicKey}.${checksumPublicKey}.${metisConfig.ev1}`;
+            let recordTag = `${userConfig.userPublicKey}.${checksumPublicKey}.${metisConfig.evm}`;
             let payload = '';
 
             if (accountType === 'UserAccount') {
-                listTag = userConfig.userPublicKeyList;
+                listTag = `${userConfig.userPublicKeyList}.${metisConfig.evm}`;
                 payload = {
                     recordType: 'e2eUserPublicKeyRecord',
                     e2ePublicKey: e2ePublicKey,
@@ -482,8 +482,8 @@ class JupiterAccountService {
                 }
             } else {
                 if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(`userAddress: ${userAddress}`)
-                listTag = channelConfig.channelMemberPublicKeyList
-                recordTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}.${metisConfig.ev1}`;
+                listTag = `${channelConfig.channelMemberPublicKeyList}.${metisConfig.evm}`
+                recordTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}.${metisConfig.evm}`;
                 payload = {
                     recordType: 'e2eChannelMemberPublicKeyRecord',
                     memberAccountAddress: userAddress,
