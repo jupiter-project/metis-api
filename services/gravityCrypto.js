@@ -246,7 +246,7 @@ class GravityCrypto {
      */
     decryptAndParseGCM(data){
         const decryptedValue = this.decryptOrPassThroughGCM(data);
-        return  JSON.parse(decryptedValue);
+        return  typeof decryptedValue === 'object' ? decryptedValue : JSON.parse(decryptedValue);
     }
 
 

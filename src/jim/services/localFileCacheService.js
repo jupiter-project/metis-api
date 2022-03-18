@@ -94,7 +94,8 @@ class LocalFileCacheService {
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid=${fileUuid}`);
         if(!encryptedFileRecord) throw new mError.MetisError(`encryptedFileRecord is empty!`);
         const fileRecordPath = this.generateFileRecordPath(fileUuid);
-        fs.writeFileSync(fileRecordPath, encryptedFileRecord);
+        const data = typeof encryptedFileRecord === 'string' ? encryptedFileRecord : JSON.stringify(encryptedFileRecord);
+        fs.writeFileSync(fileRecordPath, data);
     }
 
     /**
