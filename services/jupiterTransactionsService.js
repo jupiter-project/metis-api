@@ -9,6 +9,7 @@ const {MetisError} = require("../errors/metisError");
 const mError = require("../errors/metisError");
 const {validator} = require("./validator");
 const {GravityCrypto} = require("./gravityCrypto");
+const {metisConfig} = require("../config/constants");
 
 class JupiterTransactionsService {
 
@@ -129,17 +130,20 @@ class JupiterTransactionsService {
      * @param transactionId
      * @param sharedKey
      * @param isEncrypted
+     * @param tag
      * @returns {Object}
      */
-    async getReadableMessageContainersBySharedKey(transactionId, sharedKey, isEncrypted = false){
+    async getReadableMessageContainersBySharedKey(transactionId, sharedKey, tag, isEncrypted = false){
         console.log(`\n`)
         logger.verbose(`########################################################################`);
         logger.verbose(`## getReadableTaggedMessageContainersBySharedKey( transactionId,sharedKey)`);
         logger.verbose(`########################################################################\n`);
         if(!gu.isNonEmptyString(transactionId)){throw new MetisError('transactionId is invalid')}
         if(!gu.isNonEmptyString(sharedKey)){throw new MetisError('sharedKey is invalid')}
+        if(!gu.isNonEmptyString(tag)){throw new MetisError('tag is invalid')}
         logger.verbose(`transactionId= ${transactionId}`);
         logger.verbose(`sharedKey= ${sharedKey}`);
+        logger.verbose(`tag= ${tag}`);
 
         const transaction = await this.jupiterAPIService.getReadableMessageBySharedKey(transactionId, sharedKey);
 
@@ -148,7 +152,9 @@ class JupiterTransactionsService {
         }
 
         const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, sharedKey);
-        return crypto.decryptAndParseOrNull(transaction.decryptedMessage);
+        return tag.includes(`.${metisConfig.evm}`)
+            ? crypto.decryptAndParseOrNullGCM(transaction.decryptedMessage)
+            : crypto.decryptAndParseOrNull(transaction.decryptedMessage);
     }
 
 

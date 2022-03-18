@@ -4,7 +4,7 @@ import {storageService} from "../services/storageService";
 import {localFileCacheService} from "../services/localFileCacheService";
 import {chanService} from "../../../services/chanService";
 import {jupiterAPIService} from "../../../services/jupiterAPIService";
-import {userConfig} from "../../../config/constants";
+import {metisConfig, userConfig} from "../../../config/constants";
 import {FeeManager, feeManagerSingleton} from "../../../services/FeeManager";
 import {jupiterTransactionsService} from "../../../services/jupiterTransactionsService";
 import {GravityCrypto} from "../../../services/gravityCrypto";
@@ -318,9 +318,18 @@ module.exports = (app, jobs, websocket) => {
             if(!messageContainers){
                 return res.status(StatusCode.ClientErrorNotFound).send({message: 'No image found'});
             }
-            const [fileUuid, transactionId, sharedKey] = messageContainers.attachment.message.split('.').slice(-3);
+            const messageContainerTag = messageContainers.attachment.message;
+            let fileUuid = '';
+            let transactionId = '';
+            let sharedKey = '';
+            let tag = '';
+            if(messageContainerTag.includes(`.${metisConfig.evm}`)){
+                [fileUuid, transactionId, sharedKey, tag] = messageContainers.attachment.message.split('.').slice(-4);
+            } else {
+                [fileUuid, transactionId, sharedKey] = messageContainers.attachment.message.split('.').slice(-3);
+            }
 
-            const fileInfo = await storageService.fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid);
+            const fileInfo = await storageService.fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid, messageContainerTag);
             res.setHeader('Content-Type', `${fileInfo.mimeType}`);
             res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`);
             res.sendFile(fileInfo.bufferDataPath);
