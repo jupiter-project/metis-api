@@ -2,6 +2,7 @@ import mError from "../../../errors/metisError";
 import {chanService} from "../../../services/chanService";
 import {localFileCacheService} from "./localFileCacheService";
 import {GravityCrypto} from "../../../services/gravityCrypto";
+import {metisConfig} from "../../../config/constants";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
@@ -339,7 +340,7 @@ class StorageService {
                 logger.info(` GETTING FILE FROM CACHE`);
                 logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
                 const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid);
-                fileRecord = ownerAccountProperties.crypto.decryptAndParse(encryptedFileRecord);
+                fileRecord = ownerAccountProperties.crypto.decryptAndParseGCM(encryptedFileRecord);
             } else {
                 // GETTING FILE FROM BLOCKCHAIN
                 console.log(`\n`);
@@ -349,7 +350,7 @@ class StorageService {
                 const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChain(ownerAccountProperties,fileUuid);
                 bufferData = fetchFileFromBlockChainResponse.bufferData;
                 fileRecord = fetchFileFromBlockChainResponse.fileRecord;
-                const encryptedFileRecord = ownerAccountProperties.crypto.encryptJson(fileRecord);
+                const encryptedFileRecord = ownerAccountProperties.crypto.encryptJsonGCM(fileRecord);
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
                 this.fileCacheService.sendFileRecordToCache(fileUuid,encryptedFileRecord);
             }
@@ -432,11 +433,12 @@ class StorageService {
     }
 
 
-    async fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid){
+    async fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid, tag){
         logger.verbose(`#### fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid)`);
         if(!gu.isNonEmptyString(transactionId)) throw new mError.MetisErrorBadUuid(`transactionId: ${transactionId}`);
         if(!gu.isNonEmptyString(sharedKey)) throw new mError.MetisErrorBadUuid(`transactionId: ${sharedKey}`);
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
+        if(!tag) throw new mError.MetisErrorBadUuid(`tag: ${tag}`);
         let bufferData = null;
         let fileRecord = null;
         try {
@@ -448,18 +450,17 @@ class StorageService {
                 logger.info(` GETTING FILE FROM CACHE`);
                 logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
                 const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid);
-                fileRecord = crypto.decryptAndParse(encryptedFileRecord);
+                fileRecord = tag.includes(`.${metisConfig.evm}`) ? crypto.decryptAndParseGCM(encryptedFileRecord) : crypto.decryptAndParse(encryptedFileRecord);
             } else {
                 // GETTING FILE FROM BLOCKCHAIN
                 console.log(`\n`);
                 logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`);
                 logger.info(` GETTING FILE FROM BLOCKCHAIN`);
                 logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
-                const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChainBySharedKey(transactionId, sharedKey);
+                const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChainBySharedKey(transactionId, sharedKey, tag);
                 bufferData = fetchFileFromBlockChainResponse.bufferData;
                 fileRecord = fetchFileFromBlockChainResponse.fileRecord;
-
-                const encryptedFileRecord = crypto.encryptJson(fileRecord);
+                const encryptedFileRecord = tag.includes(`.${metisConfig.evm}`) ? crypto.decryptAndParseGCM(fileRecord) : crypto.decryptAndParse(fileRecord);
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
                 this.fileCacheService.sendFileRecordToCache(fileUuid,encryptedFileRecord);
             }
@@ -490,12 +491,12 @@ class StorageService {
      * @param transactionId
      * @param sharedKey
      */
-    async fetchFileFromBlockChainBySharedKey(transactionId, sharedKey){
+    async fetchFileFromBlockChainBySharedKey(transactionId, sharedKey, tag){
         logger.verbose(`#### fetchFileFromBlockChainBySharedKey()`);
         if(!gu.isNonEmptyString(transactionId)) throw new mError.MetisErrorBadUuid(`transactionId is missing`);
         if(!gu.isNonEmptyString(sharedKey)) throw new mError.MetisErrorBadUuid(`sharedKey is missing`);
         try {
-            const fileRecord =  await jupiterTransactionsService.getReadableMessageContainersBySharedKey(transactionId, sharedKey);
+            const fileRecord =  await jupiterTransactionsService.getReadableMessageContainersBySharedKey(transactionId, sharedKey, tag);
 
             const chunkTransactionIds = fileRecord.chunkTransactionIds;
             // GET ALL THE CHUNKS
@@ -504,7 +505,7 @@ class StorageService {
             logger.info(` GET ALL THE CHUNKS`);
             logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
             const readableMessageContainer$ = chunkTransactionIds.map(chunkTransactionId =>
-                jupiterTransactionsService.getReadableMessageContainersBySharedKey(chunkTransactionId.transactionId, chunkTransactionId.sharedKey)
+                jupiterTransactionsService.getReadableMessageContainersBySharedKey(chunkTransactionId.transactionId, chunkTransactionId.sharedKey, tag)
             );
             const chunkContainers = await Promise.all(readableMessageContainer$);
             if(chunkContainers.length < 1) throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`);
@@ -632,7 +633,7 @@ class StorageService {
 
             const _fileRecord = (fileCat === FileCategory.PublicProfile || fileCat === FileCategory.ChannelProfile) ?
                 JSON.stringify(fileRecord):
-                toAccountProperties.crypto.encryptJson(fileRecord)
+                toAccountProperties.crypto.encryptJsonGCM(fileRecord)
             if(!this.fileCacheService.bufferDataExists(fileUuid)){
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
             }
@@ -651,20 +652,20 @@ class StorageService {
 
             if(fileCat === FileCategory.PublicProfile || fileCat === FileCategory.ChannelProfile){
                 const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, xSharedKey);
-                const encryptedFileRecord = crypto.encryptJson(fileRecord);
+                const encryptedFileRecord = crypto.encryptJsonGCM(fileRecord);
                 this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);
                 const sendMessageResponsePublicFileSharedKey = await this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
                     toAccountProperties.passphrase,
                     toAccountProperties.address,
                     _fileRecord,
-                    `${transactionTags.jimServerTags.binaryFilePublicProfileSharedKey}.${fileUuid}.${xInfo.transactionId}.${xSharedKey}`,
+                    `${transactionTags.jimServerTags.binaryFilePublicProfileSharedKey}.${fileUuid}.${xInfo.transactionId}.${xSharedKey}.${metisConfig.evm}`,
                     FeeManager.feeTypes.metisMessage,
                     toAccountProperties.publicKey
                 );
                 return {fileRecord: encryptedFileRecord, sharedKey: xSharedKey}
             }
 
-            const encryptedFileRecord = toAccountProperties.crypto.encryptJson(fileRecord);
+            const encryptedFileRecord = toAccountProperties.crypto.encryptJsonGCM(fileRecord);
             this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord);
 
             return {fileRecord: _fileRecord}
