@@ -236,7 +236,7 @@ class GravityCrypto {
      */
     decryptAndParse(data){
         const decryptedValue = this.decryptOrPassThrough(data);
-        return  JSON.parse(decryptedValue);
+        return  typeof decryptedValue === 'object' ? decryptedValue : JSON.parse(decryptedValue);
     }
 
     /**

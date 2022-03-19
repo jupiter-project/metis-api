@@ -17,7 +17,7 @@ const {transactionUtils} = require("../gravity/transactionUtils");
 const {BadGravityAccountPropertiesError, ChannelRecordValidatorError, InviteRecordValidatorError} = require("../errors/metisError");
 const {validator} = require("../services/validator");
 const {GravityCrypto} = require("./gravityCrypto");
-// const {axiosDefault} = require("../config/axiosConf");
+import {uniqBy} from 'lodash';
 
 class ChanService {
     /**
@@ -1070,7 +1070,7 @@ class ChanService {
         logger.debug(`channelAccountProperties.address= ${channelAccountProperties.address}`);
         const listTag = channelConfig.channelMemberPublicKeyList;
         return jupiterTransactionsService.dereferenceListAndGetReadableTaggedMessageContainers(channelAccountProperties, listTag)
-            .then( messageContainers  => messageContainers.map(messageContainer => messageContainer.message))
+            .then( messageContainers  => uniqBy(messageContainers.map(messageContainer => messageContainer.message), 'memberAccountAddress'))
     }
 
     /**
@@ -1103,72 +1103,6 @@ class ChanService {
     addE2EPublicKeyToChannel(userE2EPublicKey, userAddress, channelAccountProperties, userAlias) {
         logger.verbose(`#### addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties)`);
         return this.jupiterAccountService.addE2EPublicKeyToJupiterAccount(userE2EPublicKey,channelAccountProperties,userAddress, userAlias, 'ChannelAccount');
-        // try {
-        //
-        //     //------------------------------
-        //     const listTag =  channelConfig.channelMemberPublicKeyList
-        //     //------------------------------
-        //
-        //
-        //
-        //     const latestE2EPublicKeysContainers = await this.jupiterTransactionsService.messageService.dereferenceListAndGetReadableTaggedMessageContainers(
-        //         channelAccountProperties,
-        //         listTag
-        //     )
-        //     const latestE2EPublicKeys = latestE2EPublicKeysContainers.map(containers => containers.message);
-        //     const latestE2ETransactionIds = latestE2EPublicKeysContainers.map(containers => containers.transactionId);
-        //     if(latestE2EPublicKeys.some(pk => pk === userPublicKey)){
-        //         throw new mError.MetisErrorPublicKeyExists('', userPublicKey);
-        //     }
-        //
-        //
-        //
-        //
-        //     //------------------------------
-        //     const newUserChannel = {
-        //         userAddress,
-        //         userPublicKey,
-        //         date: Date.now()
-        //     };
-        //     const checksumPublicKey = gu.generateChecksum(userPublicKey);
-        //     const channelUserTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}`;
-        //     //------------------------------
-        //
-        //
-        //
-        //     logger.debug(`newUserChannel= ${JSON.stringify(newUserChannel)}`);
-        //     // Send A New E2E Public Key Transaction
-        //     const encryptedMessage = channelAccountProperties.crypto.encryptJson(newUserChannel);
-        //     const newUserTransactionResponse = await this.messageService.sendTaggedAndEncipheredMetisMessage(
-        //         channelAccountProperties.passphrase,
-        //         channelAccountProperties.address,
-        //         encryptedMessage, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];,
-        //         channelUserTag,
-        //         FeeManager.feeTypes.account_record,
-        //         channelAccountProperties.publicKey
-        //     )
-        //
-        //     // Update the Public keys List
-        //     latestE2ETransactionIds.push(newUserTransactionResponse.transaction);
-        //     const encryptedLatestE2ETransactionIds = channelAccountProperties.crypto.encryptJson(latestE2ETransactionIds);
-        //     await this.messageService.sendTaggedAndEncipheredMetisMessage(
-        //         channelAccountProperties.passphrase,
-        //         channelAccountProperties.address,
-        //         encryptedLatestE2ETransactionIds, // encipher message  [{ userAddress: userData.account, userPublicKey, date: Date.now() }];,
-        //         listTag,
-        //         FeeManager.feeTypes.account_record,
-        //         channelAccountProperties.publicKey
-        //     )
-        //
-        // } catch (error) {
-        //     logger.error(`**** addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties).catch(error)`);
-        //     if(error instanceof MetisErrorPublicKeyExists){
-        //         logger.warn(`The PublicKey is already associated with the channel: channel=${channelAccountProperties.address}, user public key: ${userPublicKey}`);
-        //         return;
-        //     }
-        //     logger.error(`error= ${error}`);
-        //     throw error;
-        // }
     }
 }
 

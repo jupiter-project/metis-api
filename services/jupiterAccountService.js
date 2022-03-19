@@ -473,7 +473,7 @@ class JupiterAccountService {
             let payload = '';
 
             if (accountType === 'UserAccount') {
-                listTag = `${userConfig.userPublicKeyList}.${metisConfig.evm}`;
+                listTag = `${userConfig.userPublicKeyList}`;
                 payload = {
                     recordType: 'e2eUserPublicKeyRecord',
                     e2ePublicKey: e2ePublicKey,
@@ -482,7 +482,7 @@ class JupiterAccountService {
                 }
             } else {
                 if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(`userAddress: ${userAddress}`)
-                listTag = `${channelConfig.channelMemberPublicKeyList}.${metisConfig.evm}`
+                listTag = `${channelConfig.channelMemberPublicKeyList}`
                 recordTag = `${channelConfig.channelMemberPublicKey}.${userAddress}.${checksumPublicKey}.${metisConfig.evm}`;
                 payload = {
                     recordType: 'e2eChannelMemberPublicKeyRecord',
@@ -520,7 +520,7 @@ class JupiterAccountService {
                 gravityAccountProperties.passphrase,
                 gravityAccountProperties.address,
                 encryptedLatestUserE2ETransactionIds,
-                listTag,
+                `${listTag}.${metisConfig.evm}`,
                 FeeManager.feeTypes.account_record,
                 gravityAccountProperties.publicKey
             );
