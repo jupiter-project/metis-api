@@ -358,7 +358,7 @@ class JupiterTransactionMessageService {
                 return ''; // because of Promise.all we should not do reject.
             }
             const message = gu.jsonParseOrPassThrough(messageToParse);
-            return {message: message, transactionId: messageTransactionId};
+            return {message: message, transactionId: messageTransactionId, tag: decryptedMessageContainer.tag};
         } catch(error) {
             logger.error(`**** getReadableMessageContainerFromMessageTransactionIdAndDecrypt(messageTransactionId, crypto, passphrase).catch(error)`);
             logger.error(`error= ${error}`)

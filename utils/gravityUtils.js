@@ -155,7 +155,13 @@ const isWellFormedJupiterTransactionId = function(transactionId){
     return false;
 }
 
-
+const arraysEqual = (a1,a2) => {
+    if(!Array.isArray(a1) || !Array.isArray(a2)){
+        return false;
+    }
+    /* WARNING: arrays must not contain {objects} or behavior may be undefined */
+    return (JSON.stringify(a1) === JSON.stringify(a2));
+}
 
 const isWellFormedE2EPublicKey = function(e2ePublicKey){
     return !!e2ePublicKey;
@@ -571,7 +577,8 @@ module.exports = {
     isWellFormedUuid,
     ipLogger,
     ipLoggerCleanUp,
-    ipLoggerRepeatedIpAddress
+    ipLoggerRepeatedIpAddress,
+    arraysEqual
 };
 
 

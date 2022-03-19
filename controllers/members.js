@@ -27,7 +27,7 @@ module.exports = (app) => {
             if (!channelAccountProperties) {
                 return res.status(StatusCode.ServerErrorInternal).send({message: `The channel is not available: ${channelAddress}`})
             }
-            const channelMembers = await chanService.getChannelMembers(channelAccountProperties)
+            const channelMembers = await chanService.getChannelMembers(channelAccountProperties);
             return res.send(channelMembers);
         } catch (error) {
             logger.error(`Error getting members`);

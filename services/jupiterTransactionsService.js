@@ -114,6 +114,7 @@ class JupiterTransactionsService {
             firstIndex,
             lastIndex
         );
+
         let filteredTransactions = transactions;
         if(transactionFilterCallback){
             filteredTransactions = transactions.filter(transactionFilterCallback);
@@ -542,6 +543,7 @@ class JupiterTransactionsService {
         if(!listTag){throw new Error('listTag is invalid')}
         try {
             const latestReferenceList = await this.fetchLatestReferenceList(gravityAccountProperties, listTag, isMetisEncrypted);
+
             let messages = [];
             //@TODO instead of forEach use the Tag to fetch and then remove if not in the list
             latestReferenceList.forEach(transactionId => {
@@ -576,7 +578,7 @@ class JupiterTransactionsService {
         if(!listTag){throw new mError.MetisError('listTag is invalid')}
 
         try {
-            const listContainers = await this.getReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted);
+            let listContainers = await this.getReadableTaggedMessageContainers(gravityAccountProperties, listTag, isMetisEncrypted);
             if (listContainers.length === 0) {
                 logger.warn(`No list found for ${gravityAccountProperties.address}: ${listTag}`);
                 return []
@@ -588,6 +590,20 @@ class JupiterTransactionsService {
             logger.info(`- account: ${gravityAccountProperties.address}`);
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');
             // Get Latest Good List
+            const cbcContainer = listContainers.find(lc => !lc.tag.includes(`.${metisConfig.evm}`));
+            const gcmContainer = listContainers.find(lc => lc.tag.includes(`.${metisConfig.evm}`));
+
+            const cbcMessage = cbcContainer && cbcContainer.message ? cbcContainer.message : [];
+            const gcmMessage = gcmContainer && gcmContainer.message ? gcmContainer.message : [];
+            if(!gu.arraysEqual(cbcMessage, gcmMessage)){
+                const cbcAlreadyInGcm = cbcMessage.every(item => gcmMessage.includes(item));
+                if(!cbcAlreadyInGcm){
+                    listContainers = [{ message: [...new Set([...cbcMessage, ...gcmMessage])] }];
+                } else {
+                    listContainers = [gcmContainer];
+                }
+            }
+
             const latestListContainer = listContainers.find(listContainer => {
                 // The value of the first element in the array that satisfies the provided testing function. Otherwise, undefined is returned.
                 const list = listContainer.message;
@@ -597,7 +613,8 @@ class JupiterTransactionsService {
                 return list.every(item => {
                     return gu.isWellFormedJupiterTransactionId(item);
                 })
-            })
+            });
+
             if (latestListContainer === undefined) {
                 logger.warn(`No Good List Found for ${gravityAccountProperties.address} using ${listTag}`);
                 return [];
