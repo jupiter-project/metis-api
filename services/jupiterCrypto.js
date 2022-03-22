@@ -1,152 +1,145 @@
-const logger = require('../utils/logger')(module);
-const crypto = require('crypto');
-import { sharedKey } from 'curve25519-js';
+const logger = require('../utils/logger')(module)
+const crypto = require('crypto')
+import { sharedKey } from 'curve25519-js'
 // npm i curve25519-js
-const  gzip = require('gzip-js')
+const gzip = require('gzip-js')
 
 class JupiterCrypto {
+  /**
+   *
+   * @param publicKey
+   * @param encryptedData
+   * @param recipientSecretPhrase
+   * @param uncompress
+   * @returns {*}
+   */
+  decryptFrom(publicKey, encryptedData, recipientSecretPhrase, uncompress) {
+    let decrypted = this.decrypt(encryptedData, recipientSecretPhrase, publicKey)
+    if (uncompress && decrypted.length > 0) {
+      decrypted = Convert.uncompress(decrypted)
+    }
+    return decrypted
+  }
 
-    /**
-     *
-     * @param publicKey
-     * @param encryptedData
-     * @param recipientSecretPhrase
-     * @param uncompress
-     * @returns {*}
-     */
-    decryptFrom(publicKey,  encryptedData,  recipientSecretPhrase,  uncompress) {
-        let decrypted = this.decrypt(encryptedData, recipientSecretPhrase, publicKey);
-        if (uncompress && decrypted.length > 0) {
-            decrypted = Convert.uncompress(decrypted);
-        }
-        return decrypted;
+  /**
+   *
+   * @param secretPhrase
+   * @param theirPublicKey
+   * @returns {*}
+   */
+  decrypt(data, secretPhrase, theirPublicKey) {
+    if (data.length == 0) {
+      return data
+    }
+    const sharedKey = this.getSharedKey(this.getPrivateKey(secretPhrase), theirPublicKey, nonce)
+
+    const decipher = crypto.createDecipher('aes-256-cbc', sharedKey)
+    let dec = decipher.update(data, 'hex', 'utf8')
+    dec += decipher.final('utf8')
+
+    return dec
+  }
+
+  /**
+   *
+   * @param myPrivateKey
+   * @param theirPublicKey
+   * @returns {*}
+   */
+  getSharedSecret(myPrivateKey, theirPublicKey) {
+    // const buffer = new ArrayBuffer(8);
+    // const sharedSecret = new ArrayBuffer[32];
+    const sharedSecret = sharedKey(myPrivateKey, theirPublicKey)
+
+    // const alicePriv = Uint8Array.from(Buffer.from(ALICE_PRIV, 'hex'));
+    // const bobPub = Uint8Array.from(Buffer.from(BOB_PUB, 'hex'));
+    // const secret = sharedKey(alicePriv, bobPub);
+
+    // Curve25519.curve(sharedSecret, myPrivateKey, theirPublicKey);
+
+    return sharedSecret
+  }
+
+  /**
+   *
+   * @param myPrivateKey
+   * @param theirPublicKey
+   * @param nonce
+   * @returns {string}
+   */
+  getSharedKey(myPrivateKey, theirPublicKey, nonce) {
+    const sharedSecret = this.getSharedSecret(myPrivateKey, theirPublicKey)
+    const dhSharedSecret = crypto.createHash('sha256').update(this.toUTF8Array(sharedSecret)).digest('hex')
+    for (let i = 0; i < 32; i++) {
+      dhSharedSecret[i] ^= nonce[i]
     }
 
-    /**
-     *
-     * @param secretPhrase
-     * @param theirPublicKey
-     * @returns {*}
-     */
-    decrypt( data, secretPhrase, theirPublicKey) {
-        if (data.length == 0) {
-            return data;
-        }
-        const sharedKey = this.getSharedKey(this.getPrivateKey(secretPhrase), theirPublicKey, nonce);
+    const out = crypto.createHash('sha256').update(this.toUTF8Array(dhSharedSecret)).digest('hex')
 
-        const decipher = crypto.createDecipher('aes-256-cbc', sharedKey);
-        let dec = decipher.update(data, 'hex', 'utf8');
-        dec += decipher.final('utf8');
+    return out
+  }
 
-        return dec;
+  /**
+   *
+   * @param secretPhrase
+   * @returns {*}
+   */
+  getPrivateKey(secretPhrase) {
+    const hash = crypto.createHash('sha256').update(this.toUTF8Array(secretPhrase)).digest('hex')
+    // byte[] s = Crypto.sha256().digest(this.toUTF8Array(secretPhrase));
+    const s = this.clamp(hash)
+
+    return s
+  }
+
+  /**
+   *
+   * @param utf8Array
+   * @returns {*}
+   */
+  clamp(utf8Array) {
+    utf8Array[31] &= 0x7f
+    utf8Array[31] |= 0x40
+    utf8Array[0] &= 0xf8
+
+    return utf8Array
+  }
+
+  /**
+   *
+   * @param str
+   * @returns {*[]}
+   */
+  toUTF8Array(str) {
+    var utf8 = []
+    for (var i = 0; i < str.length; i++) {
+      var charcode = str.charCodeAt(i)
+      if (charcode < 0x80) utf8.push(charcode)
+      else if (charcode < 0x800) {
+        utf8.push(0xc0 | (charcode >> 6), 0x80 | (charcode & 0x3f))
+      } else if (charcode < 0xd800 || charcode >= 0xe000) {
+        utf8.push(0xe0 | (charcode >> 12), 0x80 | ((charcode >> 6) & 0x3f), 0x80 | (charcode & 0x3f))
+      }
+      // surrogate pair
+      else {
+        i++
+        // UTF-16 encodes 0x10000-0x10FFFF by
+        // subtracting 0x10000 and splitting the
+        // 20 bits of 0x0-0xFFFFF into two halves
+        charcode = 0x10000 + (((charcode & 0x3ff) << 10) | (str.charCodeAt(i) & 0x3ff))
+        utf8.push(
+          0xf0 | (charcode >> 18),
+          0x80 | ((charcode >> 12) & 0x3f),
+          0x80 | ((charcode >> 6) & 0x3f),
+          0x80 | (charcode & 0x3f)
+        )
+      }
     }
-
-    /**
-     *
-     * @param myPrivateKey
-     * @param theirPublicKey
-     * @returns {*}
-     */
-    getSharedSecret( myPrivateKey, theirPublicKey) {
-        // const buffer = new ArrayBuffer(8);
-        // const sharedSecret = new ArrayBuffer[32];
-        const sharedSecret = sharedKey(myPrivateKey, theirPublicKey);
-
-        // const alicePriv = Uint8Array.from(Buffer.from(ALICE_PRIV, 'hex'));
-        // const bobPub = Uint8Array.from(Buffer.from(BOB_PUB, 'hex'));
-        // const secret = sharedKey(alicePriv, bobPub);
-
-        // Curve25519.curve(sharedSecret, myPrivateKey, theirPublicKey);
-
-        return sharedSecret;
-    }
-
-
-    /**
-     *
-     * @param myPrivateKey
-     * @param theirPublicKey
-     * @param nonce
-     * @returns {string}
-     */
-    getSharedKey(myPrivateKey, theirPublicKey, nonce) {
-        const sharedSecret = this.getSharedSecret(myPrivateKey, theirPublicKey);
-        const dhSharedSecret = crypto.createHash('sha256').update(this.toUTF8Array(sharedSecret)).digest('hex')
-        for (let i = 0; i < 32; i++) {
-            dhSharedSecret[i] ^= nonce[i];
-        }
-
-        const out = crypto.createHash('sha256').update(this.toUTF8Array(dhSharedSecret)).digest('hex')
-
-        return out;
-    }
-
-    /**
-     *
-     * @param secretPhrase
-     * @returns {*}
-     */
-    getPrivateKey(secretPhrase){
-        const hash = crypto.createHash('sha256').update(this.toUTF8Array(secretPhrase)).digest('hex');
-        // byte[] s = Crypto.sha256().digest(this.toUTF8Array(secretPhrase));
-        const s = this.clamp(hash);
-
-        return s;
-    }
-
-    /**
-     *
-     * @param utf8Array
-     * @returns {*}
-     */
-    clamp(utf8Array) {
-        utf8Array[31] &= 0x7F;
-        utf8Array[31] |= 0x40;
-        utf8Array[ 0] &= 0xF8;
-
-        return utf8Array
-    }
-
-    /**
-     *
-     * @param str
-     * @returns {*[]}
-     */
-    toUTF8Array(str) {
-        var utf8 = [];
-        for (var i=0; i < str.length; i++) {
-            var charcode = str.charCodeAt(i);
-            if (charcode < 0x80) utf8.push(charcode);
-            else if (charcode < 0x800) {
-                utf8.push(0xc0 | (charcode >> 6),
-                    0x80 | (charcode & 0x3f));
-            }
-            else if (charcode < 0xd800 || charcode >= 0xe000) {
-                utf8.push(0xe0 | (charcode >> 12),
-                    0x80 | ((charcode>>6) & 0x3f),
-                    0x80 | (charcode & 0x3f));
-            }
-            // surrogate pair
-            else {
-                i++;
-                // UTF-16 encodes 0x10000-0x10FFFF by
-                // subtracting 0x10000 and splitting the
-                // 20 bits of 0x0-0xFFFFF into two halves
-                charcode = 0x10000 + (((charcode & 0x3ff)<<10)
-                    | (str.charCodeAt(i) & 0x3ff))
-                utf8.push(0xf0 | (charcode >>18),
-                    0x80 | ((charcode>>12) & 0x3f),
-                    0x80 | ((charcode>>6) & 0x3f),
-                    0x80 | (charcode & 0x3f));
-            }
-        }
-        return utf8;
-    }
-
+    return utf8
+  }
 }
 
-module.exports.JupiterCrypto = JupiterCrypto;
-
+module.exports.JupiterCrypto = JupiterCrypto
 
 /*
  * Copyright © 2013-2016 The Nxt Core Developers.
@@ -271,10 +264,6 @@ module.exports.JupiterCrypto = JupiterCrypto;
 // }
 //
 // }
-
-
-
-
 
 /*
  * Copyright © 2013-2016 The Nxt Core Developers.

@@ -1,19 +1,19 @@
-const mongooseClient = require('mongoose');
+const mongooseClient = require('mongoose')
 
 const transactionsSchema = mongooseClient.Schema({
-    subtype: Number,
-    ecBlockHeight: Number,
-    type: Number,
-    transactionId: Number,
-  });
+  subtype: Number,
+  ecBlockHeight: Number,
+  type: Number,
+  transactionId: Number
+})
 
 const transactionBlocksSchema = mongooseClient.Schema({
   protocol: Number,
   requestType: String,
   previousBlock: String,
-  heigh: Number,  
+  heigh: Number,
   transactions: [transactionsSchema],
-  timestamp: Number,
-});
+  timestamp: Number
+})
 
-module.exports = mongooseClient.model('TransactionBlocks', transactionBlocksSchema);
+module.exports = mongooseClient.model('TransactionBlocks', transactionBlocksSchema)

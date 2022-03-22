@@ -1,137 +1,127 @@
-import mError from "../../../errors/metisError";
-const logger = require('../../../utils/logger')(module);
-const gu = require('../../../utils/gravityUtils');
+import mError from '../../../errors/metisError'
+const logger = require('../../../utils/logger')(module)
+const gu = require('../../../utils/gravityUtils')
 const uuidv1 = require('uuidv1')
-import {jimConfig} from "../config/jimConfig";
+import { jimConfig } from '../config/jimConfig'
 // import path from "path";
 // const fs = require('fs');
 
-const CacheWindowInDays = 30;
+const CacheWindowInDays = 30
 
 /**
  *
  */
 class S3FileCacheService {
+  constructor(cacheWindowInDays, s3Key, s3Secret, s3Endpoint) {
+    this.cacheWindowInDays = cacheWindowInDays
+    this.s3Key = s3Key
+    this.s3Secret = s3Secret
+    this.s3Endpoint = s3Endpoint
+  }
 
-    constructor(cacheWindowInDays, s3Key, s3Secret,s3Endpoint) {
-        this.cacheWindowInDays = cacheWindowInDays;
-        this.s3Key = s3Key;
-        this.s3Secret = s3Secret;
-        this.s3Endpoint = s3Endpoint;
+  /**
+   *
+   * @param fileUuid
+   * @return {boolean}
+   */
+  bufferDataExists(fileUuid) {
+    logger.verbose(`#### bufferDataExists()`)
+    //make sure both file and record exist
+    const bufferDataPath = this.generateBufferDataPath(fileUuid)
+    return fs.existsSync(bufferDataPath)
+  }
+
+  cachedFileExists(fileUuid) {
+    logger.verbose(`#### cachedFileExists()`)
+    const bufferDataPath = this.generateBufferDataPath(fileUuid)
+    const fileRecordPath = this.generateFileRecordPath(fileUuid)
+    return fs.existsSync(bufferDataPath) && fs.existsSync(fileRecordPath)
+  }
+
+  // fileDetails(uuid){
+  //     return {
+  //         filePath:'',
+  //         uuid: '',
+  //         sizeInBytes: '',
+  //         dateCreated: '',
+  //     }
+  // }
+
+  cacheDetails() {
+    return {
+      numberOfFiles: '',
+      totalCacheSize: ''
     }
+  }
 
-    /**
-     *
-     * @param fileUuid
-     * @return {boolean}
-     */
-    bufferDataExists(fileUuid){
-        logger.verbose(`#### bufferDataExists()`);
-        //make sure both file and record exist
-        const bufferDataPath = this.generateBufferDataPath(fileUuid);
-        return fs.existsSync(bufferDataPath);
-    }
+  /**
+   *
+   * @return {*}
+   */
+  generateUuid() {
+    return uuidv1()
+  }
 
-    cachedFileExists(fileUuid){
-        logger.verbose(`#### cachedFileExists()`);
-        const bufferDataPath = this.generateBufferDataPath(fileUuid);
-        const fileRecordPath = this.generateFileRecordPath(fileUuid);
-        return fs.existsSync(bufferDataPath) && fs.existsSync(fileRecordPath);
-    }
+  /**
+   *
+   * @param fileUuid
+   * @return {string}
+   */
+  generateBufferDataPath(fileUuid) {
+    // Check doesnt exist;
+    const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.data`)
+    return filePath
+  }
 
-    // fileDetails(uuid){
-    //     return {
-    //         filePath:'',
-    //         uuid: '',
-    //         sizeInBytes: '',
-    //         dateCreated: '',
-    //     }
-    // }
+  /**
+   *
+   * @param fileUuid
+   * @return {string}
+   */
+  generateFileRecordPath(fileUuid) {
+    // Check doesnt exist;
+    const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.efr`)
+    return filePath
+  }
 
-    cacheDetails(){
-        return {
-            numberOfFiles: '',
-            totalCacheSize: '',
-        }
-    }
+  /**
+   *
+   * @param fileUuid
+   * @param encryptedFileRecord
+   */
+  sendFileRecordToCache(fileUuid, encryptedFileRecord) {
+    //check if exists.
+    const fileRecordPath = this.generateFileRecordPath(fileUuid)
+    fs.writeFileSync(fileRecordPath, encryptedFileRecord)
+  }
 
-    /**
-     *
-     * @return {*}
-     */
-    generateUuid(){
-        return uuidv1();
-    }
+  /**
+   *
+   * @param fileUuid
+   * @param bufferData
+   */
+  sendBufferDataToCache(fileUuid, bufferData) {
+    const bufferDataPath = this.generateFileRecordPath(fileUuid)
+    fs.writeFileSync(bufferDataPath, bufferData)
+  }
 
-    /**
-     *
-     * @param fileUuid
-     * @return {string}
-     */
-    generateBufferDataPath(fileUuid){
-        // Check doesnt exist;
-        const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.data`);
-        return filePath;
-    }
+  deleteFile(fileUuid) {}
 
-    /**
-     *
-     * @param fileUuid
-     * @return {string}
-     */
-    generateFileRecordPath(fileUuid){
-        // Check doesnt exist;
-        const filePath = path.resolve(this.fileCacheLocation, `jim-${fileUuid}.efr`);
-        return filePath;
-    }
+  // getBufferData(fileUuid){
+  //     return 123;
+  // }
 
+  // getBufferDataPath(fileUuid){
+  //     const bufferDataPath = this.generateBufferDataPath(fileUuid);
+  //     return bufferDataPath;
+  // }
 
-    /**
-     *
-     * @param fileUuid
-     * @param encryptedFileRecord
-     */
-    sendFileRecordToCache(fileUuid, encryptedFileRecord){
-        //check if exists.
-        const fileRecordPath = this.generateFileRecordPath(fileUuid);
-        fs.writeFileSync(fileRecordPath, encryptedFileRecord);
-    }
+  getFileRecord(fileUuid) {
+    const fileRecordPath = this.generateFileRecordPath(fileUuid)
+    return fs.readFileSync(fileRecordPath, 'utf8')
+  }
 
-    /**
-     *
-     * @param fileUuid
-     * @param bufferData
-     */
-    sendBufferDataToCache(fileUuid, bufferData){
-        const bufferDataPath = this.generateFileRecordPath(fileUuid);
-        fs.writeFileSync(bufferDataPath, bufferData);
-    }
-
-    deleteFile(fileUuid){
-
-    }
-
-    // getBufferData(fileUuid){
-    //     return 123;
-    // }
-
-    // getBufferDataPath(fileUuid){
-    //     const bufferDataPath = this.generateBufferDataPath(fileUuid);
-    //     return bufferDataPath;
-    // }
-
-    getFileRecord(fileUuid){
-        const fileRecordPath = this.generateFileRecordPath(fileUuid);
-        return fs.readFileSync(fileRecordPath, 'utf8');
-    }
-
-    clearCache( cacheWindowInDays = this.cacheWindowInDays){
-
-    }
-
+  clearCache(cacheWindowInDays = this.cacheWindowInDays) {}
 }
 
-module.exports.s3FileCacheService = new S3FileCacheService(
-    jimConfig.fileCacheLocation,
-    CacheWindowInDays
-)
+module.exports.s3FileCacheService = new S3FileCacheService(jimConfig.fileCacheLocation, CacheWindowInDays)
