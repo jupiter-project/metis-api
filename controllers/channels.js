@@ -456,14 +456,11 @@ module.exports = (app, passport, jobs, websocket) => {
                     }
                 });
                 websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreated',
-                    {
-                        jobId: job.id,
-                        channelAddress: channelAccountProperties.address
-                    });
+                    { job, channelAddress: channelAccountProperties.address}
+                );
             });
         job.on('complete', function (result) {
             logger.verbose(`---- JobQueue: channel-creation-confirmation.on(complete)`);
-            logger.sensitive(`result= ${JSON.stringify(result)}`);
             const endTime = Date.now();
             const processingTime = `${moment.duration(endTime-startTime).minutes()}:${moment.duration(endTime-startTime).seconds()}`
             logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++');

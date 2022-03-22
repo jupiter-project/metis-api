@@ -3,6 +3,7 @@ import {chanService} from "../../../services/chanService";
 import {localFileCacheService} from "./localFileCacheService";
 import {GravityCrypto} from "../../../services/gravityCrypto";
 import {metisConfig} from "../../../config/constants";
+import {isString} from "lodash";
 const logger = require('../../../utils/logger')(module);
 const gu = require('../../../utils/gravityUtils');
 const {GravityAccountProperties} = require("../../../gravity/gravityAccountProperties");
@@ -320,9 +321,10 @@ class StorageService {
      *
      * @param ownerAccountProperties - The account that the file was sent to.
      * @param fileUuid
+     * @param tag
      * @return {Promise<{bufferDataPath: string, fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress}>}
      */
-    async fetchFileInfo(ownerAccountProperties, fileUuid){
+    async fetchFileInfo(ownerAccountProperties, fileUuid, tag = null){
         logger.verbose(`#### fetchFile(ownerAccountProperties, fileUuid)`);
         if(!(ownerAccountProperties instanceof GravityAccountProperties)) throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`);
         if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`);
@@ -340,7 +342,9 @@ class StorageService {
                 logger.info(` GETTING FILE FROM CACHE`);
                 logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`);
                 const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid);
-                fileRecord = ownerAccountProperties.crypto.decryptAndParseGCM(encryptedFileRecord);
+                fileRecord = isString(tag) && tag.includes(`.${metisConfig.evm}`)
+                    ? ownerAccountProperties.crypto.decryptAndParseGCM(encryptedFileRecord)
+                    : ownerAccountProperties.crypto.decryptAndParse(encryptedFileRecord);
             } else {
                 // GETTING FILE FROM BLOCKCHAIN
                 console.log(`\n`);
@@ -350,7 +354,9 @@ class StorageService {
                 const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChain(ownerAccountProperties,fileUuid);
                 bufferData = fetchFileFromBlockChainResponse.bufferData;
                 fileRecord = fetchFileFromBlockChainResponse.fileRecord;
-                const encryptedFileRecord = ownerAccountProperties.crypto.encryptJsonGCM(fileRecord);
+                const encryptedFileRecord = isString(tag) && tag.includes(`.${metisConfig.evm}`)
+                    ? ownerAccountProperties.crypto.encryptJsonGCM(fileRecord)
+                    : ownerAccountProperties.crypto.encryptJson(fileRecord);
                 this.fileCacheService.sendBufferDataToCache(fileUuid,bufferData);
                 this.fileCacheService.sendFileRecordToCache(fileUuid,encryptedFileRecord);
             }
@@ -363,8 +369,7 @@ class StorageService {
                 fileCategory: fileRecord.fileCat,
                 createdBy: fileRecord.createdBy,
                 sizeInBytes: fileRecord.sizeInBytes
-            }
-
+            };
         } catch(error) {
             console.log('\n')
             logger.error(`************************* ERROR ***************************************`);

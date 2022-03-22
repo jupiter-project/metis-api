@@ -659,7 +659,7 @@ class ChanService {
         try {
             // const response1 = await metis.addToMemberList(params); // adds the member to the channel jupiter key/value properties. @TODO this is obsolete. Remove it!
             const response2 = await this.addMemberInfoToChannelIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo,role)
-            const response3 = await this.addChannelInfoToAccountIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo, createdBy)
+            const response3 = await this.addChannelInfoToAccountIfDoesntExist(memberAccountProperties, channelAccountPropertiesInvitedTo, createdBy);
             await jupiterFundingService.waitForAllTransactionConfirmations(response2.transactionsReport);
 
             //@TODO we need to wait for response2. But the addMemberInfoToChannelIfDoesntExist doesnt return the transactions. Need to refactor!
@@ -916,7 +916,7 @@ class ChanService {
         );
 
         const encryptedChannelRecordPayload = accountProperties.crypto.encryptJsonGCM(channelRecordPayload);
-        const feeType =   FeeManager.feeTypes.account_record;
+        const feeType = FeeManager.feeTypes.account_record;
         const recordTag = `${channelConfig.channelRecord}.${channelAccountProperties.address}.${metisConfig.evm}`;
 
         // if(accountProperties.isMinimumProperties){

@@ -359,7 +359,13 @@ module.exports = (app, jobs, websocket) => {
             if(!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`);
             if(!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(``, userAddress);
 
-            const fileInfo = await storageService.fetchFileInfo(userAccountProperties, fileUuid);
+            const [messageContainers] = await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAddress, transactionTags.jimServerTags.binaryFilePublicProfileSharedKey);
+            if(!messageContainers){
+                return res.status(StatusCode.ClientErrorNotFound).send({message: 'No image found'});
+            }
+
+            const messageContainerTag = messageContainers.attachment.message;
+            const fileInfo = await storageService.fetchFileInfo(userAccountProperties, fileUuid, messageContainerTag);
             res.setHeader('Content-Type', `${fileInfo.mimeType}`);
             res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`);
             res.sendFile(fileInfo.bufferDataPath);
