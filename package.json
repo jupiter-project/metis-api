@@ -6,8 +6,8 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --verbose --silent",
-    "fix": "prettier --write './**/*.js'",
-    "check": "prettier --check './**/*.js'",
+    "fix": "prettier --write '**/*.js'",
+    "check": "prettier --check '**/*.js'",
     "dev": "nodemon server.js NODE_ENV=dev",
     "start": "node server.js -- --max-old-space-size=4096 --trace-warnings",
     "dev:local": "node server.js -- --max-old-space-size=4096 --trace-warnings",
@@ -76,17 +76,11 @@
     "query-string": "^7.1.1",
     "s3-streamlogger": "^1.7.0",
     "socket.io": "^4.1.2",
-    "speakeasy": "^2.0.0",
     "stream-meter": "^1.0.4",
     "swagger-ui-express": "^4.1.6",
-    "toastr": "^2.1.4",
     "uuidv1": "^1.6.14",
     "winston": "^3.3.3",
     "winston-mongodb": "^5.0.7",
-    "winston-papertrail": "^1.0.5",
-    "winston-slack-webhook-transport": "^2.1.0",
-    "winston-syslog": "^2.4.4",
-    "yargs": "^17.2.1",
     "zlib": "^1.0.5"
   },
   "devDependencies": {

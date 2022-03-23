@@ -1,9 +1,10 @@
+const uuidv1 = require('uuidv1')
 const CacheWindowInDays = 30
 /**
  *
  */
 class FileCacheService {
-  constructor(fileCacheLocation, cacheWindowInDays) {
+  constructor (fileCacheLocation, cacheWindowInDays) {
     this.cacheWindowInDays = cacheWindowInDays
   }
 
@@ -11,7 +12,7 @@ class FileCacheService {
    *
    * @return {*}
    */
-  generateUuid() {
+  generateUuid () {
     return uuidv1()
   }
 
@@ -20,25 +21,25 @@ class FileCacheService {
    * @param fileUuid
    * @return {boolean}
    */
-  bufferDataExists(fileUuid) {}
+  bufferDataExists (fileUuid) { }
 
-  cachedFileExists(fileUuid) {}
+  cachedFileExists (fileUuid) { }
 
-  cacheDetails() {}
+  cacheDetails () { }
 
-  generateBufferDataPath(fileUuid) {}
+  generateBufferDataPath (fileUuid) { }
 
-  generateFileRecordPath(fileUuid) {}
+  generateFileRecordPath (fileUuid) { }
 
-  sendFileRecordToCache(fileUuid, encryptedFileRecord) {}
+  sendFileRecordToCache (fileUuid, encryptedFileRecord) { }
 
-  sendBufferDataToCache(fileUuid, bufferData) {}
+  sendBufferDataToCache (fileUuid, bufferData) { }
 
-  deleteFile(fileUuid) {}
+  deleteFile (fileUuid) { }
 
-  getFileRecord(fileUuid) {}
+  getFileRecord (fileUuid) { }
 
-  clearCache(cacheWindowInDays = this.cacheWindowInDays) {}
+  clearCache (cacheWindowInDays = this.cacheWindowInDays) { }
 }
 
 module.exports.fileCacheService = new FileCacheService(CacheWindowInDays)

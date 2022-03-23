@@ -12,7 +12,7 @@ module.exports.firebaseAdmin = firebaseAdmin.initializeApp({
     privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
   })
 })
-const url = require('url')
+const Url = require('url')
 const fs = require('fs')
 const cors = require('cors')
 const { appConf } = require('./config/appConf')
@@ -172,7 +172,13 @@ const jupiterWss = new WebSocket.Server({ noServer: true })
 jupiterWss.on('connection', jupiterSocketService.connection.bind(this))
 
 server.on('upgrade', (request, socket, head) => {
-  const pathname = url.parse(request.url).pathname
+  const pathname = new Url(request.url).pathname
+  console.log(pathname)
+  console.log(pathname)
+  console.log(pathname)
+  console.log(pathname)
+  console.log(pathname)
+  console.log(pathname)
   console.log(pathname)
   if (pathname === '/jupiter') {
     jupiterWss.handleUpgrade(request, socket, head, (ws) => {
@@ -224,7 +230,7 @@ jobQueue.process('user-registration', WORKERS, (job, done) => {
       .then(() => done())
       .catch((error) => {
         logger.error('***********************************************************************************')
-        logger.error('** jobs.process(\'user-registration\').metisRegistration().catch(error)')
+        logger.error("** jobs.process('user-registration').metisRegistration().catch(error)")
         logger.error('** ')
         console.log(error)
 

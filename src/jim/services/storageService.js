@@ -17,7 +17,6 @@ const {
   jupiterTransactionsService,
   JupiterTransactionsService
 } = require('../../../services/jupiterTransactionsService')
-const { MetisError } = require('../../../errors/metisError')
 const { jimConfig } = require('../config/jimConfig')
 const { transactionUtils } = require('../../../gravity/transactionUtils')
 
@@ -43,7 +42,7 @@ class StorageService {
    * @param chanService
    * @param fileCacheService
    */
-  constructor(
+  constructor (
     jupiterAPIService,
     jupiterTransactionsService,
     jupiterFundingService,
@@ -268,23 +267,25 @@ class StorageService {
    * @param channelAddress
    * @return {Promise<*[]>}
    */
-  async fetchChannelFilesList(memberAccountProperties, channelAddress) {
-    logger.debug(`#### fetchChannelFilesList(memberAccountProperties, channelAddress)`)
+  async fetchChannelFilesList (memberAccountProperties, channelAddress) {
+    logger.debug('#### fetchChannelFilesList(memberAccountProperties, channelAddress)')
     logger.info(`- Getting ready to get the files for ${channelAddress}`)
     const channelAccountProperties =
       await this.chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(
         memberAccountProperties,
         channelAddress
       )
-    if (channelAccountProperties === null)
+    if (channelAccountProperties === null) {
       throw new mError.MetisErrorNoChannelAccountFound(
         `User ${memberAccountProperties.address} doesnt have ${channelAddress} channel account`
       )
-    logger.info(`- Confirmed user has permission to access this channel`)
+    }
+    logger.info('- Confirmed user has permission to access this channel')
     // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(channelAccountProperties);
     // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
-    if (!gu.isWellFormedJupiterAddress(channelAddress))
+    if (!gu.isWellFormedJupiterAddress(channelAddress)) {
       throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
+    }
     const blackListTag = `${transactionTags.jimServerTags.binaryFileBlackList}`
     const blackList = await this.jupiterTransactionsService.fetchLatestReferenceList(
       channelAccountProperties,
@@ -319,36 +320,16 @@ class StorageService {
 
   /**
    *
-   * @param ownerAccountProperties
-   * @return {Promise<[{filename: string, fileOwnerAddress, href: string, uuid: string}]>}
-   */
-  async fetchFilesList(ownerAccountProperties) {
-    logger.verbose(`#### fetchFilesList(ownerAccountProperties,fileOwnerAddress)`)
-    // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
-    // if (binaryAccountProperties === null) {
-    //     throw new mError.MetisError(`No Binary Account Found for ${ownerAccountProperties.address} `);
-    // }
-    return [
-      {
-        uuid: '123',
-        filename: '',
-        fileOwnerAddress: fileOwnerAddress,
-        href: `/jim/v1/api/files/123`
-      }
-    ]
-  }
-
-  /**
-   *
    * @param ownerAccountProperties - The account that the file was sent to.
    * @param fileUuid
    * @param tag
    * @return {Promise<{bufferDataPath: string, fileName: *, fileCategory: ("raw"|"thumbnail"), fileSizeInBytes, mimeType: *, originalSenderAddress}>}
    */
-  async fetchFileInfo(ownerAccountProperties, fileUuid, tag = null) {
-    logger.verbose(`#### fetchFile(ownerAccountProperties, fileUuid)`)
-    if (!(ownerAccountProperties instanceof GravityAccountProperties))
-      throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`)
+  async fetchFileInfo (ownerAccountProperties, fileUuid, tag = null) {
+    logger.verbose('#### fetchFile(ownerAccountProperties, fileUuid)')
+    if (!(ownerAccountProperties instanceof GravityAccountProperties)) {
+      throw new mError.MetisErrorBadGravityAccountProperties('ownerAccountProperties')
+    }
     if (!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`)
     let bufferData = null
     let fileRecord = null
@@ -359,10 +340,10 @@ class StorageService {
       // }
       if (this.fileCacheService.cachedFileExists(fileUuid)) {
         // GETTING FILE FROM CACHE
-        console.log(`\n`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-        logger.info(` GETTING FILE FROM CACHE`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+        console.log('\n')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+        logger.info(' GETTING FILE FROM CACHE')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
         const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid)
         fileRecord =
           isString(tag) && tag.includes(`.${metisConfig.evm}`)
@@ -370,10 +351,10 @@ class StorageService {
             : ownerAccountProperties.crypto.decryptAndParse(encryptedFileRecord)
       } else {
         // GETTING FILE FROM BLOCKCHAIN
-        console.log(`\n`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-        logger.info(` GETTING FILE FROM BLOCKCHAIN`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+        console.log('\n')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+        logger.info(' GETTING FILE FROM BLOCKCHAIN')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
         const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChain(ownerAccountProperties, fileUuid)
         bufferData = fetchFileFromBlockChainResponse.bufferData
         fileRecord = fetchFileFromBlockChainResponse.fileRecord
@@ -384,7 +365,7 @@ class StorageService {
         this.fileCacheService.sendBufferDataToCache(fileUuid, bufferData)
         this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord)
       }
-      if (!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError(`Buffer Data does not exist!`)
+      if (!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError('Buffer Data does not exist!')
       const bufferDataPath = this.fileCacheService.generateBufferDataPath(fileUuid)
       return {
         bufferDataPath: bufferDataPath,
@@ -396,9 +377,9 @@ class StorageService {
       }
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** fetchFile(ownerAccountProperties, fileUuid).catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** fetchFile(ownerAccountProperties, fileUuid).catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       logger.error(`error= ${error}`)
       throw error
     }
@@ -410,10 +391,11 @@ class StorageService {
    * @param fileUuid
    * @return {Promise<{fileRecord: *, bufferData: Buffer}>}
    */
-  async fetchFileFromBlockChain(ownerAccountProperties, fileUuid) {
-    logger.verbose(`#### fetchFileFromBlockChain()`)
-    if (!(ownerAccountProperties instanceof GravityAccountProperties))
-      throw new mError.MetisErrorBadGravityAccountProperties(`ownerAccountProperties`)
+  async fetchFileFromBlockChain (ownerAccountProperties, fileUuid) {
+    logger.verbose('#### fetchFileFromBlockChain()')
+    if (!(ownerAccountProperties instanceof GravityAccountProperties)) {
+      throw new mError.MetisErrorBadGravityAccountProperties('ownerAccountProperties')
+    }
     if (!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`)
     try {
       // const binaryAccountProperties = await this.fetchBinaryAccountPropertiesOrNull(ownerAccountProperties);
@@ -424,50 +406,50 @@ class StorageService {
         fileRecordTag
       )
       if (fileRecordMessageContainers.length === 0) {
-        throw new mError.MetisErrorNoBinaryFileFound(``, fileUuid)
+        throw new mError.MetisErrorNoBinaryFileFound('', fileUuid)
       }
       // GET THE LATEST FILE RECORD TRANSACTION FOR THIS UUID
-      console.log(`\n`)
-      logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-      logger.info(` GET THE LATEST FILE RECORD TRANSACTION FOR THIS UUID`)
-      logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+      console.log('\n')
+      logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+      logger.info(' GET THE LATEST FILE RECORD TRANSACTION FOR THIS UUID')
+      logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
       const fileRecordMessageContainer = fileRecordMessageContainers[0]
       const fileRecord = fileRecordMessageContainer.message
       const chunkTransactionIds = fileRecordMessageContainer.message.chunkTransactionIds
       // GET ALL THE CHUNKS
-      console.log(`\n`)
-      logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-      logger.info(` GET ALL THE CHUNKS`)
-      logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+      console.log('\n')
+      logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+      logger.info(' GET ALL THE CHUNKS')
+      logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
       const chunkContainers =
         await this.jupiterTransactionsService.messageService.getReadableMessageContainersFromMessageTransactionIds(
           chunkTransactionIds,
           ownerAccountProperties.passphrase
         )
       if (chunkContainers.length === 0) {
-        throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`, fileUuid)
+        throw new mError.MetisErrorNoBinaryFileFound('No Chunks found', fileUuid)
       }
       const compressedFile = chunkContainers.reduce((reduced, chunkContainer) => {
         reduced += chunkContainer.message
         return reduced
       }, '')
-      const bufferData = zlib.inflateSync(Buffer.from(compressedFile, 'base64')) //@TODO compressing might be worthless since the files are encrypted. Usually encryted files cant be compressed much.
+      const bufferData = zlib.inflateSync(Buffer.from(compressedFile, 'base64')) // @TODO compressing might be worthless since the files are encrypted. Usually encryted files cant be compressed much.
       return {
         bufferData: bufferData,
         fileRecord: fileRecord
       }
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** fetchFileFromBlockChain(ownerAccountProperties, fileUuid).catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** fetchFileFromBlockChain(ownerAccountProperties, fileUuid).catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       logger.error(`error= ${error}`)
       throw error
     }
   }
 
-  async fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid, tag) {
-    logger.verbose(`#### fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid)`)
+  async fetchFileInfoBySharedKey (transactionId, sharedKey, fileUuid, tag) {
+    logger.verbose('#### fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid)')
     if (!gu.isNonEmptyString(transactionId)) throw new mError.MetisErrorBadUuid(`transactionId: ${transactionId}`)
     if (!gu.isNonEmptyString(sharedKey)) throw new mError.MetisErrorBadUuid(`transactionId: ${sharedKey}`)
     if (!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadUuid(`fileUuid: ${fileUuid}`)
@@ -478,20 +460,20 @@ class StorageService {
       const crypto = new GravityCrypto(process.env.ENCRYPT_ALGORITHM, sharedKey)
       if (this.fileCacheService.cachedFileExists(fileUuid)) {
         // GETTING FILE FROM CACHE
-        console.log(`\n`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-        logger.info(` GETTING FILE FROM CACHE`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+        console.log('\n')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+        logger.info(' GETTING FILE FROM CACHE')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
         const encryptedFileRecord = this.fileCacheService.getFileRecord(fileUuid)
         fileRecord = tag.includes(`.${metisConfig.evm}`)
           ? crypto.decryptAndParseGCM(encryptedFileRecord)
           : crypto.decryptAndParse(encryptedFileRecord)
       } else {
         // GETTING FILE FROM BLOCKCHAIN
-        console.log(`\n`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-        logger.info(` GETTING FILE FROM BLOCKCHAIN`)
-        logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+        console.log('\n')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+        logger.info(' GETTING FILE FROM BLOCKCHAIN')
+        logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
         const fetchFileFromBlockChainResponse = await this.fetchFileFromBlockChainBySharedKey(
           transactionId,
           sharedKey,
@@ -505,7 +487,7 @@ class StorageService {
         this.fileCacheService.sendBufferDataToCache(fileUuid, bufferData)
         this.fileCacheService.sendFileRecordToCache(fileUuid, encryptedFileRecord)
       }
-      if (!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError(`Buffer Data does not exist!`)
+      if (!this.fileCacheService.bufferDataExists(fileUuid)) throw new mError.MetisError('Buffer Data does not exist!')
       const bufferDataPath = this.fileCacheService.generateBufferDataPath(fileUuid)
       return {
         bufferDataPath: bufferDataPath,
@@ -517,9 +499,9 @@ class StorageService {
       }
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid).catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid).catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       logger.error(`error= ${error}`)
       throw error
     }
@@ -531,10 +513,10 @@ class StorageService {
    * @param transactionId
    * @param sharedKey
    */
-  async fetchFileFromBlockChainBySharedKey(transactionId, sharedKey, tag) {
-    logger.verbose(`#### fetchFileFromBlockChainBySharedKey()`)
-    if (!gu.isNonEmptyString(transactionId)) throw new mError.MetisErrorBadUuid(`transactionId is missing`)
-    if (!gu.isNonEmptyString(sharedKey)) throw new mError.MetisErrorBadUuid(`sharedKey is missing`)
+  async fetchFileFromBlockChainBySharedKey (transactionId, sharedKey, tag) {
+    logger.verbose('#### fetchFileFromBlockChainBySharedKey()')
+    if (!gu.isNonEmptyString(transactionId)) throw new mError.MetisErrorBadUuid('transactionId is missing')
+    if (!gu.isNonEmptyString(sharedKey)) throw new mError.MetisErrorBadUuid('sharedKey is missing')
     try {
       const fileRecord = await jupiterTransactionsService.getReadableMessageContainersBySharedKey(
         transactionId,
@@ -544,10 +526,10 @@ class StorageService {
 
       const chunkTransactionIds = fileRecord.chunkTransactionIds
       // GET ALL THE CHUNKS
-      console.log(`\n`)
-      logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--`)
-      logger.info(` GET ALL THE CHUNKS`)
-      logger.info(`-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n`)
+      console.log('\n')
+      logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--')
+      logger.info(' GET ALL THE CHUNKS')
+      logger.info('-__-__-__-__-__-__-__-__-__-__-__-__-__-__-__--\n')
       const readableMessageContainer$ = chunkTransactionIds.map((chunkTransactionId) =>
         jupiterTransactionsService.getReadableMessageContainersBySharedKey(
           chunkTransactionId.transactionId,
@@ -556,19 +538,19 @@ class StorageService {
         )
       )
       const chunkContainers = await Promise.all(readableMessageContainer$)
-      if (chunkContainers.length < 1) throw new mError.MetisErrorNoBinaryFileFound(`No Chunks found`)
+      if (chunkContainers.length < 1) throw new mError.MetisErrorNoBinaryFileFound('No Chunks found')
       const compressedFile = chunkContainers.reduce((reduced, chunkContainer) => {
         reduced += chunkContainer
         return reduced
       }, '')
 
-      const bufferData = zlib.inflateSync(Buffer.from(compressedFile, 'base64')) //@TODO compressing might be worthless since the files are encrypted. Usually encryted files cant be compressed much.
+      const bufferData = zlib.inflateSync(Buffer.from(compressedFile, 'base64')) // @TODO compressing might be worthless since the files are encrypted. Usually encryted files cant be compressed much.
       return { bufferData, fileRecord }
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** fetchFileFromBlockChainBySharedKey(transactionId, sharedKey).catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** fetchFileFromBlockChainBySharedKey(transactionId, sharedKey).catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       logger.error(`error= ${error}`)
       throw error
     }
@@ -588,7 +570,7 @@ class StorageService {
      * @param {FileCategory} fileCat
      * @return {Promise<{fileRecord: {fileName, fileCat, recordType: string, chunkTransactionIds, mimeType, sizeInKb, originalSenderAddress, linkedFileRecord, version: number, fileUuid, url: string, status: string}}>}
      */
-  async sendFileToBlockchain(
+  async sendFileToBlockchain (
     fileName,
     mimeType,
     fileUuid,
@@ -597,19 +579,21 @@ class StorageService {
     toAccountProperties,
     fileCat
   ) {
-    console.log(`\n\n\n`)
+    console.log('\n\n\n')
     logger.info('======================================================================================')
     logger.info('== sendFileToBlockchain(fileName,mimeType,bufferData,ownerAccountProperties,originalSenderAddress)')
-    logger.info(`======================================================================================\n\n\n`)
-    if (!gu.isNonEmptyString(fileName)) throw new mError.MetisError(`fileName`)
-    if (!gu.isNonEmptyString(mimeType)) throw new mError.MetisError(`mimeType`)
-    if (!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`fileUuid`)
-    if (!gu.isNonEmptyString(fileCat)) throw new mError.MetisError(`fileCat`)
-    if (!bufferData) throw new mError.MetisError(`bufferData is invalid`)
-    if (!(fromAccountProperties instanceof GravityAccountProperties))
-      throw new mError.MetisErrorBadGravityAccountProperties(`fromAccountProperties`)
-    if (!(toAccountProperties instanceof GravityAccountProperties))
-      throw new mError.MetisErrorBadGravityAccountProperties(`toAccountProperties`)
+    logger.info('======================================================================================\n\n\n')
+    if (!gu.isNonEmptyString(fileName)) throw new mError.MetisError('fileName')
+    if (!gu.isNonEmptyString(mimeType)) throw new mError.MetisError('mimeType')
+    if (!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError('fileUuid')
+    if (!gu.isNonEmptyString(fileCat)) throw new mError.MetisError('fileCat')
+    if (!bufferData) throw new mError.MetisError('bufferData is invalid')
+    if (!(fromAccountProperties instanceof GravityAccountProperties)) {
+      throw new mError.MetisErrorBadGravityAccountProperties('fromAccountProperties')
+    }
+    if (!(toAccountProperties instanceof GravityAccountProperties)) {
+      throw new mError.MetisErrorBadGravityAccountProperties('toAccountProperties')
+    }
     try {
       const CHUNK_SIZE_PATTERN = /.{1,40000}/g
       const fileSizeInBytes = bufferData.length
@@ -634,9 +618,9 @@ class StorageService {
 
       const chunks = encodedFileData.match(CHUNK_SIZE_PATTERN)
       logger.sensitive(`chunks.length=${JSON.stringify(chunks.length)}`)
-      //Send Each Chunk as a transaction.
+      // Send Each Chunk as a transaction.
       const sendMessageResponsePromises = chunks.map((chunk) => {
-        //@INFO chunks will not be encrypted. Not necessary for e2e
+        // @INFO chunks will not be encrypted. Not necessary for e2e
         logger.info(`sending chunk (${chunk.length})....`)
         return this.jupiterTransactionsService.messageService.sendTaggedAndEncipheredMetisMessage(
           fromAccountProperties.passphrase,
@@ -672,7 +656,7 @@ class StorageService {
         )
         allChunkTransactionsData = allChunkTransactionsInfo.map((info) => info.transactionId)
       }
-      console.log(`\n`)
+      console.log('\n')
       logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
       logger.info(`++ allChunkTransactionsData: ${JSON.stringify(allChunkTransactionsData)}`)
       logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
@@ -740,9 +724,9 @@ class StorageService {
 
       return { fileRecord: _fileRecord }
     } catch (error) {
-      logger.error(`****************************************************************`)
-      logger.error(`** sendFileToBlockchain.catch(error)`)
-      logger.error(`****************************************************************`)
+      logger.error('****************************************************************')
+      logger.error('** sendFileToBlockchain.catch(error)')
+      logger.error('****************************************************************')
       logger.error(`error= ${error}`)
       throw error
     }
@@ -759,7 +743,7 @@ class StorageService {
    * @param {null|object[]} linkedFileRecords
    * @return {{fileName, fileCat, recordType: string, chunkTransactionIds, mimeType, sizeInKb, originalSenderAddress, linkedFileRecord, version: number, fileUuid, url: string, status: string}}
    */
-  generateFileRecordJson(
+  generateFileRecordJson (
     fileUuid,
     fileCat,
     fileName,
@@ -770,14 +754,15 @@ class StorageService {
     linkedFileRecords,
     fileUrl
   ) {
-    logger.verbose(`#### generateFileRecordJson()`)
-    if (!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError(`empty fileUuid`)
-    if (!gu.isNonEmptyString(fileName)) throw new mError.MetisError(`empty fileName`)
-    if (!gu.isNonEmptyString(mimeType)) throw new mError.MetisError(`empty mimeType`)
+    logger.verbose('#### generateFileRecordJson()')
+    if (!gu.isNonEmptyString(fileUuid)) throw new mError.MetisError('empty fileUuid')
+    if (!gu.isNonEmptyString(fileName)) throw new mError.MetisError('empty fileName')
+    if (!gu.isNonEmptyString(mimeType)) throw new mError.MetisError('empty mimeType')
     if (!gu.isNumberGreaterThanZero(sizeInBytes)) throw new mError.MetisError(`size is invalid: ${sizeInBytes}`)
-    if (!gu.isNonEmptyArray(chunkTransactionIds)) throw new mError.MetisError(`chunkTransactionIds is not valid.`)
-    if (!gu.isWellFormedJupiterAddress(createdByAddress))
-      throw new mError.MetisErrorBadJupiterAddress(`originalSenderAddress`)
+    if (!gu.isNonEmptyArray(chunkTransactionIds)) throw new mError.MetisError('chunkTransactionIds is not valid.')
+    if (!gu.isWellFormedJupiterAddress(createdByAddress)) {
+      throw new mError.MetisErrorBadJupiterAddress('originalSenderAddress')
+    }
     // const _transactionIdOfPreviousVersion = (transactionIdOfPreviousVersion===null)?'':transactionIdOfPreviousVersion;
     return {
       fileUuid: fileUuid,

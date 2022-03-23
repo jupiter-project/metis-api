@@ -2,11 +2,8 @@ const mError = require('../../../errors/metisError')
 const { storageService } = require('../services/storageService')
 const { localFileCacheService } = require('../services/localFileCacheService')
 const { chanService } = require('../../../services/chanService')
-const { jupiterAPIService } = require('../../../services/jupiterAPIService')
-const { metisConfig, userConfig } = require('../../../config/constants')
-const { FeeManager, feeManagerSingleton } = require('../../../services/FeeManager')
+const { metisConfig } = require('../../../config/constants')
 const { jupiterTransactionsService } = require('../../../services/jupiterTransactionsService')
-const { GravityCrypto } = require('../../../services/gravityCrypto')
 const { transactionTags } = require('../config/transactionTags')
 const gu = require('../../../utils/gravityUtils')
 const busboy = require('busboy')
@@ -19,7 +16,7 @@ const logger = require('../../../utils/logger')(module)
 const meter = require('stream-meter')
 
 function abort(request, response, busboy, statusCode = StatusCode.ServerErrorInternal, metisError) {
-  logger.error(`#### abort()`)
+  logger.error('#### abort()')
   logger.error(`statusCode= ${statusCode}`)
   logger.error(`metisError.code= ${metisError.code}`)
   logger.error(`metisError.message= ${metisError.message}`)
@@ -35,10 +32,10 @@ function abort(request, response, busboy, statusCode = StatusCode.ServerErrorInt
   // });
 }
 const uploadController = (req, res, next, app, jobs, websocket) => {
-  console.log(`\n\n\n`)
+  console.log('\n\n\n')
   logger.info('======================================================================================')
   logger.info('== uploadController')
-  logger.info(`======================================================================================\n\n\n`)
+  logger.info('======================================================================================\n\n\n')
 
   const fileCategoryTypes = {
     publicProfile: 'public-profile',
@@ -62,7 +59,7 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
   })
   try {
     bb.on('field', (fieldName, value) => {
-      logger.verbose(`---- bb.on(field)`)
+      logger.verbose('---- bb.on(field)')
       if (fieldName === 'attachToJupiterAddress') {
         if (!gu.isWellFormedJupiterAddress(value)) {
           return res.status(StatusCode.ClientErrorNotAcceptable).send({
@@ -81,9 +78,9 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
       }
     })
     bb.on('file', (formDataKey, file, info) => {
-      logger.sensitive(`---- bb.on(file)`)
+      logger.sensitive('---- bb.on(file)')
       file.on('limit', () => {
-        logger.sensitive(`---- file.on(limit)`)
+        logger.sensitive('---- file.on(limit)')
         // console.log(data);
         const metisError = new mError.MetisErrorFileTooLarge()
         return abort(req, res, bb, StatusCode.ClientErrorNotAcceptable, metisError)
@@ -103,7 +100,7 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
       }
       try {
         if (formDataKey === 'file') {
-          logger.verbose(`---- bb.on(file)`)
+          logger.verbose('---- bb.on(file)')
           if (!gu.isNonEmptyString(info.filename)) {
             return abort(
               req,
@@ -174,17 +171,18 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
         }
       } catch (error) {
         console.log('\n')
-        logger.error(`************************* ERROR ***************************************`)
-        logger.error(`* ** bb.on(file).catch(error)`)
-        logger.error(`************************* ERROR ***************************************\n`)
+        logger.error('************************* ERROR ***************************************')
+        logger.error('* ** bb.on(file).catch(error)')
+        logger.error('************************* ERROR ***************************************\n')
         logger.error(`error= ${error}`)
         return abort(req, res, bb, StatusCode.ServerErrorInternal, error)
       }
     })
     bb.on('close', async () => {
-      logger.verbose(`---- bb.on(close)`)
+      logger.verbose('---- bb.on(close)')
       try {
-        if (!fileUploadData.hasOwnProperty('fileCategory')) throw new mError.MetisError('no fileCategory specified')
+        if (!Object.prototype.hasOwnProperty.call(fileUploadData, 'fileCategory'))
+          throw new mError.MetisError('no fileCategory specified')
         const fileCategory = fileUploadData.fileCategory
         const fileSizeInBytes = fileUploadData.fileSize
         const fileSizeInKiloBytes = fileSizeInBytes / 1000
@@ -223,7 +221,7 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
         )
 
         job.save((error) => {
-          logger.verbose(`---- JobQueue: job.save(error)`)
+          logger.verbose('---- JobQueue: job.save(error)')
           if (error) {
             logger.error(`${error}`)
             return res.status(StatusCode.ServerErrorInternal).send({
@@ -244,7 +242,7 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
           next()
         })
         job.on('complete', (result) => {
-          logger.verbose(`---- jon.on('complete)`)
+          logger.verbose("---- jon.on('complete)")
           console.log(fileUploadData.attachToJupiterAddress)
           const payload = {
             jobId: job.id,
@@ -260,9 +258,9 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
 
         job.on('failed attempt', (errorMessage, doneAttempts) => {
           console.log('\n')
-          logger.error(`************************* ERROR ***************************************`)
-          logger.error(`* ** job.on(failedAttempt)`)
-          logger.error(`************************* ERROR ***************************************\n`)
+          logger.error('************************* ERROR ***************************************')
+          logger.error('* ** job.on(failedAttempt)')
+          logger.error('************************* ERROR ***************************************\n')
           logger.error(`errorMessage= ${errorMessage}`)
           logger.error(`doneAttempts= ${doneAttempts}`)
           const payload = {
@@ -276,11 +274,11 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
 
         job.on('failed', (errorMessage) => {
           console.log('\n')
-          logger.error(`************************* ERROR ***************************************`)
-          logger.error(`* ** job.on(failed)`)
-          logger.error(`************************* ERROR ***************************************\n`)
+          logger.error('************************* ERROR ***************************************')
+          logger.error('* ** job.on(failed)')
+          logger.error('************************* ERROR ***************************************\n')
           logger.error(`errorMessage= ${errorMessage}`)
-          ///'File size too large ( 15.488063 MBytes) limit is: 1.6 MBytes'
+          /// 'File size too large ( 15.488063 MBytes) limit is: 1.6 MBytes'
           let errorCode = MetisErrorCode.MetisError
           if (errorMessage.includes('Not enough funds')) {
             errorCode = MetisErrorCode.MetisErrorNotEnoughFunds
@@ -296,9 +294,9 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
           websocket.of(WEBSOCKET_NAMESPACE).to(WEBSOCKET_ROOM).emit('uploadFailed', payload)
         })
       } catch (error) {
-        logger.error(`****************************************************************`)
-        logger.error(`** /jim/v1/api/file bb.on(Close)`)
-        logger.error(`****************************************************************`)
+        logger.error('****************************************************************')
+        logger.error('** /jim/v1/api/file bb.on(Close)')
+        logger.error('****************************************************************')
         console.log(error)
         return abort(req, res, bb, StatusCode.ClientErrorBadRequest, error)
         // return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message})
@@ -309,9 +307,9 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
     req.pipe(bb)
     return
   } catch (error) {
-    logger.error(`****************************************************************`)
-    logger.error(`** job.catch(error)`)
-    logger.error(`****************************************************************`)
+    logger.error('****************************************************************')
+    logger.error('** job.catch(error)')
+    logger.error('****************************************************************')
     console.log(error)
     if (error instanceof mError.MetisErrorSaveJobQueue) {
       return res.status(StatusCode.ServerErrorInternal).send({
@@ -329,14 +327,14 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
 
 module.exports = (app, jobs, websocket) => {
   app.get('/jim/v1/api/users/:userAddress/files/public-profile', async (req, res) => {
-    console.log(`\n\n\n`)
+    console.log('\n\n\n')
     logger.info('======================================================================================')
     logger.info('== GET: /jim/v1/profile/:userAddress')
-    logger.info(`======================================================================================\n\n\n`)
+    logger.info('======================================================================================\n\n\n')
 
     try {
       const { userAddress } = req.params
-      if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(``, userAddress)
+      if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress('', userAddress)
 
       const [messageContainers] =
         await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
@@ -353,6 +351,7 @@ module.exports = (app, jobs, websocket) => {
       let sharedKey = ''
       let tag = ''
       if (messageContainerTag.includes(`.${metisConfig.evm}`)) {
+        // eslint-disable-next-line no-unused-vars
         ;[fileUuid, transactionId, sharedKey, tag] = messageContainers.attachment.message.split('.').slice(-4)
       } else {
         ;[fileUuid, transactionId, sharedKey] = messageContainers.attachment.message.split('.').slice(-3)
@@ -369,9 +368,9 @@ module.exports = (app, jobs, websocket) => {
       res.sendFile(fileInfo.bufferDataPath)
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** /jim/v1/profile/:userAddress.catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** /jim/v1/profile/:userAddress.catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       console.log(error)
       if (error instanceof mError.MetisErrorBadJupiterAddress) {
         return res.status(StatusCode.ClientErrorNotAcceptable).send({ message: error.message, code: error.code })
@@ -382,17 +381,18 @@ module.exports = (app, jobs, websocket) => {
 
   //
   app.get('/jim/v1/api/users/:userAddress/files/:fileUuid/raw', async (req, res) => {
-    console.log(`\n\n\n`)
+    console.log('\n\n\n')
     logger.info('======================================================================================')
     logger.info('== GET: /jim/v1/profile/:userAddress/files/:fileUuid')
-    logger.info(`======================================================================================\n\n\n`)
+    logger.info('======================================================================================\n\n\n')
 
     try {
       const userAccountProperties = req.user.gravityAccountProperties
       const { fileUuid, userAddress } = req.params
-      if (!gu.isWellFormedUuid(fileUuid))
+      if (!gu.isWellFormedUuid(fileUuid)) {
         throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`)
-      if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress(``, userAddress)
+      }
+      if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress('', userAddress)
 
       const [messageContainers] =
         await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
@@ -410,9 +410,9 @@ module.exports = (app, jobs, websocket) => {
       res.sendFile(fileInfo.bufferDataPath)
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** /jim/v1/profile/:userAddress/files/:fileUuid.catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** /jim/v1/profile/:userAddress/files/:fileUuid.catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       console.log(error)
       if (error instanceof mError.MetisErrorBadUuid) {
         return res.status(StatusCode.ClientErrorNotAcceptable).send({ message: error.message, code: error.code })
@@ -435,33 +435,36 @@ module.exports = (app, jobs, websocket) => {
   })
 
   app.get('/jim/v1/api/channels/:channelAddress/files/:fileUuid', async (req, res, next) => {
-    console.log(`\n\n\n`)
+    console.log('\n\n\n')
     logger.info('======================================================================================')
     logger.info('== GET: /jim/v1/api/channels/:channelAddress/files/:fileUuid')
-    logger.info(`======================================================================================\n\n\n`)
+    logger.info('======================================================================================\n\n\n')
     try {
       const userAccountProperties = req.user.gravityAccountProperties
       const { fileUuid, channelAddress } = req.params
-      if (!gu.isWellFormedUuid(fileUuid))
+      if (!gu.isWellFormedUuid(fileUuid)) {
         throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`)
-      if (!gu.isWellFormedJupiterAddress(channelAddress))
-        throw new mError.MetisErrorBadJupiterAddress(``, channelAddress)
+      }
+      if (!gu.isWellFormedJupiterAddress(channelAddress)) {
+        throw new mError.MetisErrorBadJupiterAddress('', channelAddress)
+      }
       const channelAccountProperties =
         await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(
           userAccountProperties,
           channelAddress
         )
-      if (channelAccountProperties === null)
-        throw new mError.MetisErrorNoChannelAccountFound(``, userAccountProperties.address, channelAddress)
+      if (channelAccountProperties === null) {
+        throw new mError.MetisErrorNoChannelAccountFound('', userAccountProperties.address, channelAddress)
+      }
       const fileInfo = await storageService.fetchFileInfo(channelAccountProperties, fileUuid)
       res.setHeader('Content-Type', `${fileInfo.mimeType}`)
       res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`)
       res.sendFile(fileInfo.bufferDataPath)
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** /jim/v1/api/channels/:channelAddress/files/:fileUuid.catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** /jim/v1/api/channels/:channelAddress/files/:fileUuid.catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       console.log(error)
       if (error instanceof mError.MetisErrorBadUuid) {
         return res.status(StatusCode.ClientErrorNotAcceptable).send({ message: error.message, code: error.code })
@@ -484,10 +487,10 @@ module.exports = (app, jobs, websocket) => {
   })
 
   app.get('/jim/v1/api/files', async (req, res, next) => {
-    console.log(`\n\n\n`)
+    console.log('\n\n\n')
     logger.info('======================================================================================')
     logger.info('== GET: /jim/v1/api/files')
-    logger.info(`======================================================================================\n\n\n`)
+    logger.info('======================================================================================\n\n\n')
 
     try {
       const userAccountProperties = req.user.gravityAccountProperties
@@ -499,28 +502,15 @@ module.exports = (app, jobs, websocket) => {
       // if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
 
       const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress)
-      //async fetchChannelFilesList(userAccountProperties, channelAddress){
-      const mappedFileList = filesList.map((file) => {
-        return {
-          fileUuid: file.fileUuid,
-          fileCategory: file.fileCat,
-          fileName: file.fileName,
-          mimeType: file.mimeType,
-          sizeInBytes: file.sizeInBytes,
-          url: file.url,
-          createdAt: file.createdAt,
-          createdBy: file.createdBy,
-          version: file.version
-        }
-      })
+
       res.status(StatusCode.SuccessOK).send({
         message: `${filesList.length} file(s) found for ${channelAddress}`,
         files: filesList
       })
     } catch (error) {
-      logger.error(`********************** ERROR ******************************************`)
-      logger.error(`** GET /jim/v1/api/files`)
-      logger.error(`********************** ERROR ******************************************`)
+      logger.error('********************** ERROR ******************************************')
+      logger.error('** GET /jim/v1/api/files')
+      logger.error('********************** ERROR ******************************************')
       console.log(error)
       res.status(StatusCode.ClientErrorBadRequest).send({ message: error.message })
     }

@@ -1,12 +1,8 @@
 require('dotenv').config()
-const { S3StreamLogger } = require('s3-streamlogger')
-const SlackHook = require('winston-slack-webhook-transport')
 const winston = require('winston')
 const path = require('path')
 require('winston-mongodb')
 const { loggerConf } = require('../config/loggerConf')
-const { metisConf } = require('../config/metisConf')
-const { mongoConf } = require('../config/mongoConf')
 const { appConf } = require('../config/appConf')
 
 /**
@@ -17,7 +13,7 @@ const { appConf } = require('../config/appConf')
 const includeOnlyOneLevel = (level) => {
   return winston.format((info, opts) => {
     // if(!levels.includes(info.level)) return false
-    if (info.level != level) return false
+    if (info.level !== level) return false
     return info
   })()
 }
@@ -34,7 +30,7 @@ const includeAllExceptOneLevel = (levelToExclude) => {
  * @return {string}
  */
 const tsFormat = () => {
-  let today = new Date()
+  const today = new Date()
   return today.toISOString().split('T')[0]
 }
 
@@ -107,85 +103,6 @@ const initializeFileTransport = (
 /**
  *
  * @param callingModule
- * @return {null|*}
- */
-const initializeSlackTransport = (callingModule) => {
-  if (!loggerConf.hasSlackTransport) return null
-  return new SlackHook({
-    level: loggerConf.slackTransportLevel,
-    webhookUrl: loggerConf.slackHook,
-    formatter: (info) => {
-      return {
-        text: 'this is a test',
-        blocks: [
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `*METIS API NOTICE*\n ${info.message} \n server: ${metisConf.appName}`
-            }
-          }
-        ]
-      }
-    }
-  })
-}
-
-/**
- *
- * @return {null|Stream}
- */
-// const initializeS3StreamTransport = () => {
-//
-//     console.log(`\n`);
-//     console.log('=-=-=-=-=-=-=-=-=-=-=-=-= _REMOVEME =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-')
-//     console.log(`loggerConf:`);
-//     console.log(loggerConf);
-//     console.log(`=-=-=-=-=-=-=-=-=-=-=-=-= REMOVEME_ =-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-\n`)
-//
-//
-//     if(!loggerConf.hasS3Option) return null;
-//     // const s3Conf = loggerConf.s3Stream;
-//     // const bucket = loggerConf.s3Stream.bucket;
-//     if(s3Conf.option !== 1) return null;
-//     const s3Stream = new S3StreamLogger({
-//         loggerConf.s3Stream.bucket,
-//       config: {
-//         endpoint: loggerConf.s3Stream.endpoint,
-//       },
-//       access_key_id: loggerConf.s3Stream.key,
-//       secret_access_key: loggerConf.s3Stream.secrect,
-//       tags: {
-//         type: 'errorLogs',
-//         project: 'Metis',
-//       },
-//       rotate_every: loggerConf.s3Stream.rotateEvery,
-//       max_file_size: loggerConf.s3Stream.maxFileSize,
-//       upload_every: loggerConf.s3Stream.uploadEvery,
-//     });
-//     return new winston.transports.Stream({stream: s3Stream});
-// };
-
-/**
- *
- * @return {null|winston.transports.MongoDB}
- */
-const initializeMongoDBTransport = () => {
-  if (!mongoConf.dbUri) return null
-  return new winston.transports.MongoDB({
-    level: 'error',
-    db: mongoConf.dbUri,
-    options: {
-      useUnifiedTopology: true
-    },
-    collection: 'metis-logs',
-    format: winston.format.combine(winston.format.timestamp(), winston.format.json())
-  })
-}
-
-/**
- *
- * @param callingModule
  * @return {string}
  */
 const getLabel = (callingModule) => {
@@ -226,8 +143,6 @@ const serverDevLogger = (callingModule) => {
 
 const localDevLogger = (callingModule) => {
   const transports = []
-  // transports.push(initializeFileTransport(callingModule, loggerConf.errorLogFilePath, loggerConf.levels.names.error, LEVEL_FILTER_TYPE.includeOnlyOne));
-  // transports.push(initializeFileTransport(callingModule, loggerConf.combinedLogFilePath, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none));
   transports.push(initializeConsoleTransport(callingModule, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none))
   return winston.createLogger({
     levels: loggerConf.levels.ids,
