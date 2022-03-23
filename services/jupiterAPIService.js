@@ -21,7 +21,7 @@ class JupiterAPIService {
    * @param {string} jupiterHost
    * @param {ApplicationAccountProperties} applicationAccountProperties
    */
-  constructor(jupiterHost, applicationAccountProperties) {
+  constructor (jupiterHost, applicationAccountProperties) {
     if (!jupiterHost) {
       throw new Error('missing jupiterHost')
     }
@@ -43,7 +43,7 @@ class JupiterAPIService {
    *
    * @returns {{GetAccountId: string, GetBalance: string, SetAlias: string, GetUnconfirmedTransactions: string, GetAccount: string, SendMetisMessage: string, GetAccountProperties: string, SendMoney: string, ReadMessage: string, GetAliases: string, GetTransaction: string, GetBlockchainTransactions: string, GetAlias: string, DecryptFrom: string}}
    */
-  static get RequestType() {
+  static get RequestType () {
     return {
       SendMetisMessage: 'sendMetisMessage',
       GetAccountProperties: 'getAccountProperties',
@@ -65,7 +65,7 @@ class JupiterAPIService {
     }
   }
 
-  get baseUrl() {
+  get baseUrl () {
     return `${this.jupiterHost}/nxt`
   }
 
@@ -77,7 +77,7 @@ class JupiterAPIService {
    * @return {*}
    * @private
    */
-  _jupiterRequest(rtype, params, data = {}) {
+  _jupiterRequest (rtype, params, data = {}) {
     // const url = this.jupiterUrl(params);
     const url = this.baseUrl
     // const url = `${this.jupiterHost}/nxt`;
@@ -99,31 +99,31 @@ class JupiterAPIService {
      * @param {object} data [data={}] - the payload to send
      * @returns {Promise<*>}
      */
-  async jupiterRequest(rtype, params, data = {}) {
+  async jupiterRequest (rtype, params, data = {}) {
     // const url = this.jupiterUrl(params);
     const url = `${this.jupiterHost}/nxt`
     try {
       const response = await this._jupiterRequest(rtype, params, data)
       if (response.error) {
-        logger.error(`jupiterRequest().response.error`)
+        logger.error('jupiterRequest().response.error')
         logger.error(`error= ${JSON.stringify(response.error)}`)
         // logger.sensitive(`url= ${url}`)
         // logger.sensitive(`request data= ${JSON.stringify(data)}`)
         throw new JupiterApiError(response.error, StatusCode.ServerErrorInternal)
       }
       if (
-        response.hasOwnProperty('data') &&
-        response.data.hasOwnProperty('errorDescription') &&
+        Object.prototype.hasOwnProperty.call(response, 'data') &&
+        Object.prototype.hasOwnProperty.call(response.data, 'errorDescription') &&
         response.data.errorDescription
       ) {
-        let serverErrorCode = response.data.errorCode
+        const serverErrorCode = response.data.errorCode
         const serverErrorDescription = response.data.errorDescription
         if (serverErrorDescription === 'Unknown alias') {
-          const aliasName = params.hasOwnProperty('aliasName') ? params.aliasName : ''
+          const aliasName = Object.prototype.hasOwnProperty.call(params, 'aliasName') ? params.aliasName : ''
           throw new mError.MetisErrorUnknownAlias(serverErrorDescription, aliasName)
         }
         if (serverErrorDescription === 'Unknown Transaction') {
-          const transactionId = params.hasOwnProperty('transaction') ? params.transaction : ''
+          const transactionId = Object.prototype.hasOwnProperty.call(params, 'transaction') ? params.transaction : ''
           throw new mError.MetisErrorJupiterUnknownTransaction(serverErrorDescription, transactionId)
         }
 
@@ -131,7 +131,7 @@ class JupiterAPIService {
           throw new MetisErrorNotEnoughFunds(serverErrorDescription)
         }
 
-        logger.error(`**** jupiterRequest().then(response) response.data.errorDescription...`)
+        logger.error('**** jupiterRequest().then(response) response.data.errorDescription...')
         logger.error(`errorDescription= ${response.data.errorDescription}`)
         logger.error(`errorCode= ${response.data.errorCode}`)
         logger.sensitive(`params= ${JSON.stringify(params)}`)
@@ -141,9 +141,9 @@ class JupiterAPIService {
     } catch (error) {
       if (error instanceof mError.MetisErrorUnknownAlias) throw error
       // if(error instanceof mError.MetisErrorJupiterUnknownTransaction)throw error;
-      logger.error(`****************************************************************`)
-      logger.error(`** jupiterRequest().axios.catch(error)`)
-      logger.error(`****************************************************************`)
+      logger.error('****************************************************************')
+      logger.error('** jupiterRequest().axios.catch(error)')
+      logger.error('****************************************************************')
       logger.error(`rtype= ${rtype}`)
       logger.error(`url= ${url}`)
       logger.error(`params= ${JSON.stringify(params)}`)
@@ -162,7 +162,7 @@ class JupiterAPIService {
         const message = error.response.data
         throw new JupiterApiError(message, httpResponseStatus)
       } else if (error.request) {
-        logger.error(`No response received`)
+        logger.error('No response received')
         // The request was made but no response was received
         // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
         // http.ClientRequest in node.js
@@ -182,7 +182,7 @@ class JupiterAPIService {
    * @param params
    * @returns {Promise<*>}
    */
-  get(params) {
+  get (params) {
     return this.jupiterRequest(HttpMethod.GET, params)
   }
 
@@ -192,7 +192,7 @@ class JupiterAPIService {
    * @param data
    * @returns {Promise<*>}
    */
-  post(params, data = {}) {
+  post (params, data = {}) {
     return this.jupiterRequest(HttpMethod.POST, params, data)
   }
 
@@ -202,7 +202,7 @@ class JupiterAPIService {
    * @param data
    * @returns {Promise<*>}
    */
-  put(params, data = {}) {
+  put (params, data = {}) {
     return this.jupiterRequest(HttpMethod.PUT, params, data)
   }
 
@@ -216,7 +216,7 @@ class JupiterAPIService {
    * @param {string} address
    * @returns {Promise<{"recipientRS","recipient","requestProcessingTime","properties":[]}>}
    */
-  getAccountProperties(address) {
+  getAccountProperties (address) {
     if (!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
     // if(!gu.isWellFormedJupiterAddress(address)){
     //     throw new BadJupiterAddressError(address);
@@ -240,11 +240,11 @@ class JupiterAPIService {
    * @param {string} passphrase
    * @returns {Promise<{data: {"accountRS","publicKey","requestProcessingTime","account"}}>}
    */
-  getAccountId(passphrase) {
-    logger.verbose(`#### getAccountId(passphrase)`)
+  getAccountId (passphrase) {
+    logger.verbose('#### getAccountId(passphrase)')
 
     if (!gu.isWellFormedPassphrase(passphrase)) {
-      throw new Error(`Jupiter passphrase is not valid.`)
+      throw new Error('Jupiter passphrase is not valid.')
     }
 
     return this.get({
@@ -261,11 +261,11 @@ class JupiterAPIService {
    * @param {string} address
    * @return {Promise<{data: {"publicKey","requestProcessingTime"}}>}
    */
-  getAccountPublicKey(address) {
-    logger.verbose(`#### getAccountPublicKey(address)`)
+  getAccountPublicKey (address) {
+    logger.verbose('#### getAccountPublicKey(address)')
 
     if (!gu.isWellFormedJupiterAddress(address)) {
-      throw new Error(`address is not valid.`)
+      throw new Error('address is not valid.')
     }
 
     return this.get({
@@ -313,12 +313,11 @@ class JupiterAPIService {
                     "account": "1649351268274589422"
                 }
 
-
      * @param {string} address
      * @throws {Promise<{"errorDescription","errorCode"}>}
      * @returns {Promise<{"unconfirmedBalanceNQT","accountRS","forgedBalanceNQT","balanceNQT","publicKey","requestProcessingTime","account":""}>}
      */
-  async getAccount(address) {
+  async getAccount (address) {
     if (!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
     // if(!gu.isWellFormedJupiterAddress(address)){
     //     throw new BadJupiterAddressError(address);
@@ -348,7 +347,7 @@ class JupiterAPIService {
    *                                     attachment: {encryptedMessage: {data, nonce, isText, isCompressed}, versionMetisMetaData,versionEncryptedMessage},
    *                                   senderRS,subtype,amountNQT, recipientRS,block, blockTimestamp,deadline, timestamp,height,senderPublicKey,feeNQT,confirmations,fullHash, version,sender, recipient, ecBlockHeight,transaction}]}}>}
    */
-  async getBlockChainTransactions(
+  async getBlockChainTransactions (
     address,
     message = null,
     withMessage = false,
@@ -435,7 +434,7 @@ class JupiterAPIService {
      *           requestProcessingTime }}
      *           >}
      */
-  async getUnconfirmedBlockChainTransactions(
+  async getUnconfirmedBlockChainTransactions (
     address,
     message = null,
     withMessage = false,
@@ -473,7 +472,7 @@ class JupiterAPIService {
    * @param {string} sharedKey
    * @returns {Promise<{encryptedMessageIsPrunable,messageIsPrunable,decryptedMessage,requestProcessingTime,message}>}
    */
-  getReadableMessageBySharedKey(transactionId, sharedKey) {
+  getReadableMessageBySharedKey (transactionId, sharedKey) {
     logger.sensitive(`#### getReadableMessageBySharedKey(transactionId= ${transactionId}, sharedKey= ${sharedKey})`)
 
     if (!gu.isNonEmptyString(transactionId)) throw new mError.MetisError('transactionId is missing')
@@ -512,7 +511,7 @@ class JupiterAPIService {
    *           requestProcessingTime }, requestProcessingTime}
    *                                   }>}
    */
-  async _getConfirmedOrUnconfirmedBlockChainTransactions(
+  async _getConfirmedOrUnconfirmedBlockChainTransactions (
     requestType,
     address,
     message = null,
@@ -523,7 +522,7 @@ class JupiterAPIService {
     lastIndex = null
   ) {
     logger.verbose(
-      `#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType, address, message, withMessage, type, includeExpiredPrunable, firstIndex, lastIndex)`
+      '#### _getConfirmedOrUnconfirmedBlockChainTransactions(requestType, address, message, withMessage, type, includeExpiredPrunable, firstIndex, lastIndex)'
     )
     if (
       !(
@@ -554,7 +553,7 @@ class JupiterAPIService {
       if (!isNaN(firstIndex) && firstIndex >= 0) params.firstIndex = firstIndex
       if (!isNaN(lastIndex) && lastIndex >= 0) params.lastIndex = lastIndex
       const response = await this.get(params)
-      console.log(`\n`)
+      console.log('\n')
       logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
       if (requestType === JupiterAPIService.RequestType.GetBlockchainTransactions) {
         logger.verbose(`++ Total ${requestType}: ${response.data.transactions.length}`)
@@ -567,9 +566,9 @@ class JupiterAPIService {
       return response
     } catch (error) {
       console.log('\n')
-      logger.error(`************************* ERROR ***************************************`)
-      logger.error(`* ** _getConfirmedOrUnconfirmedBlockChainTransactions().catch(error)`)
-      logger.error(`************************* ERROR ***************************************\n`)
+      logger.error('************************* ERROR ***************************************')
+      logger.error('* ** _getConfirmedOrUnconfirmedBlockChainTransactions().catch(error)')
+      logger.error('************************* ERROR ***************************************\n')
       logger.error(`error= ${error}`)
       throw error
     }
@@ -580,7 +579,7 @@ class JupiterAPIService {
    * @param {string} transactionId
    * @returns {Promise<{"signature","transactionIndex","type","phased","ecBlockId","signatureHash","attachment":{"versionMessage","messageIsText","message","versionArbitraryMessage"},"senderRS","subtype","amountNQT","recipientRS","block","blockTimestamp","deadline","timestamp","height","senderPublicKey","feeNQT","requestProcessingTime","confirmations","fullHash","version","sender","recipient","ecBlockHeight","transaction"}>}
    */
-  async getTransaction(transactionId) {
+  async getTransaction (transactionId) {
     if (!gu.isWellFormedJupiterTransactionId(transactionId)) {
       throw new Error(`Jupiter transaction id not valid: ${transactionId}`)
     }
@@ -612,7 +611,7 @@ class JupiterAPIService {
    * @throws {Promise<{encryptedMessageIsPrunable,errorDescription,errorCode,requestProcessingTime,error}>}
    * @returns {Promise<{data: {encryptedMessageIsPrunable, decryptedMessage, requestProcessingTime}}>}
    */
-  async getMessage(transactionId, passphrase) {
+  async getMessage (transactionId, passphrase) {
     if (!gu.isWellFormedJupiterTransactionId(transactionId)) {
       throw new Error(`Jupiter transaction id not valid: ${transactionId}`)
     }
@@ -633,7 +632,7 @@ class JupiterAPIService {
    * @param {string} address
    * @returns {Promise<{data: {"unconfirmedBalanceNQT","forgedBalanceNQT","balanceNQT","requestProcessingTime"}}>}
    */
-  async getBalance(address) {
+  async getBalance (address) {
     if (!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
     // if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
     return this.get({
@@ -651,7 +650,7 @@ class JupiterAPIService {
    * @param prunable
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  async sendSimpleNonEncipheredMessage(from, to, message, fee, prunable) {
+  async sendSimpleNonEncipheredMessage (from, to, message, fee, prunable) {
     return this.sendSimpleNonEncipheredMessageOrMetisMessage('sendMessage', from, to, message, fee, null, prunable)
   }
 
@@ -665,7 +664,7 @@ class JupiterAPIService {
    * @param prunable
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  async sendSimpleNonEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
+  async sendSimpleNonEncipheredMetisMessage (from, to, message, fee, subtype, prunable) {
     logger.verbose('#####################################################################################')
     logger.verbose(
       `## sendSimpleNonEncipheredMetisMessage(from: ${from}, to: ${to}, message, fee=${fee}, subtype=${subtype}, prunable=${prunable})`
@@ -694,7 +693,7 @@ class JupiterAPIService {
    * @param {boolean} prunable
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  async sendSimpleNonEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, subtype, prunable) {
+  async sendSimpleNonEncipheredMessageOrMetisMessage (requestType, from, to, message, fee, subtype, prunable) {
     logger.verbose('#####################################################################################')
     logger.verbose(
       `## sendSimpleNonEncipheredMessageOrMetisMessage(requestType: ${requestType}, from: ${from}, to: ${to}, message, fee=${fee}, subtype=${subtype}, prunable=${prunable})`
@@ -751,7 +750,7 @@ class JupiterAPIService {
    * @param {boolean} prunable
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  async sendSimpleEncipheredMessage(from, to, message, fee, prunable) {
+  async sendSimpleEncipheredMessage (from, to, message, fee, prunable) {
     return this.sendSimpleEncipheredMessageOrMetisMessage('sendMessage', from, to, message, fee, prunable, null)
   }
 
@@ -765,7 +764,7 @@ class JupiterAPIService {
    * @param prunable
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  async sendSimpleEncipheredMetisMessage(from, to, message, fee, subtype, prunable) {
+  async sendSimpleEncipheredMetisMessage (from, to, message, fee, subtype, prunable) {
     return this.sendSimpleEncipheredMessageOrMetisMessage('sendMetisMessage', from, to, message, fee, subtype, prunable)
   }
 
@@ -780,7 +779,7 @@ class JupiterAPIService {
    * @param prunable
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  async sendSimpleEncipheredMessageOrMetisMessage(requestType, from, to, message, fee, subtype, prunable) {
+  async sendSimpleEncipheredMessageOrMetisMessage (requestType, from, to, message, fee, subtype, prunable) {
     if (!(requestType == 'sendMessage' || requestType == 'sendMetisMessage')) {
       throw new Error('invalid request type')
     }
@@ -835,7 +834,7 @@ class JupiterAPIService {
    * @param recipientPublicKey
    * @returns {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
    */
-  sendEncipheredMetisMessageAndMessage(
+  sendEncipheredMetisMessageAndMessage (
     from,
     to,
     messageToEncrypt,
@@ -847,7 +846,7 @@ class JupiterAPIService {
   ) {
     logger.verbose('#####################################################################################')
     logger.verbose(
-      `## sendEncipheredMetisMessageAndMessage(requestType: from, to, messageToEncrypt, message, fee, subtype, prunable, recipientPublicKey`
+      '## sendEncipheredMetisMessageAndMessage(requestType: from, to, messageToEncrypt, message, fee, subtype, prunable, recipientPublicKey'
     )
     logger.verbose('##')
     logger.sensitive(
@@ -909,7 +908,7 @@ class JupiterAPIService {
    *                      {signatureHash,broadcasted, transactionJSON, unsignedTransactionBytes,requestProcessingTime,transactionBytes,fullHash,transaction }
    *                  }>}
    */
-  async sendMetisMessageOrMessage(
+  async sendMetisMessageOrMessage (
     requestType,
     recipient,
     recipientPublicKey,
@@ -935,7 +934,7 @@ class JupiterAPIService {
     compressMessageToEncryptToSelf,
     subtype
   ) {
-    logger.verbose(`### jupiterApiService.sendMetisMessageOrMessage(*)`)
+    logger.verbose('### jupiterApiService.sendMetisMessageOrMessage(*)')
     if (!(requestType === 'sendMessage' || requestType === 'sendMetisMessage')) throw new Error('invalid request type')
     if (requestType === 'sendMetisMessage' && !subtype) throw new Error('subtype is invalid')
     if (!secretPhrase) throw new Error('secretPhrase is required')
@@ -943,9 +942,9 @@ class JupiterAPIService {
     if (!feeNQT) throw new Error('feeNQT is required')
     if (!deadline) throw new Error('deadline is required')
 
-    let params = {}
+    const params = {}
     params.requestType = requestType
-    let data = {}
+    const data = {}
     data.secretPhrase = secretPhrase
     data.subtype = subtype
     data.recipient = recipient
@@ -1068,8 +1067,8 @@ class JupiterAPIService {
    * @param {number} feeNqt
    * @returns {Promise<{"signatureHash",data: {"transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"versionOrdinaryPayment"},"senderRS","subtype","amountNQT","sender","recipientRS","recipient","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}, transaction}>}
    */
-  async transferMoney(fromAccountProperties, toAccountProperties, amountNqt, feeNqt = this.appProps.feeNQT) {
-    logger.verbose(`#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)`)
+  async transferMoney (fromAccountProperties, toAccountProperties, amountNqt, feeNqt = this.appProps.feeNQT) {
+    logger.verbose('#### transferMoney(fromJupiterAccount, toAccountProperties, amount, feeNQT)')
     if (!gu.isNumberGreaterThanZero(amountNqt)) {
       throw new Error('amount is invalid')
     }
@@ -1082,7 +1081,7 @@ class JupiterAPIService {
     const amountUsd = await gu.convertNqtToUsd(amountNqt, this.appProps.moneyDecimals)
     const feeUsd = await gu.convertNqtToUsd(feeNqt, this.appProps.moneyDecimals)
     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    logger.info(`++ Transferring Money`)
+    logger.info('++ Transferring Money')
     logger.info(`++ from: ${fromAccountProperties.address}`)
     logger.info(`++ to: ${toAccountProperties.address}`)
     logger.info(`++ amount: ${gu.formatNqt(amountNqt)} | JUP ${amountJup} | USD $${amountUsd}`)
@@ -1091,10 +1090,10 @@ class JupiterAPIService {
     return this.post({
       requestType: JupiterAPIService.RequestType.SendMoney,
       recipient: toAccountProperties.address,
-      secretPhrase: fromAccountProperties.passphrase, //fromAccount
+      secretPhrase: fromAccountProperties.passphrase, // fromAccount
       amountNQT: amountNqt,
       feeNQT: feeNqt,
-      deadline: this.appProps.deadline //60
+      deadline: this.appProps.deadline // 60
     })
   }
 
@@ -1137,7 +1136,7 @@ class JupiterAPIService {
      * @param aliasName
      * @returns {Promise<{"aliasURI","aliasName","accountRS","alias","requestProcessingTime","account","timestamp"}>}
      */
-  async getAlias(aliasName) {
+  async getAlias (aliasName) {
     logger.verbose(`#### getAlias(aliasName= ${aliasName})`)
     if (!aliasName) {
       throw new Error('aliasName cannot be empty')
@@ -1161,8 +1160,8 @@ class JupiterAPIService {
    *
    * @return {Promise<*>}
    */
-  getBlockchainStatus() {
-    logger.verbose(`#### getBlockchainStatus()`)
+  getBlockchainStatus () {
+    logger.verbose('#### getBlockchainStatus()')
     const params = {
       requestType: JupiterAPIService.RequestType.GetBlockchainStatus
     }
@@ -1188,7 +1187,7 @@ class JupiterAPIService {
    * @param address
    * @return {Promise<{"aliases": [{"aliasURI","aliasName","accountRS","alias","account","timestamp"}],"requestProcessingTime"}>}
    */
-  async getAliases(address) {
+  async getAliases (address) {
     logger.verbose(`#### getAliases(address=${address})`)
     if (!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
     // if(!gu.isWellFormedJupiterAddress(address)){
@@ -1245,10 +1244,10 @@ class JupiterAPIService {
    * @param {string} alias
    * @return {Promise<{"signatureHash","transactionJSON":{"senderPublicKey","signature","feeNQT","type","fullHash","version","phased","ecBlockId","signatureHash","attachment":{"alias","versionAliasAssignment","uri"},"senderRS","subtype","amountNQT","sender","ecBlockHeight","deadline","transaction","timestamp","height"},"unsignedTransactionBytes","broadcasted","requestProcessingTime","transactionBytes","fullHash","transaction"}>}
    */
-  setAlias(address, passphrase, alias) {
-    logger.verbose(`#### setAlias(address,passphrase, alias)`)
+  setAlias (address, passphrase, alias) {
+    logger.verbose('#### setAlias(address,passphrase, alias)')
     if (!gu.isWellFormedJupiterAddress(address)) throw new mError.MetisErrorBadJupiterAddress(`address: ${address}`)
-    if (!gu.isWellFormedPassphrase(passphrase)) throw new mError.MetisErrorBadJupiterPassphrase(`passphrase`)
+    if (!gu.isWellFormedPassphrase(passphrase)) throw new mError.MetisErrorBadJupiterPassphrase('passphrase')
     if (!gu.isWellFormedJupiterAlias(alias)) throw new mError.MetisErrorBadJupiterAlias(alias)
     const fee = feeManagerSingleton.getFee(FeeManager.feeTypes.alias_assignment)
     const newParams = {
@@ -1262,8 +1261,8 @@ class JupiterAPIService {
     return this.post(newParams)
   }
 
-  getState() {
-    logger.verbose(`#### getState()`)
+  getState () {
+    logger.verbose('#### getState()')
     const params = { requestType: JupiterAPIService.RequestType.GetState }
     return this.get(params)
   }
@@ -1275,7 +1274,7 @@ class JupiterAPIService {
    * @param {string} nonce
    * @returns {Promise<*>}
    */
-  getSharedKey(address, passphrase, nonce) {
+  getSharedKey (address, passphrase, nonce) {
     const params = { requestType: 'getSharedKey', account: address, secretPhrase: passphrase, nonce }
     return this.get(params)
   }
