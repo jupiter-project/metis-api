@@ -6,10 +6,6 @@ const { messagesConfig } = require('../config/constants')
 const { FeeManager } = require('./FeeManager')
 const { jupiterTransactionMessageService } = require('./jupiterTransactionMessageService')
 const { getPNTokensAndSendPushNotification } = require('../services/PushNotificationMessageService')
-// const metis = require("../config/metis");
-// const {refreshGravityAccountProperties} = require("../gravity/instantiateGravityAccountProperties");
-// const {chanService} = require("./chanService");
-// const {StatusCode} = require("../utils/statusCode");
 const mError = require('../errors/metisError')
 const { metisConfig } = require('../config/constants')
 const gu = require('../utils/gravityUtils')
@@ -101,32 +97,6 @@ const createMessageRecord = async (
 
 /**
  *
- * @param memberAccountProperties
- * @param channelAccountProperties
- * @param messageRecord
- * @return {Promise<{status, statusText, headers, config, request, data: {signatureHash, broadcasted, transactionJSON, unsignedTransactionBytes, requestProcessingTime, transactionBytes, fullHash, transaction}}>}
- */
-// const sendMetisMessage = async (memberAccountProperties, channelAccountProperties, messageRecord) => {
-//     const messageRecordString = JSON.stringify(messageRecord);
-//     const tag = messagesConfig.messageRecord;
-//     const feeType = FeeManager.feeTypes.account_record;
-//     if(channelAccountProperties.isMinimumProperties){
-//         await refreshGravityAccountProperties(channelAccountProperties);
-//     }
-//
-//     return jupiterTransactionMessageService.sendTaggedAndEncipheredMetisMessage(
-//         memberAccountProperties.passphrase,
-//         channelAccountProperties.address,
-//         messageRecordString,
-//         tag,
-//         feeType,
-//         channelAccountProperties.publicKey
-//     );
-//
-// };
-
-/**
- *
  * @param {object} senderAccountProperties
  * @param {object} channelAccountProperties
  * @param {string[]} mentions
@@ -175,29 +145,6 @@ const sendMessagePushNotifications = async (senderAccountProperties, channelAcco
       )
     })
 
-    //
-    // // if (channelAccountProperties.isMinimumProperties) {
-    // //     await refreshGravityAccountProperties(channelAccountProperties);
-    // // }
-    // const {memberProfilePicture} = await metis.getMember({
-    //     channel: channelAccountProperties.address,
-    //     account: channelAccountProperties.publicKey,
-    //     password: channelAccountProperties.password,
-    // });
-    // let members = memberProfilePicture.map(member => member.accountRS);
-    // members = members.filter(member => member !== memberAccountProperties.address);
-    // if (Array.isArray(members) && members.length > 0) {
-    //     const pnBody = `${senderAlias} has sent a message`;
-    //     const pnTitle = `${senderAlias}`;
-    //     await getPNTokensAndSendPushNotification(members, [channelAddress], pnBody, pnTitle, {channelAddress});
-    // }
-    // //TODO get channel name from channel account properties
-    // if (Array.isArray(memberAddressMentions) && memberAddressMentions.length > 0) {
-    //     // Push notification for mentioned members
-    //     const pnmBody = `${senderAlias} was tagged`;
-    //     const pnmTitle = `${senderAlias} has tagged`;
-    //     await getPNTokensAndSendPushNotification(memberAddressMentions, [channelAddress], pnmBody, pnmTitle, {channelAddress});
-    // }
   } catch (error) {
     console.log('\n')
     logger.error(`************************* ERROR ***************************************`)

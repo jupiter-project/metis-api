@@ -275,28 +275,6 @@ class JupiterAPIService {
   }
 
   /**
-   *
-   * @param {string} address
-   * @returns {Promise<{status, statusText,headers, config, request, data:
-   *                      {aliases: [{aliasURI, aliasName, accountRS, alias, account, timestamp}],requestProcessingTime}
-   *                  }>}
-   */
-  // async getAliases(address){
-  //     logger.verbose(`###################################################################################`);
-  //     logger.verbose(`## getAliases(address)`);
-  //     logger.verbose(`## `);
-  //     logger.sensitive(`address=${JSON.stringify(address)}`);
-  //     if(!gu.isWellFormedJupiterAddress(address)){
-  //         throw new Error(`Jupiter Address is not valid: ${address}`);
-  //     }
-  //
-  //     return this.post( {
-  //             requestType: JupiterAPIService.RequestType.getAliases,
-  //             account: address
-  //         })
-  // }
-
-  /**
      *
      * @example {
                     "errorDescription": "\"account\" not specified",
@@ -1096,32 +1074,6 @@ class JupiterAPIService {
       deadline: this.appProps.deadline // 60
     })
   }
-
-  /**
-   *
-   * @param {string} dataToDecipher
-   * @param {string} address
-   * @param {string} passphrase - 12 word passphrase
-   * @param {string} nonce
-   * @returns {Promise<*>}
-   */
-  // async decryptFrom(dataToDecipher, address, passphrase, nonce){
-  //     logger.verbose(`###################################################################################`);
-  //     logger.verbose(`## getDecipheredData(dataToDecipher, address, passphrase, nonce)`);
-  //     logger.verbose(`## `);
-  //
-  //     if(!dataToDecipher){throw new Error('dataToDecipher is invalid')}
-  //     if(!gu.isWellFormedPassphrase(passphrase)) {throw new Error('Please provide a valid passphrase')}
-  //     if(!gu.isWellFormedJupiterAddress(address)) {throw new Error('Please provide a valid address');}
-  //
-  //     return this.get( {
-  //         requestType: JupiterAPIService.RequestType.decryptFrom,
-  //         secretPhrase: passphrase,
-  //         account: address,
-  //         data: dataToDecipher,
-  //         nonce: nonce
-  //     });
-  // }
 
   /**
      * @example {

@@ -62,28 +62,6 @@ class JupiterTransactionsService {
     })
   }
 
-  /**
-   *
-   * @param account
-   * @returns {Promise<unknown>}
-   */
-  // async getBlockChainMessageTransactions(account) {
-  //     logger.verbose(`getBlockChainMessageTransactions(account ${account})`);
-  //     return new Promise((resolve, reject) => {
-  //         this.jupiterAPIService.getBlockChainTransactions(account)
-  //             .then((blockChainTransactions) => {
-  //                 logger.debug(`getBlockChainMessageTransactions().getBlockChainTransactions(account: ${account}).then()`);
-  //                 logger.debug(`blockChainTransactions count ${blockChainTransactions.length}`)
-  //
-  //                 const messageTransactions = this.transactionFilter.filterMessageTransactions(blockChainTransactions);
-  //                 resolve(messageTransactions);
-  //             })
-  //             .catch((error) => {
-  //                 logger.error(`${error}`);
-  //                 reject(error);
-  //             });
-  //     });
-  // }
 
   /**
    *
@@ -233,28 +211,6 @@ class JupiterTransactionsService {
           reject({ status: 'error', message: `${error}` })
         })
 
-      // const dataToDecipher = transaction.attachment.encryptedMessage.data;
-      // const nonce = transaction.attachment.encryptedMessage.nonce;
-      // metisMessagePromises.push(
-      //     this.jupiterApi.decryptFrom(dataToDecipher, address, passphrase, nonce)
-      //         .then((response) => {
-      //             transaction.decryptedMessage = response.data.decryptedMessage;
-      //             resolve(transaction);
-      //         })
-      //         .catch((error) => {
-      //             logger.error(`jupiterDecryptMessagesFromMessageTransactions(): ${error}`);
-      //             reject(error);
-      //         }));
-      // });
-
-      // Promise.all(metisMessagePromises)
-      //     .then((messages) => {
-      //         resolve(messages);
-      //     })
-      //     .catch((error) => {
-      //         logger.debug('PROMISE ERROR');
-      //         logger.error(`${error}`);
-      //     })
     })
   }
 

@@ -84,28 +84,6 @@ class JupiterTransactionMessageService {
           reject({ status: 'error', message: `${error}` })
         })
 
-      // const dataToDecipher = transaction.attachment.encryptedMessage.data;
-      // const nonce = transaction.attachment.encryptedMessage.nonce;
-      // metisMessagePromises.push(
-      //     this.jupiterApi.decryptFrom(dataToDecipher, address, passphrase, nonce)
-      //         .then((response) => {
-      //             transaction.decryptedMessage = response.data.decryptedMessage;
-      //             resolve(transaction);
-      //         })
-      //         .catch((error) => {
-      //             logger.error(`jupiterDecryptMessagesFromMessageTransactions(): ${error}`);
-      //             reject(error);
-      //         }));
-      // });
-
-      // Promise.all(metisMessagePromises)
-      //     .then((messages) => {
-      //         resolve(messages);
-      //     })
-      //     .catch((error) => {
-      //         logger.debug('PROMISE ERROR');
-      //         logger.error(`${error}`);
-      //     })
     })
   }
 
@@ -257,42 +235,6 @@ class JupiterTransactionMessageService {
     )
   }
 
-  // allMessagePromises(promises){
-  //     return new Promise((resolve, reject) => {
-  //         /**
-  //          * // [
-  //          //   {status: "fulfilled", value: 33},
-  //          //   {status: "fulfilled", value: 66},
-  //          //   {status: "fulfilled", value: 99},
-  //          //   {status: "rejected",  reason: Error: an error}
-  //          // ]
-  //          */
-  //         Promise.all(promises)
-  //             .then((results) => {
-  //                 logger.verbose('---------------------------------------------------------------------------------------');
-  //                 logger.verbose(`readMessagesFromMessageTransactionIdsAndDecrypt().Promise.all().then(results)`)
-  //                 logger.verbose('---------------------------------------------------------------------------------------');
-  //                 logger.verbose(`results.length= ${results.length}`);
-  //
-  //                 const decryptedMessages = results.reduce(function (filtered, result) {
-  //                     if(!result){
-  //                         // console.log('|')
-  //                         return filtered;
-  //                     }
-  //                     filtered.push(result);
-  //                     return filtered;
-  //                 }, []);
-  //                 logger.verbose(`decryptedMessages.length= ${decryptedMessages.length}`);
-  //                 return resolve(decryptedMessages);
-  //             })
-  //             .catch((error) => {
-  //                 logger.error('PROMISE ERROR');
-  //                 logger.error(`${error}`);
-  //                 return reject({status: 'error', message: error});
-  //             })
-  //
-  //     })
-  // }
 
   /**
    *  Fetch transaction messages from 'transactions' list.
@@ -503,23 +445,6 @@ class JupiterTransactionMessageService {
     })
   }
 
-  /**
-   *
-   * @returns {Promise<unknown>}
-   */
-  // async fetchUnconfirmedMessages(transactions, accountProperties) {
-  //     logger.verbose('#####################################################################################');
-  //     logger.verbose(`## fetchUnconfirmedMessages(transactions, accountProperties= ${!!accountProperties})`);
-  //     logger.verbose('#####################################################################################');
-  //     logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
-  //
-  //     if(transactions.length < 1){
-  //         return []
-  //     }
-  //
-  //     const unconfirmedMessages = transactions.map(transaction => transaction.decryptedMessage);
-  //     return unconfirmedMessages;
-  // }
 
   /**
    *

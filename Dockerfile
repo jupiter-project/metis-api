@@ -4,7 +4,7 @@ WORKDIR /apps/metis
 
 COPY package.json yarn.lock ./
 
-RUN yarn global add node-gyp
+RUN yarn global add node-gyp pm2
 
 RUN yarn install --prefer-offline --network-timeout=30000
 
@@ -18,4 +18,4 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["yarn","start"]
+CMD ["pm2-runtime","server.js"]

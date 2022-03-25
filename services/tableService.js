@@ -4,16 +4,12 @@ const { GravityAccountProperties } = require('../gravity/gravityAccountPropertie
 const { feeManagerSingleton, FeeManager } = require('../services/FeeManager')
 const logger = require('../utils/logger')(module)
 
-// import {GravityAccountProperties} from "./gravityAccountProperties";
-// const logger = require('../utils/logger')(module);
 const gu = require('../utils/gravityUtils')
-// const jupiterApiService = require("./jupiterAPIService");
 const { jupiterAPIService } = require('./jupiterAPIService')
 const { jupiterTransactionsService } = require('./jupiterTransactionsService')
 const { instantiateGravityAccountProperties } = require('../gravity/instantiateGravityAccountProperties')
 const mError = require('../errors/metisError')
-// const {jupiterAPIService} = require("./jupiterAPIService");
-// const {jupiterTransactionsService} = require("./jupiterTransactionsService");
+
 
 /**
  *
@@ -36,123 +32,11 @@ class GravityTablesService {
     this.jupiterAccountService = gravityService.jupiterAccountService
     this.applicationAccountInfo = this.gravityService.applicationGravityAccountType
     this.jupiterApiService = jupiterApiService
-    // this.userJupiterAccount,
-    // this.gravityTablesService,
-    // this.userJupiterMessages,
-    // this.userJupiterTransactions
   }
 
-  /**
-   *
-   * @param newTableProperties
-   * @param clientProperties
-   * @param applicationProperties
-   * @param initialFundingAmount
-   * @returns {Promise<Object>}
-   */
-  // async processTableUsingProperties(newTableProperties, clientProperties, applicationProperties, initialFundingAmount = 0){
-  //         const appStatement = this.applicationTransactions.getAccountStatement(applicationProperties); //Include AppBalance and Table Balance
-  //         const clientStatement = this.applicationTransactions.getAccountStatement(clientProperties);
-  //         return Promise.all( [appStatement, clientStatement])
-  //             .then((promiseResults) => {
-  //                 const appStatement = promiseResults[0];
-  //                 const clientStatement = promiseResults[1];
-  //                 return this.processTable( newTableProperties, clientStatement, appStatement, initialFundingAmount)
-  //         })
-  // }
 
-  /**
-   * @todo obsolete
-   * @param newTableProperties
-   * @param clientStatement
-   * @param appStatement
-   * @param initialFundingAmount
-   * @returns {Promise<unknown[]>}
-   */
-  // async processTable(newTableProperties, clientStatement, appStatement, initialFundingAmount = 0){
-  //     logger.verbose('createTable');
-  //         const newPassphrase = gu.generatePassphrase();
-  //         const isTableNameAvailable = this.isTableNameAvailable(tableName, clientStatement.attachedTables);
-  //         const canAppFundTable = this.canAppFundTable(clientStatement, initialFundingAmount);
-  //         if (!(isTableNameAvailable && canAppFundTable)) {
-  //             throw new Error(`Problem processing table: isTableNameAvailable= ${isTableNameAvailable}, canAppFundTable=${canAppFundTable}`)
-  //         }
-  //         const accountInfo = await this.jupiterAccountService.fetchAccountInfo(newPassphrase);
-  //         const newAccountAddress = accountInfo.address;
-  //         newTableProperties.address = newAccountAddress;
-  //         const encryptedTableRecord = this.constructAndEncryptTableRecord(newAccountAddress, clientProperties, clientProperties.crypto)
-  //         const encryptedTableListRecord = this.constructAndEncryptTableListRecord(newAccountAddress, clientProperties.crypto);
-  //         let allPromise = []
-  //         allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties, encryptedTableListRecord))
-  //         allPromise.push(this.jupiterApiService.sendMetisMessageToSelf(clientStatement.clientProperties,encryptedTableRecord, newTableProperties.name))
-  //         if(!(initialFundingAmount > 0)) {
-  //             return Promise.all(allPromise); // [{transactionType: 'tableRecord', transactionId: 123}, {transactionType: 'tableList', transactionId: 123}]
-  //         }
-  //
-  //         return Promise.all(allPromise)
-  //             .then(jupiterApiResponses => {
-  //                 this.jupiterApiService.sendMoney( clientStatement.clientProperties  ,newTableProperties,initialFundingAmount)
-  //                     .then( sendMoneyResponse => { // [{transactionType: 'sendMoney', transactionId: 123}]
-  //                         return {...jupiterApiResponses, sendMoneyResponse}; // return all transactions
-  //                     })
-  //             })
-  // }
+ 
 
-  // /**
-  //  * AttachTable = Create Account, Send record transaction, and Fund Account
-  //  * @param database
-  //  * @param nameOfTableToAttach
-  //  * @param currentTables
-  //  * @returns {Promise<unknown>}
-  //  */
-  // async attachTable(database, nameOfTableToAttach, currentTables=[]) {
-  //     logger.verbose('attachTable');
-  //     return new Promise((resolve, reject) => {
-  //         this.applicationTransactions.getAccountStatement()
-  //             .then(accountStatement => {
-  //                 if(!(accountStatement.hasMinimumAppBalance && accountStatement.hasMinimumTableBalance)){
-  //                     return reject(accountStatement);
-  //                 }
-  //
-  //                 this.gravityService.getUserAccountData() // gravity.loadAppData
-  //                     .then((userAccountData) => {
-  //
-  //                         if(!gu.jsonPropertyIsNonEmptyArray('tables', userAccountData)){
-  //                             return reject('Table name cannot be undefined');
-  //                         }
-  //
-  //                         let userAccountTableNames = userAccountData.tables; //tableList
-  //                         let isTableInCurrentTableList = currentTables.includes(nameOfTableToAttach);
-  //
-  //                         if(currentTables.includes(nameOfTableToAttach) && userAccountTableNames.includes(nameOfTableToAttach)){
-  //                             return reject(`Error: Unable to save table. ${nameOfTableToAttach} is already in the database`);
-  //                         }
-  //
-  //                         const passphrase = gu.generatePassphrase();
-  //                         logger.debug(`passphrase: ${passphrase}`);
-  //
-  //                         this.setUpNewGravityAccount(
-  //                             database.address,
-  //                             database.publicKey,
-  //                             nameOfTableToAttach,
-  //                             userAccountTableNames,
-  //                             passphrase,
-  //                             database.encryptionPassword,
-  //                             this.applicationAccountInfo.algorithm)
-  //                             .then(response => {
-  //                                 return resolve(response);
-  //                             })
-  //                     })
-  //                     .catch( error =>{
-  //                         logger.error(`${error}`);
-  //                         reject(error);
-  //                     })
-  //             })
-  //             .catch(error => {
-  //                 reject(error);
-  //             })
-  //     });
-  // }
 
   /**
    *
@@ -192,47 +76,6 @@ class GravityTablesService {
 
     return hasKey
   }
-
-  /**
-   *
-   * @param tableBreakdown
-   * @returns {Promise<unknown>}
-   */
-  // async createUserTable(tableBreakdown) {
-  //     return new Promise( (resolve, reject) => {
-  //         logger.verbose('createUserTable()');
-  //         this.attachUsersTable( tableBreakdown)
-  //             .then(res => {
-  //                 if (res.error) {
-  //                     logger.error(res.error);
-  //                     if (res.fullError === 'Error: Unable to save tableName. users is already in the database') {
-  //                         return resolve({resolutionType: 'exists', message: 'already created'});
-  //                     }
-  //                     return resolve({resolutionType: 'error', message: res.error})
-  //                 }
-  //
-  //                 return resolve({resolutionType: 'success'})
-  //             })
-  //             .catch(error => {
-  //                 return reject(error);
-  //             })
-  //     })
-  // }
-
-  // async attachUsersTable(currentTables) {
-  //     return new Promise((resolve, reject) => {
-  //         const algorithm = this.gravityService.userJupiterAccount.algorithm;
-  //         const password = this.gravityService.userJupiterAccount.password;
-  //
-  //       this.attachTable(algorithm,password, 'users', currentTables)
-  //           .then(response => {
-  //               return resolve(response);
-  //           })
-  //           .catch(error => {
-  //               reject(error);
-  //           })
-  //     })
-  // }
 
   /**
    *
@@ -276,88 +119,7 @@ class GravityTablesService {
     })
   }
 
-  /**
-   *
-   * @param address
-   * @param publicKey
-   * @param nameOfTableToAttach
-   * @param userAccountTableNames
-   * @param passphrase
-   * @param encryptionPassword
-   * @param algorithm
-   * @returns {Promise<unknown>}
-   */
-  // async setUpNewGravityAccount(address, publicKey, nameOfTableToAttach, userAccountTableNames, passphrase, encryptionPassword, algorithm ) {
-  //     return new Promise((resolve, reject) => {
-  //         this.jupiterAccountService.getAccountId(passphrase) // creates new jup accountId
-  //             .then( response => {
-  //                 const hash = encryptionPassword; // This seems wrong!
-  //                 const databaseGravityAccountType = new GravityAccountProperties(address, '', publicKey, passphrase, hash, encryptionPassword, algorithm);
-  //                 const databaseCrypto = new GravityCrypto(databaseGravityAccountType.algorithm, databaseGravityAccountType.password);
-  //
-  //                 const encryptedUserRecord = this.constructAndEncryptUserRecord(nameOfTableToAttach, accountRS, publicKey, passphrase, databaseCrypto)
-  //                 const encryptedTableListRecord = this.constructAndEncryptTableListRecord(nameOfTableToAttach, userAccountTableNames, databaseCrypto);
-  //
-  //                 let allPromise = []
-  //                 allPromise.push(this.postTableListRecord(databaseGravityAccountType, encryptedTableListRecord))
-  //                 allPromise.push(this.postUserRecord(databaseGravityAccountType,encryptedUserRecord,nameOfTableToAttach))
-  //
-  //                 /**
-  //                  * Promise.all() method takes an iterable of promises as an input, and returns a single Promise that
-  //                  * resolves to an array of the results of the input promises. This returned promise will resolve
-  //                  * when all of the input's promises have resolved, or if the input iterable contains no promises.
-  //                  * It rejects immediately upon any of the input promises rejecting or non-promises throwing an error,
-  //                  * and will reject with this first rejection message / error.
-  //                  */
-  //                 Promise.all(allPromise)
-  //                     .then( response => {
-  //                         resolve(response);
-  //                     })
-  //                     .catch(error =>{
-  //                         logger.error(`${error}`);
-  //                         reject(error)
-  //                     })
-  //             })
-  //             .catch((error) => {
-  //                 logger.error(`${error}`);
-  //                 reject(error);
-  //             })
-  //     })
-  // }
 
-  /**
-   *
-   * @param nameOfTableToAttach
-   * @param userAccountTableNames
-   * @param databaseCrypto
-   */
-  // constructAndEncryptTableListRecord(nameOfTableToAttach, userAccountTableNames, databaseCrypto){
-  //
-  //     userAccountTableNames.push(nameOfTableToAttach);
-  //
-  //     if (nameOfTableToAttach === 'channels' && userAccountTableNames.length < 2) {
-  //         userAccountTableNames = ['users', 'channels'];
-  //     }
-  //
-  //     if (nameOfTableToAttach === 'invites' && userAccountTableNames.length < 3) {
-  //         userAccountTableNames = ['users', 'channels', 'invites'];
-  //     }
-  //
-  //     // tableList === userAccountTableNames
-  //     // tableListRecord === tableListRecord
-  //     // encryptedTableData ===  encryptedTableListRecord
-  //     // encryptedData === encryptedUserRecord
-  //
-  //     //ie {tables: ['users', 'channels', 'invites'], date: 123123}
-  //     const tableListRecord = {
-  //         tables: userAccountTableNames,
-  //         date: Date.now(),
-  //     };
-  //
-  //     const encryptedTableListRecord = databaseCrypto.encryptJson(tableListRecord);
-  //
-  //     return encryptedTableListRecord;
-  // }
 
   /**
    *
@@ -380,24 +142,6 @@ class GravityTablesService {
 
     return encryptedUserRecord
   }
-
-  /**
-   *
-   * @param currentTables
-   * @param database
-   * @returns {Promise<unknown>}
-   */
-  // async attachUsersTable(currentTables, database) {
-  //     return new Promise((resolve, reject) => {
-  //         this.attachTable( database, 'users', currentTables)
-  //             .then(response => {
-  //                 return resolve(response);
-  //             })
-  //             .catch(error => {
-  //                 reject(error);
-  //             })
-  //     })
-  // }
 
   /**
    *
@@ -990,113 +734,3 @@ class TableService {
 module.exports.TableService = TableService
 module.exports.tableService = new TableService(jupiterTransactionsService, jupiterAPIService)
 
-/**
- *
- * @param tableOwnerProperties
- * @param nameOfTableToAttach
- * @param currentTables
- * @returns {Promise<unknown>}
- */
-// async attachTable(tableOwnerProperties, nameOfTableToAttach) {
-//     logger.verbose('##############################################################')
-//     logger.verbose('attachTable()');
-//     logger.verbose('##############################################################')
-//     return new Promise((resolve, reject) => {
-//         this.gravityService.getUserAccountData() // gravity.loadAppData
-//             .then((userAccountData) => {
-//
-//                 if(!gu.jsonPropertyIsNonEmptyArray('tables', userAccountData)){
-//                     return reject('Table name cannot be undefined');
-//                 }
-//
-//                 let userAccountTableNames = userAccountData.tables; //tableList
-//                 let isTableInCurrentTableList = currentTables.includes(nameOfTableToAttach);
-//
-//                 if(currentTables.includes(nameOfTableToAttach) && userAccountTableNames.includes(nameOfTableToAttach)){
-//                     return reject(`Error: Unable to save table. ${nameOfTableToAttach} is already in the database`);
-//                 }
-//
-//                 const passphrase = gu.generatePassphrase();
-//                 logger.debug(`passphrase: ${passphrase}`);
-//
-//                 this.setUpNewGravityAccount(
-//                     tableOwnerProperties.address,
-//                     tableOwnerProperties.publicKey,
-//                     nameOfTableToAttach,
-//                     userAccountTableNames,
-//                     passphrase,
-//                     tableOwnerProperties.encryptionPassword,
-//                     this.applicationAccountInfo.algorithm)
-//                     .then(response => {
-//                         return resolve(response);
-//                     })
-//             })
-//             .catch( error =>{
-//                 logger.error(`${error}`);
-//                 reject(error);
-//             })
-//     });
-// }
-
-// /**
-//  *
-//  * @param accountProperties
-//  * @returns {Promise<unknown>}
-//  */
-// fetchAttachedTables(accountProperties) { // ie gravity.loadAppData
-//     logger.verbose('#####################################################################################');
-//     logger.verbose('## fetchAttachedTables()');
-//     logger.verbose('#####################################################################################');
-//     logger.sensitive(`accountProperties= ${JSON.stringify(accountProperties)}`);
-//
-//
-//     return new Promise((resolve, reject) => {
-//         this.jupiterTransactionsService.fetchMessages(accountProperties)  //gravity.getRecords()
-//             .then((transactionMessages) => {
-//                 logger.verbose('---------------------------------------------------------------------------------------');
-//                 logger.verbose(`fetchAttachedTables().fetchMessages().then(transactionMessages)`);
-//                 logger.verbose('---------------------------------------------------------------------------------------');
-//                 logger.sensitive(`transactionMessages= ${JSON.stringify(transactionMessages)}`);
-//
-//                 // const tableProperties = this.tableService.extractTablePropertiesFromMessages('users' ,transactionMessages);
-//                 // logger.verbose(`TOTAL tableProperties: ${tableProperties.length}`);
-//
-//                 const attachedTables = this.extractTablesFromMessages(transactionMessages);
-//                 logger.sensitive(`attachedTables= ${JSON.stringify(attachedTables)}`);
-//
-//                 // let tableList = this.tableService.extractTableListFromRecords(records);
-//                 // logger.verbose(`TOTAL tableList: ${tableList.length}`);
-//                 // tableList = this.gravityObjectMapper.sortByDate(tableList);
-//
-//                 // const currentList = this.gravityTablesService.extractCurrentListFromTableList(tableList);
-//                 // logger.verbose(`TOTAL currentList: ${currentList.length}`);
-//                 // const tableData = this.tableService.extractTableData(currentList, attachedTables);
-//                 // logger.verbose(`TOTAL tableData: ${tableData.length}`);
-//
-//                 // let accountDataContainer = this.this.getAccountDataContainer()();
-//                 // accountDataContainer.numberOfRecords = recordsFound;
-//                 // accountDataContainer.tableNames = currentList;
-//                 // accountDataContainer.tableData = tableData;
-//                 // accountDataContainer.accountRecord = tableProperties;
-//                 // accountDataContainer.accountProperties = accountProperties;
-//
-//                 return resolve(attachedTables);
-//             })
-//             .catch((error) => {
-//                 logger.error(`fetchMessagesContainer.catch() ${error}`);
-//                 reject({success: false, error: 'There was an error loading records'});
-//             });
-//     });
-// }
-
-// const applicationUsersTableProperties = this.extractTablePropertiesFromTables('user', applicationAccountData.attachedTables);
-
-// extractTablePropertiesFromTablesOrNull( tableName, tables) {
-//     const table = tables.filter( table => table.tableName == tableName );
-//
-//     if(table.length > 0){
-//         return new TableAccountProperties(table[0].address,table[0].passphrase,'',table[0].password)
-//     }
-//
-//     return null;
-// }

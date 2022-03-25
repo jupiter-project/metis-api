@@ -96,40 +96,7 @@ module.exports = {
     return Notifications.updateOne(filter, { $push: { pnAccounts: newPNAccount } })
   },
 
-  // findNotificationAndUpdate: (filter, updateData, token, provider) => {
-  //   if (!filter || !updateData || !provider) {
-  //     throw new Error('Filter and data to update are required.');
-  //   }
-  //
-  //   return Notifications.find(filter)
-  //       .lean()
-  //       .then(async ([notification]) => {
-  //         console.log('[notification]:', notification);
-  //
-  //         if (!notification){
-  //           return Notifications.create(updateData);
-  //         }
-  //
-  //         if (!notification.pnAccounts){
-  //           await Notifications.deleteOne(filter);
-  //           return Notifications.create(updateData);
-  //         }
-  //
-  //         const tokenAlreadyExist = notification.pnAccounts.find(account => account.token === token);
-  //
-  //         if (!tokenAlreadyExist){
-  //           const newToken = {
-  //             provider,
-  //             token,
-  //             createdAt: new Date(),
-  //             badgeCounter: 0,
-  //           };
-  //           return Notifications.updateOne(filter, { $push: { pnAccounts: [newToken] } });
-  //         }
-  //
-  //         return notification;
-  //       });
-  // },
+
   /**
    *
    * @param userAddresses
@@ -155,8 +122,7 @@ module.exports = {
       // if(!gu.isWellFormedJupiterAddress(mutedUserAddress)){throw new BadJupiterAddressError(mutedUserAddress)}
     })
 
-    // if(mutedUserAddresses && !gu.isWellFormedJupiterAddress(mutedUserAddresses)){ throw new Error(`excludeChannelAdddress needs to be null or valid address`)}
-    // if(mutedUserAddresses && !gu.isWellFormedJupiterAddress(mutedUserAddresses)){ throw new Error(`excludeChannelAdddress needs to be null or valid address`)}
+
     const filter = {
       userAddress: { $in: userAddresses },
       pnAccounts: { $exists: true, $ne: [] }
@@ -168,17 +134,6 @@ module.exports = {
 
     return Notifications.find(filter)
   },
-
-  // findNotificationsByAddress: (address) => {
-  //     if(!gu.isWellFormedJupiterAddress(address)){throw new BadJupiterAddressError(address)}
-  //
-  //     const filter = {
-  //         userAddress: { $eq: address },
-  //         pnAccounts: { $exists: true, $ne: [] },
-  //     };
-  //
-  //     return Notifications.find(filter);
-  // },
 
   /**
    * Returns the notification items filtering by

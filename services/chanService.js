@@ -199,15 +199,6 @@ class ChanService {
     }
   }
 
-  // async getChannelInvitationContainersSentFromAccountToAddress(sentFromMemberAccountProperties, toAddress) {
-  //     const recordTag = channelConfig.channelInviteRecord;
-  //     const invitationContainers = await this.jupiterTransactionsService.getReadableTaggedMessageContainers(
-  //         sentFromMemberAccountProperties,
-  //         recordTag,
-  //         false)
-  //     // Second: Only get invitations sent to the member. Not invitations the member sent to others.
-  //     const invitationContainersFilteredByFrom = invitationContainers.filter( invitationContainer => invitationContainer.message.inviterAddress === toAddress);
-  // }
 
   /**
    *
@@ -513,27 +504,6 @@ class ChanService {
     }
   }
 
-  /**
-   *  @description OBSOLETE!!!!
-   * @param channelAddress
-   * @param memberAccountProperties
-   */
-  // async getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties ){
-  //     logger.verbose(`###################################################################################`);
-  //     logger.verbose(`## getChannelAccountPropertiesBelongingToMember(channelAddress, memberAccountProperties )`);
-  //     logger.verbose(`## `);
-  //     if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new BadJupiterAddressError(channelAddress)}
-  //     // if(!gu.isWellFormedJupiterAddress(channelAddress)){throw new Error('channelAddress is invalid')}
-  //     logger.sensitive(`channelAddress= ${JSON.stringify(channelAddress)}`);
-  //     if(!(memberAccountProperties instanceof GravityAccountProperties )){ throw new Error('memberAccountProperties is invalid')}
-  //     const allMemberChannels = await this.getMemberChannels(memberAccountProperties);
-  //     const channelAccountPropertiesArray = allMemberChannels.filter( channelAccountProperties => channelAccountProperties.address === channelAddress );
-  //     if(channelAccountPropertiesArray.length > 0){
-  //         return channelAccountPropertiesArray[0];
-  //     }
-  //
-  //     throw new Error('doesnt exist!')
-  // }
 
   /**
    *
@@ -1245,26 +1215,6 @@ class ChanService {
         )
       )
   }
-
-  /**
-   *
-   * @param userPublicKey
-   * @param userAddress
-   * @param channelAccountProperties
-   * @return {Promise<null|void>}
-   */
-  // async addPublicKeyToChannelOrNull(userPublicKey, userAddress, channelAccountProperties){
-  //     try {
-  //         return this.addE2EPublicKeyToChannel(userPublicKey, userAddress, channelAccountProperties);
-  //     } catch (error){
-  //         logger.error(`ERROR: [addPublicKeyToChannelOrNull]: ${JSON.stringify(error)}`);
-  //         return null;
-  //     }
-  // }
-
-  // hasPublicKeyInChannelAccount(publicKey, gravityAccountProperties) {
-  //     return this.jupiterAccountService.publicKeyMessages(publicKey, gravityAccountProperties, channelConfig.channelMemberPublicKeyList)
-  // }
 
   /**
    *

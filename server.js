@@ -173,13 +173,6 @@ jupiterWss.on('connection', jupiterSocketService.connection.bind(this))
 
 server.on('upgrade', (request, socket, head) => {
   const pathname = new Url(request.url).pathname
-  console.log(pathname)
-  console.log(pathname)
-  console.log(pathname)
-  console.log(pathname)
-  console.log(pathname)
-  console.log(pathname)
-  console.log(pathname)
   if (pathname === '/jupiter') {
     jupiterWss.handleUpgrade(request, socket, head, (ws) => {
       jupiterWss.emit('connection', ws, request)
