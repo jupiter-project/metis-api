@@ -504,5 +504,49 @@ module.exports = (app, passport, jobs, websocket) => {
             websocket.of('/channels').to(memberAccountProperties.address).emit('channelCreationFailed',
                 { jobId: job.id, channelAddress: channelAccountProperties.address });
         });
-    })
+    });
+
+    /**
+     * Get channel records associated with a user
+     */
+    app.get('/v1/api/channel/info/:channelAddress', async (req, res, next) => {
+        console.log('');
+        logger.info('======================================================================================');
+        logger.info('== Get a channel\'s messages');
+        logger.info('== GET: /v1/api/channel/info/:channelAddress');
+        logger.info('======================================================================================\n');
+        const { channelAddress } = req.params;
+
+        if(!gu.isWellFormedJupiterAddress(channelAddress)) {
+            const error =  new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`);
+            return res.status(StatusCode.ClientErrorBadRequest).send({message: error.message, code: error.code});
+        }
+
+        try {
+            const memberAccountProperties = await instantiateGravityAccountProperties(
+                req.user.passphrase,
+                req.user.password
+            );
+
+            const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(memberAccountProperties, channelAddress);
+
+            if (!channelAccountProperties) {
+                return res.status(StatusCode.ServerErrorInternal).send({message: `channel is not available: ${channelAddress}`})
+            }
+
+            const response = {
+                channelAddress: channelAccountProperties.address,
+                channelPublicKey: channelAccountProperties.publicKey,
+                channelName: channelAccountProperties.channelName,
+                createdBy: channelAccountProperties.createdBy,
+                createdAt: channelAccountProperties.createdAt
+            };
+
+            res.send(response);
+        } catch (error) {
+            logger.error('Error getting messages:');
+            logger.error(`${error}`);
+            res.status(StatusCode.ServerErrorInternal).send({message: 'Error getting messages'})
+        }
+    });
 };
