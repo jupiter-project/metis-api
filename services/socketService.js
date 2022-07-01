@@ -65,6 +65,17 @@ const signUpSuccessful = function (account) {
   this.broadcast.to(`sign-up-${account}`).emit('signUpSuccessful');
 };
 
+const signInStartDiscovery = function ({selectedAccount, publicKey}){
+  console.log('signInStartDiscovery', selectedAccount);
+  this.broadcast.to(`sign-in-${selectedAccount}`).emit(`discover-request-${selectedAccount}`, {selectedAccount, publicKey});
+};
+
+const signInResponseDiscovery = function ({selectedAccount, encryptedMessage}){
+  console.log('signInResponseDiscovery', encryptedMessage);
+  this.broadcast.to(`sign-in-${selectedAccount}`).emit(`discover-response-${selectedAccount}`, encryptedMessage);
+};
+
+
 const signupFailedAttempt = function (account) {
   this.broadcast.to(`sign-up-${account}`).emit('signUpFailedAttempt');
 };
@@ -146,6 +157,47 @@ const signUpConnection = function (socket) {
   });
 };
 
+/**
+ *
+ * @param socket
+ * @returns {*}
+ */
+const signInConnection = function (socket) {
+  const { room, user } = socket.handshake.query;
+  if (!room || !user) {
+    logger.error(`Missing parameter ${JSON.stringify({ room, user })}`);
+    return socket.close();
+  }
+
+  joinRoom(socket, room, user);
+
+  socket.on('leaveRoom', leaveRoom);
+  socket.on('connect_error', (error) => {
+    logger.error(`***********************************************************************************`);
+    logger.error(`** signUpConnection(socket).catch(error)`);
+    logger.error(`** `);
+    console.log(error);
+  });
+
+  socket.on('signInStartDiscovery', signInStartDiscovery);
+  socket.on('signInResponseDiscovery', signInResponseDiscovery);
+
+  /**
+   * io server disconnect The server has forcefully disconnected the socket with socket.disconnect()
+   * io client disconnect The socket was manually disconnected using socket.disconnect()
+   * ping timeout The server did not send a PING within the pingInterval + pingTimeout range
+   * transport close The connection was closed (example: the user has lost connection, or the network was changed from WiFi to 4G)
+   * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
+   */
+  socket.on('disconnect', (reason) => {
+    logger.error(`***********************************************************************************`);
+    logger.error(`** signInConnection(socket).onDisconnect(reason)`);
+    logger.error(`** `);
+    logger.error(`reason: ${reason}`);
+    logger.info(`${socket.name} has disconnected from the room.${socket.id}`);
+  });
+};
+
 
 const connection = function (socket) {
   logger.info('a user connected');
@@ -177,4 +229,4 @@ const connection = function (socket) {
   });
 };
 
-module.exports = { connection, signUpConnection, channelCreationConnection };
+module.exports = { connection, signUpConnection, channelCreationConnection, signInConnection };
