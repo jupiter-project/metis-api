@@ -400,7 +400,7 @@ module.exports = (app, jobs, websocket) => {
             if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(``, channelAddress);
             const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
             if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(``, userAccountProperties.address, channelAddress);
-            const fileInfo = await storageService.fetchFileInfo(channelAccountProperties, fileUuid);
+            const fileInfo = await storageService.fetchFileInfo(channelAccountProperties, fileUuid, `.${metisConfig.evm}`);
             res.setHeader('Content-Type', `${fileInfo.mimeType}`);
             res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`);
             res.sendFile(fileInfo.bufferDataPath);
