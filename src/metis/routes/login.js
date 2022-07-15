@@ -1,13 +1,9 @@
-// import {jupiterAPIService} from "../../../services/jupiterAPIService";
-// import { gravity } from '../../../config/gravity';
 import jwt from 'jsonwebtoken';
-// import gu from "../utils/gravityUtils";
 import gu from "../../../utils/gravityUtils"
 import {MetisErrorCode} from "../../../utils/metisErrorCode";
-import mError from "../../../errors/metisError";
 import {jupiterAccountService} from "../../../services/jupiterAccountService";
-// import {metisApplicationAccountProperties} from "../../../gravity/applicationAccountProperties";
 import {GravityCrypto} from "../../../services/gravityCrypto";
+import {jupiterAPIService} from "../../../services/jupiterAPIService";
 import {metisConf} from "../../../config/metisConf";
 const {StatusCode} = require("../../../utils/statusCode");
 const logger = require('../../../utils/logger')(module);
@@ -102,6 +98,30 @@ module.exports = (app, jobs, websocket) => {
             logger.error(`************************* ERROR ***************************************\n`);
             console.log(error);
             return res.status(StatusCode.ServerErrorInternal).send({message: `Theres a problem with login`, code: MetisErrorCode.MetisErrorFailedUserAuthentication})
+        }
+    });
+
+
+    app.post('/v1/api/loginSync', async (req, res, next) => {
+        logger.info(`\n\n`)
+        logger.info(`======================================================================================`);
+        logger.info('== loginSync');
+        logger.info('== POST: /v1/api/loginSync');
+        logger.info(`======================================================================================/n/n`);
+        logger.sensitive(`headers= ${JSON.stringify(req.headers)}`);
+        const {ethAddress, jupAddress} = req.body;
+
+        if (!ethAddress) {
+            return res.status(StatusCode.ClientErrorBadRequest).send({
+                message: 'Ethereum address is missing',
+                code: MetisErrorCode.MetisError
+            });
+        }
+
+        const accountInfo = await jupiterAPIService.getAlias(ethAddress);
+
+        if(accountInfo.accountRS === jupAddress){
+            websocket.of(`/sign-in`).to(`sign-in-${ethAddress}`).emit(`discover-request-${ethAddress}`, jupAddress);
         }
     });
 };

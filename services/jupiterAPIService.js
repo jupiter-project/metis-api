@@ -1062,14 +1062,6 @@ class JupiterAPIService {
             requestType: JupiterAPIService.RequestType.GetAlias,
         }
         return this.get(params);
-
-        // return this.get(params).catch( error => {
-        //     if( error.message === 'API Response Error: Unknown alias'){
-        //         throw new mError.MetisErrorUnknownAlias(`alias is not found.`, params.aliasName);
-        //         // throw new UnknownAliasError('Alias is not found');
-        //     }
-        //     throw error;
-        // })
     }
 
     /**

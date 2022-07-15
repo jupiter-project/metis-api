@@ -40,7 +40,6 @@ global.appRoot = path.resolve(__dirname);
 const {metisRegistration} = require('./config/passport');
 // Loads Express and creates app object
 const express = require('express');
-
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -202,6 +201,9 @@ io.of('/invite').on('connection', socketService.channelCreationConnection);
 
 // upload socket
 io.of('/upload').on('connection', socketService.channelCreationConnection);
+
+// upload socket
+io.of('/sign-in').on('connection', socketService.signInConnection);
 
 
 const jupiterSocketService = require('./services/jupiterSocketService');
