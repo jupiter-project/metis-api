@@ -1,7 +1,6 @@
 const {v4: uuidv4} = require('uuid');
-import * as crypto from 'crypto';
-import * as ethSigUtil from "@metamask/eth-sig-util";
-
+const crypto = require('crypto')
+const ethSigUtil = require("@metamask/eth-sig-util");
 const NodeCache = require("node-cache");
 const nodeCache = new NodeCache({stdTTL: 60});
 const logger = require('../../../utils/logger')(module);

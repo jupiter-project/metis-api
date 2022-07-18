@@ -1,3 +1,3 @@
 module.exports.ajvConf = {
-    allErrors: true
+  allErrors: true
 }

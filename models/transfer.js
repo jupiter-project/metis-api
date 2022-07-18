@@ -1,5 +1,5 @@
-import Model from './_model';
-import { gravity } from '../config/gravity';
+import Model from './_model'
+import { gravity } from '../config/gravity'
 
 class Transfer extends Model {
   constructor(data = { id: null }) {
@@ -8,16 +8,13 @@ class Transfer extends Model {
       data,
       model: 'transfer',
       table: 'transfers',
-      model_params: [
-        'id', 'recipient', 'amount', 'balanceAtTransfer', 'notes',
-      ],
-    });
-    this.public_key = data.public_key;
+      model_params: ['id', 'recipient', 'amount', 'balanceAtTransfer', 'notes']
+    })
+    this.public_key = data.public_key
 
     // Mandatory method to be called after data
-    this.record = this.setRecord();
-    this.appTable = true;
-
+    this.record = this.setRecord()
+    this.appTable = true
 
     this.validation_rules = [
       // We list all validation rules as a list of hashes
@@ -26,69 +23,69 @@ class Transfer extends Model {
         attribute_name: 'recipient',
         rules: {
           required: true,
-          dataType: 'String',
-        },
+          dataType: 'String'
+        }
       },
       {
         validate: this.record.amount,
         attribute_name: 'amount',
         rules: {
           required: true,
-          dataType: 'Cryptocurrency',
-        },
+          dataType: 'Cryptocurrency'
+        }
       },
       {
         validate: this.record.balanceAtTransfer,
         attribute_name: 'balanceAtTransfer',
         rules: {
           required: true,
-          dataType: 'Cryptocurrency',
-        },
+          dataType: 'Cryptocurrency'
+        }
       },
       {
         validate: this.record.notes,
         attribute_name: 'notes',
         rules: {
           required: true,
-          dataType: 'String',
-        },
-      },
-    ];
+          dataType: 'String'
+        }
+      }
+    ]
   }
 
   setRecord() {
     // We set default data in this method after calling for the class setRecord method
-    const record = super.setRecord(this.data);
+    const record = super.setRecord(this.data)
 
-    return record;
+    return record
   }
 
   loadRecords() {
-    return super.loadRecords({ size: 'all', show_unconfirmed: true });
+    return super.loadRecords({ size: 'all', show_unconfirmed: true })
   }
 
   async create() {
-    let response;
+    let response
     if (this.data.recipient && this.data.amount) {
-      let transferTransaction;
+      let transferTransaction
 
       try {
-        transferTransaction = await gravity.sendMoney(this.data.recipient, this.data.amount);
+        transferTransaction = await gravity.sendMoney(this.data.recipient, this.data.amount)
       } catch (e) {
-        transferTransaction = e;
+        transferTransaction = e
       }
 
       if (transferTransaction.success) {
-        response = await super.create();
+        response = await super.create()
       } else {
-        response = transferTransaction;
+        response = transferTransaction
       }
     } else {
-      response = { error: true, errors: 'Recipient and/or amount is missing' };
+      response = { error: true, errors: 'Recipient and/or amount is missing' }
     }
 
-    return response;
+    return response
   }
 }
 
-module.exports = Transfer;
+module.exports = Transfer

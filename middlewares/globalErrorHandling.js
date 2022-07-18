@@ -1,4 +1,1 @@
-module.exports.globalErrorHandling =  async (req, res, next) => {
-
-
-}
+module.exports.globalErrorHandling = async (req, res, next) => {}

@@ -1,59 +1,45 @@
-
-const CacheWindowInDays = 30;
+const uuidv1 = require('uuidv1')
+const CacheWindowInDays = 30
 /**
  *
  */
 class FileCacheService {
+  constructor (fileCacheLocation, cacheWindowInDays) {
+    this.cacheWindowInDays = cacheWindowInDays
+  }
 
-    constructor(fileCacheLocation, cacheWindowInDays) {
-        this.cacheWindowInDays = cacheWindowInDays;
-    }
+  /**
+   *
+   * @return {*}
+   */
+  generateUuid () {
+    return uuidv1()
+  }
 
-    /**
-     *
-     * @return {*}
-     */
-    generateUuid() {
-        return uuidv1();
-    }
+  /**
+   *
+   * @param fileUuid
+   * @return {boolean}
+   */
+  bufferDataExists (fileUuid) { }
 
-    /**
-     *
-     * @param fileUuid
-     * @return {boolean}
-     */
-    bufferDataExists(fileUuid) {
-    }
+  cachedFileExists (fileUuid) { }
 
-    cachedFileExists(fileUuid) {
-    }
+  cacheDetails () { }
 
-    cacheDetails() {
-    }
+  generateBufferDataPath (fileUuid) { }
 
-    generateBufferDataPath(fileUuid) {
-    }
+  generateFileRecordPath (fileUuid) { }
 
-    generateFileRecordPath(fileUuid) {
-    }
+  sendFileRecordToCache (fileUuid, encryptedFileRecord) { }
 
-    sendFileRecordToCache(fileUuid, encryptedFileRecord) {
-    }
+  sendBufferDataToCache (fileUuid, bufferData) { }
 
-    sendBufferDataToCache(fileUuid, bufferData) {
-    }
+  deleteFile (fileUuid) { }
 
-    deleteFile(fileUuid) {
-    }
+  getFileRecord (fileUuid) { }
 
-    getFileRecord(fileUuid) {
-    }
-
-    clearCache(cacheWindowInDays = this.cacheWindowInDays){
-
-    }
+  clearCache (cacheWindowInDays = this.cacheWindowInDays) { }
 }
 
-module.exports.fileCacheService = new FileCacheService(
-    CacheWindowInDays
-)
+module.exports.fileCacheService = new FileCacheService(CacheWindowInDays)

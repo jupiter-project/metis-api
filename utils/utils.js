@@ -1,17 +1,14 @@
-const fs = require('fs');
-
 const hasJsonStructure = (str) => {
-  if (typeof str !== 'string') return false;
+  if (typeof str !== 'string') return false
   try {
-    const result = JSON.parse(str);
-    const type = Object.prototype.toString.call(result);
-    return type === '[object Object]' || type === '[object Array]';
+    const result = JSON.parse(str)
+    const type = Object.prototype.toString.call(result)
+    return type === '[object Object]' || type === '[object Array]'
   } catch (err) {
-    return false;
+    return false
   }
-};
-
+}
 
 module.exports = {
   hasJsonStructure
-};
+}
