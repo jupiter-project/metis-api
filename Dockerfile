@@ -1,4 +1,4 @@
-FROM node:16-alpine 
+FROM node:16-alpine
 
 WORKDIR /apps/metis
 
@@ -13,7 +13,6 @@ COPY . .
 RUN mkdir -p /apps/metis/file_cache
 RUN mkdir -p /apps/metis/logs
 
-COPY .env ./
 COPY . .
 
 EXPOSE 4000
