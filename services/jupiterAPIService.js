@@ -1088,25 +1088,15 @@ class JupiterAPIService {
      * @param aliasName
      * @returns {Promise<{"aliasURI","aliasName","accountRS","alias","requestProcessingTime","account","timestamp"}>}
      */
-  async getAlias (aliasName) {
-    logger.verbose(`#### getAlias(aliasName= ${aliasName})`)
-    if (!aliasName) {
-      throw new Error('aliasName cannot be empty')
+    async getAlias(aliasName) {
+        logger.verbose(`#### getAlias(aliasName= ${aliasName})`);
+        if(!aliasName) {throw new Error('aliasName cannot be empty')}
+        const params = {
+            aliasName,
+            requestType: JupiterAPIService.RequestType.GetAlias,
+        }
+        return this.get(params);
     }
-    const params = {
-      aliasName,
-      requestType: JupiterAPIService.RequestType.GetAlias
-    }
-    return this.get(params)
-
-    // return this.get(params).catch( error => {
-    //     if( error.message === 'API Response Error: Unknown alias'){
-    //         throw new mError.MetisErrorUnknownAlias(`alias is not found.`, params.aliasName);
-    //         // throw new UnknownAliasError('Alias is not found');
-    //     }
-    //     throw error;
-    // })
-  }
 
   /**
    *

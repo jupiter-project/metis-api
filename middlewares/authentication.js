@@ -28,8 +28,9 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/pn/badge-counter',
     '/v1/api/job/status',
     '/api-docs',
-    '/jim/v1/api/ping'
-  ]
+    '/jim/v1/api/ping',
+    '/v1/api/crypto',
+  ];
 
   // app.get('/v1/api/accounts/:accountAddress/aliases', async (req, res) => {
   const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter((route) =>

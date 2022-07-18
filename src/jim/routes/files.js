@@ -15,7 +15,7 @@ const { jimConfig } = require('../config/jimConfig')
 const logger = require('../../../utils/logger')(module)
 const meter = require('stream-meter')
 
-function abort(request, response, busboy, statusCode = StatusCode.ServerErrorInternal, metisError) {
+function abort (request, response, busboy, statusCode = StatusCode.ServerErrorInternal, metisError) {
   logger.error('#### abort()')
   logger.error(`statusCode= ${statusCode}`)
   logger.error(`metisError.code= ${metisError.code}`)
@@ -102,39 +102,21 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
         if (formDataKey === 'file') {
           logger.verbose('---- bb.on(file)')
           if (!gu.isNonEmptyString(info.filename)) {
-            return abort(
-              req,
-              res,
-              bb,
-              StatusCode.ClientErrorNotAcceptable,
-              new mError.MetisError(`filename is not valid: ${info.filename}`)
-            )
+            return abort(req, res, bb, StatusCode.ClientErrorNotAcceptable, new mError.MetisError(`filename is not valid: ${info.filename}`))
             // return res.status(StatusCode.ClientErrorNotAcceptable).send({
             //     message: `filename is not valid: ${info.filename}`,
             //     code: MetisErrorCode.MetisError
             // });
           }
           if (!gu.isNonEmptyString(info.encoding)) {
-            return abort(
-              req,
-              res,
-              bb,
-              StatusCode.ClientErrorNotAcceptable,
-              new mError.MetisError(`encoding is not valid: ${info.encoding}`)
-            )
+            return abort(req, res, bb, StatusCode.ClientErrorNotAcceptable, new mError.MetisError(`encoding is not valid: ${info.encoding}`))
             // return res.status(StatusCode.ClientErrorNotAcceptable).send({
             //     message: `encoding is not valid: ${info.encoding}`,
             //     code: MetisErrorCode.MetisError
             // });
           }
           if (!gu.isNonEmptyString(info.mimeType)) {
-            return abort(
-              req,
-              res,
-              bb,
-              StatusCode.ClientErrorNotAcceptable,
-              new mError.MetisError(`mimeType is not valid: ${info.mimeType}`)
-            )
+            return abort(req, res, bb, StatusCode.ClientErrorNotAcceptable, new mError.MetisError(`mimeType is not valid: ${info.mimeType}`))
             // return res.status(StatusCode.ClientErrorNotAcceptable).send({
             //     message: `mimeType is not valid: ${info.mimeType}`,
             //     code: MetisErrorCode.MetisError
@@ -147,27 +129,18 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
             console.log(`CHUNK got ${data.length} bytes`)
           })
           const fsStream = fs.createWriteStream(bufferDataFilePath)
-          fsStream.on('error', (error) => {
+          fsStream.on('error', error => {
             logger.error(`Error writing file ${error}`)
-            return abort(
-              req,
-              res,
-              bb,
-              StatusCode.ServerErrorInternal,
-              new mError.MetisError(`Error writing file ${error}`)
-            )
+            return abort(req, res, bb, StatusCode.ServerErrorInternal, new mError.MetisError(`Error writing file ${error}`))
             // return res.status(StatusCode.ServerErrorInternal).send({
             //     message: 'Internal server error',
             //     code: MetisErrorCode.MetisError
             // });
           })
           const _meter = meter()
-          file
-            .pipe(_meter)
-            .pipe(fsStream)
-            .on('finish', () => {
-              fileUploadData.fileSize = _meter.bytes
-            })
+          file.pipe(_meter).pipe(fsStream).on('finish', () => {
+            fileUploadData.fileSize = _meter.bytes
+          })
         }
       } catch (error) {
         console.log('\n')
@@ -181,20 +154,17 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
     bb.on('close', async () => {
       logger.verbose('---- bb.on(close)')
       try {
-        if (!Object.prototype.hasOwnProperty.call(fileUploadData, 'fileCategory'))
-          throw new mError.MetisError('no fileCategory specified')
+        if (!fileUploadData.hasOwnProperty('fileCategory')) throw new mError.MetisError('no fileCategory specified')
         const fileCategory = fileUploadData.fileCategory
         const fileSizeInBytes = fileUploadData.fileSize
         const fileSizeInKiloBytes = fileSizeInBytes / 1000
         const fileSizeInMegaBytes = fileSizeInKiloBytes / 1000
-        const WEBSOCKET_ROOM =
-          fileCategory === fileCategoryTypes.publicProfile
-            ? `upload-${userAccountProperties.address}`
-            : `upload-${fileUploadData.attachToJupiterAddress}`
-        const fileUrl =
-          fileCategory === fileCategoryTypes.publicProfile || fileCategory === fileCategoryTypes.channelProfile
-            ? `/jim/v1/api/users/${fileUploadData.attachToJupiterAddress}/files/public-profile`
-            : `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
+        const WEBSOCKET_ROOM = (fileCategory === fileCategoryTypes.publicProfile)
+          ? `upload-${userAccountProperties.address}`
+          : `upload-${fileUploadData.attachToJupiterAddress}`
+        const fileUrl = (fileCategory === fileCategoryTypes.publicProfile || fileCategory === fileCategoryTypes.channelProfile)
+          ? `/jim/v1/api/users/${fileUploadData.attachToJupiterAddress}/files/public-profile`
+          : `/jim/v1/api/channels/${fileUploadData.attachToJupiterAddress}/files/${fileUuid}`
 
         if (fileSizeInMegaBytes > jimConfig.maxMbSize) {
           throw new mError.MetisError(`file is too large. Limit is ${jimConfig.maxMbSize} MB`)
@@ -205,10 +175,9 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
         if (fileUploadData.fileEncoding === undefined) {
           throw new mError.MetisError(`fileEncoding is invalid: ${fileUploadData.fileEncoding}`)
         }
-        const params =
-          fileCategory === fileCategoryTypes.publicProfile
-            ? {}
-            : { attachToJupiterAddress: fileUploadData.attachToJupiterAddress }
+        const params = (fileCategory === fileCategoryTypes.publicProfile)
+          ? {}
+          : { attachToJupiterAddress: fileUploadData.attachToJupiterAddress }
 
         const job = await uploadJob.create(
           fileUploadData.userAccountProperties,
@@ -220,14 +189,11 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
           params
         )
 
-        job.save((error) => {
+        job.save(error => {
           logger.verbose('---- JobQueue: job.save(error)')
           if (error) {
             logger.error(`${error}`)
-            return res.status(StatusCode.ServerErrorInternal).send({
-              message: 'Not able to upload the image',
-              code: MetisErrorCode.MetisErrorSaveJobQueue
-            })
+            return res.status(StatusCode.ServerErrorInternal).send({ message: 'Not able to upload the image', code: MetisErrorCode.MetisErrorSaveJobQueue })
           }
           logger.verbose(`job.id= ${job.id}`)
           res.status(StatusCode.SuccessAccepted).send({
@@ -242,7 +208,7 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
           next()
         })
         job.on('complete', (result) => {
-          logger.verbose("---- jon.on('complete)")
+          logger.verbose('---- jon.on(\'complete)')
           console.log(fileUploadData.attachToJupiterAddress)
           const payload = {
             jobId: job.id,
@@ -336,11 +302,7 @@ module.exports = (app, jobs, websocket) => {
       const { userAddress } = req.params
       if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress('', userAddress)
 
-      const [messageContainers] =
-        await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
-          userAddress,
-          transactionTags.jimServerTags.binaryFilePublicProfileSharedKey
-        )
+      const [messageContainers] = await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAddress, transactionTags.jimServerTags.binaryFilePublicProfileSharedKey)
 
       if (!messageContainers) {
         return res.status(StatusCode.ClientErrorNotFound).send({ message: 'No image found' })
@@ -351,18 +313,12 @@ module.exports = (app, jobs, websocket) => {
       let sharedKey = ''
       let tag = ''
       if (messageContainerTag.includes(`.${metisConfig.evm}`)) {
-        // eslint-disable-next-line no-unused-vars
-        ;[fileUuid, transactionId, sharedKey, tag] = messageContainers.attachment.message.split('.').slice(-4)
+        [fileUuid, transactionId, sharedKey, tag] = messageContainers.attachment.message.split('.').slice(-4)
       } else {
-        ;[fileUuid, transactionId, sharedKey] = messageContainers.attachment.message.split('.').slice(-3)
+        [fileUuid, transactionId, sharedKey] = messageContainers.attachment.message.split('.').slice(-3)
       }
 
-      const fileInfo = await storageService.fetchFileInfoBySharedKey(
-        transactionId,
-        sharedKey,
-        fileUuid,
-        messageContainerTag
-      )
+      const fileInfo = await storageService.fetchFileInfoBySharedKey(transactionId, sharedKey, fileUuid, messageContainerTag)
       res.setHeader('Content-Type', `${fileInfo.mimeType}`)
       res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`)
       res.sendFile(fileInfo.bufferDataPath)
@@ -389,16 +345,10 @@ module.exports = (app, jobs, websocket) => {
     try {
       const userAccountProperties = req.user.gravityAccountProperties
       const { fileUuid, userAddress } = req.params
-      if (!gu.isWellFormedUuid(fileUuid)) {
-        throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`)
-      }
+      if (!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`)
       if (!gu.isWellFormedJupiterAddress(userAddress)) throw new mError.MetisErrorBadJupiterAddress('', userAddress)
 
-      const [messageContainers] =
-        await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(
-          userAddress,
-          transactionTags.jimServerTags.binaryFilePublicProfileSharedKey
-        )
+      const [messageContainers] = await jupiterTransactionsService.fetchConfirmedAndUnconfirmedBlockChainTransactionsByTag(userAddress, transactionTags.jimServerTags.binaryFilePublicProfileSharedKey)
       if (!messageContainers) {
         return res.status(StatusCode.ClientErrorNotFound).send({ message: 'No image found' })
       }
@@ -424,11 +374,7 @@ module.exports = (app, jobs, websocket) => {
         return res.status(StatusCode.ClientErrorNotAcceptable).send({ message: error.message, code: error.code })
       }
       if (error instanceof mError.MetisErrorNoBinaryFileFound) {
-        return res.status(StatusCode.ClientErrorNotFound).send({
-          message: 'File Not Found',
-          code: error.code,
-          fileUuid: error.fileUuid
-        })
+        return res.status(StatusCode.ClientErrorNotFound).send({ message: 'File Not Found', code: error.code, fileUuid: error.fileUuid })
       }
       return res.status(StatusCode.ServerErrorInternal).send({ message: 'Server Error.', code: error.code })
     }
@@ -442,20 +388,10 @@ module.exports = (app, jobs, websocket) => {
     try {
       const userAccountProperties = req.user.gravityAccountProperties
       const { fileUuid, channelAddress } = req.params
-      if (!gu.isWellFormedUuid(fileUuid)) {
-        throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`)
-      }
-      if (!gu.isWellFormedJupiterAddress(channelAddress)) {
-        throw new mError.MetisErrorBadJupiterAddress('', channelAddress)
-      }
-      const channelAccountProperties =
-        await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(
-          userAccountProperties,
-          channelAddress
-        )
-      if (channelAccountProperties === null) {
-        throw new mError.MetisErrorNoChannelAccountFound('', userAccountProperties.address, channelAddress)
-      }
+      if (!gu.isWellFormedUuid(fileUuid)) throw new mError.MetisErrorBadJupiterAddress(`fileUuid is invalid: ${fileUuid}`)
+      if (!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress('', channelAddress)
+      const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties, channelAddress)
+      if (channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound('', userAccountProperties.address, channelAddress)
       const fileInfo = await storageService.fetchFileInfo(channelAccountProperties, fileUuid)
       res.setHeader('Content-Type', `${fileInfo.mimeType}`)
       res.setHeader('Content-Disposition', `inline; filename="${fileInfo.fileName}"`)
@@ -476,11 +412,7 @@ module.exports = (app, jobs, websocket) => {
         return res.status(StatusCode.ClientErrorNotAcceptable).send({ message: error.message, code: error.code })
       }
       if (error instanceof mError.MetisErrorNoBinaryFileFound) {
-        return res.status(StatusCode.ClientErrorNotFound).send({
-          message: 'File Not Found',
-          code: error.code,
-          fileUuid: error.fileUuid
-        })
+        return res.status(StatusCode.ClientErrorNotFound).send({ message: 'File Not Found', code: error.code, fileUuid: error.fileUuid })
       }
       return res.status(StatusCode.ServerErrorInternal).send({ message: 'Server Error.', code: error.code })
     }
@@ -502,7 +434,20 @@ module.exports = (app, jobs, websocket) => {
       // if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
 
       const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress)
-
+      // async fetchChannelFilesList(userAccountProperties, channelAddress){
+      const mappedFileList = filesList.map(file => {
+        return {
+          fileUuid: file.fileUuid,
+          fileCategory: file.fileCat,
+          fileName: file.fileName,
+          mimeType: file.mimeType,
+          sizeInBytes: file.sizeInBytes,
+          url: file.url,
+          createdAt: file.createdAt,
+          createdBy: file.createdBy,
+          version: file.version
+        }
+      })
       res.status(StatusCode.SuccessOK).send({
         message: `${filesList.length} file(s) found for ${channelAddress}`,
         files: filesList

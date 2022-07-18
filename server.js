@@ -166,6 +166,8 @@ io.of('/invite').on('connection', socketService.channelCreationConnection)
 // upload socket
 io.of('/upload').on('connection', socketService.channelCreationConnection)
 
+io.of('/sign-in').on('connection', socketService.signInConnection);
+
 const jupiterSocketService = require('./services/jupiterSocketService')
 const WebSocket = require('ws')
 const jupiterWss = new WebSocket.Server({ noServer: true })
