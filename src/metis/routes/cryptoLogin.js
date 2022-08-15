@@ -69,6 +69,9 @@ module.exports = (app, jobs, websocket, controllers) => {
           const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
           const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
           const { accountRS } = await jupiterAPIService.getAlias(blockchainAccountAddress)
+          if (!accountRS){
+            throw new Error('No account found')
+          }
           const jwtContent = {
             passphrase: passphrase,
             password: password,
