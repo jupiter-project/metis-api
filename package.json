@@ -51,8 +51,8 @@
     "apn": "^2.2.0",
     "aws-sdk": "^2.1054.0",
     "axios": "^0.21.1",
-    "bcryptjs": "^2.4.3",
     "bcrypt-nodejs": "0.0.3",
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.17.2",
     "busboy": "^1.0.0",
     "checksum": "^1.0.0",
@@ -87,6 +87,7 @@
     "zlib": "^1.0.5"
   },
   "devDependencies": {
+    "@types/node": "^18.0.6",
     "eslint": "^7.32.0",
     "eslint-config-standard": "^16.0.3",
     "eslint-plugin-import": "^2.25.4",

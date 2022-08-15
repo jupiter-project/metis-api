@@ -6,7 +6,7 @@ COPY package.json yarn.lock ./
 
 RUN yarn global add node-gyp pm2
 
-RUN yarn install --prefer-offline --network-timeout=30000
+RUN yarn install
 
 COPY . .
 
