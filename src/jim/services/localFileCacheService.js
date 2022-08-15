@@ -3,7 +3,7 @@ const path = require('path')
 const { jimConfig } = require('../config/jimConfig')
 const logger = require('../../../utils/logger')(module)
 const gu = require('../../../utils/gravityUtils')
-const uuidv1 = require('uuidv1')
+const { v1: uuidv1 } = require('uuid')
 const fs = require('fs')
 const CacheWindowInDays = 30
 /**

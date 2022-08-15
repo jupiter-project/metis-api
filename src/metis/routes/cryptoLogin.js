@@ -1,11 +1,11 @@
 const { blockchainAccountVerificationService } = require('../../gravity/services/blockchainAccountVerificationService')
 const { StatusCode } = require('../../../utils/statusCode')
 const { MetisErrorCode } = require('../../../utils/metisErrorCode')
-const gu = require('../utils/gravityUtils')
+const gu = require('../../../utils/gravityUtils')
 const { jupiterAPIService } = require('../../../services/jupiterAPIService')
-const jwt = require("jsonwebtoken");
-const {metisConf} = require("../../../config/metisConf");
-const {GravityCrypto} = require("../../../services/gravityCrypto");
+const jwt = require('jsonwebtoken')
+const { metisConf } = require('../../../config/metisConf')
+const { GravityCrypto } = require('../../../services/gravityCrypto')
 
 module.exports = (app, jobs, websocket, controllers) => {
   app.get('/v1/api/crypto/create-challenge/:blockchainAccountAddress', (req, res) => {
@@ -30,14 +30,7 @@ module.exports = (app, jobs, websocket, controllers) => {
   })
 
   app.post('/v1/api/crypto/verify-signature', async (req, res, next) => {
-    const {
-      challengeDigest,
-      signature,
-      password,
-      passphrase,
-      publicKey,
-      blockchainAccountAddress
-    } = req.body
+    const { challengeDigest, signature, password, passphrase, publicKey, blockchainAccountAddress } = req.body
 
     if (!challengeDigest || !signature) {
       return res.status(StatusCode.ClientErrorBadRequest).send({
@@ -68,10 +61,10 @@ module.exports = (app, jobs, websocket, controllers) => {
     }
 
     try {
-      const isVerified = blockchainAccountVerificationService.isVerified(challengeDigest, signature);
+      const isVerified = blockchainAccountVerificationService.isVerified(challengeDigest, signature)
 
       if (isVerified) {
-        try{
+        try {
           const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
           const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
           const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
