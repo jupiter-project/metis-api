@@ -1,13 +1,13 @@
 const { StatusCode } = require('../../../utils/statusCode')
 const { jupiterAPIService } = require('../../../services/jupiterAPIService')
 const mError = require('../../../errors/metisError')
-require('jsonwebtoken');
+require('jsonwebtoken')
 const { instantiateGravityAccountProperties } = require('../../../gravity/instantiateGravityAccountProperties')
 const gu = require('../../../utils/gravityUtils')
 const { MetisErrorCode } = require('../../../utils/metisErrorCode')
 const bcrypt = require('bcrypt-nodejs')
 const moment = require('moment')
-const {blockchainAccountVerificationService} = require("../../gravity/services/blockchainAccountVerificationService");
+const { blockchainAccountVerificationService } = require('../../gravity/services/blockchainAccountVerificationService')
 const logger = require('../../../utils/logger')(module)
 let counter = 1
 
@@ -25,8 +25,8 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
         logger.error('** job.catch(error)')
         logger.error('****************************************************************')
         logger.error(`${error}`)
-        websocket.of('/sign-up').to(room).emit('signUpFailed', job.created_at)
         res.status(StatusCode.ServerErrorInternal).send({
+          verified: true,
           message: 'Internal Error',
           jobId: job.id,
           code: MetisErrorCode.MetisError
@@ -41,12 +41,10 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
         href: `/v1/api/job/status?jobId=${job.id}`
       }
 
-      websocket.of('/sign-up').to(room).emit('signUpJobCreated', jobInfo)
       res.status(StatusCode.SuccessAccepted).send({
+        verified: true,
         job: jobInfo,
-        passphrase: newAccountProperties.passphrase,
-        address: newAccountProperties.address,
-        passwordHash: bcrypt.hashSync(newAccountProperties.crypto.encryptionPassword, bcrypt.genSaltSync(8), null)
+        address: newAccountProperties.address
       })
       return next()
     })
@@ -54,10 +52,9 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
   /**
      *
      */
-  job.on('complete', function (jobData) {
+  job.on('complete', function () {
     logger.verbose('---- job.on(complete(result))')
     logger.verbose(`alias= ${newAccountAlias}`)
-    const newAccountProperties = jobData.newAccountProperties
     const endTime = Date.now()
     const processingTime = `${moment.duration(endTime - startTime).minutes()}:${moment.duration(endTime - startTime).seconds()}`
     console.log('')
@@ -69,10 +66,6 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
     logger.info(`++ ${counter})`)
     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n')
     counter = counter + 1
-
-    // websocket.in(room).allSockets().then((result) => {
-    //     logger.info(`The number of users connected is: ${result.size}`);
-    // });
     websocket.of(namespace).to(room).emit('signUpSuccessful', job.created_at)
   })
   job.on('failed attempt', function (errorMessage, doneAttempts) {

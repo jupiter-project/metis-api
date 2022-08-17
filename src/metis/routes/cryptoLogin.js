@@ -62,33 +62,34 @@ module.exports = (app, jobs, websocket, controllers) => {
 
     try {
       const isVerified = blockchainAccountVerificationService.isVerified(challengeDigest, signature)
-
-      if (isVerified) {
-        try {
-          const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
-          const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
-          const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
-          const { accountRS } = await jupiterAPIService.getAlias(blockchainAccountAddress)
-          if (!accountRS){
-            throw new Error('No account found')
-          }
-          const jwtContent = {
-            passphrase: passphrase,
-            password: password,
-            address: accountRS,
-            publicKey: publicKey
-          }
-          const metisEncryptedJwtContent = jwtCrypto.encryptJsonGCM(jwtContent)
-          const jwtPayload = {
-            data: metisEncryptedJwtContent
-          }
-          const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
-          return res.status(StatusCode.SuccessOK).send({ token })
-        } catch (error) {
-          return controllers.cryptoLoginController.createAccount(req, res, next)
-        }
+      req.verified = isVerified
+      if (!isVerified) {
+        return res.status(StatusCode.ServerErrorInternal).send({
+          message: 'Signature not valid',
+          code: MetisErrorCode.MetisErrorFailedUserAuthentication
+        })
       }
-      // return res.status(StatusCode.SuccessOK).send({ verified: isVerified })
+
+      const { accountRS } = await jupiterAPIService.getAlias(blockchainAccountAddress)
+      if (accountRS) {
+        const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
+        const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
+        const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
+        const jwtContent = {
+          passphrase: passphrase,
+          password: password,
+          address: accountRS,
+          publicKey: publicKey
+        }
+        const metisEncryptedJwtContent = jwtCrypto.encryptJsonGCM(jwtContent)
+        const jwtPayload = {
+          data: metisEncryptedJwtContent
+        }
+        const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
+        return res.status(StatusCode.SuccessOK).send({ token })
+      }
+
+      controllers.cryptoLoginController.createAccount(req, res, next)
     } catch (error) {
       return res.status(StatusCode.ServerErrorInternal).send({
         message: 'Theres a problem with crypto login',
