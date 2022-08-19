@@ -260,8 +260,9 @@ jobQueue.process('channel-creation-confirmation', WORKERS, async (job, done) => 
   }
 })
 
-mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions).catch(() => {
+mongoose.connect(process.env.MONGO_DB_URI, mongoDBOptions).catch((error) => {
   const message = 'Mongo is not available:' + process.env.MONGO_DB_URI
+  logger.error(`${error}`)
   logger.error(message)
   process.exit(1)
 })
