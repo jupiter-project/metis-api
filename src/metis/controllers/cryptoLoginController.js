@@ -98,8 +98,9 @@ module.exports = (app, jobs, websocket) => {
       }
       const challengeDigest = blockchainAccountVerificationService.generateChallenge(blockchainAccountAddress)
       jupiterAPIService.getAlias(blockchainAccountAddress)
-        .then(() => {
+        .then(resp => {
           return res.status(StatusCode.SuccessOK).send({
+            account: resp.data,
             challenge: challengeDigest,
             blockchainAccountAddress
           })

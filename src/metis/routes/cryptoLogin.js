@@ -6,6 +6,7 @@ const { jupiterAPIService } = require('../../../services/jupiterAPIService')
 const jwt = require('jsonwebtoken')
 const { metisConf } = require('../../../config/metisConf')
 const { GravityCrypto } = require('../../../services/gravityCrypto')
+const logger = require('../../../utils/logger')(module)
 
 module.exports = (app, jobs, websocket, controllers) => {
   app.get('/v1/api/crypto/create-challenge/:blockchainAccountAddress', (req, res) => {
@@ -91,6 +92,10 @@ module.exports = (app, jobs, websocket, controllers) => {
 
       controllers.cryptoLoginController.createAccount(req, res, next)
     } catch (error) {
+      logger.error(`****************************************************************`)
+      logger.error(`** verify-signature().catch(error)`)
+      logger.error(`****************************************************************`)
+      logger.error(`error= ${error}`)
       return res.status(StatusCode.ServerErrorInternal).send({
         message: 'Theres a problem with crypto login',
         code: MetisErrorCode.MetisErrorFailedUserAuthentication
