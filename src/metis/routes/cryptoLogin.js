@@ -6,6 +6,7 @@ const { jupiterAPIService } = require('../../../services/jupiterAPIService')
 const jwt = require('jsonwebtoken')
 const { metisConf } = require('../../../config/metisConf')
 const { GravityCrypto } = require('../../../services/gravityCrypto')
+const mError = require("../../../errors/metisError");
 const logger = require('../../../utils/logger')(module)
 
 module.exports = (app, jobs, websocket, controllers) => {
@@ -61,16 +62,16 @@ module.exports = (app, jobs, websocket, controllers) => {
       })
     }
 
-    try {
-      const isVerified = blockchainAccountVerificationService.isVerified(challengeDigest, signature)
-      req.verified = isVerified
-      if (!isVerified) {
-        return res.status(StatusCode.ServerErrorInternal).send({
-          message: 'Signature not valid',
-          code: MetisErrorCode.MetisErrorFailedUserAuthentication
-        })
-      }
+    const isVerified = blockchainAccountVerificationService.isVerified(challengeDigest, signature)
+    req.verified = isVerified
+    if (!isVerified) {
+      return res.status(StatusCode.ServerErrorInternal).send({
+        message: 'Signature not valid',
+        code: MetisErrorCode.MetisErrorFailedUserAuthentication
+      })
+    }
 
+    try {
       const { accountRS } = await jupiterAPIService.getAlias(blockchainAccountAddress)
       if (accountRS) {
         const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
@@ -89,17 +90,21 @@ module.exports = (app, jobs, websocket, controllers) => {
         const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
         return res.status(StatusCode.SuccessOK).send({ token })
       }
-
-      controllers.cryptoLoginController.createAccount(req, res, next)
     } catch (error) {
       logger.error(`****************************************************************`)
       logger.error(`** verify-signature().catch(error)`)
       logger.error(`****************************************************************`)
       logger.error(`error= ${error}`)
-      return res.status(StatusCode.ServerErrorInternal).send({
-        message: 'Theres a problem with crypto login',
-        code: MetisErrorCode.MetisErrorFailedUserAuthentication
-      })
+
+      if (error instanceof mError.MetisErrorUnknownAlias) {
+        logger.debug('Creating new account...')
+        controllers.cryptoLoginController.createAccount(req, res, next)
+      } else {
+        return res.status(StatusCode.ServerErrorInternal).send({
+          message: 'Theres a problem with crypto login',
+          code: MetisErrorCode.MetisErrorFailedUserAuthentication
+        })
+      }
     }
   })
 
