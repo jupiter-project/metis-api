@@ -88,7 +88,7 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
       createdAt: job.created_at,
       token,
       address: newAccountProperties.address,
-      alias: newAccountProperties.getCurrentAliasNameOrNull()
+      alias: newAccountAlias
     })
   })
   job.on('failed attempt', function (errorMessage, doneAttempts) {
