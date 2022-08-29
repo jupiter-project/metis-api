@@ -6,7 +6,7 @@ const { jupiterAPIService } = require('../../../services/jupiterAPIService')
 const jwt = require('jsonwebtoken')
 const { metisConf } = require('../../../config/metisConf')
 const { GravityCrypto } = require('../../../services/gravityCrypto')
-const mError = require("../../../errors/metisError");
+const mError = require('../../../errors/metisError')
 const logger = require('../../../utils/logger')(module)
 
 module.exports = (app, jobs, websocket, controllers) => {

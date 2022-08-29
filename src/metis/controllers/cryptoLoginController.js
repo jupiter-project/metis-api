@@ -8,6 +8,9 @@ const { MetisErrorCode } = require('../../../utils/metisErrorCode')
 const bcrypt = require('bcrypt-nodejs')
 const moment = require('moment')
 const { blockchainAccountVerificationService } = require('../../gravity/services/blockchainAccountVerificationService')
+const {metisConf} = require("../../../config/metisConf");
+const {GravityCrypto} = require("../../../services/gravityCrypto");
+const jwt = require("jsonwebtoken");
 const logger = require('../../../utils/logger')(module)
 let counter = 1
 
@@ -66,7 +69,22 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
     logger.info(`++ ${counter})`)
     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n\n')
     counter = counter + 1
-    websocket.of(namespace).to(room).emit('signUpSuccessful', job.created_at)
+
+    const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
+    const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
+    const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
+    const jwtContent = {
+      passphrase: newAccountProperties.passphrase,
+      password: newAccountProperties.password,
+      address: newAccountProperties.address,
+      publicKey: newAccountProperties.publicKey
+    }
+    const metisEncryptedJwtContent = jwtCrypto.encryptJsonGCM(jwtContent)
+    const jwtPayload = {
+      data: metisEncryptedJwtContent
+    }
+    const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
+    websocket.of(namespace).to(room).emit('signUpSuccessful', { createdAt: job.created_at, token })
   })
   job.on('failed attempt', function (errorMessage, doneAttempts) {
     logger.error('***********************************************************************************')
