@@ -84,7 +84,12 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
       data: metisEncryptedJwtContent
     }
     const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
-    websocket.of(namespace).to(room).emit('signUpSuccessful', { createdAt: job.created_at, token })
+    websocket.of(namespace).to(room).emit('signUpSuccessful', {
+      createdAt: job.created_at,
+      token,
+      address: newAccountProperties.address,
+      alias: newAccountProperties.getCurrentAliasNameOrNull()
+    })
   })
   job.on('failed attempt', function (errorMessage, doneAttempts) {
     logger.error('***********************************************************************************')
