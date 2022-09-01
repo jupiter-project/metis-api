@@ -175,7 +175,7 @@ module.exports = (app, jobs, websocket) => {
       logger.info('== GET: /v1/api/job/status ')
       logger.info(`======================================================================================\n\n`)
 
-      const { jobId } = req?.query
+      const { jobId } = req.query
       kue.Job.get(jobId, (err, job) => {
         if (err) {
           return res.status(StatusCode.ServerErrorInternal).send({ message: 'Not able to get the job status' })
