@@ -72,7 +72,7 @@ module.exports = (app, jobs, websocket, controllers) => {
     }
 
     try {
-      const { accountRS } = await jupiterAPIService.getAlias(blockchainAccountAddress)
+      const { data: { accountRS } } = await jupiterAPIService.getAlias(blockchainAccountAddress)
       if (accountRS) {
         const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
         const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
@@ -88,7 +88,7 @@ module.exports = (app, jobs, websocket, controllers) => {
           data: metisEncryptedJwtContent
         }
         const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
-        return res.status(StatusCode.SuccessOK).send({ token })
+        return res.status(StatusCode.SuccessOK).send({ token, alias: blockchainAccountAddress, accountRS })
       }
     } catch (error) {
       logger.error(`****************************************************************`)
