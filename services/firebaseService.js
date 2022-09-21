@@ -1,79 +1,80 @@
-import {firebaseAdmin} from '../server';
-const logger = require('../utils/logger')(module);
+const { firebaseAdmin } = require('../server')
+const logger = require('../utils/logger')(module)
 
 /**
  *
  */
 class FirebaseService {
+  /**
+   *
+   * @param {} firebaseAdmin
+   */
+  constructor(firebaseAdmin) {
+    if (!firebaseAdmin) {
+      throw new Error('Invalid argument firebaseAdmin')
+    }
+    this.firebaseAdmin = firebaseAdmin
+  }
 
-    /**
-     *
-     * @param {} firebaseAdmin
-     */
-    constructor(firebaseAdmin) {
-        if(!firebaseAdmin){ throw new Error('Invalid argument firebaseAdmin') }
-        this.firebaseAdmin = firebaseAdmin;
+  /**
+   *
+   * @param registrationToken
+   * @param message
+   * @param options
+   * @returns {Object}
+   */
+  async sendPushNotification(registrationToken, message, options = null) {
+    if (!registrationToken) {
+      throw new Error('registration token is invalid')
     }
 
-
-    /**
-     *
-     * @param registrationToken
-     * @param message
-     * @param options
-     * @returns {Object}
-     */
-    async sendPushNotification(registrationToken, message, options = null){
-        if(!registrationToken){
-            throw new Error('registration token is invalid')
-        }
-
-        // @TODO the message should check for a string or json object
-        if(!message){
-            throw new Error('Invalid message')
-        }
-
-        return this.firebaseAdmin.messaging().sendToDevice(registrationToken, message, options)
-            .then(result => logger.debug(`${result}`))
-            .catch(error => console.log('Error sending Android PN', error))
+    // @TODO the message should check for a string or json object
+    if (!message) {
+      throw new Error('Invalid message')
     }
 
-    /**
-     *
-     * @param title
-     * @param body
-     * @param data
-     * @returns {{notification: {title, body}, data: {}}}}
-     */
-    generateMessage(title, body, data = {}) {
-        if (!title) {
-            throw new Error('invalid title');
-        }
+    return this.firebaseAdmin
+      .messaging()
+      .sendToDevice(registrationToken, message, options)
+      .then((result) => logger.debug(`${result}`))
+      .catch((error) => console.log('Error sending Android PN', error))
+  }
 
-        if (!body) {
-            throw new Error('invalid body');
-        }
-
-        return {
-            data: data ? data : {},
-            notification: {
-                title: title,
-                body: body
-            }
-        }
+  /**
+   *
+   * @param title
+   * @param body
+   * @param data
+   * @returns {{notification: {title, body}, data: {}}}}
+   */
+  generateMessage(title, body, data = {}) {
+    if (!title) {
+      throw new Error('invalid title')
     }
 
-    /**
-     *
-     * @returns {{timeToLive: number, priority: string}}
-     */
-    generateOptions(){
-        return {
-            priority: "normal",
-            timeToLive: 1200 //60 * 60 -- 1 min
-        }
+    if (!body) {
+      throw new Error('invalid body')
     }
 
+    return {
+      data: data ? data : {},
+      notification: {
+        title: title,
+        body: body
+      }
+    }
+  }
+
+  /**
+   *
+   * @returns {{timeToLive: number, priority: string}}
+   */
+  generateOptions() {
+    return {
+      priority: 'normal',
+      timeToLive: 1200 //60 * 60 -- 1 min
+    }
+  }
 }
 
 module.exports.firebaseService = new FirebaseService(firebaseAdmin)

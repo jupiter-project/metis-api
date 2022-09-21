@@ -21,7 +21,7 @@ echo "Now installing curl and node.js..."
 echo ""
 
 sudo apt-get install curl -y
-sudo curl -sL https://deb.nodesource.com/setup_8.x -o nodesource_setup.sh 
+sudo curl -sL https://deb.nodesource.com/setup_16.x -o nodesource_setup.sh 
 sudo bash nodesource_setup.sh
 sudo apt-get install nodejs -y
 sudo apt-get install npm -y
