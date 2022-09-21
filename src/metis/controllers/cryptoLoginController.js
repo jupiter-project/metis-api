@@ -122,8 +122,7 @@ module.exports = (app, jobs, websocket) => {
       const challengeDigest = blockchainAccountVerificationService.generateChallenge(blockchainAccountAddress)
       jupiterAPIService.getAlias(blockchainAccountAddress)
         .then(resp => {
-          // TODO fix this response status
-          return res.status(StatusCode.ServerErrorInternal).send({
+          return res.status(StatusCode.SuccessOK).send({
             account: resp.data,
             challenge: challengeDigest,
             blockchainAccountAddress
@@ -131,8 +130,7 @@ module.exports = (app, jobs, websocket) => {
         })
         .catch(async (error) => {
           if (error instanceof mError.MetisErrorUnknownAlias) {
-            // TODO fix this response status
-            res.status(StatusCode.SuccessOK).send({ challenge: challengeDigest })
+            return res.status(StatusCode.ClientErrorNotFound).send({ challenge: challengeDigest })
           }
           return res.status(StatusCode.ServerErrorInternal).send({
             message: 'No account found',

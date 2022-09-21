@@ -73,23 +73,21 @@ module.exports = (app, jobs, websocket, controllers) => {
 
     try {
       const { data: { accountRS } } = await jupiterAPIService.getAlias(blockchainAccountAddress)
-      if (accountRS) {
-        const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
-        const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
-        const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
-        const jwtContent = {
-          passphrase: passphrase,
-          password: password,
-          address: accountRS,
-          publicKey: publicKey
-        }
-        const metisEncryptedJwtContent = jwtCrypto.encryptJsonGCM(jwtContent)
-        const jwtPayload = {
-          data: metisEncryptedJwtContent
-        }
-        const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
-        return res.status(StatusCode.SuccessOK).send({ token, alias: blockchainAccountAddress, accountRS })
+      const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
+      const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
+      const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
+      const jwtContent = {
+        passphrase: passphrase,
+        password: password,
+        address: accountRS,
+        publicKey: publicKey
       }
+      const metisEncryptedJwtContent = jwtCrypto.encryptJsonGCM(jwtContent)
+      const jwtPayload = {
+        data: metisEncryptedJwtContent
+      }
+      const token = jwt.sign(jwtPayload, privateKeyBuffer, { expiresIn: metisConf.jwt.expiresIn })
+      return res.status(StatusCode.SuccessOK).send({ token, alias: blockchainAccountAddress, accountRS })
     } catch (error) {
       logger.error(`****************************************************************`)
       logger.error(`** verify-signature().catch(error)`)
