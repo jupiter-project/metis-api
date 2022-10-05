@@ -1,5 +1,6 @@
 const logger = require('../utils/logger')(module)
 const crypto = require('crypto')
+const { hasJsonStructure } = require('../utils/utils')
 
 class GravityCrypto {
   constructor(decryptionAlgorithm, decryptionPassword) {
@@ -67,7 +68,7 @@ class GravityCrypto {
       const jsonString = JSON.stringify(json)
       return this.encrypt(jsonString)
     } catch (error) {
-      logger.error(`not able to encrypt the json object`)
+      logger.error('not able to encrypt the json object')
       throw error
     }
   }
@@ -77,7 +78,7 @@ class GravityCrypto {
       const jsonString = JSON.stringify(json)
       return this.encryptGCM(jsonString)
     } catch (error) {
-      logger.error(`not able to encrypt the json object`)
+      logger.error('not able to encrypt the json object')
       throw error
     }
   }
@@ -241,8 +242,9 @@ class GravityCrypto {
    * @returns {any}
    */
   decryptAndParse(data) {
+    console.log(data)
     const decryptedValue = this.decryptOrPassThrough(data)
-    return typeof decryptedValue === 'object' ? decryptedValue : JSON.parse(decryptedValue)
+    return typeof decryptedValue === 'object' ? decryptedValue : hasJsonStructure(decryptedValue)
   }
 
   /**
