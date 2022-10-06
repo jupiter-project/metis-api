@@ -254,9 +254,7 @@ const uploadController = (req, res, next, app, jobs, websocket) => {
           next()
         })
         job.on('complete', (result) => {
-          console.log(result)
           logger.verbose("---- jon.on('complete)")
-          console.log(fileUploadData.attachToJupiterAddress)
           const payload = {
             jobId: job.id,
             senderAddress: userAccountProperties.address,

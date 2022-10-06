@@ -1,17 +1,13 @@
-const { localFileCacheService } = require('../services/localFileCacheService')
 const gu = require('../../../utils/gravityUtils')
 const { StatusCode } = require('../../../utils/statusCode')
 const { MetisErrorCode } = require('../../../utils/metisErrorCode')
 const logger = require('../../../utils/logger')(module)
 const mError = require('../../../errors/metisError')
-const fs = require('fs')
 const { uploadJob } = require('../jobs/uploadJob')
 const { jimConfig } = require('../config/jimConfig')
 
 // TODO: VALIDATE FILE SIZE
 const uploadControllerMulter = async (req, res, next, app, jobs, websocket) => {
-  console.log(req.file)
-  console.log(req.body)
   const { attachToJupiterAddress, originalFileType, fileCategory } = req.body
   const { filename, encoding, mimetype, size, path } = req.file
 
@@ -36,18 +32,6 @@ const uploadControllerMulter = async (req, res, next, app, jobs, websocket) => {
   fileUploadData.fileEncoding = encoding
   fileUploadData.fileMimeType = mimetype
   fileUploadData.fileSize = size
-
-  console.log(fileUploadData)
-  // {
-  //   fieldname: 'file',
-  //   originalname: 'iamge.jpg',
-  //   encoding: '7bit',
-  //   mimetype: 'image/jpeg',
-  //   destination: 'tmp/',
-  //   filename: 'd965a11517f5e816b257e9c2e7e4fab1',
-  //   path: 'tmp\\d965a11517f5e816b257e9c2e7e4fab1',
-  //   size: 10298
-  // }
 
   if (attachToJupiterAddress) {
     if (!gu.isWellFormedJupiterAddress(attachToJupiterAddress)) {
@@ -119,9 +103,7 @@ const uploadControllerMulter = async (req, res, next, app, jobs, websocket) => {
       next()
     })
     job.on('complete', (result) => {
-      console.log(result)
       logger.verbose("---- jon.on('complete)")
-      console.log(fileUploadData.attachToJupiterAddress)
       const payload = {
         jobId: job.id,
         senderAddress: userAccountProperties.address,
