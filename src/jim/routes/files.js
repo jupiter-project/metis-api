@@ -500,41 +500,41 @@ module.exports = (app, jobs, websocket) => {
     logger.info('== GET: /jim/v1/api/files')
     logger.info('======================================================================================\n\n\n')
 
-    // try {
-    //   const userAccountProperties = req.user.gravityAccountProperties
-    //   const { channelAddress } = req.query
-    //   // const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
-    //   // if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`${userAccountProperties.address} doesnt have a channel account`)
-    //   // const binaryAccountProperties = await storageService.fetchBinaryAccountPropertiesOrNull(channelAccountProperties);
-    //   // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
-    //   // if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
+    try {
+      const userAccountProperties = req.user.gravityAccountProperties
+      const { channelAddress } = req.query
+      // const channelAccountProperties = await chanService.getChannelAccountPropertiesOrNullFromChannelRecordAssociatedToMember(userAccountProperties,channelAddress);
+      // if(channelAccountProperties === null) throw new mError.MetisErrorNoChannelAccountFound(`${userAccountProperties.address} doesnt have a channel account`)
+      // const binaryAccountProperties = await storageService.fetchBinaryAccountPropertiesOrNull(channelAccountProperties);
+      // if(binaryAccountProperties === null) throw new mError.MetisErrorNoBinaryAccountFound(`${channelAccountProperties.address} doesnt have a binary account`);
+      // if(!gu.isWellFormedJupiterAddress(channelAddress)) throw new mError.MetisErrorBadJupiterAddress(`channelAddress: ${channelAddress}`)
 
-    //   const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress)
-    //   // async fetchChannelFilesList(userAccountProperties, channelAddress){
-    //   const mappedFileList = filesList.map((file) => {
-    //     return {
-    //       fileUuid: file.fileUuid,
-    //       fileCategory: file.fileCat,
-    //       fileName: file.fileName,
-    //       mimeType: file.mimeType,
-    //       sizeInBytes: file.sizeInBytes,
-    //       url: file.url,
-    //       createdAt: file.createdAt,
-    //       createdBy: file.createdBy,
-    //       version: file.version
-    //     }
-    //   })
-    //   res.status(StatusCode.SuccessOK).send({
-    //     message: `${filesList.length} file(s) found for ${channelAddress}`,
-    //     files: filesList
-    //   })
-    // } catch (error) {
-    //   logger.error('********************** ERROR ******************************************')
-    //   logger.error('** GET /jim/v1/api/files')
-    //   logger.error('********************** ERROR ******************************************')
-    //   console.log(error)
-    //   res.status(StatusCode.ClientErrorBadRequest).send({ message: error.message })
-    // }
+      const filesList = await storageService.fetchChannelFilesList(userAccountProperties, channelAddress)
+      // async fetchChannelFilesList(userAccountProperties, channelAddress){
+      // const mappedFileList = filesList.map((file) => {
+      //   return {
+      //     fileUuid: file.fileUuid,
+      //     fileCategory: file.fileCat,
+      //     fileName: file.fileName,
+      //     mimeType: file.mimeType,
+      //     sizeInBytes: file.sizeInBytes,
+      //     url: file.url,
+      //     createdAt: file.createdAt,
+      //     createdBy: file.createdBy,
+      //     version: file.version
+      //   }
+      // })
+      res.status(StatusCode.SuccessOK).send({
+        message: `${filesList.length} file(s) found for ${channelAddress}`,
+        files: filesList
+      })
+    } catch (error) {
+      logger.error('********************** ERROR ******************************************')
+      logger.error('** GET /jim/v1/api/files')
+      logger.error('********************** ERROR ******************************************')
+      console.log(error)
+      res.status(StatusCode.ClientErrorBadRequest).send({ message: error.message })
+    }
     res.end()
   })
 
