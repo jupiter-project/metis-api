@@ -242,9 +242,16 @@ class GravityCrypto {
    * @returns {any}
    */
   decryptAndParse(data) {
-    console.log(data)
     const decryptedValue = this.decryptOrPassThrough(data)
-    return typeof decryptedValue === 'object' ? decryptedValue : hasJsonStructure(decryptedValue)
+    if (typeof decryptedValue === 'object') {
+      return decryptedValue
+    }
+
+    if (hasJsonStructure(decryptedValue)) {
+      return JSON.parse(decryptedValue)
+    }
+
+    return decryptedValue
   }
 
   /**
