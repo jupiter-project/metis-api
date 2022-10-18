@@ -166,7 +166,9 @@ io.of('/invite').on('connection', socketService.channelCreationConnection)
 // upload socket
 io.of('/upload').on('connection', socketService.channelCreationConnection)
 
-io.of('/sign-in').on('connection', socketService.signInConnection);
+io.of('/sign-in').on('connection', socketService.signInConnection)
+
+io.of('/sync-devices').on('connection', (socket) => socketService.syncDevices(socket, io))
 
 const jupiterSocketService = require('./services/jupiterSocketService')
 const WebSocket = require('ws')
