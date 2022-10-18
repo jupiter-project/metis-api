@@ -205,7 +205,7 @@ const signInConnection = function (socket) {
 const syncDevices = function (socket, io) {
   const { room, user } = socket.handshake.query
   if (!room || !user) {
-    logger.error(`Missing parameter ${JSON.stringify({ room, user })}`)
+    logger.error(`Missing parameter  ${JSON.stringify({ room, user })}`)
     return socket.close()
   }
 
