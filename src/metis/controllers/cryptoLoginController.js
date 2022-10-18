@@ -8,9 +8,9 @@ const { MetisErrorCode } = require('../../../utils/metisErrorCode')
 const bcrypt = require('bcrypt-nodejs')
 const moment = require('moment')
 const { blockchainAccountVerificationService } = require('../../gravity/services/blockchainAccountVerificationService')
-const { metisConf } = require('../../../config/metisConf')
-const { GravityCrypto } = require('../../../services/gravityCrypto')
-const jwt = require('jsonwebtoken')
+const {metisConf} = require("../../../config/metisConf");
+const {GravityCrypto} = require("../../../services/gravityCrypto");
+const jwt = require("jsonwebtoken");
 const logger = require('../../../utils/logger')(module)
 let counter = 1
 
@@ -18,14 +18,10 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
   const startTime = Date.now()
   const namespace = '/sign-up'
   const room = `sign-up-${newAccountAlias}`
-  const job = jobs
-    .create('MetisJobRegisterJupiterAccount', {
-      userAccountProperties: newAccountProperties,
-      userAlias: newAccountAlias
-    })
+  const job = jobs.create('MetisJobRegisterJupiterAccount', { userAccountProperties: newAccountProperties, userAlias: newAccountAlias })
     .priority('high')
     .removeOnComplete(false)
-    .save((error) => {
+    .save(error => {
       logger.verbose('---- JobQueue: user-registration.save()')
       if (error) {
         logger.error('****************************************************************')
@@ -57,15 +53,13 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
     })
 
   /**
-   *
-   */
+     *
+     */
   job.on('complete', function () {
     logger.verbose('---- job.on(complete(result))')
     logger.verbose(`alias= ${newAccountAlias}`)
     const endTime = Date.now()
-    const processingTime = `${moment.duration(endTime - startTime).minutes()}:${moment
-      .duration(endTime - startTime)
-      .seconds()}`
+    const processingTime = `${moment.duration(endTime - startTime).minutes()}:${moment.duration(endTime - startTime).seconds()}`
     console.log('')
     logger.info('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     logger.info('++ SIGNUP COMPLETE. Sending Websocket Event')
@@ -103,20 +97,14 @@ const createJob = (jobs, newAccountProperties, newAccountAlias, res, websocket, 
     logger.error('***********************************************************************************')
     logger.error(`errorMessage= ${errorMessage}`)
     logger.error(`doneAttempts= ${doneAttempts}`)
-    websocket
-      .of(namespace)
-      .to(room)
-      .emit('signUpFailedAttempt', { message: `${errorMessage}` })
+    websocket.of(namespace).to(room).emit('signUpFailedAttempt', { message: `${errorMessage}` })
   })
   job.on('failed', function (errorMessage) {
     logger.error('***********************************************************************************')
     logger.error('** job.on(failed())')
     logger.error('***********************************************************************************')
     logger.error(`errorMessage= ${errorMessage}`)
-    websocket
-      .of(namespace)
-      .to(room)
-      .emit('signUpFailed', { message: `${errorMessage}` })
+    websocket.of(namespace).to(room).emit('signUpFailed', { message: `${errorMessage}` })
   })
 }
 
@@ -132,9 +120,8 @@ module.exports = (app, jobs, websocket) => {
         })
       }
       const challengeDigest = blockchainAccountVerificationService.generateChallenge(blockchainAccountAddress)
-      jupiterAPIService
-        .getAlias(blockchainAccountAddress)
-        .then((resp) => {
+      jupiterAPIService.getAlias(blockchainAccountAddress)
+        .then(resp => {
           return res.status(StatusCode.SuccessOK).send({
             account: resp.data,
             challenge: challengeDigest,
