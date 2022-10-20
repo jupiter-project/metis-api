@@ -33,9 +33,9 @@ const invites = function (data) {
 }
 
 const joinRoom = (socket, room, user) => {
-  logger.verbose(`###############################`)
-  logger.verbose(`## joinRoom()`)
-  logger.verbose(`##`)
+  logger.verbose('###############################')
+  logger.verbose('## joinRoom()')
+  logger.verbose('##')
   logger.debug(`  room= ${room}`)
 
   socket.name = user
@@ -49,9 +49,9 @@ const joinRoom = (socket, room, user) => {
 }
 
 const joinChannelRoom = (socket, room, user) => {
-  logger.verbose(`###############################`)
-  logger.verbose(`## joinChannelRoom()`)
-  logger.verbose(`##`)
+  logger.verbose('###############################')
+  logger.verbose('## joinChannelRoom()')
+  logger.verbose('##')
   logger.debug(`  room= ${room}`)
 
   socket.name = user
@@ -69,16 +69,17 @@ const signUpSuccessful = function (account) {
   this.broadcast.to(`sign-up-${account}`).emit('signUpSuccessful')
 }
 
-const signInStartDiscovery = function ({selectedAccount, publicKey}){
-  console.log('signInStartDiscovery', selectedAccount);
-  this.broadcast.to(`sign-in-${selectedAccount}`).emit(`discover-request-${selectedAccount}`, {selectedAccount, publicKey});
-};
+const signInStartDiscovery = function ({ selectedAccount, publicKey }) {
+  console.log('signInStartDiscovery', selectedAccount)
+  this.broadcast
+    .to(`sign-in-${selectedAccount}`)
+    .emit(`discover-request-${selectedAccount}`, { selectedAccount, publicKey })
+}
 
-const signInResponseDiscovery = function ({selectedAccount, encryptedMessage}){
-  console.log('signInResponseDiscovery', encryptedMessage);
-  this.broadcast.to(`sign-in-${selectedAccount}`).emit(`discover-response-${selectedAccount}`, encryptedMessage);
-};
-
+const signInResponseDiscovery = function ({ selectedAccount, encryptedMessage }) {
+  console.log('signInResponseDiscovery', encryptedMessage)
+  this.broadcast.to(`sign-in-${selectedAccount}`).emit(`discover-response-${selectedAccount}`, encryptedMessage)
+}
 
 const signupFailedAttempt = function (account) {
   this.broadcast.to(`sign-up-${account}`).emit('signUpFailedAttempt')
@@ -89,7 +90,7 @@ const signupFailedAttempt = function (account) {
  * @param account
  */
 const signUpFailed = function (account) {
-  logger.verbose(`#########################`)
+  logger.verbose('#########################')
   logger.verbose(`## signUpFailed(account=${account})`)
   this.broadcast.to(`sign-up-${account}`).emit('signUpFailed')
 }
@@ -136,9 +137,9 @@ const signUpConnection = function (socket) {
 
   socket.on('leaveRoom', leaveRoom)
   socket.on('connect_error', (error) => {
-    logger.error(`***********************************************************************************`)
-    logger.error(`** signUpConnection(socket).catch(error)`)
-    logger.error(`** `)
+    logger.error('***********************************************************************************')
+    logger.error('** signUpConnection(socket).catch(error)')
+    logger.error('** ')
     console.log(error)
   })
 
@@ -153,13 +154,13 @@ const signUpConnection = function (socket) {
    * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
    */
   socket.on('disconnect', (reason) => {
-    logger.error(`***********************************************************************************`);
-    logger.error(`** signUpConnection(socket).onDisconnect(reason)`);
-    logger.error(`** `);
-    logger.error(`reason: ${reason}`);
-    logger.info(`${socket.name} has disconnected from the chat.${socket.id}`);
-  });
-};
+    logger.error('***********************************************************************************')
+    logger.error('** signUpConnection(socket).onDisconnect(reason)')
+    logger.error('** ')
+    logger.error(`reason: ${reason}`)
+    logger.info(`${socket.name} has disconnected from the chat.${socket.id}`)
+  })
+}
 
 /**
  *
@@ -167,24 +168,24 @@ const signUpConnection = function (socket) {
  * @returns {*}
  */
 const signInConnection = function (socket) {
-  const { room, user } = socket.handshake.query;
+  const { room, user } = socket.handshake.query
   if (!room || !user) {
-    logger.error(`Missing parameter ${JSON.stringify({ room, user })}`);
-    return socket.close();
+    logger.error(`Missing parameter ${JSON.stringify({ room, user })}`)
+    return socket.close()
   }
 
-  joinRoom(socket, room, user);
+  joinRoom(socket, room, user)
 
-  socket.on('leaveRoom', leaveRoom);
+  socket.on('leaveRoom', leaveRoom)
   socket.on('connect_error', (error) => {
-    logger.error(`***********************************************************************************`);
-    logger.error(`** signUpConnection(socket).catch(error)`);
-    logger.error(`** `);
-    console.log(error);
-  });
+    logger.error('***********************************************************************************')
+    logger.error('** signUpConnection(socket).catch(error)')
+    logger.error('** ')
+    console.log(error)
+  })
 
-  socket.on('signInStartDiscovery', signInStartDiscovery);
-  socket.on('signInResponseDiscovery', signInResponseDiscovery);
+  socket.on('signInStartDiscovery', signInStartDiscovery)
+  socket.on('signInResponseDiscovery', signInResponseDiscovery)
 
   /**
    * io server disconnect The server has forcefully disconnected the socket with socket.disconnect()
@@ -194,14 +195,64 @@ const signInConnection = function (socket) {
    * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
    */
   socket.on('disconnect', (reason) => {
-    logger.error(`***********************************************************************************`);
-    logger.error(`** signInConnection(socket).onDisconnect(reason)`);
-    logger.error(`** `);
-    logger.error(`reason: ${reason}`);
-    logger.info(`${socket.name} has disconnected from the room.${socket.id}`);
-  });
-};
+    logger.error('***********************************************************************************')
+    logger.error('** signInConnection(socket).onDisconnect(reason)')
+    logger.error('** ')
+    logger.error(`reason: ${reason}`)
+    logger.info(`${socket.name} has disconnected from the room.${socket.id}`)
+  })
+}
+const syncDevices = function (socket, io) {
+  const { room, user } = socket.handshake.query
+  if (!room || !user) {
+    logger.error(`Missing parameter  ${JSON.stringify({ room, user })}`)
+    return socket.close()
+  }
 
+  joinRoom(socket, room, user)
+
+  socket.on('sync-devices-request', ({ ethAccount }) => {
+    io.of('sync-devices').to(room).emit('sync-devices-requested', {
+      ethAccount
+    })
+  })
+
+  socket.on('sync-devices-grant', ({ credentials }) => {
+    io.of('sync-devices').to(room).emit('sync-devices-granted', {
+      credentials
+    })
+  })
+
+  socket.on('sync-devices-reject', () => {
+    io.of('sync-devices').to(room).emit('sync-devices-rejected')
+  })
+
+  socket.on('leaveRoom', leaveRoom)
+  socket.on('connect_error', (error) => {
+    logger.error('***********************************************************************************')
+    logger.error('** signUpConnection(socket).catch(error)')
+    logger.error('** ')
+    console.log(error)
+  })
+
+  socket.on('signInStartDiscovery', signInStartDiscovery)
+  socket.on('signInResponseDiscovery', signInResponseDiscovery)
+
+  /**
+   * io server disconnect The server has forcefully disconnected the socket with socket.disconnect()
+   * io client disconnect The socket was manually disconnected using socket.disconnect()
+   * ping timeout The server did not send a PING within the pingInterval + pingTimeout range
+   * transport close The connection was closed (example: the user has lost connection, or the network was changed from WiFi to 4G)
+   * transport error The connection has encountered an error (example: the server was killed during a HTTP long-polling cycle)
+   */
+  socket.on('disconnect', (reason) => {
+    logger.error('***********************************************************************************')
+    logger.error('** signInConnection(socket).onDisconnect(reason)')
+    logger.error('** ')
+    logger.error(`reason: ${reason}`)
+    logger.info(`${socket.name} has disconnected from the room.${socket.id}`)
+  })
+}
 
 const connection = function (socket) {
   logger.info('a user connected')
@@ -233,4 +284,4 @@ const connection = function (socket) {
   })
 }
 
-module.exports = { connection, signUpConnection, channelCreationConnection, signInConnection };
+module.exports = { connection, signUpConnection, channelCreationConnection, signInConnection, syncDevices }
