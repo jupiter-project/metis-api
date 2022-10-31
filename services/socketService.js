@@ -218,10 +218,8 @@ const syncDevices = function (socket, io) {
     })
   })
 
-  socket.on('sync-devices-grant', ({ credentials }) => {
-    io.of('sync-devices').to(room).emit('sync-devices-granted', {
-      credentials
-    })
+  socket.on('sync-devices-grant', (data) => {
+    io.of('sync-devices').to(room).emit('sync-devices-granted', data)
   })
 
   socket.on('sync-devices-reject', () => {

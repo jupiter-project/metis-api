@@ -12,7 +12,7 @@ module.exports.firebaseAdmin = firebaseAdmin.initializeApp({
     privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
   })
 })
-const Url = require('url')
+const url = require('url').URL
 const fs = require('fs')
 const cors = require('cors')
 const { appConf } = require('./config/appConf')
@@ -176,7 +176,7 @@ const jupiterWss = new WebSocket.Server({ noServer: true })
 jupiterWss.on('connection', jupiterSocketService.connection.bind(this))
 
 server.on('upgrade', (request, socket, head) => {
-  const pathname = new Url(request.url).pathname
+  const pathname = new url.URL(request.url).pathname
   if (pathname === '/jupiter') {
     jupiterWss.handleUpgrade(request, socket, head, (ws) => {
       jupiterWss.emit('connection', ws, request)
