@@ -8,6 +8,8 @@ RUN yarn global add node-gyp pm2
 
 RUN yarn install
 
+RUN yarn build
+
 COPY . .
 
 RUN mkdir -p /apps/metis/file_cache
