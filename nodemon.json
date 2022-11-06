@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "ignore": ["*.test.js"],
+  "exec": "npm run build && node ./dist/server.js NODE_ENV=dev",
+  "watch": ["src/*"],
+  "ext": "js,json,ts"
+}

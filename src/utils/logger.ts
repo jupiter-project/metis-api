@@ -1,0 +1,208 @@
+/* eslint-disable no-undef */
+import 'dotenv/config.js'
+import { join, sep } from 'path'
+import { createLogger, format as _format, transports as _transports } from 'winston'
+import 'winston-mongodb'
+import { appConf } from '../config/appConf'
+import { loggerConf } from '../config/loggerConf'
+
+/**
+ *
+ * @param level
+ * @return {*}
+ */
+const includeOnlyOneLevel = (level: string): any => {
+  return _format((info, opts) => {
+    // if(!levels.includes(info.level)) return false
+    if (info.level !== level) return false
+    return info
+  })()
+}
+
+const includeAllExceptOneLevel = (levelToExclude: string) => {
+  return _format((info, opts) => {
+    if (info.level === levelToExclude) return false
+    return info
+  })()
+}
+
+/**
+ *
+ * @return {string}
+ */
+const tsFormat = (): string => {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+}
+
+const LEVEL_FILTER_TYPE = {
+  includeOnlyOne: 'includeOnlyOne',
+  includeAllExceptOne: 'includeAllExceptOne',
+  none: ''
+}
+
+/**
+ *
+ * @param callingModule
+ * @param level
+ * @return {Console}
+ */
+const initializeConsoleTransport = (
+  callingModule: any,
+  level = loggerConf.levels.names.error,
+  levelFilterType = ''
+): Console => {
+  const formats = []
+  formats.push(_format.timestamp({ format: 'YYYY-MM-DD-HHmmss' }))
+  if (levelFilterType === 'includeOnlyOne') {
+    formats.push(includeOnlyOneLevel(level))
+  } else if (levelFilterType === 'includeAllExceptOne') {
+    formats.push(includeAllExceptOneLevel(level))
+  }
+  formats.push(
+    _format.printf((info) => {
+      const callingModuleName = `${getLabel(callingModule)}`
+      const paddedCallingModuleName = callingModuleName.padEnd(45, ' ')
+      const paddedLevel = info.level.padEnd(10)
+      return `${info.timestamp}|${paddedLevel}|${paddedCallingModuleName}|${info.message}`
+    })
+  )
+
+  return new _transports.Console({
+    level,
+    colorize: true,
+    format: _format.combine(...formats)
+  })
+}
+
+const initializeFileTransport = (
+  callingModule = '',
+  fileName: string,
+  level = loggerConf.levels.names.error,
+  levelFilterType = ''
+) => {
+  const formats = []
+  formats.push(_format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }))
+  if (levelFilterType === 'includeOnlyOne') {
+    formats.push(includeOnlyOneLevel(level))
+  } else if (levelFilterType === 'includeAllExceptOne') {
+    formats.push(includeAllExceptOneLevel(level))
+  }
+  formats.push(
+    _format.printf((info) => {
+      let callingModuleName = `${getLabel(callingModule)}`
+      callingModuleName = callingModuleName.padEnd(45, ' ')
+      return `[${info.timestamp}][${info.level}]${callingModuleName}|${info.message}`
+    })
+  )
+
+  return new _transports.File({
+    filename: fileName,
+    level,
+    colorize: true,
+    timestamp: tsFormat,
+    format: _format.combine(...formats)
+  })
+}
+
+/**
+ *
+ * @param callingModule
+ * @return {string}
+ */
+const getLabel = (callingModule: string): string => {
+  if (!callingModule) return ''
+  const parts = callingModule.filename.split(sep)
+  return join(parts[parts.length - 2], parts.pop())
+}
+
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
+const serverDevLogger = (callingModule: string | undefined): any => {
+  const transports = []
+  transports.push(
+    initializeFileTransport(
+      callingModule,
+      loggerConf.errorLogFilePath,
+      loggerConf.levels.names.error,
+      LEVEL_FILTER_TYPE.includeOnlyOne
+    )
+  )
+  transports.push(
+    initializeFileTransport(
+      callingModule,
+      loggerConf.combinedLogFilePath,
+      loggerConf.defaultLevel,
+      LEVEL_FILTER_TYPE.none
+    )
+  )
+  transports.push(initializeConsoleTransport(callingModule, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none))
+  return createLogger({
+    levels: loggerConf.levels.ids,
+    transports
+  })
+}
+
+const localDevLogger = (callingModule: any) => {
+  const transports = []
+  transports.push(initializeConsoleTransport(callingModule, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none))
+  return createLogger({
+    levels: loggerConf.levels.ids,
+    transports
+  })
+}
+
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
+const productionLogger = (callingModule: string | undefined): any => {
+  const transports = []
+  transports.push(
+    initializeFileTransport(
+      callingModule,
+      loggerConf.errorLogFilePath,
+      loggerConf.levels.names.error,
+      LEVEL_FILTER_TYPE.includeOnlyOne
+    )
+  )
+  transports.push(
+    initializeFileTransport(
+      callingModule,
+      loggerConf.combinedLogFilePath,
+      loggerConf.defaultLevel,
+      LEVEL_FILTER_TYPE.none
+    )
+  )
+  transports.push(initializeConsoleTransport(callingModule, loggerConf.defaultLevel, LEVEL_FILTER_TYPE.none))
+  return createLogger({
+    levels: loggerConf.levels.ids,
+    transports
+  })
+}
+
+/**
+ *
+ * @param callingModule
+ * @return {*}
+ */
+const noLogger = (): any => {
+  const transports: any[] = []
+  return createLogger({
+    levels: loggerConf.levels.ids,
+    transports
+  })
+}
+
+export default function (callingModule: any) {
+  if (!loggerConf.isEnabled) return noLogger()
+  if (appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.localDev) return localDevLogger(callingModule)
+  if (appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.serverDev) return serverDevLogger(callingModule)
+  if (appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.qa) return serverDevLogger(callingModule)
+  if (appConf.nodeEnvrionment === appConf.nodeEnvironmentOptions.production) return productionLogger(callingModule)
+  return noLogger(callingModule)
+}
