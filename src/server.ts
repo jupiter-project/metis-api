@@ -302,7 +302,7 @@ server.listen(port, () => {
   logger.info(' ▀         ▀  ▀▀▀▀▀▀▀▀▀▀▀       ▀       ▀▀▀▀▀▀▀▀▀▀▀  ▀▀▀▀▀▀▀▀▀▀▀ ')
   logger.info('_________________________________________________________________')
   logger.info('')
+  logger.info(`Running with Typescript`)
   logger.info(`Metis version ${process.env.VERSION} is now running on port ${port} 🎉`)
   logger.info(`Jupiter Node running on ${process.env.JUPITERSERVER}`)
-  logger.info(`Running on Typescript`)
 })
