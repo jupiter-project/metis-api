@@ -3,12 +3,14 @@ name: Build and publish Metis Prod
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
     steps:
+      - name: Build App
+        uses: npm run build
       - name: Get tag
         id: tag
         uses: dawidd6/action-get-tag@v1
@@ -33,8 +35,8 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
-          channel: '#general'
-          text: 'A new version ${{ steps.tag.outputs.tag }} of Metis has been deployed'
+          channel: "#general"
+          text: "A new version ${{ steps.tag.outputs.tag }} of Metis has been deployed"
 #      - name: send custom message to Telegram
 #        uses: appleboy/telegram-action@master
 #        with:
