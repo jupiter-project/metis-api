@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build App
-        uses: npm run build
+        run: npm run build
       - name: Get tag
         id: tag
         uses: dawidd6/action-get-tag@v1
