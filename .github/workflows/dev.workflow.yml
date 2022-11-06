@@ -2,7 +2,7 @@ name: Build and publish Metis Dev
 
 on:
   push:
-    branches: [dev]
+    branches: ["feat/add-typescript"]
   workflow_dispatch:
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Build App
-        run: npm run build
+        run: npx swc ./src -d dist --copy-files
       - name: Checkout the repo
         uses: actions/checkout@v2
       - name: Build image
