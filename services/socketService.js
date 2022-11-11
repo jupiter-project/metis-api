@@ -212,10 +212,8 @@ const syncDevices = function (socket, io) {
 
   joinRoom(socket, room, user)
 
-  socket.on('sync-devices-request', ({ ethAccount }) => {
-    io.of('sync-devices').to(room).emit('sync-devices-requested', {
-      ethAccount
-    })
+  socket.on('sync-devices-request', (data) => {
+    io.of('sync-devices').to(room).emit('sync-devices-requested', data)
   })
 
   socket.on('sync-devices-grant', (data) => {
