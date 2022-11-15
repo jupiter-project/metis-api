@@ -1,3 +1,18 @@
+const {
+  createMessage,
+  decrypt,
+  decryptKey,
+  encrypt,
+  enums,
+  generateKey,
+  Message,
+  PartialConfig,
+  PublicKey,
+  readKey,
+  readMessage,
+  readPrivateKey,
+  WebStream
+} = require('openpgp')
 const { StatusCode } = require('../../../utils/statusCode')
 const { jupiterAPIService } = require('../../../services/jupiterAPIService')
 const mError = require('../../../errors/metisError')
@@ -185,6 +200,91 @@ module.exports = (app, jobs, websocket) => {
       const ipAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress
       gu.ipLogger(newAccountProperties.address, blockchainAccountAddress, ipAddress)
       createJob(jobs, newAccountProperties, blockchainAccountAddress, res, websocket, next)
+    },
+
+    generateKeyPairs: async (req, res, nexts) => {
+      console.log('\n\n')
+      logger.info('======================================================================================')
+      logger.info('== POST: /v1/api/generate-keys ')
+      logger.info('======================================================================================\n\n')
+      // const ipLogger = function (jupAddress, alias, req) {
+      const { address, passphrase } = req.body
+      const { privateKey: privateKeyArmored, publicKey: publicKeyArmored } = await generateKey({
+        userIDs: [{ name: address }],
+        passphrase,
+        type: 'rsa',
+        rsaBits: 2048,
+        curve: 'ed25519',
+        config: {
+          showVersion: true,
+          preferredHashAlgorithm: enums.hash.sha256,
+          preferredSymmetricAlgorithm: enums.symmetric.aes128,
+          preferredCompressionAlgorithm: enums.compression.zlib
+        }
+      })
+
+      res.json({ privateKeyArmored, publicKeyArmored })
+    },
+
+    createMsg: async (req, res) => {
+      const { text } = req.body
+      const data = await createMessage({ text })
+
+      res.json(data)
+    },
+
+    encryptMessage: async (req, res) => {
+      const { message, publicKeys } = req.body
+
+      const data = await encrypt({
+        message,
+        encryptionKeys: publicKeys
+      })
+
+      res.json(data)
+    },
+
+    decryptMessage: async (req, res) => {
+      const { armoredMessage, passphrase, privateKeyArmored } = req.body
+
+      const privateKey = await this.decryptPrivateKey(passphrase, privateKeyArmored, {
+        preferredHashAlgorithm: enums.hash.sha256,
+        preferredSymmetricAlgorithm: enums.symmetric.aes128
+      })
+      const encryptedMessage = await this.readMsg(armoredMessage)
+      const { data: decryptedMessage } = await decrypt({
+        message: encryptedMessage,
+        decryptionKeys: privateKey
+      })
+
+      const data = await decryptedMessage
+
+      res.json(data)
+    },
+
+    decryptPrivateKey: async (req, res) => {
+      const { passphrase, privateKeyArmored, config } = req.body
+
+      const privateKey = await readPrivateKey({ armoredKey: privateKeyArmored, config })
+      const data = await decryptKey({
+        privateKey,
+        passphrase
+      })
+      res.json(data)
+    },
+
+    read: async (req, res) => {
+      const { armoredKey } = req.body
+      const data = await readKey({ armoredKey })
+      res.json(data)
+    },
+
+    readMsg: async (req, res) => {
+      const { encryptedMessage } = req.body
+      const data = await readMessage({
+        armoredMessage: encryptedMessage
+      })
+      res.json(data)
     }
   }
 }
