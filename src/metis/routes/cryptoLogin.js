@@ -72,7 +72,9 @@ module.exports = (app, jobs, websocket, controllers) => {
     }
 
     try {
-      const { data: { accountRS } } = await jupiterAPIService.getAlias(blockchainAccountAddress)
+      const {
+        data: { accountRS }
+      } = await jupiterAPIService.getAlias(blockchainAccountAddress)
       const jwtPrivateKeyBase64String = metisConf.jwt.privateKeyBase64
       const privateKeyBuffer = Buffer.from(jwtPrivateKeyBase64String, 'base64')
       const jwtCrypto = new GravityCrypto(metisConf.appPasswordAlgorithm, privateKeyBuffer)
@@ -107,6 +109,14 @@ module.exports = (app, jobs, websocket, controllers) => {
   })
 
   app.get('/v1/api/crypto/get-account/:blockchainAccountAddress', controllers.cryptoLoginController.loadAccount)
+
+  app.post('/v1/api/crypto/get-key-pairs/', controllers.cryptoLoginController.generateKeyPairs)
+  app.post('/v1/api/crypto/create-msg/', controllers.cryptoLoginController.createMsg)
+  app.post('/v1/api/crypto/encrypt-message/', controllers.cryptoLoginController.encryptMessage)
+  app.post('/v1/api/crypto/decrypt-message/', controllers.cryptoLoginController.decryptMessage)
+  app.post('/v1/api/crypto/decrypt-private-key/', controllers.cryptoLoginController.decryptPrivateKey)
+  app.post('/v1/api/crypto/read/', controllers.cryptoLoginController.read)
+  app.post('/v1/api/crypto/read-msg/', controllers.cryptoLoginController.readMsg)
 
   app.post('/v1/api/crypto/create/account', controllers.cryptoLoginController.createAccount)
 }
