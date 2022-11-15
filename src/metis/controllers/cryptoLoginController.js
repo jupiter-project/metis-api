@@ -263,13 +263,19 @@ module.exports = (app, jobs, websocket) => {
     },
 
     decryptPrivateKey: async (req, res) => {
-      const { passphrase, privateKeyArmored, config } = req.body
+      const { passphrase, privateKeyArmored } = req.body
+
+      const config = {
+        preferredHashAlgorithm: enums.hash.sha256,
+        preferredSymmetricAlgorithm: enums.symmetric.aes128
+      }
 
       const privateKey = await readPrivateKey({ armoredKey: privateKeyArmored, config })
       const data = await decryptKey({
         privateKey,
         passphrase
       })
+
       res.json(data)
     },
 
