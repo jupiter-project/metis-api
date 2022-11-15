@@ -209,7 +209,7 @@ module.exports = (app, jobs, websocket) => {
       logger.info('======================================================================================\n\n')
       // const ipLogger = function (jupAddress, alias, req) {
       const { address, passphrase } = req.body
-      const { privateKey: privateKeyArmored, publicKey: publicKeyArmored } = await generateKey({
+      const { privateKey, publicKey } = await generateKey({
         userIDs: [{ name: address }],
         passphrase,
         type: 'rsa',
@@ -223,7 +223,7 @@ module.exports = (app, jobs, websocket) => {
         }
       })
 
-      res.json({ privateKeyArmored, publicKeyArmored })
+      res.json({ privateKey, publicKey })
     },
 
     createMsg: async (req, res) => {
