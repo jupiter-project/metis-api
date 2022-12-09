@@ -21,6 +21,7 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/appLogin',
     '/v2/api/login',
     '/v1/api/signup',
+    '/v2/api/signup',
     '/metis/v2/api/signup',
     '/v1/api/get-jupiter-account',
     '/v1/api/jupiter/alias/',
@@ -29,8 +30,8 @@ const tokenVerify = (req, res, next) => {
     '/v1/api/job/status',
     '/api-docs',
     '/jim/v1/api/ping',
-    '/v1/api/crypto',
-  ];
+    '/v1/api/crypto'
+  ]
 
   // app.get('/v1/api/accounts/:accountAddress/aliases', async (req, res) => {
   const routeDoesntNeedAuthentication = noAuthenticationRouteList.filter((route) =>
